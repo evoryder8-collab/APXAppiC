@@ -87,7 +87,10 @@ struct RoutePlannerView: View {
                         Toggle(language.text("Prefer simpler navigation"), isOn: $simpleNavigation)
                             .tint(APEXColor.cyan)
 
-                        Button { Task { await generate() } } label: {
+                        Button {
+                            guard let operation = session.accountOperationLease() else { return }
+                            Task { await generate(operation: operation) }
+                        } label: {
                             if isGenerating { ProgressView().tint(.white) }
                             else { Label(language.text("Generate route options"), systemImage: "point.topleft.down.to.point.bottomright.curvepath") }
                         }
@@ -160,10 +163,18 @@ struct RoutePlannerView: View {
                                 .font(APEXFont.body(13, weight: .medium))
                                 .foregroundStyle(APEXColor.secondaryInk)
                             HStack(spacing: 10) {
-                                Button(language.text("Save route")) { Task { _ = await save(selected) } }
+                                Button(language.text("Save route")) {
+                                    guard let operation = session.accountOperationLease() else { return }
+                                    Task { _ = await save(selected, operation: operation) }
+                                }
                                     .buttonStyle(.bordered)
                                 Button(language.text("Start this route")) {
-                                    Task { routeToStart = await save(selected) }
+                                    guard let operation = session.accountOperationLease() else { return }
+                                    Task {
+                                        let route = await save(selected, operation: operation)
+                                        guard session.accountOperationIsCurrent(operation) else { return }
+                                        routeToStart = route
+                                    }
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .tint(APEXColor.cyan)
@@ -194,18 +205,24 @@ struct RoutePlannerView: View {
         }
         .onAppear { location.requestLocation() }
         .fileImporter(isPresented: $importingGPX, allowedContentTypes: [.gpx]) { result in
-            Task { await importGPX(result) }
+            guard let operation = session.accountOperationLease() else { return }
+            Task { await importGPX(result, operation: operation) }
         }
     }
 
     @MainActor
-    private func generate() async {
-        guard let start = location.currentLocation?.coordinate else { return }
+    private func generate(operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation),
+              let start = location.currentLocation?.coordinate else { return }
         isGenerating = true
         message = "Orbit is comparing genuinely different route shapes."
-        defer { isGenerating = false }
+        defer {
+            if session.accountOperationIsCurrent(operation) {
+                isGenerating = false
+            }
+        }
         do {
-            candidates = try await OrbitRouteEngine.shared.generate(
+            let generatedCandidates = try await OrbitRouteEngine.shared.generate(
                 start: start,
                 distanceKM: distanceKM,
                 shape: shape,
@@ -214,10 +231,15 @@ struct RoutePlannerView: View {
                 mission: mission,
                 simpleNavigation: simpleNavigation
             )
+            guard session.accountOperationIsCurrent(operation) else { return }
+            candidates = generatedCandidates
             selected = candidates.first
             if let selected { fit(selected) }
             message = nil
+        } catch is CancellationError {
+            return
         } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
             candidates = []
             selected = nil
             message = language.text(error.localizedDescription)
@@ -225,14 +247,27 @@ struct RoutePlannerView: View {
     }
 
     @MainActor
-    private func save(_ candidate: OrbitRouteCandidate) async -> OrbitRouteRecord? {
-        await session.saveOrbitRoute(
-            candidate,
-            name: "Orbit \(mission) · \(Date().apexDateKey)",
-            mission: mission,
-            surface: surface,
-            shape: shape
-        )
+    private func save(
+        _ candidate: OrbitRouteCandidate,
+        operation: AccountOperationLease
+    ) async -> OrbitRouteRecord? {
+        guard session.accountOperationIsCurrent(operation) else { return nil }
+        do {
+            return try await session.saveOrbitRoute(
+                candidate,
+                name: "Orbit \(mission) · \(Date().apexDateKey)",
+                mission: mission,
+                surface: surface,
+                shape: shape,
+                operation: operation
+            )
+        } catch is CancellationError {
+            return nil
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return nil }
+            message = language.text(error.localizedDescription)
+            return nil
+        }
     }
 
     private func fit(_ candidate: OrbitRouteCandidate) {
@@ -253,24 +288,33 @@ struct RoutePlannerView: View {
     }
 
     @MainActor
-    private func importGPX(_ result: Result<URL, Error>) async {
+    private func importGPX(
+        _ result: Result<URL, Error>,
+        operation: AccountOperationLease
+    ) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
         do {
             let url = try result.get()
             let accessed = url.startAccessingSecurityScopedResource()
             defer { if accessed { url.stopAccessingSecurityScopedResource() } }
             let points = try OrbitGPXService.parse(Data(contentsOf: url))
             let candidate = OrbitGPXService.candidate(points: points)
-            let route = await session.saveOrbitRoute(
+            let route = try await session.saveOrbitRoute(
                 candidate,
                 name: url.deletingPathExtension().lastPathComponent,
                 mission: mission,
                 surface: surface,
-                shape: "point_to_point"
+                shape: "point_to_point",
+                operation: operation
             )
+            guard session.accountOperationIsCurrent(operation) else { return }
             selected = candidate
             fit(candidate)
             message = route == nil ? "The GPX route could not be saved." : "GPX imported into your private Orbit library."
+        } catch is CancellationError {
+            return
         } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
             message = language.text(error.localizedDescription)
         }
     }

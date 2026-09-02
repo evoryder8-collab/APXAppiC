@@ -124,6 +124,85 @@ final class ProfileIntegrityTests: XCTestCase {
         XCTAssertNil(object["custom_bmr"])
     }
 
+    /// PhotosPicker performs asynchronous preparation before AppSession sees
+    /// the bytes. Carrying the initiating owner through that gap prevents an
+    /// account-B screen from previewing or saving account A's selected image.
+    func testAvatarPickerCarriesTheInitiatingOwnerAcrossPhotoPreparation() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Settings/ProfileAvatarPicker.swift")
+        )
+        let changeStart = try XCTUnwrap(source.range(of: ".onChange(of: picked)"))
+        let changeEnd = try XCTUnwrap(
+            source.range(of: "@ViewBuilder", range: changeStart.upperBound..<source.endIndex)
+        )
+        let change = String(source[changeStart.lowerBound..<changeEnd.lowerBound])
+        let leaseCapture = try XCTUnwrap(
+            change.range(of: "let operation = session.accountOperationLease()"),
+            "capture the selected photo's owner and generation before launching its Task"
+        )
+        let task = try XCTUnwrap(change.range(of: "Task {"))
+        XCTAssertLessThan(leaseCapture.lowerBound, task.lowerBound)
+        XCTAssertTrue(
+            change.contains("upload(item, operation: operation"),
+            "the initiating account lease must enter the asynchronous preparation pipeline"
+        )
+
+        let uploadStart = try XCTUnwrap(
+            source.range(of: "private func upload(")
+        )
+        let upload = String(source[uploadStart.lowerBound...])
+        let preparation = try XCTUnwrap(upload.range(of: "item.loadTransferable(type: Data.self)"))
+        let ownerRevalidation = try XCTUnwrap(
+            upload.range(of: "session.accountOperationIsCurrent(operation)"),
+            "discard prepared state when either the owner or generation changed"
+        )
+        let preview = try XCTUnwrap(upload.range(of: "preview = UIImage(data: prepared)"))
+        let save = try XCTUnwrap(
+            upload.range(of: "session.setAvatar(data: prepared, operation: operation)")
+        )
+        XCTAssertLessThan(preparation.lowerBound, ownerRevalidation.lowerBound)
+        XCTAssertLessThan(ownerRevalidation.lowerBound, save.lowerBound)
+        XCTAssertLessThan(save.lowerBound, preview.lowerBound, "preview only a confirmed accepted upload")
+        XCTAssertTrue(upload.contains("catch is CancellationError"))
+        XCTAssertTrue(upload.contains("uploadID == requestID"), "a superseded picker task must not clear newer state")
+    }
+
+    /// AppSession's concrete remote service is not injectable yet, so this
+    /// contract pins the observable safety boundary around the awaited upload.
+    func testAvatarUploadRejectsLateRemoteCompletionFromAnotherAccount() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let start = try XCTUnwrap(
+            source.range(of: "func setAvatar(data: Data, operation: AccountOperationLease) async throws")
+        )
+        let end = try XCTUnwrap(
+            source.range(of: "/// Pull today's activity", range: start.upperBound..<source.endIndex)
+        )
+        let upload = String(source[start.lowerBound..<end.lowerBound])
+        let initialOwnerCheck = try XCTUnwrap(
+            upload.range(of: "try requireCurrentAccountOperation(operation)"),
+            "the upload must validate the synchronously captured account lease"
+        )
+        let remoteCall = try XCTUnwrap(upload.range(of: "try await service.uploadAvatar("))
+        let revalidation = try XCTUnwrap(
+            upload.range(of: "try requireCurrentAccountOperation(operation)", range: remoteCall.upperBound..<upload.endIndex),
+            "reject the remote result after either an owner or generation change"
+        )
+        let publication = try XCTUnwrap(upload.range(of: "self.data.profile = profile"))
+
+        XCTAssertLessThan(initialOwnerCheck.lowerBound, remoteCall.lowerBound)
+        XCTAssertLessThan(remoteCall.lowerBound, revalidation.lowerBound)
+        XCTAssertLessThan(revalidation.lowerBound, publication.lowerBound)
+        XCTAssertTrue(upload.contains("catch {\n                try requireCurrentAccountOperation(operation)"))
+    }
+
     private func profile(
         userID: UUID = UUID(),
         persona: Persona = .constantine,

@@ -487,7 +487,7 @@ struct TrainingProgramView: View {
                             }
                             Spacer()
                             Button {
-                                Task { await session.toggleDeload() }
+                                toggleDeload()
                             } label: {
                                 Image(systemName: "xmark")
                                     .font(.system(size: 12, weight: .bold))
@@ -524,7 +524,7 @@ struct TrainingProgramView: View {
                     .contextMenu {
                         if day.weekday == todayWeekday {
                             Button {
-                                Task { await session.toggleDeload() }
+                                toggleDeload()
                             } label: {
                                 Label(
                                     language.text(todayIsDeload ? "Remove today's deload" : "Mark today as deload"),
@@ -563,8 +563,10 @@ struct TrainingProgramView: View {
                     briefing: installedPlanBriefing,
                     onDismiss: { self.installedPlanBriefing = nil },
                     onOpenPlan: {
+                        guard let operation = session.accountOperationLease() else { return }
                         Task {
-                            guard await session.prepareCommittedPlanForPortal() else { return }
+                            guard await session.prepareCommittedPlanForPortal(operation: operation),
+                                  session.accountOperationIsCurrent(operation) else { return }
                             session.setInterfaceMode(.simple)
                             self.installedPlanBriefing = nil
                         }
@@ -601,6 +603,20 @@ struct TrainingProgramView: View {
         }) {
             CustomWorkoutBuilder(didSave: $savedFromBuilder)
                 .environment(session)
+        }
+    }
+
+    private func toggleDeload() {
+        guard let operation = session.accountOperationLease() else { return }
+        Task {
+            do {
+                try await session.toggleDeload(operation: operation)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
         }
     }
 
@@ -1004,6 +1020,9 @@ struct TrackedWorkoutView: View {
     @State private var isSaving = false
     @State private var completedSession: FinishedSession?
     @State private var watchWorkoutRequested = false
+    @State private var watchWorkoutOperation: AccountOperationLease?
+    @State private var watchWorkoutStartTask: Task<Void, Never>?
+    @State private var watchWorkoutLaunchID: UUID?
 
     init(day: ProgramDay, exercises: [Exercise], accent: Color, lite: Bool) {
         self.day = day
@@ -1089,11 +1108,31 @@ struct TrackedWorkoutView: View {
             .environment(session)
         }
         .onAppear {
-            guard !watchWorkoutRequested else { return }
+            guard !watchWorkoutRequested,
+                  let operation = session.accountOperationLease() else { return }
+            let launchID = UUID()
             watchWorkoutRequested = true
-            Task { await session.startWatchWorkout(day: day, exercises: exercises) }
+            watchWorkoutOperation = operation
+            watchWorkoutLaunchID = launchID
+            watchWorkoutStartTask = Task {
+                await session.startWatchWorkout(
+                    day: day,
+                    exercises: exercises,
+                    launchID: launchID,
+                    operation: operation
+                )
+            }
         }
-        .onDisappear { session.stopWatchWorkout() }
+        .onDisappear {
+            watchWorkoutStartTask?.cancel()
+            watchWorkoutStartTask = nil
+            if let operation = watchWorkoutOperation,
+               let launchID = watchWorkoutLaunchID {
+                session.stopWatchWorkout(launchID: launchID, operation: operation)
+            }
+            watchWorkoutOperation = nil
+            watchWorkoutLaunchID = nil
+        }
     }
 
     private func trackedSetRow(_ input: Binding<WorkoutSetInput>) -> some View {
@@ -1215,17 +1254,39 @@ struct TrackedWorkoutView: View {
     }
 
     private func finishWorkout() {
-        guard !isSaving else { return }
+        guard !isSaving,
+              let operation = session.accountOperationLease() else { return }
         isSaving = true
         Task {
-            let finished = await session.completeWorkout(
-                day: day, setInputs: setInputs, lite: lite, startedAt: startedAt
-            )
-            isSaving = false
-            if let finished {
-                completedSession = FinishedSession(id: finished)
-            } else {
-                dismiss()
+            do {
+                let finished = try await session.completeWorkout(
+                    day: day,
+                    setInputs: setInputs,
+                    lite: lite,
+                    startedAt: startedAt,
+                    operation: operation
+                )
+                guard session.accountOperationIsCurrent(operation) else { return }
+                isSaving = false
+                watchWorkoutStartTask?.cancel()
+                watchWorkoutStartTask = nil
+                if let watchOperation = watchWorkoutOperation,
+                   let launchID = watchWorkoutLaunchID {
+                    session.stopWatchWorkout(launchID: launchID, operation: watchOperation)
+                }
+                watchWorkoutOperation = nil
+                watchWorkoutLaunchID = nil
+                if let finished {
+                    completedSession = FinishedSession(id: finished)
+                } else {
+                    dismiss()
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                isSaving = false
+                session.alertMessage = error.localizedDescription
             }
         }
     }
@@ -1504,6 +1565,9 @@ struct WorkoutPlayerView: View {
     @State private var isSaving = false
     @State private var completedSession: FinishedSession?
     @State private var watchWorkoutRequested = false
+    @State private var watchWorkoutOperation: AccountOperationLease?
+    @State private var watchWorkoutStartTask: Task<Void, Never>?
+    @State private var watchWorkoutLaunchID: UUID?
     @State private var didInitialize = false
     @State private var draftCleared = false
     @State private var completionError = false
@@ -1738,14 +1802,32 @@ struct WorkoutPlayerView: View {
         .onReceive(timer) { _ in tick() }
         .onAppear {
             initializePlayer()
-            if !watchWorkoutRequested {
+            if !watchWorkoutRequested,
+               let operation = session.accountOperationLease() {
+                let launchID = UUID()
                 watchWorkoutRequested = true
-                Task { await session.startWatchWorkout(day: day, exercises: exercises) }
+                watchWorkoutOperation = operation
+                watchWorkoutLaunchID = launchID
+                watchWorkoutStartTask = Task {
+                    await session.startWatchWorkout(
+                        day: day,
+                        exercises: exercises,
+                        launchID: launchID,
+                        operation: operation
+                    )
+                }
             }
         }
         .onDisappear {
             persistDraft()
-            session.stopWatchWorkout()
+            watchWorkoutStartTask?.cancel()
+            watchWorkoutStartTask = nil
+            if let operation = watchWorkoutOperation,
+               let launchID = watchWorkoutLaunchID {
+                session.stopWatchWorkout(launchID: launchID, operation: operation)
+            }
+            watchWorkoutOperation = nil
+            watchWorkoutLaunchID = nil
         }
         .onChange(of: scenePhase) { _, next in
             handleScenePhase(next)
@@ -1808,10 +1890,14 @@ struct WorkoutPlayerView: View {
                                     .font(APEXFont.body(14, weight: .bold))
                                 Spacer()
                                 Button {
+                                    guard let operation = session.accountOperationLease() else { return }
                                     Task {
+                                        guard session.accountOperationIsCurrent(operation) else { return }
                                         refreshingWearableActivities = true
-                                        await session.refreshExternalWorkouts()
-                                        refreshingWearableActivities = false
+                                        await session.refreshExternalWorkouts(operation: operation)
+                                        if session.accountOperationIsCurrent(operation) {
+                                            refreshingWearableActivities = false
+                                        }
                                     }
                                 } label: {
                                     if refreshingWearableActivities {
@@ -1971,7 +2057,9 @@ struct WorkoutPlayerView: View {
     }
 
     private func finishAlreadyCompletedWorkout(linkedActivityID: UUID?) {
-        guard !isSaving, !finishingExternalSession else { return }
+        guard !isSaving,
+              !finishingExternalSession,
+              let operation = session.accountOperationLease() else { return }
         let recordedInputs = setInputs
             .map { $0.normalizedForPersistence() }
             .filter { $0.skipped || ExerciseLogging.isValid($0) }
@@ -1980,21 +2068,40 @@ struct WorkoutPlayerView: View {
         isSaving = true
         finishingExternalSession = true
         Task {
-            let finished = await session.completeWorkout(
-                day: day,
-                setInputs: recordedInputs,
-                lite: lite,
-                startedAt: startedAt,
-                wearableLinkRequest: linkRequest,
-                completionDate: date
-            )
-            isSaving = false
-            if let finished {
-                clearDraft()
-                session.stopWatchWorkout()
-                showAlreadyFinished = false
-                completedSession = FinishedSession(id: finished)
-            } else {
+            do {
+                let finished = try await session.completeWorkout(
+                    day: day,
+                    setInputs: recordedInputs,
+                    lite: lite,
+                    startedAt: startedAt,
+                    wearableLinkRequest: linkRequest,
+                    completionDate: date,
+                    operation: operation
+                )
+                guard session.accountOperationIsCurrent(operation) else { return }
+                isSaving = false
+                if let finished {
+                    clearDraft()
+                    watchWorkoutStartTask?.cancel()
+                    watchWorkoutStartTask = nil
+                    if let watchOperation = watchWorkoutOperation,
+                       let launchID = watchWorkoutLaunchID {
+                        session.stopWatchWorkout(launchID: launchID, operation: watchOperation)
+                    }
+                    watchWorkoutOperation = nil
+                    watchWorkoutLaunchID = nil
+                    showAlreadyFinished = false
+                    completedSession = FinishedSession(id: finished)
+                } else {
+                    finishingExternalSession = false
+                    showAlreadyFinished = false
+                    completionError = true
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                isSaving = false
                 finishingExternalSession = false
                 showAlreadyFinished = false
                 completionError = true
@@ -2019,7 +2126,7 @@ struct WorkoutPlayerView: View {
                 Spacer()
 
                 Button {
-                    Task { await session.updateSettings { $0.voiceOn.toggle() } }
+                    updateSettings { $0.voiceOn.toggle() }
                 } label: {
                     Image(systemName: voiceOn ? "speaker.wave.2.fill" : "speaker.slash.fill")
                         .frame(width: 35, height: 35)
@@ -2028,7 +2135,7 @@ struct WorkoutPlayerView: View {
                 .buttonStyle(.plain)
 
                 Button {
-                    Task { await session.updateSettings { $0.ticksOn.toggle() } }
+                    updateSettings { $0.ticksOn.toggle() }
                 } label: {
                     Image(systemName: ticksOn ? "metronome.fill" : "metronome")
                         .frame(width: 35, height: 35)
@@ -2047,6 +2154,20 @@ struct WorkoutPlayerView: View {
                 }
             }
             .frame(height: 6)
+        }
+    }
+
+    private func updateSettings(_ transform: @escaping (inout UserSettings) -> Void) {
+        guard let operation = session.accountOperationLease() else { return }
+        Task {
+            do {
+                try await session.updateSettings(transform, operation: operation)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
         }
     }
 
@@ -2870,17 +2991,32 @@ struct WorkoutPlayerView: View {
     /* The session used to save and vanish. Showing the receipt is the only
        moment the work reported during the workout is handed back. */
     private func finishWorkout() {
-        guard !isSaving, canSaveWorkout else { return }
+        guard !isSaving,
+              canSaveWorkout,
+              let operation = session.accountOperationLease() else { return }
         isSaving = true
         Task {
-            let finished = await session.completeWorkout(
-                day: day, setInputs: setInputs, lite: lite, startedAt: startedAt
-            )
-            isSaving = false
-            if let finished {
-                clearDraft()
-                completedSession = FinishedSession(id: finished)
-            } else {
+            do {
+                let finished = try await session.completeWorkout(
+                    day: day,
+                    setInputs: setInputs,
+                    lite: lite,
+                    startedAt: startedAt,
+                    operation: operation
+                )
+                guard session.accountOperationIsCurrent(operation) else { return }
+                isSaving = false
+                if let finished {
+                    clearDraft()
+                    completedSession = FinishedSession(id: finished)
+                } else {
+                    completionError = true
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                isSaving = false
                 completionError = true
             }
         }

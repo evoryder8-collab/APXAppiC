@@ -1,5 +1,23 @@
 import SwiftUI
 
+struct CoachRosterRequestGate {
+    struct Request: Equatable {
+        let generation: UInt
+        let query: String
+    }
+
+    private(set) var generation: UInt = 0
+
+    mutating func begin(query: String) -> Request {
+        generation &+= 1
+        return Request(generation: generation, query: query)
+    }
+
+    func accepts(_ request: Request) -> Bool {
+        request.generation == generation
+    }
+}
+
 struct CoachWorkspaceView: View {
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
@@ -7,6 +25,7 @@ struct CoachWorkspaceView: View {
     @State private var query = ""
     @State private var loading = false
     @State private var invitePresented = false
+    @State private var rosterRequestGate = CoachRosterRequestGate()
 
     var body: some View {
         ScrollView {
@@ -36,7 +55,10 @@ struct CoachWorkspaceView: View {
                             .font(APEXFont.body(15, weight: .semibold))
                             .padding(13)
                             .background(Color.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .onSubmit { Task { await reload() } }
+                            .onSubmit {
+                                guard let operation = session.accountOperationLease() else { return }
+                                Task { await reload(operation: operation) }
+                            }
 
                         if loading {
                             ProgressView().frame(maxWidth: .infinity).padding(.vertical, 28)
@@ -66,8 +88,14 @@ struct CoachWorkspaceView: View {
         }
         .navigationTitle(language.text("Coach workspace"))
         .navigationBarTitleDisplayMode(.inline)
-        .refreshable { await reload() }
-        .task { await reload() }
+        .refreshable {
+            guard let operation = session.accountOperationLease() else { return }
+            await reload(operation: operation)
+        }
+        .task {
+            guard let operation = session.accountOperationLease() else { return }
+            await reload(operation: operation)
+        }
         .sheet(isPresented: $invitePresented) {
             CoachInvitationSheet()
                 .environment(session)
@@ -113,13 +141,26 @@ struct CoachWorkspaceView: View {
     }
 
     @MainActor
-    private func reload() async {
-        guard session.coachContext.capabilities.coachWorkspace else { return }
+    private func reload(operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation),
+              session.coachContext.capabilities.coachWorkspace else { return }
+        let request = rosterRequestGate.begin(query: query)
         loading = true
-        defer { loading = false }
+        defer {
+            if session.accountOperationIsCurrent(operation), rosterRequestGate.accepts(request) {
+                loading = false
+            }
+        }
         do {
-            roster = try await session.loadCoachRoster(query: query)
+            let nextRoster = try await session.loadCoachRoster(query: request.query, operation: operation)
+            guard session.accountOperationIsCurrent(operation),
+                  rosterRequestGate.accepts(request) else { return }
+            roster = nextRoster
+        } catch is CancellationError {
+            return
         } catch {
+            guard session.accountOperationIsCurrent(operation),
+                  rosterRequestGate.accepts(request) else { return }
             session.alertMessage = error.localizedDescription
         }
     }
@@ -194,7 +235,8 @@ private struct CoachInvitationSheet: View {
                     )
 
                     Button {
-                        Task { await createInvite() }
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task { await createInvite(operation: operation) }
                     } label: {
                         if busy { ProgressView().tint(.white) }
                         else { Text(language.text("Create private invite")) }
@@ -229,18 +271,27 @@ private struct CoachInvitationSheet: View {
     }
 
     @MainActor
-    private func createInvite() async {
+    private func createInvite(operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
         busy = true
-        defer { busy = false }
+        defer {
+            if session.accountOperationIsCurrent(operation) { busy = false }
+        }
         do {
             var requested = scopes
             if visualProgress { requested.insert(.visualProgress) }
-            receipt = try await session.createCoachInvitation(
+            let nextReceipt = try await session.createCoachInvitation(
                 email: email.trimmingCharacters(in: .whitespacesAndNewlines),
                 scopes: requested,
-                visualProgressRequested: visualProgress
+                visualProgressRequested: visualProgress,
+                operation: operation
             )
+            guard session.accountOperationIsCurrent(operation) else { return }
+            receipt = nextReceipt
+        } catch is CancellationError {
+            return
         } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
             session.alertMessage = error.localizedDescription
         }
     }
@@ -279,7 +330,10 @@ private struct CoachClientStudioView: View {
         }
         .navigationTitle(client.displayName)
         .navigationBarTitleDisplayMode(.inline)
-        .task { await load() }
+        .task {
+            guard let operation = session.accountOperationLease() else { return }
+            await load(operation: operation)
+        }
     }
 
     private func sharedOverview(_ overview: CoachClientOverview) -> some View {
@@ -355,9 +409,15 @@ private struct CoachClientStudioView: View {
                 }
 
                 HStack(spacing: 10) {
-                    Button(language.text("Save draft")) { Task { await save(publish: false) } }
+                    Button(language.text("Save draft")) {
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task { await save(publish: false, operation: operation) }
+                    }
                         .buttonStyle(.bordered)
-                    Button(language.text("Publish to client")) { Task { await save(publish: true) } }
+                    Button(language.text("Publish to client")) {
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task { await save(publish: true, operation: operation) }
+                    }
                         .buttonStyle(.borderedProminent)
                         .tint(APEXColor.violet)
                         .disabled(!validation.publishable)
@@ -369,30 +429,57 @@ private struct CoachClientStudioView: View {
     }
 
     @MainActor
-    private func load() async {
+    private func load(operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
         loading = true
-        defer { loading = false }
+        defer {
+            if session.accountOperationIsCurrent(operation) { loading = false }
+        }
         do {
-            let value = try await session.loadCoachClientOverview(relationshipID: client.id)
+            let value = try await session.loadCoachClientOverview(
+                relationshipID: client.id,
+                operation: operation
+            )
+            guard session.accountOperationIsCurrent(operation) else { return }
             overview = value
             plan = value.currentPlan?.plan ?? .empty
             expectedVersion = value.currentPlan?.version ?? 0
+        } catch is CancellationError {
+            return
         } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
             session.alertMessage = error.localizedDescription
         }
     }
 
     @MainActor
-    private func save(publish: Bool) async {
+    private func save(publish: Bool, operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
         saving = true
-        defer { saving = false }
+        defer {
+            if session.accountOperationIsCurrent(operation) { saving = false }
+        }
         do {
             let receipt = publish
-                ? try await session.publishCoachPlan(relationshipID: client.id, plan: plan, expectedVersion: expectedVersion)
-                : try await session.saveCoachPlan(relationshipID: client.id, plan: plan, expectedVersion: expectedVersion)
+                ? try await session.publishCoachPlan(
+                    relationshipID: client.id,
+                    plan: plan,
+                    expectedVersion: expectedVersion,
+                    operation: operation
+                )
+                : try await session.saveCoachPlan(
+                    relationshipID: client.id,
+                    plan: plan,
+                    expectedVersion: expectedVersion,
+                    operation: operation
+                )
+            guard session.accountOperationIsCurrent(operation) else { return }
             expectedVersion = receipt.version
-            await load()
+            await load(operation: operation)
+        } catch is CancellationError {
+            return
         } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
             session.alertMessage = error.localizedDescription
         }
     }

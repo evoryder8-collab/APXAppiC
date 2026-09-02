@@ -32,9 +32,15 @@ final class ProgressCameraController: NSObject {
     /// Live distance and subject reading, when the device can measure it.
     let reading = ProgressDepthAnalyzer()
     private var captured: ((UIImage) -> Void)?
+    private var lifecycleGeneration: UInt64 = 0
 
     func start(position: AVCaptureDevice.Position = .front) async {
-        guard await AVCaptureDevice.requestAccess(for: .video) else { return }
+        lifecycleGeneration &+= 1
+        let requestGeneration = lifecycleGeneration
+        isReady = false
+        guard await AVCaptureDevice.requestAccess(for: .video),
+              Task.isCancelled == false,
+              lifecycleGeneration == requestGeneration else { return }
         self.position = position
         await withCheckedContinuation { continuation in
             sessionQueue.async { [self] in
@@ -43,11 +49,15 @@ final class ProgressCameraController: NSObject {
                 continuation.resume()
             }
         }
+        guard Task.isCancelled == false,
+              lifecycleGeneration == requestGeneration else { return }
         isReady = true
     }
 
     func stop() {
+        lifecycleGeneration &+= 1
         isReady = false
+        captured = nil
         sessionQueue.async { [self] in
             if session.isRunning { session.stopRunning() }
         }
@@ -179,6 +189,7 @@ struct ProgressCameraView: View {
     @State private var language = LanguageState.shared
     @State private var controller = ProgressCameraController()
     @State private var countdown: Int?
+    @State private var countdownTask: Task<Void, Never>?
     @State private var timerSeconds = 5
     @State private var ghost: Double = 0.25
     @State private var showLibrary = false
@@ -187,6 +198,7 @@ struct ProgressCameraView: View {
     var intent: ProgressCaptureIntent
     /// The previous photo in the same pose, shown underneath for alignment.
     var reference: ProgressPhoto?
+    let operation: AccountOperationLease
     var onClose: () -> Void
 
     /// Whether the user has allowed the front camera for progress scans.
@@ -204,11 +216,13 @@ struct ProgressCameraView: View {
     init(
         intent: ProgressCaptureIntent,
         reference: ProgressPhoto? = nil,
+        operation: AccountOperationLease,
         onClose: @escaping () -> Void,
         onCaptured: @escaping (UIImage, ProgressCaptureIntent) -> Void
     ) {
         self.intent = intent
         self.reference = reference
+        self.operation = operation
         self.onClose = onClose
         self.onCaptured = onCaptured
         _pose = State(initialValue: intent.pose)
@@ -246,21 +260,44 @@ struct ProgressCameraView: View {
             /* Honour the setting. It has existed in Settings since the camera
                did, and nothing has ever read it: the scanner opened on the
                front camera regardless of what the switch said. */
+            guard session.accountOperationIsCurrent(operation) else { return }
             await controller.start(position: allowsFrontCamera ? .front : .back)
+            guard session.accountOperationIsCurrent(operation) else {
+                controller.stop()
+                return
+            }
         }
         .task(id: reference?.id) {
-            guard let reference,
-                  let url = try? await session.signedProgressURL(for: reference, thumbnail: false),
-                  let (data, _) = try? await URLSession.shared.data(from: url) else { return }
-            referenceImage = UIImage(data: data)
+            guard session.accountOperationIsCurrent(operation),
+                  let reference else { return }
+            do {
+                let url = try await session.signedProgressURL(
+                    for: reference,
+                    thumbnail: false,
+                    operation: operation
+                )
+                let (data, _) = try await URLSession.shared.data(from: url)
+                guard session.accountOperationIsCurrent(operation) else { return }
+                referenceImage = UIImage(data: data)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                referenceImage = nil
+            }
         }
-        .onDisappear { controller.stop() }
+        .onDisappear {
+            countdownTask?.cancel()
+            countdownTask = nil
+            countdown = nil
+            controller.stop()
+        }
         .animation(.snappy(duration: 0.2), value: countdown)
         .sheet(isPresented: $showLibrary) {
             ProgressLibraryPicker(image: $libraryImage)
         }
         .onChange(of: libraryImage) { _, image in
-            guard let image else { return }
+            guard session.accountOperationIsCurrent(operation), let image else { return }
             onCaptured(image, resolvedIntent)
         }
     }
@@ -363,7 +400,7 @@ struct ProgressCameraView: View {
         VStack {
             VStack(spacing: 10) {
                 HStack {
-                    Button(language.text("Close")) { onClose() }
+                    Button(language.text("Close"), action: closeCamera)
                         .font(APEXFont.body(14, weight: .bold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 16)
@@ -439,6 +476,14 @@ struct ProgressCameraView: View {
         .buttonStyle(.plain)
     }
 
+    private func closeCamera() {
+        countdownTask?.cancel()
+        countdownTask = nil
+        countdown = nil
+        controller.stop()
+        onClose()
+    }
+
     private var timerPicker: some View {
         HStack(spacing: 4) {
             ForEach([3, 5, 10], id: \.self) { value in
@@ -493,14 +538,20 @@ struct ProgressCameraView: View {
     }
 
     private func beginCountdown() {
+        countdownTask?.cancel()
         countdown = timerSeconds
-        Task {
+        countdownTask = Task {
             while let value = countdown, value > 0 {
                 try? await Task.sleep(for: .seconds(1))
+                guard Task.isCancelled == false,
+                      session.accountOperationIsCurrent(operation) else { return }
                 countdown = value - 1
             }
+            guard Task.isCancelled == false,
+                  session.accountOperationIsCurrent(operation) else { return }
             countdown = nil
             controller.capture { image in
+                guard session.accountOperationIsCurrent(operation) else { return }
                 onCaptured(image, resolvedIntent)
             }
         }

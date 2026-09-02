@@ -189,7 +189,18 @@ struct NutritionView: View {
             MealComposerView(request: request)
         }
         .task(id: dayKey) {
-            await session.prefillEventActivitiesIfNeeded(for: selectedDate)
+            guard let operation = session.accountOperationLease() else { return }
+            do {
+                try await session.prefillEventActivitiesIfNeeded(
+                    for: selectedDate,
+                    operation: operation
+                )
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
         }
     }
 
@@ -296,7 +307,17 @@ private struct TodaysActivitiesPanel: View {
                                 Text(language.format("%d kcal", Int(log.computedKcal.rounded())))
                                     .font(APEXFont.mono(11))
                                 Button(role: .destructive) {
-                                    Task { await session.removeActivity(log) }
+                                    guard let operation = session.accountOperationLease() else { return }
+                                    Task {
+                                        do {
+                                            try await session.removeActivity(log, operation: operation)
+                                        } catch is CancellationError {
+                                            return
+                                        } catch {
+                                            guard session.accountOperationIsCurrent(operation) else { return }
+                                            session.alertMessage = error.localizedDescription
+                                        }
+                                    }
                                 } label: {
                                     Image(systemName: "xmark.circle.fill")
                                         .foregroundStyle(APEXColor.secondaryInk.opacity(0.6))
@@ -318,12 +339,21 @@ private struct TodaysActivitiesPanel: View {
                     HStack(spacing: 9) {
                         ForEach(frequentTypes.prefix(5)) { type in
                             Button {
+                                guard let operation = session.accountOperationLease() else { return }
                                 Task {
-                                    await session.addActivity(
-                                        type: type,
-                                        date: date,
-                                        durationMinutes: type.defaultDurationMinutes
-                                    )
+                                    do {
+                                        try await session.addActivity(
+                                            type: type,
+                                            date: date,
+                                            durationMinutes: type.defaultDurationMinutes,
+                                            operation: operation
+                                        )
+                                    } catch is CancellationError {
+                                        return
+                                    } catch {
+                                        guard session.accountOperationIsCurrent(operation) else { return }
+                                        session.alertMessage = error.localizedDescription
+                                    }
                                 }
                             } label: {
                                 Label(language.text(type.name), systemImage: systemIcon(type.icon))
@@ -347,7 +377,20 @@ private struct TodaysActivitiesPanel: View {
                 HStack(spacing: 10) {
                     if logs.isEmpty, yesterdayLogs.isEmpty == false {
                         Button {
-                            Task { await session.repeatYesterday(onto: date) }
+                            guard let operation = session.accountOperationLease() else { return }
+                            Task {
+                                do {
+                                    try await session.repeatYesterday(
+                                        onto: date,
+                                        operation: operation
+                                    )
+                                } catch is CancellationError {
+                                    return
+                                } catch {
+                                    guard session.accountOperationIsCurrent(operation) else { return }
+                                    session.alertMessage = error.localizedDescription
+                                }
+                            }
                         } label: {
                             Label(language.text("Repeat yesterday"), systemImage: "arrow.uturn.backward.circle")
                         }
@@ -355,7 +398,20 @@ private struct TodaysActivitiesPanel: View {
                     }
                     if logs.isEmpty == false {
                         Button(role: .destructive) {
-                            Task { await session.clearActivities(on: date) }
+                            guard let operation = session.accountOperationLease() else { return }
+                            Task {
+                                do {
+                                    try await session.clearActivities(
+                                        on: date,
+                                        operation: operation
+                                    )
+                                } catch is CancellationError {
+                                    return
+                                } catch {
+                                    guard session.accountOperationIsCurrent(operation) else { return }
+                                    session.alertMessage = error.localizedDescription
+                                }
+                            }
                         } label: {
                             Label(language.text("Clear day"), systemImage: "trash")
                         }
@@ -447,7 +503,20 @@ private struct DailyTargetsCard: View {
                         FlowLayout(spacing: 8) {
                             ForEach(ActivityLevel.allCases, id: \.self) { level in
                                 Button(language.text(level.title)) {
-                                    Task { await session.setActivityLevel(level) }
+                                    guard let operation = session.accountOperationLease() else { return }
+                                    Task {
+                                        do {
+                                            try await session.setActivityLevel(
+                                                level,
+                                                operation: operation
+                                            )
+                                        } catch is CancellationError {
+                                            return
+                                        } catch {
+                                            guard session.accountOperationIsCurrent(operation) else { return }
+                                            session.alertMessage = error.localizedDescription
+                                        }
+                                    }
                                 }
                                 .buttonStyle(ChoicePillStyle(selected: session.profile?.activityLevel == level))
                             }
@@ -464,7 +533,19 @@ private struct DailyTargetsCard: View {
                         context: NutritionGoalPolicy.context(from: session.data.settings)
                     ),
                     selected: session.profile?.goal,
-                    onSelect: { goal in Task { await session.setGoal(goal) } }
+                    onSelect: { goal in
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task {
+                            do {
+                                try await session.setGoal(goal, operation: operation)
+                            } catch is CancellationError {
+                                return
+                            } catch {
+                                guard session.accountOperationIsCurrent(operation) else { return }
+                                session.alertMessage = error.localizedDescription
+                            }
+                        }
+                    }
                 )
 
                 if targets.safetyFloorApplied {
@@ -516,7 +597,21 @@ private struct MealTimeline: View {
                 let meal = prescription.source
                 let checked = session.data.mealLogs.contains { $0.date == date.apexDateKey && $0.mealID == meal.id }
                 Button {
-                    Task { await session.toggleMeal(meal, on: date) }
+                    guard let operation = session.accountOperationLease() else { return }
+                    Task {
+                        do {
+                            try await session.toggleMeal(
+                                meal,
+                                on: date,
+                                operation: operation
+                            )
+                        } catch is CancellationError {
+                            return
+                        } catch {
+                            guard session.accountOperationIsCurrent(operation) else { return }
+                            session.alertMessage = error.localizedDescription
+                        }
+                    }
                 } label: {
                     GlassCard(radius: 27, padding: 18) {
                         HStack(alignment: .top, spacing: 14) {
@@ -812,7 +907,20 @@ private struct FoodLoggingCard: View {
                                 }
                                 Spacer()
                                 Button(role: .destructive) {
-                                    Task { await session.deleteLoggedMeal(meal) }
+                                    guard let operation = session.accountOperationLease() else { return }
+                                    Task {
+                                        do {
+                                            try await session.deleteLoggedMeal(
+                                                meal,
+                                                operation: operation
+                                            )
+                                        } catch is CancellationError {
+                                            return
+                                        } catch {
+                                            guard session.accountOperationIsCurrent(operation) else { return }
+                                            session.alertMessage = error.localizedDescription
+                                        }
+                                    }
                                 } label: {
                                     Image(systemName: "trash")
                                 }
@@ -886,7 +994,21 @@ private struct DailyLogCard: View {
                                 .buttonStyle(.bordered)
                             if allReconciled == false {
                                 Button(language.text("Yes, finalize")) {
-                                    Task { await session.finalizeActivityDay(date, targets: targets) }
+                                    guard let operation = session.accountOperationLease() else { return }
+                                    Task {
+                                        do {
+                                            try await session.finalizeActivityDay(
+                                                date,
+                                                targets: targets,
+                                                operation: operation
+                                            )
+                                        } catch is CancellationError {
+                                            return
+                                        } catch {
+                                            guard session.accountOperationIsCurrent(operation) else { return }
+                                            session.alertMessage = error.localizedDescription
+                                        }
+                                    }
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .tint(APEXColor.amber)
@@ -974,13 +1096,37 @@ private struct DailyLogCard: View {
         /* Routed through the session so the HealthKit watermark moves with the
            edit. Writing the row directly here let the next sync restore the
            old, higher total and a decrease could never stick. */
-        Task { await session.adjustWater(deltaLiters: delta, on: date) }
+        guard let operation = session.accountOperationLease() else { return }
+        Task {
+            do {
+                _ = try await session.adjustWater(
+                    deltaLiters: delta,
+                    on: date,
+                    operation: operation
+                )
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
+        }
     }
 
     private func saveMorningWeight() {
         let normalized = morningWeightText.replacingOccurrences(of: ",", with: ".")
-        guard let weight = Double(normalized), (25...350).contains(weight) else { return }
-        Task { await session.saveMorningWeight(weight, on: date) }
+        guard let weight = Double(normalized), (25...350).contains(weight),
+              let operation = session.accountOperationLease() else { return }
+        Task {
+            do {
+                try await session.saveMorningWeight(weight, on: date, operation: operation)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
+        }
     }
 }
 

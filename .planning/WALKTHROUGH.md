@@ -93,6 +93,15 @@ The longest existing smoke flow spent about 251 seconds repeatedly trying to mak
 
 The source/unit suite may be cited as supporting computation, owner-scoping, sync, food-privacy, calendar, or hydration evidence, but never as user-flow or discoverability proof without the corresponding runtime case above.
 
+### Task 2 account-boundary supporting evidence
+
+- The final owner/privacy gate passed **351/351** with zero failures or skips on `APEX Lane · iPhone 17 Pro`; result bundle: `/tmp/APEXTask2-combined-green-final-5.xcresult`.
+- Supporting contracts cover owner-and-generation leases across nutrition, meals, hydration, Health imports, workout receipts, Watch handoff, Orbit, coach actions, entitlements, settings, recovery planning, notification delivery, and private visual-progress reads/writes.
+- Durable Watch launch tests prove stop-before-start across relaunch, wrong-owner rejection, delayed old-stop isolation, direct canonical A → B revocation, and ordered continuation for B.
+- Camera and notification tests prove that dismissal/logout revoke in-flight private work and synchronously remove known Account-A reminder identifiers before Account B or the logged-out surface is exposed.
+- OAuth source contracts prove the callback cannot expose writable onboarding before ownership is established and that a valid cached owner is revalidated before entitlements and realtime are restored after a failed refresh.
+- The matrix rows remain `Pending` until their corresponding end-to-end runtime transition and, where specified, human discoverability script are also recorded.
+
 ## Layer 3 — human discoverability scripts
 
 Run these after the associated automated case reaches its expected state. Rate every numbered action `1` (not discoverable) to `5` (immediately obvious), mark whether the return destination matched expectation, and record a hesitation note. A script with no rating/note remains pending.

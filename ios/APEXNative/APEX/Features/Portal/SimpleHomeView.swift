@@ -713,7 +713,9 @@ struct SimpleHomeView: View {
     }
 
     private var orbitSubtitle: String {
-        if OrbitLocationManager.shared.hasRecoverableRun { return language.text("Continue interrupted run") }
+        if OrbitLocationManager.shared.hasRecoverableRun(for: session.profile?.userID) {
+            return language.text("Continue interrupted run")
+        }
         if let campaign = session.data.orbitCampaigns.first(where: { $0.status == "active" }),
            let planned = session.data.orbitCampaignSessions.first(where: {
                $0.campaignID == campaign.id && $0.date == today && $0.status == "planned"
@@ -782,10 +784,19 @@ struct SimpleHomeView: View {
         switch kind {
         case .meal(let id):
             guard let prescription = adaptivePlan.first(where: { $0.id == id }) else { return }
-            Task { await session.togglePlannedMeal(prescription) }
+            guard let operation = session.accountOperationLease() else { return }
+            Task {
+                do {
+                    try await session.togglePlannedMeal(prescription, operation: operation)
+                } catch is CancellationError {
+                    return
+                } catch {
+                    return
+                }
+            }
         case .supplements(let id):
             guard let group = supplementGroups.first(where: { $0.id == id }) else { return }
-            Task { await toggle(group) }
+            toggle(group)
         case .workout:
             workoutIsLite = false
             showWorkout = true
@@ -806,14 +817,33 @@ struct SimpleHomeView: View {
         }
     }
 
-    private func toggle(_ group: SimpleSupplementGroup) async {
+    private func toggle(_ group: SimpleSupplementGroup) {
+        guard let operation = session.accountOperationLease() else { return }
         let completed = groupDone(group)
-        for supplement in group.supplements {
-            let isDone = session.data.supplementLogs.contains {
-                $0.date == today && $0.supplementID == supplement.id
-            }
-            if completed || !isDone {
-                await session.toggleSupplement(supplement)
+        Task {
+            do {
+                for supplement in group.supplements {
+                    try Task.checkCancellation()
+                    guard session.accountOperationIsCurrent(operation) else {
+                        throw CancellationError()
+                    }
+                    let isDone = session.data.supplementLogs.contains {
+                        $0.userID == operation.ownerID
+                            && $0.date == today
+                            && $0.supplementID == supplement.id
+                    }
+                    if completed || !isDone {
+                        try await session.toggleSupplement(
+                            supplement,
+                            operation: operation
+                        )
+                    }
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
             }
         }
     }
@@ -821,7 +851,21 @@ struct SimpleHomeView: View {
     /* Single owner of water writes: keeps the HealthKit watermark honest so a
        later reduction is never undone by the next sync. */
     private func addWater(_ liters: Double = 0.25) {
-        Task { await session.adjustWater(deltaLiters: liters, on: selectedDate) }
+        guard let operation = session.accountOperationLease() else { return }
+        Task {
+            do {
+                _ = try await session.adjustWater(
+                    deltaLiters: liters,
+                    on: selectedDate,
+                    operation: operation
+                )
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
+        }
     }
 
     private func supplementTime(_ supplement: Supplement) -> Int {
@@ -1429,13 +1473,43 @@ private struct WaterQuickAddSheet: View {
     /* Logging never dismisses the sheet: the figure animates the new level
        and you close it when you have finished drinking. */
     private func commit(_ liters: Double) {
-        Task { await session.adjustWater(deltaLiters: liters, on: date) }
-        animateConfirmation()
+        guard let operation = session.accountOperationLease() else { return }
+        Task {
+            do {
+                _ = try await session.adjustWater(
+                    deltaLiters: liters,
+                    on: date,
+                    operation: operation
+                )
+                guard session.accountOperationIsCurrent(operation) else { return }
+                animateConfirmation()
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
+        }
     }
 
     private func commit(_ preset: HydrationPreset) {
-        Task { await session.logHydration(preset: preset, on: date) }
-        animateConfirmation()
+        guard let operation = session.accountOperationLease() else { return }
+        Task {
+            do {
+                try await session.logHydration(
+                    preset: preset,
+                    on: date,
+                    operation: operation
+                )
+                guard session.accountOperationIsCurrent(operation) else { return }
+                animateConfirmation()
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
+        }
     }
 
     private func animateConfirmation() {
@@ -1618,7 +1692,20 @@ private struct HydrationManagementSheet: View {
                         }
                         .swipeActions {
                             Button("Delete", role: .destructive) {
-                                Task { await session.deleteHydrationPreset(preset) }
+                                guard let operation = session.accountOperationLease() else { return }
+                                Task {
+                                    do {
+                                        try await session.deleteHydrationPreset(
+                                            preset,
+                                            operation: operation
+                                        )
+                                    } catch is CancellationError {
+                                        return
+                                    } catch {
+                                        guard session.accountOperationIsCurrent(operation) else { return }
+                                        session.alertMessage = error.localizedDescription
+                                    }
+                                }
                             }
                         }
                     }
@@ -1664,7 +1751,21 @@ private struct HydrationManagementSheet: View {
                         .swipeActions {
                             if canDelete(event) {
                                 Button("Remove", role: .destructive) {
-                                    Task { await session.deleteHydrationEvent(event, on: date) }
+                                    guard let operation = session.accountOperationLease() else { return }
+                                    Task {
+                                        do {
+                                            try await session.deleteHydrationEvent(
+                                                event,
+                                                on: date,
+                                                operation: operation
+                                            )
+                                        } catch is CancellationError {
+                                            return
+                                        } catch {
+                                            guard session.accountOperationIsCurrent(operation) else { return }
+                                            session.alertMessage = error.localizedDescription
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1701,16 +1802,29 @@ private struct HydrationManagementSheet: View {
     }
 
     private func save() {
-        guard let ownerID = session.profile?.userID else { return }
+        guard let operation = session.accountOperationLease() else { return }
         do {
             if draft.effectiveTargetMode == .custom {
                 draft.targetLiters = try WatchHydrationPreferences.validatedTargetLiters(draft.targetLiters)
             }
+            let preferences = draft.accountRow(
+                ownerID: operation.ownerID,
+                existing: session.hydrationPreferences
+            )
             Task {
-                await session.saveHydrationPreferences(
-                    draft.accountRow(ownerID: ownerID, existing: session.hydrationPreferences)
-                )
-                dismiss()
+                do {
+                    try await session.saveHydrationPreferences(
+                        preferences,
+                        operation: operation
+                    )
+                    guard session.accountOperationIsCurrent(operation) else { return }
+                    dismiss()
+                } catch is CancellationError {
+                    return
+                } catch {
+                    guard session.accountOperationIsCurrent(operation) else { return }
+                    validationMessage = error.localizedDescription
+                }
             }
         } catch {
             validationMessage = error.localizedDescription
@@ -1800,11 +1914,11 @@ private struct HydrationPresetEditor: View {
     }
 
     private func save() {
-        guard let ownerID = session.profile?.userID else { return }
+        guard let operation = session.accountOperationLease() else { return }
         let now = Date().ISO8601Format()
         let row = HydrationPreset(
             id: preset?.id ?? UUID(),
-            userID: ownerID,
+            userID: operation.ownerID,
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             amountML: amountML,
             kind: kind,
@@ -1816,8 +1930,16 @@ private struct HydrationPresetEditor: View {
             updatedAt: now
         )
         Task {
-            await session.saveHydrationPreset(row)
-            dismiss()
+            do {
+                try await session.saveHydrationPreset(row, operation: operation)
+                guard session.accountOperationIsCurrent(operation) else { return }
+                dismiss()
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
         }
     }
 }
@@ -1991,7 +2113,23 @@ struct SupplementStackEditor: View {
                     let done = session.data.supplementLogs.contains {
                         $0.date == date.apexDateKey && $0.supplementID == supplement.id
                     }
-                    Button { Task { await session.toggleSupplement(supplement, on: date) } } label: {
+                    Button {
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task {
+                            do {
+                                try await session.toggleSupplement(
+                                    supplement,
+                                    on: date,
+                                    operation: operation
+                                )
+                            } catch is CancellationError {
+                                return
+                            } catch {
+                                guard session.accountOperationIsCurrent(operation) else { return }
+                                session.alertMessage = error.localizedDescription
+                            }
+                        }
+                    } label: {
                         HStack(spacing: 11) {
                             Image(systemName: done ? "checkmark.circle.fill" : "circle")
                                 .font(.system(size: 19))
@@ -2050,12 +2188,21 @@ struct SupplementStackEditor: View {
         }
         .sheet(isPresented: $showPicker) {
             SupplementPickerSheet { entry, dose in
+                guard let operation = session.accountOperationLease() else { return }
                 Task {
-                    await session.addSupplement(
-                        name: entry.name,
-                        dose: entry.formattedDose(dose),
-                        groupLabel: entry.timing
-                    )
+                    do {
+                        try await session.addSupplement(
+                            name: entry.name,
+                            dose: entry.formattedDose(dose),
+                            groupLabel: entry.timing,
+                            operation: operation
+                        )
+                    } catch is CancellationError {
+                        return
+                    } catch {
+                        guard session.accountOperationIsCurrent(operation) else { return }
+                        session.alertMessage = error.localizedDescription
+                    }
                 }
             }
         }
@@ -2069,7 +2216,20 @@ struct SupplementStackEditor: View {
         ) {
             Button(language.text("Remove"), role: .destructive) {
                 if let supplement = pendingDelete {
-                    Task { await session.archiveSupplement(supplement) }
+                    guard let operation = session.accountOperationLease() else { return }
+                    Task {
+                        do {
+                            try await session.archiveSupplement(
+                                supplement,
+                                operation: operation
+                            )
+                        } catch is CancellationError {
+                            return
+                        } catch {
+                            guard session.accountOperationIsCurrent(operation) else { return }
+                            session.alertMessage = error.localizedDescription
+                        }
+                    }
                 }
                 pendingDelete = nil
             }
@@ -2455,11 +2615,26 @@ private struct WearableActivityCard: View {
                         wearableMetric("Active kcal", record.activeCalories)
                         wearableMetric("Exercise min", record.exerciseMinutes)
                     }
-                    Button("Use \(level.title)") { Task { await session.setActivityLevel(level) } }
+                    Button("Use \(level.title)") {
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task {
+                            do {
+                                try await session.setActivityLevel(level, operation: operation)
+                            } catch is CancellationError {
+                                return
+                            } catch {
+                                return
+                            }
+                        }
+                    }
                         .buttonStyle(.borderedProminent).tint(APEXColor.cyan)
                 } else if date.apexDateKey == Date().apexDateKey {
-                    Button(health.isAuthorized ? "Refresh Apple Health" : "Connect Apple Health") {
-                        Task { if let snapshot = await health.requestAccessAndImport() { await session.applyHealthSnapshot(snapshot) } }
+                    Button(
+                        session.healthImportIsEnabledForCurrentAccount
+                            ? "Refresh Apple Health" : "Connect Apple Health"
+                    ) {
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task { _ = await session.connectHealth(operation: operation) }
                     }.buttonStyle(.borderedProminent).tint(APEXColor.cyan)
                 }
                 } // end expanded
@@ -2489,7 +2664,16 @@ private struct WearableActivityEditor: View {
             HStack { field("Steps", text: $steps); field("Active kcal", text: $calories); field("Exercise min", text: $minutes) }
             Button(language.text("Save and use suggested mode")) {
                 let record = WearableActivityRecord(date: date.apexDateKey, steps: Int(steps) ?? 0, activeCalories: Int(calories) ?? 0, exerciseMinutes: Int(minutes) ?? 0, source: "manual", updatedAt: Date().ISO8601Format())
-                Task { await session.saveWearableActivity(record, automaticallyApply: true); dismiss() }
+                guard let operation = session.accountOperationLease() else { return }
+                Task { [record] in
+                    await session.saveWearableActivity(
+                        record,
+                        automaticallyApply: true,
+                        operation: operation
+                    )
+                    guard session.accountOperationIsCurrent(operation) else { return }
+                    dismiss()
+                }
             }.buttonStyle(.borderedProminent).tint(APEXColor.cyan).frame(maxWidth: .infinity)
         }.padding(22).onAppear { steps = existing.map { String($0.steps) } ?? ""; calories = existing.map { String($0.activeCalories) } ?? ""; minutes = existing.map { String($0.exerciseMinutes) } ?? "" }
     }
@@ -2727,24 +2911,35 @@ private struct RecoveryMorningCard: View {
             weight: weight,
             source: source,
             weightUnit: weightUnit
-        ) else { return }
+        ), let operation = session.accountOperationLease() else { return }
         Task {
-            if let weightKG = entry.weightKG {
-                await session.saveMorningWeight(weightKG, on: date)
-            }
-            guard let sleepValue = entry.sleepScore else { return }
-            await session.updateSettings { settings in
-                var rows = settings.addons["recovery_history"]?.arrayValue ?? []
-                rows.removeAll { $0.objectValue?["date"]?.stringValue == date.apexDateKey }
-                rows.append(.object([
-                    "date": .string(date.apexDateKey),
-                    "source": .string(source),
-                    "sleep_score": source == "apple" ? .number(sleepValue) : .null,
-                    "sleep_pct": source == "other" ? .number(sleepValue) : .null,
-                    "recovery_pct": source == "other" ? (entry.recoveryScore.map(JSONValue.number) ?? .null) : .null,
-                    "updated_at": .string(Date().ISO8601Format()),
-                ]))
-                settings.addons["recovery_history"] = .array(Array(rows.suffix(730)))
+            do {
+                if let weightKG = entry.weightKG {
+                    try await session.saveMorningWeight(
+                        weightKG,
+                        on: date,
+                        operation: operation
+                    )
+                }
+                guard let sleepValue = entry.sleepScore else { return }
+                try await session.updateSettings({ settings in
+                    var rows = settings.addons["recovery_history"]?.arrayValue ?? []
+                    rows.removeAll { $0.objectValue?["date"]?.stringValue == date.apexDateKey }
+                    rows.append(.object([
+                        "date": .string(date.apexDateKey),
+                        "source": .string(source),
+                        "sleep_score": source == "apple" ? .number(sleepValue) : .null,
+                        "sleep_pct": source == "other" ? .number(sleepValue) : .null,
+                        "recovery_pct": source == "other" ? (entry.recoveryScore.map(JSONValue.number) ?? .null) : .null,
+                        "updated_at": .string(Date().ISO8601Format()),
+                    ]))
+                    settings.addons["recovery_history"] = .array(Array(rows.suffix(730)))
+                }, operation: operation)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
             }
         }
     }

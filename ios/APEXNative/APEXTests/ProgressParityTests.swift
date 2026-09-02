@@ -248,4 +248,292 @@ final class ProgressParityTests: XCTestCase {
             }
         }
     }
+
+    /// The concrete progress-photo service cannot currently be suspended by a
+    /// test double. This source contract therefore protects the real mutation
+    /// boundary: an upload begun by account A may not append its private row to
+    /// account B after an auth transition.
+    func testProgressPhotoUploadRejectsLateRemoteCompletionFromAnotherAccount() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let start = try XCTUnwrap(source.range(of: "func saveProgressPhoto("))
+        let end = try XCTUnwrap(
+            source.range(of: "func signedProgressURL(", range: start.upperBound..<source.endIndex)
+        )
+        let save = String(source[start.lowerBound..<end.lowerBound])
+        let leaseArgument = try XCTUnwrap(
+            save.range(of: "operation: AccountOperationLease"),
+            "require the account lease captured synchronously by the save button"
+        )
+        let rowOwner = try XCTUnwrap(
+            save.range(of: "userID: operation.ownerID"),
+            "bind the photo row to the verified owner"
+        )
+        let remoteCall = try XCTUnwrap(save.range(of: "try await service.uploadProgressPhoto("))
+        let revalidation = try XCTUnwrap(
+            save.range(of: "try requireCurrentAccountOperation(operation)", range: remoteCall.upperBound..<save.endIndex),
+            "reject the upload completion after either an owner or generation change"
+        )
+        let publication = try XCTUnwrap(save.range(of: "data.progressPhotos.insert(row, at: 0)"))
+
+        XCTAssertLessThan(leaseArgument.lowerBound, remoteCall.lowerBound)
+        XCTAssertLessThan(rowOwner.lowerBound, remoteCall.lowerBound)
+        XCTAssertLessThan(remoteCall.lowerBound, revalidation.lowerBound)
+        XCTAssertLessThan(revalidation.lowerBound, publication.lowerBound)
+        XCTAssertTrue(save.contains("catch {\n                try requireCurrentAccountOperation(operation)"))
+
+        let view = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Avatar/VisualProgressView.swift")
+        )
+        let button = try XCTUnwrap(view.range(of: "Save private checkpoint"))
+        let actionStart = try XCTUnwrap(
+            view.range(
+                of: "Button {",
+                options: .backwards,
+                range: view.startIndex..<button.lowerBound
+            )
+        )
+        let action = String(view[actionStart.lowerBound..<button.lowerBound])
+        XCTAssertTrue(action.contains("session.accountOperationLease()"))
+    }
+
+    func testProgressPhotoPreparationCannotRepublishAPrivateImageAfterOwnerChange() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Avatar/VisualProgressView.swift")
+        )
+        let changeStart = try XCTUnwrap(source.range(of: ".onChange(of: selectedItem)"))
+        let changeEnd = try XCTUnwrap(
+            source.range(
+                of: ".onChange(of: session.profile?.userID)",
+                range: changeStart.upperBound..<source.endIndex
+            )
+        )
+        let selection = String(source[changeStart.lowerBound..<changeEnd.lowerBound])
+        let lease = try XCTUnwrap(
+            selection.range(of: "session.accountOperationLease()"),
+            "capture the owner before asynchronous PhotosPicker preparation"
+        )
+        let task = try XCTUnwrap(selection.range(of: "Task {"))
+
+        XCTAssertLessThan(lease.lowerBound, task.lowerBound)
+        XCTAssertTrue(selection.contains("prepareSelectedImage("))
+
+        let helperStart = try XCTUnwrap(source.range(of: "private func prepareSelectedImage("))
+        let helperEnd = try XCTUnwrap(
+            source.range(
+                of: "private func save(",
+                range: helperStart.upperBound..<source.endIndex
+            )
+        )
+        let helper = String(source[helperStart.lowerBound..<helperEnd.lowerBound])
+        let transfer = try XCTUnwrap(helper.range(of: "loadTransferable(type: Data.self)"))
+        let leaseCheck = try XCTUnwrap(
+            helper.range(
+                of: "session.accountOperationIsCurrent(operation)",
+                range: transfer.upperBound..<helper.endIndex
+            )
+        )
+        let publication = try XCTUnwrap(helper.range(of: "selectedImage = image"))
+
+        XCTAssertLessThan(transfer.lowerBound, leaseCheck.lowerBound)
+        XCTAssertLessThan(leaseCheck.lowerBound, publication.lowerBound)
+        XCTAssertTrue(helper.contains("preparationID == requestID"))
+        XCTAssertTrue(source.contains("preparationTask?.cancel()"))
+    }
+
+    func testEveryPrivateProgressImageReadCarriesAndRevalidatesItsAccountLease() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let session = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let start = try XCTUnwrap(session.range(of: "func signedProgressURL("))
+        let end = try XCTUnwrap(
+            session.range(of: "func completeWorkout(", range: start.upperBound..<session.endIndex)
+        )
+        let signedURL = String(session[start.lowerBound..<end.lowerBound])
+        XCTAssertTrue(signedURL.contains("operation: AccountOperationLease"))
+        XCTAssertTrue(signedURL.contains("photo.userID == operation.ownerID"))
+        XCTAssertGreaterThanOrEqual(
+            signedURL.components(separatedBy: "requireCurrentAccountOperation(operation)").count - 1,
+            2
+        )
+
+        let paths = [
+            ("APEX/Features/Avatar/VisualProgressView.swift", "session.accountOperationLease()"),
+            ("APEX/Features/Avatar/ProgressCameraView.swift", "operation: AccountOperationLease"),
+            ("APEX/Features/Avatar/ProgressComparisonView.swift", "session.accountOperationLease()")
+        ]
+        for (path, captureToken) in paths {
+            let source = try String(contentsOf: nativeRoot.appending(path: path))
+            XCTAssertTrue(source.contains(captureToken), path)
+            XCTAssertTrue(source.contains("operation: operation"), path)
+            XCTAssertTrue(source.contains("session.accountOperationIsCurrent(operation)"), path)
+        }
+    }
+
+    func testAccountBoundaryDismissesEveryPrivateProgressCaptureAndComparisonSurface() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Avatar/VisualProgressView.swift")
+        )
+        let start = try XCTUnwrap(source.range(of: ".onChange(of: session.profile?.userID)"))
+        let end = try XCTUnwrap(
+            source.range(of: ".apexPopover", range: start.upperBound..<source.endIndex)
+        )
+        let boundary = String(source[start.lowerBound..<end.lowerBound])
+        for reset in [
+            "showBriefing = false",
+            "captureIntent = nil",
+            "captureOperation = nil",
+            "showComparison = false",
+            "comparisonSelection = []",
+            "showCamera = false"
+        ] {
+            XCTAssertTrue(boundary.contains(reset), reset)
+        }
+        XCTAssertTrue(source.contains("session.accountOperationIsCurrent(operation)"))
+    }
+
+    func testProgressCameraStopRevokesAPendingStartAndPhotoCallback() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Avatar/ProgressCameraView.swift")
+        )
+        let controllerStart = try XCTUnwrap(source.range(of: "final class ProgressCameraController"))
+        let controllerEnd = try XCTUnwrap(
+            source.range(of: "extension ProgressCameraController: AVCaptureDataOutputSynchronizerDelegate")
+        )
+        let controller = String(source[controllerStart.lowerBound..<controllerEnd.lowerBound])
+        let startStart = try XCTUnwrap(controller.range(of: "func start("))
+        let stopStart = try XCTUnwrap(
+            controller.range(of: "func stop()", range: startStart.upperBound..<controller.endIndex)
+        )
+        let start = String(controller[startStart.lowerBound..<stopStart.lowerBound])
+        let stop = String(controller[stopStart.lowerBound..<controller.endIndex])
+
+        let permission = try XCTUnwrap(start.range(of: "AVCaptureDevice.requestAccess(for: .video)"))
+        let cancellation = try XCTUnwrap(
+            start.range(of: "Task.isCancelled == false", range: permission.upperBound..<start.endIndex),
+            "a dismissed SwiftUI task must not start the camera after permission returns"
+        )
+        let generationCheck = try XCTUnwrap(
+            start.range(of: "lifecycleGeneration == requestGeneration", range: permission.upperBound..<start.endIndex),
+            "stop must revoke a pending start even when AVFoundation ignores task cancellation"
+        )
+        let queuedStart = try XCTUnwrap(start.range(of: "await withCheckedContinuation"))
+        let postQueueGenerationCheck = try XCTUnwrap(
+            start.range(
+                of: "lifecycleGeneration == requestGeneration",
+                range: queuedStart.upperBound..<start.endIndex
+            ),
+            "stop may run while session.startRunning is queued, so readiness needs a second generation check"
+        )
+        let ready = try XCTUnwrap(start.range(of: "isReady = true"))
+
+        XCTAssertLessThan(permission.lowerBound, cancellation.lowerBound)
+        XCTAssertLessThan(permission.lowerBound, generationCheck.lowerBound)
+        XCTAssertLessThan(queuedStart.lowerBound, postQueueGenerationCheck.lowerBound)
+        XCTAssertLessThan(postQueueGenerationCheck.lowerBound, ready.lowerBound)
+        XCTAssertTrue(stop.contains("lifecycleGeneration &+= 1"))
+        XCTAssertTrue(stop.contains("captured = nil"), "closing the camera must discard an in-flight private photo")
+    }
+
+    func testClosedProgressCaptureCannotRepublishItsPrivateImage() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Avatar/VisualProgressView.swift")
+        )
+        XCTAssertTrue(source.contains("@State private var captureRequestID: UUID?"))
+
+        let coverStart = try XCTUnwrap(
+            source.range(
+                of: ".fullScreenCover(item: capturePresentation, onDismiss: revokeCapturePresentation)"
+            ),
+            "every system or interactive dismissal must synchronously revoke the capture lease"
+        )
+        let coverEnd = try XCTUnwrap(
+            source.range(
+                of: ".fullScreenCover(isPresented: $showComparison)",
+                range: coverStart.upperBound..<source.endIndex
+            )
+        )
+        let cover = String(source[coverStart.lowerBound..<coverEnd.lowerBound])
+        let callback = try XCTUnwrap(cover.range(of: "onCaptured:"))
+        let requestCheck = try XCTUnwrap(
+            cover.range(
+                of: "captureRequestID == requestID",
+                range: callback.upperBound..<cover.endIndex
+            ),
+            "a late delegate callback must still belong to the currently presented capture request"
+        )
+        let publication = try XCTUnwrap(
+            cover.range(of: "selectedImage = image", range: callback.upperBound..<cover.endIndex)
+        )
+
+        XCTAssertLessThan(requestCheck.lowerBound, publication.lowerBound)
+        XCTAssertTrue(cover.contains("let requestID = captureRequestID"))
+        XCTAssertTrue(cover.contains("captureRequestID = nil"))
+
+        let bindingStart = try XCTUnwrap(
+            source.range(of: "private var capturePresentation: Binding<ProgressCaptureIntent?>")
+        )
+        let helperStart = try XCTUnwrap(
+            source.range(of: "private func revokeCapturePresentation()", range: bindingStart.upperBound..<source.endIndex)
+        )
+        let binding = String(source[bindingStart.lowerBound..<helperStart.lowerBound])
+        XCTAssertTrue(binding.contains("if intent == nil"))
+        XCTAssertTrue(binding.contains("revokeCapturePresentation()"))
+
+        let helperEnd = try XCTUnwrap(
+            source.range(of: "private var selectedPhotos", range: helperStart.upperBound..<source.endIndex)
+        )
+        let helper = String(source[helperStart.lowerBound..<helperEnd.lowerBound])
+        XCTAssertTrue(helper.contains("captureIntent = nil"))
+        XCTAssertTrue(helper.contains("captureOperation = nil"))
+        XCTAssertTrue(helper.contains("captureRequestID = nil"))
+
+        let boundaryStart = try XCTUnwrap(source.range(of: ".onChange(of: session.profile?.userID)"))
+        let boundaryEnd = try XCTUnwrap(
+            source.range(of: ".apexPopover", range: boundaryStart.upperBound..<source.endIndex)
+        )
+        let boundary = String(source[boundaryStart.lowerBound..<boundaryEnd.lowerBound])
+        XCTAssertTrue(boundary.contains("captureRequestID = nil"))
+    }
+
+    func testProgressCameraCloseStopsTheCaptureLifecycleBeforeDismissing() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Avatar/ProgressCameraView.swift")
+        )
+        XCTAssertTrue(source.contains("Button(language.text(\"Close\"), action: closeCamera)"))
+
+        let helperStart = try XCTUnwrap(source.range(of: "private func closeCamera()"))
+        let helperEnd = try XCTUnwrap(
+            source.range(of: "private var timerPicker", range: helperStart.upperBound..<source.endIndex)
+        )
+        let helper = String(source[helperStart.lowerBound..<helperEnd.lowerBound])
+        let cancel = try XCTUnwrap(helper.range(of: "countdownTask?.cancel()"))
+        let stop = try XCTUnwrap(helper.range(of: "controller.stop()"))
+        let dismiss = try XCTUnwrap(helper.range(of: "onClose()"))
+
+        XCTAssertLessThan(cancel.lowerBound, stop.lowerBound)
+        XCTAssertLessThan(stop.lowerBound, dismiss.lowerBound)
+    }
 }

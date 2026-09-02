@@ -104,7 +104,8 @@ struct TrainingInductionPanel: View {
                     .accessibilityIdentifier("induction-briefing-open")
 
                     Button {
-                        Task { await session.restoreOriginalProgramme() }
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task { await session.restoreOriginalProgramme(operation: operation) }
                     } label: {
                         Text(language.text("Restore my original programme"))
                             .font(APEXFont.body(12, weight: .bold))
@@ -126,8 +127,10 @@ struct TrainingInductionPanel: View {
                     briefing: briefing,
                     onDismiss: { showBriefing = false },
                     onOpenPlan: {
+                        guard let operation = session.accountOperationLease() else { return }
                         Task {
-                            guard await session.prepareCommittedPlanForPortal() else { return }
+                            guard await session.prepareCommittedPlanForPortal(operation: operation),
+                                  session.accountOperationIsCurrent(operation) else { return }
                             session.setInterfaceMode(.simple)
                             showBriefing = false
                         }
@@ -884,8 +887,10 @@ struct TrainingInductionPanel: View {
 
     private func install() {
         let submitted = draft
+        guard let operation = session.accountOperationLease() else { return }
         Task {
-            await session.installInductionPlan(submitted)
+            await session.installInductionPlan(submitted, operation: operation)
+            guard session.accountOperationIsCurrent(operation) else { return }
             guard TrainingInduction.hasCompleteGeneratedPlan(in: session.data, slug: slug) else { return }
             let installedBriefing = makeBriefing(for: submitted)
             if let onPresentBriefing {
@@ -1038,7 +1043,16 @@ struct PlanBriefingDeck: View {
                             let selected = session.data.profile?.goal == preset.goal
                             let percent = Int(((preset.factor - 1) * 100).rounded())
                             Button {
-                                Task { await session.setGoal(preset.goal) }
+                                guard let operation = session.accountOperationLease() else { return }
+                                Task {
+                                    do {
+                                        try await session.setGoal(preset.goal, operation: operation)
+                                    } catch is CancellationError {
+                                        return
+                                    } catch {
+                                        return
+                                    }
+                                }
                             } label: {
                                 VStack(spacing: 3) {
                                     Text(language.text(preset.label))

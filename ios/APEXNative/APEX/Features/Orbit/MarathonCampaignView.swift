@@ -39,8 +39,9 @@ struct MarathonCampaignView: View {
         ) {
             Button(language.text("Mark missed and rebalance")) {
                 guard let item = missedCandidate else { return }
+                guard let operation = session.accountOperationLease() else { return }
                 missedCandidate = nil
-                Task { await session.markOrbitCampaignSessionMissed(item) }
+                Task { await markMissed(item, operation: operation) }
             }
             Button(language.text("Cancel"), role: .cancel) { missedCandidate = nil }
         } message: {
@@ -314,10 +315,16 @@ struct MarathonCampaignView: View {
                             .font(APEXFont.body(9, weight: .medium))
                             .foregroundStyle(APEXColor.secondaryInk)
                         HStack {
-                            Button(language.text("Use adapted")) { Task { await session.chooseOrbitCampaignVersion(item, useOriginal: false) } }
+                            Button(language.text("Use adapted")) {
+                                guard let operation = session.accountOperationLease() else { return }
+                                Task { await chooseVersion(item, useOriginal: false, operation: operation) }
+                            }
                                 .buttonStyle(.borderedProminent)
                                 .tint(APEXColor.violet)
-                            Button(language.text("Keep original")) { Task { await session.chooseOrbitCampaignVersion(item, useOriginal: true) } }
+                            Button(language.text("Keep original")) {
+                                guard let operation = session.accountOperationLease() else { return }
+                                Task { await chooseVersion(item, useOriginal: true, operation: operation) }
+                            }
                                 .buttonStyle(.bordered)
                         }
                     }
@@ -379,6 +386,43 @@ struct MarathonCampaignView: View {
 
     private func missionLabel(_ prescription: [String: JSONValue]) -> String {
         language.text((prescription["mission"]?.stringValue ?? "run").replacingOccurrences(of: "_", with: " ").capitalized)
+    }
+
+    @MainActor
+    private func markMissed(
+        _ item: OrbitCampaignSession,
+        operation: AccountOperationLease
+    ) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
+        do {
+            try await session.markOrbitCampaignSessionMissed(item, operation: operation)
+        } catch is CancellationError {
+            return
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
+            session.alertMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func chooseVersion(
+        _ item: OrbitCampaignSession,
+        useOriginal: Bool,
+        operation: AccountOperationLease
+    ) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
+        do {
+            try await session.chooseOrbitCampaignVersion(
+                item,
+                useOriginal: useOriginal,
+                operation: operation
+            )
+        } catch is CancellationError {
+            return
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
+            session.alertMessage = error.localizedDescription
+        }
     }
 
     private func daysUntil(_ value: String) -> Int {

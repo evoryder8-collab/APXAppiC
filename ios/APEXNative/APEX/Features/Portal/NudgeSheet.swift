@@ -7,6 +7,7 @@ import SwiftUI
 /// so a reminder to eat more protein does not read as an instruction to drink
 /// the entire shortfall at once.
 struct NudgeSheet: View {
+    @Environment(AppSession.self) private var session
     let nudges: NudgeCenter
     var onClose: () -> Void
 
@@ -37,7 +38,12 @@ struct NudgeSheet: View {
 
                 if nudges.canAskForPermission {
                     Button {
-                        Task { await nudges.enableEveningDelivery() }
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task {
+                            guard session.accountOperationIsCurrent(operation) else { return }
+                            await nudges.enableEveningDelivery(ownerID: operation.ownerID)
+                            guard session.accountOperationIsCurrent(operation) else { return }
+                        }
                     } label: {
                         Label(
                             language.text("Send these to my lock screen"),
@@ -52,8 +58,11 @@ struct NudgeSheet: View {
         }
         .padding(17)
         .task {
-            nudges.markAllRead()
-            await nudges.readPermission()
+            guard let operation = session.accountOperationLease() else { return }
+            guard session.accountOperationIsCurrent(operation) else { return }
+            nudges.markAllRead(ownerID: operation.ownerID)
+            await nudges.readPermission(ownerID: operation.ownerID)
+            guard session.accountOperationIsCurrent(operation) else { return }
         }
     }
 }

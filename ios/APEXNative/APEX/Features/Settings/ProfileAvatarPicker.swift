@@ -12,6 +12,8 @@ struct ProfileAvatarPicker: View {
     @State private var picked: PhotosPickerItem?
     @State private var uploading = false
     @State private var preview: UIImage?
+    @State private var uploadTask: Task<Void, Never>?
+    @State private var uploadID: UUID?
 
     private var profile: Profile? { session.profile }
 
@@ -41,8 +43,26 @@ struct ProfileAvatarPicker: View {
         .buttonStyle(.plain)
         .accessibilityLabel(language.text("Change profile picture"))
         .onChange(of: picked) { _, item in
-            guard let item else { return }
-            Task { await upload(item) }
+            guard let item,
+                  let operation = session.accountOperationLease() else { return }
+            let requestID = UUID()
+            uploadTask?.cancel()
+            uploadID = requestID
+            uploading = true
+            uploadTask = Task {
+                await upload(item, operation: operation, requestID: requestID)
+            }
+        }
+        .onChange(of: profile?.userID) { _, _ in
+            /* A locally prepared preview is private account state too. Clear
+               it at the same instant the visible identity changes instead of
+               waiting for an in-flight upload to return. */
+            preview = nil
+            picked = nil
+            uploadTask?.cancel()
+            uploadTask = nil
+            uploadID = nil
+            uploading = false
         }
     }
 
@@ -67,21 +87,59 @@ struct ProfileAvatarPicker: View {
         return String(name.split(separator: " ").prefix(2).compactMap(\.first)).uppercased()
     }
 
-    private func upload(_ item: PhotosPickerItem) async {
-        uploading = true
-        defer { uploading = false }
-        guard
-            let data = try? await item.loadTransferable(type: Data.self),
-            let image = UIImage(data: data),
+    private func upload(
+        _ item: PhotosPickerItem,
+        operation: AccountOperationLease,
+        requestID: UUID
+    ) async {
+        defer {
+            if uploadID == requestID {
+                uploading = false
+                uploadTask = nil
+            }
+        }
+        let data: Data
+        do {
+            guard let loaded = try await item.loadTransferable(type: Data.self) else {
+                throw AvatarUploadError.unreadableImage
+            }
+            data = loaded
+        } catch is CancellationError {
+            return
+        } catch {
+            guard uploadID == requestID,
+                  session.accountOperationIsCurrent(operation) else { return }
+            session.alertMessage = language.text("That picture could not be read.")
+            return
+        }
+        guard uploadID == requestID,
+              session.accountOperationIsCurrent(operation),
+              let image = UIImage(data: data),
             /* Resized and compressed here, on the phone. A camera roll photo is
                routinely several megabytes and is about to be shown at 76
                points across. */
             let prepared = AvatarImage.prepare(image)
         else {
-            session.alertMessage = language.text("That picture could not be read.")
+            if uploadID == requestID, session.accountOperationIsCurrent(operation) {
+                session.alertMessage = language.text("That picture could not be read.")
+            }
             return
         }
-        preview = UIImage(data: prepared)
-        await session.setAvatar(data: prepared)
+        do {
+            try await session.setAvatar(data: prepared, operation: operation)
+            guard uploadID == requestID,
+                  session.accountOperationIsCurrent(operation) else { return }
+            preview = UIImage(data: prepared)
+        } catch is CancellationError {
+            return
+        } catch {
+            guard uploadID == requestID,
+                  session.accountOperationIsCurrent(operation) else { return }
+            session.alertMessage = error.localizedDescription
+        }
     }
+}
+
+private enum AvatarUploadError: Error {
+    case unreadableImage
 }

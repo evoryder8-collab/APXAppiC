@@ -164,11 +164,26 @@ struct RecoveryPlannerView: View {
                 .frame(maxWidth: .infinity, minHeight: 50)
                 .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             Button {
+                guard let operation = session.accountOperationLease() else { return }
                 installing = true
                 Task {
-                    let count = await session.installRecoveryPlan(target: target, source: source, startDate: startDate)
-                    installing = false
-                    if count > 0 { dismiss() }
+                    do {
+                        let count = try await session.installRecoveryPlan(
+                            target: target,
+                            source: source,
+                            startDate: startDate,
+                            operation: operation
+                        )
+                        guard session.accountOperationIsCurrent(operation) else { return }
+                        installing = false
+                        if count > 0 { dismiss() }
+                    } catch is CancellationError {
+                        return
+                    } catch {
+                        guard session.accountOperationIsCurrent(operation) else { return }
+                        installing = false
+                        session.alertMessage = error.localizedDescription
+                    }
                 }
             } label: {
                 if installing {

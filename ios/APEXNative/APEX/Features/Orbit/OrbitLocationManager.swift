@@ -42,6 +42,20 @@ struct OrbitPauseInterval: Codable, Hashable, Sendable {
     }
 }
 
+struct OrbitRunCompletion: Sendable {
+    let ownerID: UUID
+    let startedAt: Date
+    let endedAt: Date
+    let samples: [OrbitLocationSample]
+    let distanceM: Double
+    let movingSeconds: TimeInterval
+    let pauses: [OrbitPauseInterval]
+    let manualLapsM: [Double]
+    let routeID: UUID?
+    let campaignSessionID: UUID?
+    let shoeID: UUID?
+}
+
 @MainActor
 @Observable
 final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDelegate {
@@ -67,23 +81,38 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
     var draftCampaignSessionID: UUID?
     var draftShoeID: UUID?
 
-    var hasRecoverableRun: Bool {
-        draftOwnerID != nil && startedAt != nil && samples.isEmpty == false && state == .paused
+    func hasRecoverableRun(for ownerID: UUID?) -> Bool {
+        guard let ownerID else { return false }
+        return draftOwnerID == ownerID
+            && startedAt != nil
+            && samples.isEmpty == false
+            && state == .paused
     }
 
     private let manager = CLLocationManager()
     private var timer: Timer?
+    private var countdownTask: Task<Void, Never>?
+    private var locationUpdatesRequested = false
     private var lastAcceptedLocation: CLLocation?
     private var lastTick = Date()
     private var lastPersistedAt = Date.distantPast
-    private let draftURL: URL
+    private let draftDirectory: URL
 
     override private init() {
         let support = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        let directory = support.appending(path: "APEX", directoryHint: .isDirectory)
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        draftURL = directory.appending(path: "active-orbit-run.json")
+        draftDirectory = support.appending(path: "APEX", directoryHint: .isDirectory)
         super.init()
+        configureLocationManager()
+    }
+
+    init(draftDirectory: URL) {
+        self.draftDirectory = draftDirectory
+        super.init()
+        configureLocationManager()
+    }
+
+    private func configureLocationManager() {
+        try? FileManager.default.createDirectory(at: draftDirectory, withIntermediateDirectories: true)
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
         manager.activityType = .fitness
@@ -95,8 +124,16 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
     }
 
     func restoreDraft(for ownerID: UUID) {
+        if let draftOwnerID, draftOwnerID != ownerID {
+            releaseForAccountBoundary()
+        }
+        if hasRecoverableRun(for: ownerID) { return }
         guard state == .idle || state == .finished else { return }
-        guard let data = try? Data(contentsOf: draftURL),
+        let scopedURL = draftURL(for: ownerID)
+        let sourceURL = FileManager.default.fileExists(atPath: scopedURL.path)
+            ? scopedURL
+            : legacyDraftURL
+        guard let data = try? Data(contentsOf: sourceURL),
               let draft = try? JSONDecoder.apex.decode(OrbitRunDraft.self, from: data),
               draft.ownerID == ownerID,
               Date().timeIntervalSince(draft.savedAt) < 36 * 60 * 60,
@@ -125,6 +162,11 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
             )
         }
         state = .paused
+
+        if sourceURL == legacyDraftURL {
+            try? data.write(to: scopedURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            try? FileManager.default.removeItem(at: legacyDraftURL)
+        }
     }
 
     func prepare(
@@ -134,7 +176,8 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
         campaignSessionID: UUID? = nil,
         shoeID: UUID? = nil
     ) {
-        if hasRecoverableRun { return }
+        guard draftOwnerID == nil || draftOwnerID == ownerID,
+              state == .idle || state == .finished else { return }
         draftOwnerID = ownerID
         draftMission = mission
         draftRouteID = routeID
@@ -149,27 +192,46 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
 
     func requestLocation() {
         if authorization == .notDetermined { manager.requestWhenInUseAuthorization() }
+        locationUpdatesRequested = true
         manager.startUpdatingLocation()
     }
 
-    func beginCountdown() {
-        guard state == .idle || state == .finished else { return }
+    func beginCountdown(for ownerID: UUID) {
+        guard draftOwnerID == ownerID,
+              state == .idle || state == .finished else { return }
         reset()
         state = .countdown(3)
-        Task {
-            for remaining in stride(from: 3, through: 1, by: -1) {
-                state = .countdown(remaining)
-                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                try? await Task.sleep(for: .seconds(1))
+        countdownTask = Task { [weak self] in
+            do {
+                for remaining in stride(from: 3, through: 1, by: -1) {
+                    try Task.checkCancellation()
+                    guard let self,
+                          self.draftOwnerID == ownerID,
+                          self.state != .idle else { return }
+                    self.state = .countdown(remaining)
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    try await Task.sleep(for: .seconds(1))
+                }
+                try Task.checkCancellation()
+                guard let self, self.draftOwnerID == ownerID else { return }
+                self.startRun(for: ownerID)
+            } catch {
+                guard let self,
+                      self.draftOwnerID == ownerID,
+                      case .countdown = self.state else { return }
+                self.state = .idle
             }
-            startRun()
         }
     }
 
-    func startRun() {
+    private func startRun(for ownerID: UUID) {
+        guard draftOwnerID == ownerID,
+              case .countdown = state else { return }
+        countdownTask = nil
         startedAt = .now
         lastTick = .now
         state = .running
+        locationUpdatesRequested = true
         manager.requestAlwaysAuthorization()
         manager.startUpdatingLocation()
         startTimer()
@@ -193,17 +255,40 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
         persistDraft(force: true)
     }
 
-    func finish() {
+    private func finish() {
         guard state == .running || state == .paused else { return }
         closeOpenPause()
         state = .finished
         timer?.invalidate()
         timer = nil
+        locationUpdatesRequested = false
         manager.stopUpdatingLocation()
         persistDraft(force: true)
     }
 
+    func finish(for ownerID: UUID) -> OrbitRunCompletion? {
+        guard draftOwnerID == ownerID,
+              let startedAt,
+              state == .running || state == .paused else { return nil }
+        let endedAt = Date()
+        finish()
+        return OrbitRunCompletion(
+            ownerID: ownerID,
+            startedAt: startedAt,
+            endedAt: endedAt,
+            samples: samples,
+            distanceM: distanceM,
+            movingSeconds: movingSeconds,
+            pauses: pauseIntervals,
+            manualLapsM: manualLapsM,
+            routeID: draftRouteID,
+            campaignSessionID: draftCampaignSessionID,
+            shoeID: draftShoeID
+        )
+    }
+
     func cancel() {
+        let ownerID = draftOwnerID
         reset()
         draftOwnerID = nil
         draftMission = nil
@@ -211,11 +296,14 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
         draftCampaignSessionID = nil
         draftShoeID = nil
         state = .idle
+        locationUpdatesRequested = false
         manager.stopUpdatingLocation()
-        clearPersistedDraft()
+        if let ownerID { clearPersistedDraft(for: ownerID) }
     }
 
     func reset() {
+        countdownTask?.cancel()
+        countdownTask = nil
         timer?.invalidate()
         timer = nil
         samples = []
@@ -226,10 +314,13 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
         movingSeconds = 0
         startedAt = nil
         lastAcceptedLocation = nil
+        currentLocation = nil
         weakGPS = false
+        errorMessage = nil
     }
 
     func clearCompletedRun() {
+        let ownerID = draftOwnerID
         reset()
         draftOwnerID = nil
         draftMission = nil
@@ -237,7 +328,24 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
         draftCampaignSessionID = nil
         draftShoeID = nil
         state = .idle
-        clearPersistedDraft()
+        if let ownerID { clearPersistedDraft(for: ownerID) }
+    }
+
+    /// Stop publishing one person's live GPS state at an authentication
+    /// boundary while retaining that person's protected recovery draft.
+    func releaseForAccountBoundary() {
+        if state == .running || state == .paused { persistDraft(force: true) }
+        countdownTask?.cancel()
+        countdownTask = nil
+        reset()
+        draftOwnerID = nil
+        draftMission = nil
+        draftRouteID = nil
+        draftCampaignSessionID = nil
+        draftShoeID = nil
+        state = .idle
+        locationUpdatesRequested = false
+        manager.stopUpdatingLocation()
     }
 
     func persistForAppTransition() {
@@ -258,7 +366,8 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         authorization = manager.authorizationStatus
-        if authorization == .authorizedAlways || authorization == .authorizedWhenInUse {
+        if locationUpdatesRequested,
+           authorization == .authorizedAlways || authorization == .authorizedWhenInUse {
             manager.startUpdatingLocation()
         }
     }
@@ -337,14 +446,32 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
         )
         guard let data = try? JSONEncoder.apex.encode(draft) else { return }
         do {
-            try data.write(to: draftURL, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+            try data.write(
+                to: draftURL(for: ownerID),
+                options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
+            )
         } catch {
             errorMessage = "The active run could not be protected for recovery."
         }
     }
 
-    private func clearPersistedDraft() {
-        try? FileManager.default.removeItem(at: draftURL)
+    private var legacyDraftURL: URL {
+        draftDirectory.appending(path: "active-orbit-run.json")
+    }
+
+    private func draftURL(for ownerID: UUID) -> URL {
+        draftDirectory.appending(
+            path: "active-orbit-run-\(ownerID.uuidString.lowercased()).json"
+        )
+    }
+
+    private func clearPersistedDraft(for ownerID: UUID) {
+        try? FileManager.default.removeItem(at: draftURL(for: ownerID))
+        if let data = try? Data(contentsOf: legacyDraftURL),
+           let draft = try? JSONDecoder.apex.decode(OrbitRunDraft.self, from: data),
+           draft.ownerID == ownerID {
+            try? FileManager.default.removeItem(at: legacyDraftURL)
+        }
     }
 
     private func closeOpenPause() {

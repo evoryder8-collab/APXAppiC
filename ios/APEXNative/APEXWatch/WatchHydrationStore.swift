@@ -137,9 +137,15 @@ final class WatchHydrationStore: ObservableObject {
             self?.disconnectAccount(revision: revision)
         }
         connectivity.workoutCommandHandler = { [weak self] command in
-            guard self?.activeOwnerID == command.ownerID, command.action == .stop else { return }
-            Task { @MainActor in await WatchWorkoutSessionController.shared.stop() }
+            Task { @MainActor [weak self] in
+                guard self != nil else { return }
+                await WatchWorkoutSessionController.shared.receive(command)
+            }
         }
+        WatchWorkoutSessionController.shared.updateActiveOwner(
+            activeOwnerID,
+            revision: latestWidgetRevision
+        )
     }
 
     var targetLiters: Double { preferences.targetLiters }
@@ -694,6 +700,10 @@ final class WatchHydrationStore: ObservableObject {
             composition: healthOverlaid.composition
         )
         activeOwnerID = snapshot.ownerID
+        WatchWorkoutSessionController.shared.updateActiveOwner(
+            snapshot.ownerID,
+            revision: snapshot.revision
+        )
         presets = snapshot.presets
         composition = overlaid.composition
         liters = Double(overlaid.totalML) / 1_000
@@ -720,8 +730,13 @@ final class WatchHydrationStore: ObservableObject {
             localWidgetRevision: latestWidgetRevision,
             incomingRevision: revision
         ) else { return }
+        let disconnectedOwnerID = activeOwnerID
         stateGeneration &+= 1
         activeOwnerID = nil
+        WatchWorkoutSessionController.shared.disconnect(
+            ownerID: disconnectedOwnerID,
+            revision: revision
+        )
         liters = 0
         entries = []
         presets = []
@@ -748,7 +763,6 @@ final class WatchHydrationStore: ObservableObject {
         WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
         Task { @MainActor [weak self] in
             await self?.removeHydrationReminders()
-            await WatchWorkoutSessionController.shared.stop()
         }
     }
 

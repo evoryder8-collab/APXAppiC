@@ -81,7 +81,10 @@ struct RunningShoesView: View {
                                     showEditor = true
                                 }
                                 .buttonStyle(.bordered)
-                                Button(language.text("Archive")) { Task { await session.archiveOrbitShoe(shoe) } }
+                                Button(language.text("Archive")) {
+                                    guard let operation = session.accountOperationLease() else { return }
+                                    Task { await archive(shoe, operation: operation) }
+                                }
                                     .buttonStyle(.bordered)
                             }
                         }
@@ -121,6 +124,22 @@ struct RunningShoesView: View {
     private func distance(for shoe: OrbitShoe) -> Double {
         session.data.orbitRuns.filter { $0.shoeID == shoe.id && $0.status == "completed" }
             .reduce(0) { $0 + ($1.metrics["distance_m"]?.numberValue ?? 0) }
+    }
+
+    @MainActor
+    private func archive(
+        _ shoe: OrbitShoe,
+        operation: AccountOperationLease
+    ) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
+        do {
+            try await session.archiveOrbitShoe(shoe, operation: operation)
+        } catch is CancellationError {
+            return
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
+            session.alertMessage = error.localizedDescription
+        }
     }
 }
 
@@ -170,7 +189,10 @@ private struct ShoeEditorView: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(language.text("Cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(language.text("Save")) { Task { await save() } }
+                    Button(language.text("Save")) {
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task { await save(operation: operation) }
+                    }
                         .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || saving)
                 }
             }
@@ -186,18 +208,32 @@ private struct ShoeEditorView: View {
     }
 
     @MainActor
-    private func save() async {
+    private func save(operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
         saving = true
-        await session.saveOrbitShoe(
-            id: shoe?.id,
-            name: name,
-            brand: brand,
-            firstUseDate: firstUseDate,
-            surfaces: surfaces.sorted(),
-            notes: notes,
-            archived: shoe?.archived ?? false
-        )
-        saving = false
-        dismiss()
+        defer {
+            if session.accountOperationIsCurrent(operation) {
+                saving = false
+            }
+        }
+        do {
+            try await session.saveOrbitShoe(
+                id: shoe?.id,
+                name: name,
+                brand: brand,
+                firstUseDate: firstUseDate,
+                surfaces: surfaces.sorted(),
+                notes: notes,
+                archived: shoe?.archived ?? false,
+                operation: operation
+            )
+            guard session.accountOperationIsCurrent(operation) else { return }
+            dismiss()
+        } catch is CancellationError {
+            return
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
+            session.alertMessage = error.localizedDescription
+        }
     }
 }

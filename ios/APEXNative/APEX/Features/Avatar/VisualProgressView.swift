@@ -11,17 +11,26 @@ struct VisualProgressView: View {
     @State private var pose = "front"
     @State private var note = ""
     @State private var isSaving = false
+    @State private var saveTask: Task<Void, Never>?
+    @State private var saveOperationID: UUID?
     @State private var saveError: String?
     @State private var comparisonSelection: [UUID] = []
     /* The capture flow, in the order the web runs it: brief, frame, save. */
     @State private var showBriefing = false
     @State private var captureIntent: ProgressCaptureIntent?
+    @State private var captureOperation: AccountOperationLease?
+    @State private var captureRequestID: UUID?
     @State private var showComparison = false
+    @State private var preparationTask: Task<Void, Never>?
+    @State private var preparationID: UUID?
 
     /* The ghost is the last photo in the same pose. Without it the overlay
        has nothing to align to, which is most of why the camera exists. */
     private func referencePhoto(for pose: String) -> ProgressPhoto? {
-        let sorted = session.data.progressPhotos.sorted { $0.localDate > $1.localDate }
+        guard let ownerID = session.profile?.userID ?? session.data.settings?.userID else { return nil }
+        let sorted = session.data.progressPhotos
+            .filter { $0.userID == ownerID }
+            .sorted { $0.localDate > $1.localDate }
         return sorted.first { $0.pose == pose } ?? sorted.first
     }
 
@@ -33,6 +42,21 @@ struct VisualProgressView: View {
         guard chosen.count == 2 else { return nil }
         let ordered = chosen.sorted { $0.localDate < $1.localDate }
         return (ordered[0], ordered[1])
+    }
+
+    /// SwiftUI writes `nil` through the presentation binding for system and
+    /// interactive dismissals. Revoke the account-bound request in that same
+    /// turn, before an in-flight camera delegate can publish its image.
+    private var capturePresentation: Binding<ProgressCaptureIntent?> {
+        Binding(
+            get: { captureIntent },
+            set: { intent in
+                captureIntent = intent
+                if intent == nil {
+                    revokeCapturePresentation()
+                }
+            }
+        )
     }
 
     var body: some View {
@@ -63,7 +87,14 @@ struct VisualProgressView: View {
                                 Button(language.text("Retake")) { self.selectedImage = nil }
                                     .buttonStyle(.bordered)
                                 Button {
-                                    Task { await save(selectedImage) }
+                                    guard let operation = session.accountOperationLease() else { return }
+                                    let requestID = UUID()
+                                    saveTask?.cancel()
+                                    saveOperationID = requestID
+                                    isSaving = true
+                                    saveTask = Task {
+                                        await save(selectedImage, operation: operation, requestID: requestID)
+                                    }
                                 } label: {
                                     if isSaving { ProgressView().tint(.white) }
                                     else { Label(language.text("Save private checkpoint"), systemImage: "lock.fill") }
@@ -87,7 +118,12 @@ struct VisualProgressView: View {
                                 .foregroundStyle(APEXColor.secondaryInk)
                                 .multilineTextAlignment(.center)
                             HStack {
-                                Button { showBriefing = true } label: {
+                                Button {
+                                    guard let operation = session.accountOperationLease() else { return }
+                                    captureRequestID = UUID()
+                                    captureOperation = operation
+                                    showBriefing = true
+                                } label: {
                                     Label(language.text("Take progress photo"), systemImage: "camera.fill")
                                 }
                                 .accessibilityIdentifier("progress-take-photo")
@@ -180,18 +216,61 @@ struct VisualProgressView: View {
         .navigationTitle(language.text("Visual Progress"))
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: selectedItem) { _, item in
-            Task {
-                guard let data = try? await item?.loadTransferable(type: Data.self),
-                      let image = UIImage(data: data) else { return }
-                selectedImage = image
+            preparationTask?.cancel()
+            guard let item,
+                  let operation = session.accountOperationLease() else {
+                preparationTask = nil
+                preparationID = nil
+                return
             }
+            let requestID = UUID()
+            preparationID = requestID
+            preparationTask = Task {
+                await prepareSelectedImage(
+                    item,
+                    operation: operation,
+                    requestID: requestID
+                )
+            }
+        }
+        .onChange(of: session.profile?.userID) { _, _ in
+            preparationTask?.cancel()
+            preparationTask = nil
+            preparationID = nil
+            saveTask?.cancel()
+            saveTask = nil
+            saveOperationID = nil
+            isSaving = false
+            selectedItem = nil
+            selectedImage = nil
+            note = ""
+            saveError = nil
+            showBriefing = false
+            captureIntent = nil
+            captureOperation = nil
+            captureRequestID = nil
+            showComparison = false
+            comparisonSelection = []
+            showCamera = false
         }
         /* A card, not a screen: the briefing is four rules and two choices. */
         .apexPopover(isPresented: $showBriefing) {
             ProgressCaptureBriefing(
                 initial: ProgressCaptureIntent(pose: pose),
-                onCancel: { showBriefing = false },
+                onCancel: {
+                    showBriefing = false
+                    captureOperation = nil
+                    captureRequestID = nil
+                },
                 onConfirm: { intent in
+                    guard let operation = captureOperation,
+                          captureRequestID != nil,
+                          session.accountOperationIsCurrent(operation) else {
+                        showBriefing = false
+                        captureOperation = nil
+                        captureRequestID = nil
+                        return
+                    }
                     showBriefing = false
                     pose = intent.pose
                     note = intent.note
@@ -199,18 +278,40 @@ struct VisualProgressView: View {
                 }
             )
         }
-        .fullScreenCover(item: $captureIntent) { intent in
-            ProgressCameraView(
-                intent: intent,
-                reference: referencePhoto(for: intent.pose),
-                onClose: { captureIntent = nil },
-                onCaptured: { image, resolved in
-                    selectedImage = image
-                    pose = resolved.pose
-                    note = resolved.note
-                    captureIntent = nil
-                }
-            )
+        .fullScreenCover(item: capturePresentation, onDismiss: revokeCapturePresentation) { intent in
+            if let operation = captureOperation,
+               let requestID = captureRequestID,
+               session.accountOperationIsCurrent(operation) {
+                ProgressCameraView(
+                    intent: intent,
+                    reference: referencePhoto(for: intent.pose),
+                    operation: operation,
+                    onClose: {
+                        guard captureRequestID == requestID else { return }
+                        captureIntent = nil
+                        captureOperation = nil
+                        captureRequestID = nil
+                    },
+                    onCaptured: { image, resolved in
+                        guard captureRequestID == requestID,
+                              captureOperation == operation,
+                              session.accountOperationIsCurrent(operation) else {
+                            if captureRequestID == requestID {
+                                captureIntent = nil
+                                captureOperation = nil
+                                captureRequestID = nil
+                            }
+                            return
+                        }
+                        selectedImage = image
+                        pose = resolved.pose
+                        note = resolved.note
+                        captureIntent = nil
+                        captureOperation = nil
+                        captureRequestID = nil
+                    }
+                )
+            }
         }
         .fullScreenCover(isPresented: $showComparison) {
             if let pair = comparisonPair {
@@ -233,6 +334,12 @@ struct VisualProgressView: View {
         } message: {
             Text(language.text(saveError ?? "Please try again."))
         }
+    }
+
+    private func revokeCapturePresentation() {
+        captureIntent = nil
+        captureOperation = nil
+        captureRequestID = nil
     }
 
     private var selectedPhotos: [ProgressPhoto] {
@@ -258,9 +365,45 @@ struct VisualProgressView: View {
     }
 
     @MainActor
-    private func save(_ image: UIImage) async {
-        isSaving = true
-        defer { isSaving = false }
+    private func prepareSelectedImage(
+        _ item: PhotosPickerItem,
+        operation: AccountOperationLease,
+        requestID: UUID
+    ) async {
+        defer {
+            if preparationID == requestID {
+                preparationTask = nil
+            }
+        }
+        do {
+            guard let data = try await item.loadTransferable(type: Data.self),
+                  preparationID == requestID,
+                  session.accountOperationIsCurrent(operation),
+                  let image = UIImage(data: data) else { return }
+            selectedImage = image
+        } catch is CancellationError {
+            return
+        } catch {
+            /* A PhotosPicker read failure leaves the capture empty, matching the
+               prior behavior. Most importantly, an old owner's failure does not
+               publish an alert or any prepared state into the new account. */
+            guard preparationID == requestID,
+                  session.accountOperationIsCurrent(operation) else { return }
+        }
+    }
+
+    @MainActor
+    private func save(
+        _ image: UIImage,
+        operation: AccountOperationLease,
+        requestID: UUID
+    ) async {
+        defer {
+            if saveOperationID == requestID {
+                isSaving = false
+                saveTask = nil
+            }
+        }
         do {
             let normalized = image.apexNormalized(maxDimension: 2_400)
             let thumbnail = normalized.apexNormalized(maxDimension: 600)
@@ -273,12 +416,19 @@ struct VisualProgressView: View {
                 width: Int(normalized.size.width),
                 height: Int(normalized.size.height),
                 pose: pose,
-                note: note
+                note: note,
+                operation: operation
             )
+            guard saveOperationID == requestID,
+                  session.accountOperationIsCurrent(operation) else { return }
             selectedImage = nil
             note = ""
             UINotificationFeedbackGenerator().notificationOccurred(.success)
+        } catch is CancellationError {
+            return
         } catch {
+            guard saveOperationID == requestID,
+                  session.accountOperationIsCurrent(operation) else { return }
             saveError = error.localizedDescription
         }
     }
@@ -373,7 +523,24 @@ private struct ProgressTimelineRow: View {
         }
         .buttonStyle(.plain)
         .task(id: photo.thumbnailPath) {
-            thumbnailURL = try? await session.signedProgressURL(for: photo, thumbnail: true)
+            guard let operation = session.accountOperationLease() else {
+                thumbnailURL = nil
+                return
+            }
+            do {
+                let url = try await session.signedProgressURL(
+                    for: photo,
+                    thumbnail: true,
+                    operation: operation
+                )
+                guard session.accountOperationIsCurrent(operation) else { return }
+                thumbnailURL = url
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                thumbnailURL = nil
+            }
         }
     }
 }
@@ -429,7 +596,24 @@ private struct RemoteProgressImageCard: View {
         .frame(height: compact ? 330 : 470)
         .clipShape(RoundedRectangle(cornerRadius: compact ? 24 : 34, style: .continuous))
         .task(id: photo.storagePath) {
-            imageURL = try? await session.signedProgressURL(for: photo, thumbnail: false)
+            guard let operation = session.accountOperationLease() else {
+                imageURL = nil
+                return
+            }
+            do {
+                let url = try await session.signedProgressURL(
+                    for: photo,
+                    thumbnail: false,
+                    operation: operation
+                )
+                guard session.accountOperationIsCurrent(operation) else { return }
+                imageURL = url
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                imageURL = nil
+            }
         }
     }
 

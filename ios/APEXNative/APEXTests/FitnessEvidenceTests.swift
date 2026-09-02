@@ -433,6 +433,64 @@ final class BaselineCalibrationTests: XCTestCase {
         )
     }
 
+    func testCalibrationEvidenceKeepsTheInitiatingAccountLeaseAcrossEverySave() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sessionSource = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let sheetSource = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Avatar/BaselineCalibrationSheet.swift")
+        )
+
+        func body(_ start: String, before end: String) throws -> String {
+            let lower = try XCTUnwrap(sessionSource.range(of: start))
+            let upper = try XCTUnwrap(
+                sessionSource.range(of: end, range: lower.upperBound..<sessionSource.endIndex)
+            )
+            return String(sessionSource[lower.lowerBound..<upper.lowerBound])
+        }
+
+        let recorder = try body(
+            "func recordFitnessEvidence(",
+            before: "func saveBaselineCalibration("
+        )
+        XCTAssertTrue(recorder.contains("operation: AccountOperationLease"))
+        XCTAssertTrue(recorder.contains("try requireCurrentAccountOperation(operation)"))
+        XCTAssertTrue(recorder.contains("ownerID == operation.ownerID"))
+        XCTAssertTrue(recorder.contains("for: ownerID"))
+        XCTAssertTrue(recorder.contains("saveLocalSnapshot(operation: operation)"))
+
+        for (start, end) in [
+            ("func saveBaselineCalibration(", "func saveManualCalibrationResult("),
+            ("func saveManualCalibrationResult(", "func saveManualDEXACalibrationResult("),
+            ("func saveManualDEXACalibrationResult(", "func connectHealthForBaselineCalibration("),
+        ] {
+            let mutation = try body(start, before: end)
+            XCTAssertTrue(mutation.contains("operation: AccountOperationLease"), start)
+            XCTAssertTrue(mutation.contains("try requireCurrentAccountOperation(operation)"), start)
+            XCTAssertTrue(
+                mutation.contains("recordFitnessEvidence(")
+                    && mutation.contains("operation: operation"),
+                start
+            )
+        }
+
+        XCTAssertGreaterThanOrEqual(
+            sheetSource.components(
+                separatedBy: "guard let operation = session.accountOperationLease() else { return }"
+            ).count - 1,
+            3,
+            "each save button must bind its account before launching an unstructured Task"
+        )
+        XCTAssertTrue(sheetSource.contains("saveQuestionnaire(operation: operation)"))
+        XCTAssertTrue(sheetSource.contains("saveDEXAResult(operation: operation)"))
+        XCTAssertTrue(sheetSource.contains("saveOtherResult(operation: operation)"))
+        XCTAssertTrue(sheetSource.contains("catch is CancellationError"))
+        XCTAssertTrue(sheetSource.contains("session.accountOperationIsCurrent(operation)"))
+    }
+
     private func decodeCalibrationFixture<T: Decodable>() throws -> T {
         let url = try XCTUnwrap(Bundle(for: Self.self).url(
             forResource: "baseline-calibration",

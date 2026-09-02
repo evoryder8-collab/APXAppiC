@@ -160,7 +160,8 @@ struct InductionView: View {
                         baselineField = nil
                         withAnimation(.snappy) { step += 1 }
                     } else if step == stepCount - 1 {
-                        Task { await session.completeInduction(input) }
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task { await session.completeInduction(input, operation: operation) }
                     } else {
                         withAnimation(.snappy) { step += 1 }
                     }
@@ -189,7 +190,8 @@ struct InductionView: View {
     }
 
     private func skip() {
-        Task { await session.skipRemainingInduction(input) }
+        guard let operation = session.accountOperationLease() else { return }
+        Task { await session.skipRemainingInduction(input, operation: operation) }
     }
 
     private var canContinue: Bool {

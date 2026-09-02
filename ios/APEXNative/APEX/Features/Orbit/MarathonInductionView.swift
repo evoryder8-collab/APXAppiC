@@ -8,7 +8,7 @@ struct MarathonInductionView: View {
     @State private var inductionID = UUID()
     @State private var step = 0
     @State private var createdAt = Date().ISO8601Format()
-    @State private var loaded = false
+    @State private var loadedOwnerID: UUID?
     @State private var isSaving = false
     @State private var message: String?
     @State private var language = LanguageState.shared
@@ -71,7 +71,10 @@ struct MarathonInductionView: View {
                     .buttonStyle(.bordered)
                     .frame(maxWidth: .infinity)
 
-                    Button { Task { await next() } } label: {
+                    Button {
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task { await next(operation: operation) }
+                    } label: {
                         if isSaving { ProgressView().tint(.white) }
                         else {
                             Label(language.text(step == questions.count - 1 ? "Complete induction" : "Next"), systemImage: "arrow.right")
@@ -91,7 +94,9 @@ struct MarathonInductionView: View {
         }
         .navigationTitle(language.text("Marathon induction"))
         .navigationBarTitleDisplayMode(.inline)
-        .task { loadExisting() }
+        .task(id: session.profile?.userID) {
+            loadExisting(for: session.profile?.userID)
+        }
     }
 
     @ViewBuilder
@@ -179,17 +184,23 @@ struct MarathonInductionView: View {
         }
     }
 
-    private func loadExisting() {
-        guard loaded == false else { return }
-        loaded = true
-        guard let profile = session.profile else { return }
-        if let existing = session.data.orbitInductions.sorted(by: { $0.updatedAt > $1.updatedAt }).first {
+    private func loadExisting(for ownerID: UUID?) {
+        guard loadedOwnerID != ownerID else { return }
+        resetDraft()
+        loadedOwnerID = ownerID
+        guard let ownerID,
+              let profile = session.profile,
+              profile.userID == ownerID else { return }
+        if let existing = session.data.orbitInductions
+            .filter({ $0.userID == ownerID })
+            .sorted(by: { $0.updatedAt > $1.updatedAt })
+            .first {
             inductionID = existing.id
             answers.merge(existing.answers) { _, new in new }
             step = min(existing.completed ? 0 : existing.currentStep, questions.count - 1)
             createdAt = existing.createdAt
         }
-        let lowerBodyDays = TrainingInduction.activeProgramDays(in: session.data)
+        let lowerBodyDays = TrainingInduction.activeProgramDays(in: session.data, userID: ownerID)
             .filter { ["legs_a", "legs_b"].contains($0.dayType) }
             .count
         answers["strength_days_per_week"] = .number(Double(lowerBodyDays))
@@ -200,17 +211,26 @@ struct MarathonInductionView: View {
            answers["previous_issue"]?.stringValue == "none" {
             answers["issue_status"] = .string("resolved")
         }
-        _ = profile
+    }
+
+    private func resetDraft() {
+        answers = OrbitCampaignEngine.emptyAnswers
+        inductionID = UUID()
+        step = 0
+        createdAt = Date.now.ISO8601Format()
+        isSaving = false
+        message = nil
     }
 
     @MainActor
-    private func next() async {
-        guard let profile = session.profile else { return }
+    private func next(operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation),
+              let profile = session.profile,
+              profile.userID == operation.ownerID else { return }
         message = nil
         if question.key == "previous_issue", answers[question.key]?.stringValue == "none" {
             answers["issue_status"] = .string("resolved")
         }
-        isSaving = true
         let now = Date().ISO8601Format()
         let isLast = step == questions.count - 1
         let assessment = OrbitCampaignEngine.assess(answers)
@@ -227,18 +247,32 @@ struct MarathonInductionView: View {
         )
         if isLast {
             guard OrbitCampaignEngine.isComplete(answers) else {
-                isSaving = false
                 message = "Some required context is still missing. Review the earlier answers."
                 return
             }
-            _ = await session.completeOrbitInduction(induction)
-            isSaving = false
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-            dismiss()
-        } else {
-            await session.saveOrbitInduction(induction)
-            isSaving = false
-            withAnimation(.snappy) { step += 1 }
+        }
+        isSaving = true
+        defer {
+            if session.accountOperationIsCurrent(operation) {
+                isSaving = false
+            }
+        }
+        do {
+            if isLast {
+                _ = try await session.completeOrbitInduction(induction, operation: operation)
+                guard session.accountOperationIsCurrent(operation) else { return }
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                dismiss()
+            } else {
+                try await session.saveOrbitInduction(induction, operation: operation)
+                guard session.accountOperationIsCurrent(operation) else { return }
+                withAnimation(.snappy) { step += 1 }
+            }
+        } catch is CancellationError {
+            return
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
+            message = error.localizedDescription
         }
     }
 

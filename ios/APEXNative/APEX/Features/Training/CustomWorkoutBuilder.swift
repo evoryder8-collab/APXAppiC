@@ -476,16 +476,26 @@ struct CustomWorkoutBuilder: View {
             showValidation = true
             return
         }
+        guard let operation = session.accountOperationLease() else { return }
         Task {
-            await session.saveCustomWorkout(
-                name: trimmed,
-                weekday: weekday,
-                estimatedMinutes: estimatedMinutes,
-                sessionMode: sessionMode,
-                picks: picks
-            )
-            didSave = true
-            dismiss()
+            do {
+                try await session.saveCustomWorkout(
+                    name: trimmed,
+                    weekday: weekday,
+                    estimatedMinutes: estimatedMinutes,
+                    sessionMode: sessionMode,
+                    picks: picks,
+                    operation: operation
+                )
+                guard session.accountOperationIsCurrent(operation) else { return }
+                didSave = true
+                dismiss()
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
         }
     }
 }

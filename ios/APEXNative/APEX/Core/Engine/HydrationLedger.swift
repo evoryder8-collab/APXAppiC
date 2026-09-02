@@ -156,21 +156,290 @@ private extension String {
 }
 
 struct WatchWorkoutCommand: Codable, Equatable, Sendable {
-    enum Action: String, Codable, Sendable { case stop }
+    enum Action: String, Codable, Sendable {
+        case start
+        case stop
+        case abort
+    }
 
     let id: UUID
     let ownerID: UUID
     let action: Action
     let createdAt: String
 
-    static func stopping(ownerID: UUID) -> WatchWorkoutCommand {
-        WatchWorkoutCommand(id: UUID(), ownerID: ownerID, action: .stop, createdAt: Date().ISO8601Format())
+    /// `id` identifies one launch, not one delivery. The start, stop and abort
+    /// copies deliberately reuse it so duplicated or delayed WCSession messages
+    /// cannot affect a different workout owned by the same account.
+    static func starting(
+        ownerID: UUID,
+        launchID: UUID,
+        createdAt: String = revision()
+    ) -> WatchWorkoutCommand {
+        WatchWorkoutCommand(id: launchID, ownerID: ownerID, action: .start, createdAt: createdAt)
+    }
+
+    static func stopping(
+        ownerID: UUID,
+        launchID: UUID,
+        createdAt: String = revision()
+    ) -> WatchWorkoutCommand {
+        WatchWorkoutCommand(id: launchID, ownerID: ownerID, action: .stop, createdAt: createdAt)
+    }
+
+    static func aborting(
+        ownerID: UUID,
+        launchID: UUID,
+        createdAt: String = revision()
+    ) -> WatchWorkoutCommand {
+        WatchWorkoutCommand(id: launchID, ownerID: ownerID, action: .abort, createdAt: createdAt)
     }
 
     func encoded() throws -> Data { try JSONEncoder().encode(self) }
 
     static func decode(_ data: Data) throws -> WatchWorkoutCommand {
         try JSONDecoder().decode(WatchWorkoutCommand.self, from: data)
+    }
+
+    private static func revision() -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.string(from: Date())
+    }
+}
+
+struct WatchWorkoutLaunchIntent: Codable, Equatable, Sendable {
+    let id: UUID
+    let ownerID: UUID
+    let createdAt: String
+}
+
+private struct WatchWorkoutLaunchCancellation: Codable, Equatable, Sendable {
+    let id: UUID
+    let ownerID: UUID
+}
+
+enum WatchWorkoutLaunchCommandEffect: Equatable, Sendable {
+    case none
+    case stopActive(UUID)
+}
+
+enum WatchWorkoutLaunchResolution: Equatable, Sendable {
+    case start(WatchWorkoutLaunchIntent)
+    case discard(UUID)
+}
+
+enum WatchWorkoutOwnerBoundary {
+    static func ownerAfterDisconnect(
+        activeOwnerID: UUID?,
+        disconnectedOwnerID: UUID
+    ) -> UUID? {
+        activeOwnerID == disconnectedOwnerID ? nil : activeOwnerID
+    }
+}
+
+/// Durable causal state for the two independent delivery paths involved in a
+/// Watch handoff: WatchConnectivity carries identity while HealthKit carries
+/// the workout configuration. Either can arrive first. Pairing them in FIFO
+/// order and retaining launch-specific cancellation prevents both an orphaned
+/// late start and a stale stop terminating a newer same-owner workout.
+struct WatchWorkoutLaunchLedger: Codable, Equatable, Sendable {
+    private(set) var pending: [WatchWorkoutLaunchIntent] = []
+    private var cancellations: [WatchWorkoutLaunchCancellation] = []
+    private(set) var completedLaunchIDs: [UUID] = []
+    private(set) var disconnectRevisionByOwner: [String: String] = [:]
+    private(set) var active: WatchWorkoutLaunchIntent?
+
+    private static let retainedHistoryLimit = 128
+
+    var representedOwnerIDs: Set<UUID> {
+        var owners = Set(pending.map(\.ownerID))
+        if let active { owners.insert(active.ownerID) }
+        return owners
+    }
+
+    mutating func receive(
+        _ command: WatchWorkoutCommand
+    ) -> WatchWorkoutLaunchCommandEffect {
+        switch command.action {
+        case .start:
+            guard !completedLaunchIDs.contains(command.id),
+                  active?.id != command.id,
+                  !pending.contains(where: { $0.id == command.id }) else {
+                return .none
+            }
+            let intent = WatchWorkoutLaunchIntent(
+                id: command.id,
+                ownerID: command.ownerID,
+                createdAt: command.createdAt
+            )
+            pending.append(intent)
+            if let disconnectRevision = disconnectRevisionByOwner[ownerKey(command.ownerID)],
+               Self.isNotNewer(command.createdAt, than: disconnectRevision) {
+                retainCancellation(id: command.id, ownerID: command.ownerID)
+            }
+            return .none
+
+        case .stop:
+            guard !completedLaunchIDs.contains(command.id) else { return .none }
+            if let active,
+               active.id == command.id,
+               active.ownerID == command.ownerID {
+                self.active = nil
+                complete(command.id)
+                return .stopActive(command.id)
+            }
+            retainCancellation(id: command.id, ownerID: command.ownerID)
+            return .none
+
+        case .abort:
+            guard !completedLaunchIDs.contains(command.id) else { return .none }
+            let removedPending = pending.contains {
+                $0.id == command.id && $0.ownerID == command.ownerID
+            }
+            pending.removeAll { $0.id == command.id && $0.ownerID == command.ownerID }
+            cancellations.removeAll {
+                $0.id == command.id && $0.ownerID == command.ownerID
+            }
+            if let active,
+               active.id == command.id,
+               active.ownerID == command.ownerID {
+                self.active = nil
+                complete(command.id)
+                return .stopActive(command.id)
+            }
+            guard removedPending else { return .none }
+            complete(command.id)
+            return .none
+        }
+    }
+
+    /// Consume exactly one queued HealthKit configuration when its identity is
+    /// known. A nil owner means account state is still loading, so neither the
+    /// intent nor configuration should be guessed or discarded yet.
+    mutating func resolveNextConfiguration(
+        activeOwnerID: UUID?
+    ) -> WatchWorkoutLaunchResolution? {
+        guard let intent = pending.first else { return nil }
+        if isCancelled(id: intent.id, ownerID: intent.ownerID) {
+            pending.removeFirst()
+            complete(intent.id)
+            return .discard(intent.id)
+        }
+        guard let activeOwnerID else { return nil }
+        pending.removeFirst()
+        guard intent.ownerID == activeOwnerID, active == nil else {
+            complete(intent.id)
+            return .discard(intent.id)
+        }
+        active = intent
+        return .start(intent)
+    }
+
+    mutating func disconnect(
+        ownerID: UUID,
+        revision: String
+    ) -> WatchWorkoutLaunchCommandEffect {
+        let key = ownerKey(ownerID)
+        if let existing = disconnectRevisionByOwner[key],
+           Self.isNotNewer(revision, than: existing) {
+            return .none
+        }
+        disconnectRevisionByOwner[key] = revision
+        for intent in pending where intent.ownerID == ownerID
+            && Self.isNotNewer(intent.createdAt, than: revision) {
+            retainCancellation(id: intent.id, ownerID: intent.ownerID)
+        }
+        guard let active,
+              active.ownerID == ownerID,
+              Self.isNotNewer(active.createdAt, than: revision) else {
+            return .none
+        }
+        self.active = nil
+        complete(active.id)
+        return .stopActive(active.id)
+    }
+
+    /// A newly accepted canonical owner is a stronger boundary than a possibly
+    /// delayed disconnect packet. Every launch belonging to the previous owner
+    /// is invalid, regardless of timestamp, while other owners remain intact.
+    mutating func revoke(
+        ownerID: UUID,
+        revision: String
+    ) -> WatchWorkoutLaunchCommandEffect {
+        let key = ownerKey(ownerID)
+        if let existing = disconnectRevisionByOwner[key] {
+            if !Self.isNotNewer(revision, than: existing) {
+                disconnectRevisionByOwner[key] = revision
+            }
+        } else {
+            disconnectRevisionByOwner[key] = revision
+        }
+        for intent in pending where intent.ownerID == ownerID {
+            retainCancellation(id: intent.id, ownerID: intent.ownerID)
+        }
+        guard let active, active.ownerID == ownerID else { return .none }
+        self.active = nil
+        complete(active.id)
+        return .stopActive(active.id)
+    }
+
+    func permitsStart(
+        launchID: UUID,
+        ownerID: UUID,
+        activeOwnerID: UUID?
+    ) -> Bool {
+        active?.id == launchID
+            && active?.ownerID == ownerID
+            && activeOwnerID == ownerID
+            && !isCancelled(id: launchID, ownerID: ownerID)
+    }
+
+    mutating func finishActive(launchID: UUID) {
+        guard active?.id == launchID else { return }
+        active = nil
+        complete(launchID)
+    }
+
+    private mutating func complete(_ launchID: UUID) {
+        cancellations.removeAll { $0.id == launchID }
+        completedLaunchIDs = Self.retaining(launchID, in: completedLaunchIDs)
+    }
+
+    private func isCancelled(id: UUID, ownerID: UUID) -> Bool {
+        cancellations.contains { $0.id == id && $0.ownerID == ownerID }
+    }
+
+    private mutating func retainCancellation(id: UUID, ownerID: UUID) {
+        let cancellation = WatchWorkoutLaunchCancellation(id: id, ownerID: ownerID)
+        cancellations.removeAll { $0 == cancellation }
+        cancellations.append(cancellation)
+        if cancellations.count > Self.retainedHistoryLimit {
+            cancellations.removeFirst(cancellations.count - Self.retainedHistoryLimit)
+        }
+    }
+
+    private func ownerKey(_ ownerID: UUID) -> String {
+        ownerID.uuidString.lowercased()
+    }
+
+    private static func retaining(_ id: UUID, in values: [UUID]) -> [UUID] {
+        var values = values
+        values.removeAll { $0 == id }
+        values.append(id)
+        if values.count > Self.retainedHistoryLimit {
+            values.removeFirst(values.count - Self.retainedHistoryLimit)
+        }
+        return values
+    }
+
+    private static func isNotNewer(_ candidate: String, than revision: String) -> Bool {
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let plain = ISO8601DateFormatter()
+        let candidateDate = fractional.date(from: candidate) ?? plain.date(from: candidate)
+        let revisionDate = fractional.date(from: revision) ?? plain.date(from: revision)
+        if let candidateDate, let revisionDate { return candidateDate <= revisionDate }
+        return candidate <= revision
     }
 }
 

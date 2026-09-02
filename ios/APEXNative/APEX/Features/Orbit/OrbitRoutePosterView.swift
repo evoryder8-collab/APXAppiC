@@ -68,7 +68,10 @@ struct OrbitRoutePosterSheet: View {
                     }
 
                     HStack(spacing: 10) {
-                        Button { Task { await saveToPhotos() } } label: {
+                        Button {
+                            guard let operation = session.accountOperationLease() else { return }
+                            Task { await saveToPhotos(operation: operation) }
+                        } label: {
                             if saving { ProgressView() }
                             else { Label(language.text("Save image"), systemImage: "photo.badge.arrow.down") }
                         }
@@ -120,32 +123,42 @@ struct OrbitRoutePosterSheet: View {
     }
 
     @MainActor
-    private func saveToPhotos() async {
+    private func saveToPhotos(operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation),
+              run.userID == operation.ownerID else { return }
         saving = true
-        if renderedURL == nil { render() }
-        guard let renderedURL else {
-            saving = false
-            return
+        defer {
+            if session.accountOperationIsCurrent(operation) {
+                saving = false
+            }
         }
+        if renderedURL == nil { render() }
+        guard let renderedURL else { return }
         do {
             let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+            guard session.accountOperationIsCurrent(operation) else { throw CancellationError() }
             guard status == .authorized || status == .limited else { throw OrbitPosterError.photoPermission }
             try await PHPhotoLibrary.shared().performChanges {
                 PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: renderedURL)
             }
-            await session.saveOrbitPosterMetadata(
+            guard session.accountOperationIsCurrent(operation) else { throw CancellationError() }
+            try await session.saveOrbitPosterMetadata(
                 run: run,
                 style: style,
                 privacyTrimM: Int(trimM),
                 includeHeartRate: includeHeartRate,
-                note: note
+                note: note,
+                operation: operation
             )
+            guard session.accountOperationIsCurrent(operation) else { return }
             message = language.text("Poster saved to Photos.")
             UINotificationFeedbackGenerator().notificationOccurred(.success)
+        } catch is CancellationError {
+            return
         } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
             message = language.text(error.localizedDescription)
         }
-        saving = false
     }
 }
 

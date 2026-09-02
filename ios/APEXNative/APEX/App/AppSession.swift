@@ -14,7 +14,20 @@ struct AccountGenerationGate: Sendable {
     }
 }
 
+/// An opaque proof of which authenticated account initiated a UI action.
+/// Views capture it synchronously, before creating an unstructured Task, so
+/// delayed work can never adopt whichever account happens to be active later.
+struct AccountOperationLease: Sendable, Equatable {
+    let ownerID: UUID
+    fileprivate let generation: UInt64
+}
+
 private struct SyncAccountBoundaryError: Error, Sendable {}
+
+private struct PendingHydrationMutationRetry: Codable, Sendable {
+    let mutation: HydrationCompanionMutation
+    var attempts: Int
+}
 
 typealias FoodSearchProvider = @Sendable (String) async throws -> FoodLookupEnvelope
 
@@ -57,7 +70,14 @@ final class AppSession {
     private var realtimeDebounceTask: Task<Void, Never>?
     @ObservationIgnored private var workoutSyncTask: Task<Void, Never>?
     @ObservationIgnored private var accountGeneration = AccountGenerationGate()
+    @ObservationIgnored private var authenticatedOwnerID: UUID?
     @ObservationIgnored private var lastShadowObservationSignature: String?
+
+    #if DEBUG
+    private static let firstRunFixtureOwnerID = UUID(
+        uuidString: "7d3e70bf-c420-4b66-90ae-5a103465f1c1"
+    )!
+    #endif
 
     init(
         foodSearchProvider: @escaping FoodSearchProvider = { query in
@@ -71,8 +91,24 @@ final class AppSession {
     }
 
     @discardableResult
-    private func beginAccountBoundary() -> UInt64 {
+    func beginAccountBoundary() -> UInt64 {
         accountGeneration.advance()
+        authenticatedOwnerID = nil
+        EntitlementStore.shared.resetAccount()
+        OrbitLocationManager.shared.releaseForAccountBoundary()
+        NudgeCenter.shared.clearAccountBoundary()
+        HealthKitManager.shared.resetAccountBoundary()
+        /* Authentication is an immediate privacy boundary. Do not leave the
+           previous person's portrait, Avatar evidence, navigation history or
+           transient messages visible while the next network request is in
+           flight. The account's persisted cache remains owner-scoped and can
+           be restored only after that owner authenticates again. */
+        data = .empty
+        brainSynergies = []
+        navigationPath.removeAll()
+        greetingPersona = nil
+        awaitingConfirmationFor = nil
+        alertMessage = nil
         hydrationConnectivity.publishDisconnected()
         realtimeDebounceTask?.cancel()
         realtimeDebounceTask = nil
@@ -98,15 +134,50 @@ final class AppSession {
         accountGeneration.accepts(token) && verifiedPersistenceOwnerID() == ownerID
     }
 
-    private func foodSearchOperationIsCurrent(ownerID: UUID?, token: UInt64) -> Bool {
-        accountGeneration.accepts(token) && verifiedPersistenceOwnerID() == ownerID
-    }
-
     private func requireCurrentSyncAccount(ownerID: UUID, token: UInt64) throws {
         guard accountGeneration.accepts(token),
               verifiedPersistenceOwnerID(ownerID) == ownerID else {
             throw SyncAccountBoundaryError()
         }
+    }
+
+    func accountOperationLease() -> AccountOperationLease? {
+        guard let ownerID = authenticatedOwnerID ?? verifiedPersistenceOwnerID() else { return nil }
+        return AccountOperationLease(ownerID: ownerID, generation: accountGeneration.token)
+    }
+
+    func accountOperationIsCurrent(_ operation: AccountOperationLease) -> Bool {
+        guard accountGeneration.accepts(operation.generation) else { return false }
+        if let authenticatedOwnerID {
+            guard authenticatedOwnerID == operation.ownerID else { return false }
+            let hasNoDashboardIdentity = data.profile == nil && data.settings == nil
+            return hasNoDashboardIdentity
+                || TrainingInduction.belongsToAccount(data, userID: operation.ownerID)
+        }
+        return verifiedPersistenceOwnerID(operation.ownerID) == operation.ownerID
+    }
+
+    private func requireCurrentAccountOperation(_ operation: AccountOperationLease) throws {
+        guard accountOperationIsCurrent(operation) else { throw CancellationError() }
+    }
+
+    static func healthImportOptInKey(ownerID: UUID) -> String {
+        "apex.health-import.opt-in.\(ownerID.uuidString.lowercased())"
+    }
+
+    var healthImportIsEnabledForCurrentAccount: Bool {
+        guard let ownerID = authenticatedOwnerID ?? verifiedPersistenceOwnerID() else { return false }
+        return defaults.bool(forKey: Self.healthImportOptInKey(ownerID: ownerID))
+    }
+
+    private func healthImportIsEnabled(operation: AccountOperationLease) -> Bool {
+        accountOperationIsCurrent(operation)
+            && defaults.bool(forKey: Self.healthImportOptInKey(ownerID: operation.ownerID))
+    }
+
+    private func enableHealthImport(operation: AccountOperationLease) throws {
+        try requireCurrentAccountOperation(operation)
+        defaults.set(true, forKey: Self.healthImportOptInKey(ownerID: operation.ownerID))
     }
 
     var profile: Profile? { data.profile }
@@ -150,6 +221,7 @@ final class AppSession {
            index + 1 < ProcessInfo.processInfo.arguments.count {
             if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-first-run") {
                 LanguageState.shared.language = .english
+                authenticatedOwnerID = Self.firstRunFixtureOwnerID
             }
             switch ProcessInfo.processInfo.arguments[index + 1] {
             case "welcome": route = .welcome
@@ -257,6 +329,7 @@ final class AppSession {
 
         if let userID = await service.currentUserID() {
             guard accountGeneration.accepts(accountToken) else { return }
+            authenticatedOwnerID = userID
             EntitlementStore.shared.prepareForAccount(userID)
             let cached = try? await offlineStore.loadDashboard(for: userID)
             guard accountGeneration.accepts(accountToken) else { return }
@@ -284,9 +357,10 @@ final class AppSession {
                 selectedPersona = data.profile?.persona
                 route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
                     ? .portal : .induction
-                await startRealtimeSync()
+                guard let operation = accountOperationLease() else { return }
+                await startRealtimeSync(operation: operation)
                 guard accountGeneration.accepts(accountToken) else { return }
-                await importHealthQuietly()
+                await importHealthQuietly(operation: operation)
                 return
             } catch {
                 guard accountGeneration.accepts(accountToken) else { return }
@@ -296,7 +370,8 @@ final class AppSession {
                     /* Health still imports. It comes off the phone, not the
                        network, so a failed refresh is no reason to leave the
                        day's steps unread. */
-                    await importHealthQuietly()
+                    guard let operation = accountOperationLease() else { return }
+                    await importHealthQuietly(operation: operation)
                     return
                 }
             }
@@ -331,6 +406,7 @@ final class AppSession {
             guard accountGeneration.accepts(accountToken) else { return }
             accountToken = completeAccountBoundary()
             boundaryCompleted = true
+            authenticatedOwnerID = userID
             try await refreshDashboard(expectedUserID: userID)
             guard accountGeneration.accepts(accountToken) else { return }
             /* The portrait entrance promises a particular person, so it still
@@ -342,7 +418,10 @@ final class AppSession {
                 guard actual == expected else {
                     try await service.signOut()
                     guard accountGeneration.accepts(accountToken) else { return }
-                    data = .empty
+                    /* The remote session is already gone. Revoke the local
+                       pre-profile owner too, otherwise the empty dashboard
+                       could still mint a valid operation lease. */
+                    accountToken = beginAccountBoundary()
                     throw APEXServiceError.personaMismatch(expected: expected, actual: actual)
                 }
             }
@@ -358,7 +437,8 @@ final class AppSession {
             }
             route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
                 ? .portal : .induction
-            await startRealtimeSync()
+            guard let operation = accountOperationLease() else { return }
+            await startRealtimeSync(operation: operation)
         } catch {
             guard accountGeneration.accepts(accountToken) else { return }
             if !boundaryCompleted {
@@ -393,6 +473,7 @@ final class AppSession {
             boundaryCompleted = true
             switch outcome {
             case .signedIn(let userID):
+                authenticatedOwnerID = userID
                 EntitlementStore.shared.prepareForAccount(userID)
                 selectedPersona = nil
                 data = .empty
@@ -423,6 +504,7 @@ final class AppSession {
             guard accountGeneration.accepts(accountToken) else { return }
             accountToken = completeAccountBoundary()
             boundaryCompleted = true
+            authenticatedOwnerID = userID
             selectedPersona = nil
             try await refreshDashboard(expectedUserID: userID)
             guard accountGeneration.accepts(accountToken) else { return }
@@ -430,7 +512,8 @@ final class AppSession {
                first-time one has none, and answers the questionnaire instead. */
             route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
                 ? .portal : .induction
-            await startRealtimeSync()
+            guard let operation = accountOperationLease() else { return }
+            await startRealtimeSync(operation: operation)
         } catch {
             guard accountGeneration.accepts(accountToken) else { return }
             if !boundaryCompleted {
@@ -442,50 +525,61 @@ final class AppSession {
     }
 
     /// Turn questionnaire answers into a profile and a first twelve weeks.
-    func completeInduction(_ input: TrainingInduction.Input) async {
-        await submitInduction(.answered(input))
+    func completeInduction(
+        _ input: TrainingInduction.Input,
+        operation: AccountOperationLease
+    ) async {
+        await submitInduction(.answered(input), operation: operation)
     }
 
     /// Keep the facts required for honest nutrition, but leave every optional
     /// workout answer unclaimed when the person skips the remaining pages.
-    func skipRemainingInduction(_ input: TrainingInduction.Input) async {
+    func skipRemainingInduction(
+        _ input: TrainingInduction.Input,
+        operation: AccountOperationLease
+    ) async {
+        guard accountOperationIsCurrent(operation) else { return }
         guard TrainingInduction.canSkipRemaining(step: 3, input: input) else {
             alertMessage = "Complete consent, body details and your goal first."
             return
         }
-        await submitInduction(.baselineOnly(input))
+        await submitInduction(.baselineOnly(input), operation: operation)
     }
 
     /// Continue without turning questionnaire defaults into claimed facts.
     /// Only an account-scoped settings marker is stored; there is deliberately
     /// no profile, generated programme or derived fitness snapshot.
-    func skipInduction() async {
-        await submitInduction(.skipped)
+    func skipInduction(operation: AccountOperationLease) async {
+        await submitInduction(.skipped, operation: operation)
     }
 
-    private func submitInduction(_ submission: TrainingInduction.Submission) async {
-        let accountToken = accountGeneration.token
+    private func submitInduction(
+        _ submission: TrainingInduction.Submission,
+        operation: AccountOperationLease
+    ) async {
+        do { try requireCurrentAccountOperation(operation) }
+        catch { return }
         guard !isBusy else { return }
         isBusy = true
         defer {
-            if accountGeneration.accepts(accountToken) { isBusy = false }
+            if accountOperationIsCurrent(operation) { isBusy = false }
         }
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-first-run") {
-            submitInductionToFirstRunFixture(submission)
+            submitInductionToFirstRunFixture(submission, operation: operation)
             return
         }
         #endif
         guard let userID = await service.currentUserID() else {
-            guard accountGeneration.accepts(accountToken) else { return }
+            guard accountOperationIsCurrent(operation) else { return }
             alertMessage = "Sign in again to continue."
             route = .welcome
             return
         }
-        guard accountGeneration.accepts(accountToken) else { return }
+        guard accountOperationIsCurrent(operation), userID == operation.ownerID else { return }
         do {
             var settings = try await service.createSettingsIfNeeded(userID: userID).rebound(to: userID)
-            guard accountGeneration.accepts(accountToken) else { return }
+            try requireCurrentAccountOperation(operation)
 
             let plan = submission.generatedPlan(
                 userID: userID,
@@ -495,12 +589,11 @@ final class AppSession {
             if let plan {
                 settings = TrainingInduction.markingPendingPlan(settings, plan: plan)
                 try await service.upsert(settings, table: "settings", onConflict: "user_id")
-                guard accountGeneration.accepts(accountToken) else { return }
+                try requireCurrentAccountOperation(operation)
                 data.settings = settings
-                await saveLocalSnapshot()
-                guard accountGeneration.accepts(accountToken) else { return }
+                try await saveLocalSnapshot(operation: operation)
                 try await service.saveInductionPlan(plan)
-                guard accountGeneration.accepts(accountToken) else { return }
+                try requireCurrentAccountOperation(operation)
             }
             settings = submission.applyingAccountMetadata(
                 to: settings,
@@ -508,7 +601,7 @@ final class AppSession {
                 existingData: data
             )
             try await service.upsert(settings, table: "settings", onConflict: "user_id")
-            guard accountGeneration.accepts(accountToken) else { return }
+            try requireCurrentAccountOperation(operation)
             if let plan { applyInductionPlan(plan, settings: settings) }
             else { data.settings = settings }
             if submission.requiresProfile {
@@ -518,43 +611,44 @@ final class AppSession {
                     baseline: submission.profileBaseline,
                     activityLevel: submission.profileActivityLevel
                 )
-                guard accountGeneration.accepts(accountToken) else { return }
+                try requireCurrentAccountOperation(operation)
+                guard profile.userID == operation.ownerID else { throw CancellationError() }
                 data.profile = profile
             }
-            await persistInductionEvidence(submission, userID: userID, accountToken: accountToken)
-            await saveLocalSnapshot()
-            guard accountGeneration.accepts(accountToken) else { return }
+            await persistInductionEvidence(submission, operation: operation)
+            try await saveLocalSnapshot(operation: operation)
             do { try await refreshDashboard(expectedUserID: userID) }
             catch {
-                guard accountGeneration.accepts(accountToken) else { return }
+                try requireCurrentAccountOperation(operation)
                 lastSyncAt = .now
             }
-            guard accountGeneration.accepts(accountToken) else { return }
+            try requireCurrentAccountOperation(operation)
             await resolveEntitlements()
-            guard accountGeneration.accepts(accountToken) else { return }
+            try requireCurrentAccountOperation(operation)
             route = .consent
+        } catch is CancellationError {
+            return
         } catch {
-            guard accountGeneration.accepts(accountToken) else { return }
+            guard accountOperationIsCurrent(operation) else { return }
             alertMessage = error.localizedDescription
         }
     }
 
     private func persistInductionEvidence(
         _ submission: TrainingInduction.Submission,
-        userID: UUID,
-        accountToken: UInt64
+        operation: AccountOperationLease
     ) async {
+        let userID = operation.ownerID
         let importedAt = ISO8601DateFormatter().string(from: .now)
         for draft in submission.fitnessEvidenceDrafts(userID: userID, importedAt: importedAt) {
-            guard accountGeneration.accepts(accountToken),
-                  verifiedPersistenceOwnerID(userID) == userID,
+            guard accountOperationIsCurrent(operation),
                   case .accepted(let evidence) = FitnessEvidenceNormalizer.normalize(
                     draft,
                     admission: .user,
                     referenceNow: importedAt
                   ) else { return }
             do {
-                try await recordFitnessEvidence(evidence)
+                try await recordFitnessEvidence(evidence, operation: operation)
             } catch is CancellationError {
                 return
             } catch {
@@ -571,8 +665,13 @@ final class AppSession {
     /// Deterministic authenticated first-run account used only by UI tests.
     /// It exercises the real submission and routing decisions without touching
     /// production Supabase data or allowing a preview-only no-op to pass.
-    private func submitInductionToFirstRunFixture(_ submission: TrainingInduction.Submission) {
-        let userID = UUID(uuidString: "7d3e70bf-c420-4b66-90ae-5a103465f1c1")!
+    private func submitInductionToFirstRunFixture(
+        _ submission: TrainingInduction.Submission,
+        operation: AccountOperationLease
+    ) {
+        guard accountOperationIsCurrent(operation),
+              operation.ownerID == Self.firstRunFixtureOwnerID else { return }
+        let userID = operation.ownerID
         let fixture = APEXDebugFixture.dashboard(userID: userID)
         var settings = fixture.settings!
         settings.addons = [:]
@@ -605,14 +704,18 @@ final class AppSession {
 
     /// The last step of a first run: permissions have been offered and the
     /// authenticated account opens for real.
-    func finishOnboarding() async {
+    func finishOnboarding(operation: AccountOperationLease) async {
+        guard accountOperationIsCurrent(operation) else { return }
         route = .portal
-        await startRealtimeSync()
-        await refreshNudges()
+        await startRealtimeSync(operation: operation)
+        guard accountOperationIsCurrent(operation) else { return }
+        try? await refreshNudges(operation: operation)
+        guard accountOperationIsCurrent(operation) else { return }
     }
 
     func signOut() async {
         var accountToken = beginAccountBoundary()
+        route = .launching
         isBusy = true
         defer {
             if accountGeneration.accepts(accountToken) { isBusy = false }
@@ -633,7 +736,6 @@ final class AppSession {
         failedSyncCount = 0
         navigationPath.removeAll()
         selectedPersona = nil
-        EntitlementStore.shared.resetAccount()
         route = .welcome
     }
 
@@ -748,6 +850,7 @@ final class AppSession {
                 table: "settings",
                 onConflict: "user_id",
                 ownerID: settingsToPersist.userID,
+                expectedAccountToken: accountToken,
                 surfacePermanentFailure: false
             )
             guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
@@ -782,7 +885,9 @@ final class AppSession {
         }
         break
         }
-        await considerWeeklyCalibration()
+        if let operation = accountOperationLease() {
+            try? await considerWeeklyCalibration(operation: operation)
+        }
         guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
         await refreshCoachContext(expectedUserID: refreshedUserID)
         guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
@@ -795,17 +900,30 @@ final class AppSession {
     /// Uploaded first, recorded second: a profile pointing at a file that was
     /// never stored would show a broken picture on every device the account
     /// opens on.
-    func setAvatar(data: Data) async {
-        guard var profile else { return }
+    func setAvatar(data: Data, operation: AccountOperationLease) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard verifiedPersistenceOwnerID(operation.ownerID) == operation.ownerID,
+              var profile,
+              profile.userID == operation.ownerID else { throw CancellationError() }
+        let path: String
         do {
-            let path = try await service.uploadAvatar(userID: profile.userID, data: data)
-            profile.avatarPath = path
-            profile.updatedAt = Date().ISO8601Format()
-            self.data.profile = profile
-            await persistUpsert(profile, table: "profile", onConflict: "user_id")
+            path = try await service.uploadAvatar(userID: profile.userID, data: data)
         } catch {
-            alertMessage = error.localizedDescription
+                try requireCurrentAccountOperation(operation)
+                throw error
         }
+        try requireCurrentAccountOperation(operation)
+        profile.avatarPath = path
+        profile.updatedAt = Date().ISO8601Format()
+        self.data.profile = profile
+        await persistUpsert(
+            profile,
+            table: "profile",
+            onConflict: "user_id",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
     /// Pull today's activity from Apple Health on open, without prompting.
@@ -813,38 +931,101 @@ final class AppSession {
     /// The phone records steps by itself, and a watch writes to the same place,
     /// so there is nothing to wait for and no reason to make anyone press a
     /// button for data the system already has.
-    func importHealthQuietly() async {
-        guard let profile else { return }
+    func importHealthQuietly(operation: AccountOperationLease) async {
+        guard healthImportIsEnabled(operation: operation) else { return }
         await HealthKitManager.shared.requestNewReadAccessIfNeeded()
+        guard accountOperationIsCurrent(operation) else { return }
         if HealthKitManager.shared.waterWriteState == .authorized {
             try? await HealthKitManager.shared.syncFoodWater(
                 liters: foodHydrationLiters(on: .now),
                 on: .now,
-                accountID: profile.userID
+                accountID: operation.ownerID
             )
+            guard accountOperationIsCurrent(operation) else { return }
         }
-        if let snapshot = await HealthKitManager.shared.silentRefresh() {
-            await applyHealthSnapshot(snapshot)
+        if let snapshot = await HealthKitManager.shared.silentRefresh(ownerID: operation.ownerID) {
+            guard accountOperationIsCurrent(operation) else { return }
+            await applyHealthSnapshot(snapshot, operation: operation)
         } else {
-            await importHealthWorkoutChanges()
+            guard accountOperationIsCurrent(operation) else { return }
+            await importHealthWorkoutChanges(operation: operation)
         }
     }
 
-    func startWatchWorkout(day: ProgramDay, exercises: [Exercise]) async {
-        guard let ownerID = verifiedPersistenceOwnerID() else { return }
-        let accountToken = accountGeneration.token
+    func connectHealth(operation: AccountOperationLease) async -> Bool {
+        do {
+            try enableHealthImport(operation: operation)
+        } catch {
+            return false
+        }
+        let snapshot = await HealthKitManager.shared.requestAccessAndImport(
+            ownerID: operation.ownerID
+        )
+        guard accountOperationIsCurrent(operation) else { return false }
+        bindHealthBackgroundMonitoring(operation: operation)
+        guard let snapshot else { return false }
+        await applyHealthSnapshot(snapshot, operation: operation)
+        return accountOperationIsCurrent(operation)
+    }
+
+    func reconnectHealthWaterAccess(operation: AccountOperationLease) async {
+        do { try enableHealthImport(operation: operation) }
+        catch { return }
+        await HealthKitManager.shared.reconnectWaterAccess()
+        guard accountOperationIsCurrent(operation) else { return }
+    }
+
+    func startWatchWorkout(
+        day: ProgramDay,
+        exercises: [Exercise],
+        launchID: UUID,
+        operation: AccountOperationLease
+    ) async {
+        guard Task.isCancelled == false,
+              accountOperationIsCurrent(operation),
+              TrainingInduction.workoutOwnerID(in: data, day: day) == operation.ownerID,
+              exercises.allSatisfy({
+                  $0.userID == operation.ownerID && $0.programDayID == day.id
+              }) else { return }
         let kind = WatchWorkoutHandoff.resolve(
             dayType: day.dayType,
             name: day.name,
             exerciseNames: exercises.map(\.name)
         )
-        _ = await HealthKitManager.shared.startWatchWorkout(kind)
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        // Preserve the request's causal time across the asynchronous HealthKit
+        // handoff. If an account disconnect lands while this await is pending,
+        // the Watch can reject the older launch even if its command arrives late.
+        let launchCommand = WatchWorkoutCommand.starting(
+            ownerID: operation.ownerID,
+            launchID: launchID
+        )
+        let started = await HealthKitManager.shared.startWatchWorkout(kind)
+        guard started else { return }
+        // The Watch queues an early HKWorkoutConfiguration until this identity
+        // arrives. Sending only after a successful handoff also prevents a
+        // failed launch intent from consuming a later configuration.
+        hydrationConnectivity.send(launchCommand)
+        guard Task.isCancelled == false,
+              accountOperationIsCurrent(operation) else {
+            /* Stop may have been sent while HealthKit was still launching the
+               Watch app. Repeat it after a late successful launch so a
+               dismissed or previous-account workout cannot remain active. */
+            stopWatchWorkout(launchID: launchID, operation: operation)
+            return
+        }
     }
 
-    func stopWatchWorkout() {
-        guard let ownerID = verifiedPersistenceOwnerID() else { return }
-        hydrationConnectivity.send(.stopping(ownerID: ownerID))
+    func stopWatchWorkout(
+        launchID: UUID,
+        operation: AccountOperationLease
+    ) {
+        /* Disappearance can be caused by an account boundary. Owner plus launch
+           identity means a delayed stop cannot terminate a newer session for
+           that same owner. */
+        hydrationConnectivity.send(.stopping(
+            ownerID: operation.ownerID,
+            launchID: launchID
+        ))
     }
 
     /// Resolve access only from the authenticated account's server profile.
@@ -875,116 +1056,253 @@ final class AppSession {
         }
     }
 
-    func loadCoachRoster(query: String = "") async throws -> [CoachRosterEntry] {
+    func redeemBetaAccess(
+        code: String,
+        operation: AccountOperationLease
+    ) async throws -> EntitlementStore.RedeemOutcome {
+        try requireCurrentAccountOperation(operation)
+        let outcome = try await EntitlementStore.shared.redeemBeta(
+            code: code,
+            expectedUserID: operation.ownerID,
+            service: .shared
+        )
+        try requireCurrentAccountOperation(operation)
+        return outcome
+    }
+
+    func loadCoachRoster(
+        query: String = "",
+        operation: AccountOperationLease
+    ) async throws -> [CoachRosterEntry] {
+        try requireCurrentAccountOperation(operation)
         #if DEBUG
         if APEXRuntimeEnvironment.usesLocalUITestFixture() {
             let roster = APEXDebugFixture.coachRoster()
-            guard query.isEmpty == false else { return roster }
-            return roster.filter { $0.displayName.localizedCaseInsensitiveContains(query) }
+            let result = query.isEmpty
+                ? roster
+                : roster.filter { $0.displayName.localizedCaseInsensitiveContains(query) }
+            try requireCurrentAccountOperation(operation)
+            return result
         }
         #endif
-        return try await service.loadCoachRoster(query: query)
+        do {
+            let roster = try await service.loadCoachRoster(query: query)
+            try requireCurrentAccountOperation(operation)
+            return roster
+        } catch {
+            try requireCurrentAccountOperation(operation)
+            throw error
+        }
     }
 
     func createCoachInvitation(
         email: String,
         scopes: Set<CoachConsentScope>,
-        visualProgressRequested: Bool
+        visualProgressRequested: Bool,
+        operation: AccountOperationLease
     ) async throws -> CoachInvitationReceipt {
-        try await service.createCoachInvitation(
-            email: email,
-            scopes: scopes,
-            visualProgressRequested: visualProgressRequested
-        )
+        try requireCurrentAccountOperation(operation)
+        do {
+            let receipt = try await service.createCoachInvitation(
+                email: email,
+                scopes: scopes,
+                visualProgressRequested: visualProgressRequested
+            )
+            try requireCurrentAccountOperation(operation)
+            return receipt
+        } catch {
+            try requireCurrentAccountOperation(operation)
+            throw error
+        }
     }
 
-    func previewCoachInvitation(token: String) async throws -> CoachInvitationPreview {
-        try await service.previewCoachInvitation(token: token)
+    func previewCoachInvitation(
+        token: String,
+        operation: AccountOperationLease
+    ) async throws -> CoachInvitationPreview {
+        try requireCurrentAccountOperation(operation)
+        do {
+            let preview = try await service.previewCoachInvitation(token: token)
+            try requireCurrentAccountOperation(operation)
+            return preview
+        } catch {
+            try requireCurrentAccountOperation(operation)
+            throw error
+        }
     }
 
     func acceptCoachInvitation(
         token: String,
         scopes: Set<CoachConsentScope>,
-        visualProgressConsent: Bool
+        visualProgressConsent: Bool,
+        operation: AccountOperationLease
     ) async throws {
-        coachContext = try await service.acceptCoachInvitation(
-            token: token,
-            scopes: scopes,
-            visualProgressConsent: visualProgressConsent
-        )
+        try requireCurrentAccountOperation(operation)
+        let context: CoachAccountContext
+        do {
+            context = try await service.acceptCoachInvitation(
+                token: token,
+                scopes: scopes,
+                visualProgressConsent: visualProgressConsent
+            )
+        } catch {
+                try requireCurrentAccountOperation(operation)
+                throw error
+        }
+        try requireCurrentAccountOperation(operation)
+        coachContext = context
         await resolveEntitlements()
+        try requireCurrentAccountOperation(operation)
     }
 
-    func loadCoachClientOverview(relationshipID: UUID) async throws -> CoachClientOverview {
+    func loadCoachClientOverview(
+        relationshipID: UUID,
+        operation: AccountOperationLease
+    ) async throws -> CoachClientOverview {
+        try requireCurrentAccountOperation(operation)
         #if DEBUG
         if APEXRuntimeEnvironment.usesLocalUITestFixture(),
            let overview = APEXDebugFixture.coachClientOverview(),
            overview.relationshipID == relationshipID {
+            try requireCurrentAccountOperation(operation)
             return overview
         }
         #endif
-        return try await service.loadCoachClientOverview(relationshipID: relationshipID)
+        do {
+            let overview = try await service.loadCoachClientOverview(relationshipID: relationshipID)
+            try requireCurrentAccountOperation(operation)
+            return overview
+        } catch {
+            try requireCurrentAccountOperation(operation)
+            throw error
+        }
     }
 
     func saveCoachPlan(
         relationshipID: UUID,
         plan: CoachPlanDraft,
-        expectedVersion: Int
+        expectedVersion: Int,
+        operation: AccountOperationLease
     ) async throws -> CoachPlanVersionReceipt {
-        try await service.saveCoachPlan(
-            relationshipID: relationshipID,
-            plan: plan,
-            expectedVersion: expectedVersion,
-            publish: false
-        )
+        try requireCurrentAccountOperation(operation)
+        do {
+            let receipt = try await service.saveCoachPlan(
+                relationshipID: relationshipID,
+                plan: plan,
+                expectedVersion: expectedVersion,
+                publish: false
+            )
+            try requireCurrentAccountOperation(operation)
+            return receipt
+        } catch {
+            try requireCurrentAccountOperation(operation)
+            throw error
+        }
     }
 
     func publishCoachPlan(
         relationshipID: UUID,
         plan: CoachPlanDraft,
-        expectedVersion: Int
+        expectedVersion: Int,
+        operation: AccountOperationLease
     ) async throws -> CoachPlanVersionReceipt {
-        try await service.saveCoachPlan(
-            relationshipID: relationshipID,
-            plan: plan,
-            expectedVersion: expectedVersion,
-            publish: true
-        )
+        try requireCurrentAccountOperation(operation)
+        do {
+            let receipt = try await service.saveCoachPlan(
+                relationshipID: relationshipID,
+                plan: plan,
+                expectedVersion: expectedVersion,
+                publish: true
+            )
+            try requireCurrentAccountOperation(operation)
+            return receipt
+        } catch {
+            try requireCurrentAccountOperation(operation)
+            throw error
+        }
     }
 
-    func acknowledgeCoachPlan(planVersionID: UUID) async throws {
-        _ = try await service.acknowledgeCoachPlan(planVersionID: planVersionID)
+    func acknowledgeCoachPlan(
+        planVersionID: UUID,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        do {
+            _ = try await service.acknowledgeCoachPlan(planVersionID: planVersionID)
+        } catch {
+            try requireCurrentAccountOperation(operation)
+            throw error
+        }
+        try requireCurrentAccountOperation(operation)
         await refreshCoachContext()
+        try requireCurrentAccountOperation(operation)
     }
 
-    func activateCoachPlan(planVersionID: UUID) async throws {
-        _ = try await service.activateCoachPlan(planVersionID: planVersionID)
+    func activateCoachPlan(
+        planVersionID: UUID,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        do {
+            _ = try await service.activateCoachPlan(planVersionID: planVersionID)
+        } catch {
+            try requireCurrentAccountOperation(operation)
+            throw error
+        }
+        try requireCurrentAccountOperation(operation)
         do {
             try await refreshDashboard()
+            try requireCurrentAccountOperation(operation)
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
+            try requireCurrentAccountOperation(operation)
             // Activation already succeeded server-side. Preserve that causal
             // result and refresh the coach envelope independently instead of
             // surfacing a retry that could imply the activation failed.
             await refreshCoachContext()
+            try requireCurrentAccountOperation(operation)
         }
     }
 
     func updateCoachScopes(
         relationshipID: UUID,
         scopes: Set<CoachConsentScope>,
-        visualProgressConsent: Bool
+        visualProgressConsent: Bool,
+        operation: AccountOperationLease
     ) async throws {
-        coachContext = try await service.updateCoachScopes(
-            relationshipID: relationshipID,
-            scopes: scopes,
-            visualProgressConsent: visualProgressConsent
-        )
+        try requireCurrentAccountOperation(operation)
+        let context: CoachAccountContext
+        do {
+            context = try await service.updateCoachScopes(
+                relationshipID: relationshipID,
+                scopes: scopes,
+                visualProgressConsent: visualProgressConsent
+            )
+        } catch {
+                try requireCurrentAccountOperation(operation)
+                throw error
+        }
+        try requireCurrentAccountOperation(operation)
+        coachContext = context
     }
 
-    func endCoachRelationship(relationshipID: UUID) async throws {
-        _ = try await service.endCoachRelationship(relationshipID: relationshipID)
+    func endCoachRelationship(
+        relationshipID: UUID,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        do {
+            _ = try await service.endCoachRelationship(relationshipID: relationshipID)
+        } catch {
+            try requireCurrentAccountOperation(operation)
+            throw error
+        }
+        try requireCurrentAccountOperation(operation)
         await refreshCoachContext()
+        try requireCurrentAccountOperation(operation)
         await resolveEntitlements()
+        try requireCurrentAccountOperation(operation)
     }
 
     /*
@@ -996,11 +1314,17 @@ final class AppSession {
      * imports all keep computing offline.
      */
     private func recomputeBrain() {
-        guard !brainRecomputing,
-              let userID = data.profile?.userID,
-              let input = FitnessBrainService.engineInput(from: data) else { return }
+        guard !brainRecomputing else { return }
+        guard let userID = data.profile?.userID,
+              let input = FitnessBrainService.engineInput(from: data) else {
+            brainSynergies = []
+            return
+        }
         let result = FitnessBrainEngine.compute(input, throughDate: Date().apexDateKey)
-        guard !result.snapshots.isEmpty else { return }
+        guard !result.snapshots.isEmpty else {
+            brainSynergies = []
+            return
+        }
 
         let previousLatest = data.snapshots.max { $0.date < $1.date }
         let rows = FitnessBrainService.appSnapshots(result.snapshots, userID: userID)
@@ -1017,7 +1341,18 @@ final class AppSession {
             // over the screen mid-test.
             if ProcessInfo.processInfo.arguments.contains("-apex-ui-test") { return }
             #endif
-            Task { await persistUpsert(latest, table: "rpg_snapshots") }
+            let accountToken = accountGeneration.token
+            Task { [weak self] in
+                guard let self,
+                      self.accountGeneration.accepts(accountToken),
+                      self.verifiedPersistenceOwnerID(userID) == userID else { return }
+                await self.persistUpsert(
+                    latest,
+                    table: "rpg_snapshots",
+                    ownerID: userID,
+                    expectedAccountToken: accountToken
+                )
+            }
         }
         scheduleFitnessBrainShadowObservation()
     }
@@ -1104,13 +1439,18 @@ final class AppSession {
            end of the dashboard refresh, so any failed or slow request skipped
            the import altogether and the card sat on "no wearable data" with a
            button to press, for data the phone already had on disk. */
-        await importHealthQuietly()
+        guard let operation = accountOperationLease() else { return }
+        await retryPendingHydrationMutations(operation: operation)
+        guard accountOperationIsCurrent(operation) else { return }
+        await importHealthQuietly(operation: operation)
+        guard accountOperationIsCurrent(operation) else { return }
         await refresh()
     }
 
     func handleAuthCallback(_ url: URL) async {
         var accountToken = beginAccountBoundary()
         var switchedAccounts = false
+        route = .launching
         EntitlementStore.shared.resetAccount()
         await service.stopRealtime()
         guard accountGeneration.accepts(accountToken) else { return }
@@ -1119,62 +1459,195 @@ final class AppSession {
             guard accountGeneration.accepts(accountToken) else { return }
             accountToken = completeAccountBoundary()
             switchedAccounts = true
+            authenticatedOwnerID = userID
             EntitlementStore.shared.prepareForAccount(userID)
             data = .empty
             pendingSyncCount = 0
             failedSyncCount = 0
             navigationPath.removeAll()
             selectedPersona = nil
-            route = .induction
+            /* A completed OAuth exchange proves identity, not that the
+               account is new. Keep the route non-writable until either its
+               owner-scoped cache or the server dashboard proves its state. */
+            route = .launching
+            let cached = try? await offlineStore.loadDashboard(for: userID)
+            guard accountGeneration.accepts(accountToken) else { return }
+            if let cached,
+               TrainingInduction.belongsToAccount(cached, userID: userID) {
+                var hydratedCache = cached
+                RestingEnergyPolicy.migrateLegacyProfileValue(
+                    in: &hydratedCache,
+                    ownerID: userID
+                )
+                hydratedCache.foods = hydratedCache.foods.map(FoodHydration.resolved)
+                data = hydratedCache
+                selectedPersona = hydratedCache.profile?.persona
+                route = TrainingInduction.shouldEnterPortal(
+                    profile: hydratedCache.profile,
+                    settings: hydratedCache.settings
+                ) ? .portal : .induction
+            }
             try await refreshDashboard(expectedUserID: userID)
             guard accountGeneration.accepts(accountToken) else { return }
             selectedPersona = data.profile?.persona
             route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
                 ? .portal : .induction
-            if route == .portal { await startRealtimeSync() }
+            if route == .portal, let operation = accountOperationLease() {
+                await startRealtimeSync(operation: operation)
+            }
         } catch {
             guard accountGeneration.accepts(accountToken) else { return }
             if !switchedAccounts {
-                accountToken = completeAccountBoundary()
-                await resolveEntitlements()
+                let existingUserID = await service.currentUserID()
                 guard accountGeneration.accepts(accountToken) else { return }
-                if route == .portal { await startRealtimeSync() }
+                if let existingUserID {
+                    let cached = try? await offlineStore.loadDashboard(for: existingUserID)
+                    guard accountGeneration.accepts(accountToken) else { return }
+                    if let cached,
+                       TrainingInduction.belongsToAccount(cached, userID: existingUserID) {
+                        accountToken = completeAccountBoundary()
+                        authenticatedOwnerID = existingUserID
+                        var hydratedCache = cached
+                        RestingEnergyPolicy.migrateLegacyProfileValue(
+                            in: &hydratedCache,
+                            ownerID: existingUserID
+                        )
+                        hydratedCache.foods = hydratedCache.foods.map(FoodHydration.resolved)
+                        data = hydratedCache
+                        selectedPersona = hydratedCache.profile?.persona
+                        route = TrainingInduction.shouldEnterPortal(
+                            profile: hydratedCache.profile,
+                            settings: hydratedCache.settings
+                        ) ? .portal : .induction
+                        EntitlementStore.shared.prepareForAccount(existingUserID)
+                        await resolveEntitlements()
+                        guard accountGeneration.accepts(accountToken) else { return }
+                        if route == .portal, let operation = accountOperationLease() {
+                            await startRealtimeSync(operation: operation)
+                        }
+                    } else {
+                        try? await service.signOut()
+                        guard accountGeneration.accepts(accountToken) else { return }
+                        accountToken = beginAccountBoundary()
+                        route = .welcome
+                    }
+                } else {
+                    accountToken = completeAccountBoundary()
+                    route = .welcome
+                }
+            } else if switchedAccounts,
+                      let ownerID = authenticatedOwnerID,
+                      TrainingInduction.belongsToAccount(data, userID: ownerID) {
+                /* The OAuth exchange and owner-scoped cache are enough to
+                   restore a truthful offline portal, but not enough to leave
+                   its account services dormant. Revalidate the auth session,
+                   then rebuild all account-derived capabilities around the
+                   cached owner. */
+                let currentUserID = await service.currentUserID()
+                guard accountGeneration.accepts(accountToken) else { return }
+                if currentUserID == ownerID {
+                    await refreshCoachContext(expectedUserID: ownerID)
+                    guard accountGeneration.accepts(accountToken) else { return }
+                    await resolveEntitlements()
+                    guard accountGeneration.accepts(accountToken) else { return }
+                    if route == .portal, let operation = accountOperationLease() {
+                        await startRealtimeSync(operation: operation)
+                    }
+                } else {
+                    try? await service.signOut()
+                    guard accountGeneration.accepts(accountToken) else { return }
+                    accountToken = beginAccountBoundary()
+                    route = .welcome
+                }
+            } else if switchedAccounts {
+                /* With neither server proof nor an owner-scoped cache, never
+                   guess that a returning account is first-run. Return to a
+                   clean auth surface and let the person retry safely. */
+                try? await service.signOut()
+                guard accountGeneration.accepts(accountToken) else { return }
+                accountToken = beginAccountBoundary()
+                route = .welcome
             }
             guard accountGeneration.accepts(accountToken) else { return }
             alertMessage = error.localizedDescription
         }
     }
 
-    func toggleMeal(_ meal: Meal, on date: Date = .now) async {
-        guard let profile else { return }
+    func toggleMeal(
+        _ meal: Meal,
+        on date: Date = .now,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard meal.userID == operation.ownerID else { throw CancellationError() }
         let day = date.apexDateKey
-        if let existing = data.mealLogs.first(where: { $0.date == day && $0.mealID == meal.id }) {
-            data.mealLogs.removeAll { $0.id == existing.id }
-            await persistDelete(table: "meal_logs", id: existing.id)
+        if let existing = data.mealLogs.first(where: {
+            $0.userID == operation.ownerID && $0.date == day && $0.mealID == meal.id
+        }) {
+            data.mealLogs.removeAll {
+                $0.id == existing.id && $0.userID == operation.ownerID
+            }
+            await persistDelete(
+                table: "meal_logs",
+                id: existing.id,
+                ownerID: operation.ownerID,
+                expectedAccountToken: operation.generation
+            )
         } else {
-            let row = MealLog(id: UUID(), userID: profile.userID, date: day, mealID: meal.id, checkedAt: Date().ISO8601Format())
+            let row = MealLog(
+                id: UUID(), userID: operation.ownerID, date: day,
+                mealID: meal.id, checkedAt: Date().ISO8601Format()
+            )
             data.mealLogs.append(row)
-            await persistUpsert(row, table: "meal_logs", onConflict: "user_id,date,meal_id")
+            await persistUpsert(
+                row,
+                table: "meal_logs",
+                onConflict: "user_id,date,meal_id",
+                ownerID: operation.ownerID,
+                expectedAccountToken: operation.generation
+            )
         }
+        try requireCurrentAccountOperation(operation)
     }
 
     /// Mirrors the browser Simple Mode contract: one tap records both the
     /// planned-meal completion and an exact structured nutrition snapshot.
     /// The shared idempotency key lets web and iOS converge on one meal.
-    func togglePlannedMeal(_ prescription: AdaptiveMeal, on date: Date = .now) async {
-        guard let profile else { return }
+    func togglePlannedMeal(
+        _ prescription: AdaptiveMeal,
+        on date: Date = .now,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard let profile, operation.ownerID == profile.userID else { throw CancellationError() }
         let meal = prescription.source
+        guard meal.userID == operation.ownerID else { throw CancellationError() }
         let day = date.apexDateKey
-        let existingCheck = data.mealLogs.first { $0.date == day && $0.mealID == meal.id }
+        let existingCheck = data.mealLogs.first {
+            $0.userID == operation.ownerID && $0.date == day && $0.mealID == meal.id
+        }
         let existingStructured = data.loggedMeals.first {
-            $0.localDate == day && $0.sourcePlannedMealID == meal.id
+            $0.userID == operation.ownerID
+                && $0.localDate == day
+                && $0.sourcePlannedMealID == meal.id
         }
 
         if existingCheck != nil || existingStructured != nil {
-            if let existingStructured { await deleteLoggedMeal(existingStructured) }
+            if let existingStructured {
+                try await deleteLoggedMeal(existingStructured, operation: operation)
+                try requireCurrentAccountOperation(operation)
+            }
             if let existingCheck {
-                data.mealLogs.removeAll { $0.id == existingCheck.id }
-                await persistDelete(table: "meal_logs", id: existingCheck.id)
+                data.mealLogs.removeAll {
+                    $0.id == existingCheck.id && $0.userID == operation.ownerID
+                }
+                await persistDelete(
+                    table: "meal_logs",
+                    id: existingCheck.id,
+                    ownerID: operation.ownerID,
+                    expectedAccountToken: operation.generation
+                )
+                try requireCurrentAccountOperation(operation)
             }
             return
         }
@@ -1182,7 +1655,7 @@ final class AppSession {
         let now = Date().ISO8601Format()
         let mealID = UUID()
         let entryID = UUID()
-        let idempotencyKey = "simple-planned:\(profile.userID.uuidString.lowercased()):\(day):\(meal.id.uuidString.lowercased())"
+        let idempotencyKey = "simple-planned:\(operation.ownerID.uuidString.lowercased()):\(day):\(meal.id.uuidString.lowercased())"
         let request = StructuredMealRequest(
             id: mealID,
             localDate: day,
@@ -1220,7 +1693,7 @@ final class AppSession {
         )
         let localMeal = LoggedMeal(
             id: mealID,
-            userID: profile.userID,
+            userID: operation.ownerID,
             localDate: day,
             mealSlot: plannedMealSlot(meal),
             displayName: meal.name,
@@ -1237,7 +1710,7 @@ final class AppSession {
         let localEntry = LoggedFoodEntry(
             id: entryID,
             mealID: mealID,
-            userID: profile.userID,
+            userID: operation.ownerID,
             foodID: nil,
             sortOrder: 0,
             snapshotName: "\(meal.name) · planned prescription",
@@ -1257,51 +1730,100 @@ final class AppSession {
             fatG: Double(prescription.fatG)
         )
         let check = MealLog(
-            id: UUID(), userID: profile.userID, date: day,
+            id: UUID(), userID: operation.ownerID, date: day,
             mealID: meal.id, checkedAt: now
         )
 
         data.loggedMeals.insert(localMeal, at: 0)
-        await refreshNudges()
+        try await refreshNudges(operation: operation)
+        try requireCurrentAccountOperation(operation)
         data.loggedFoodEntries.insert(localEntry, at: 0)
         data.mealLogs.append(check)
-        await recalculateLocalStructuredDay(day, userID: profile.userID)
-        await persistUpsert(check, table: "meal_logs", onConflict: "user_id,date,meal_id")
+        try await recalculateLocalStructuredDay(day, operation: operation)
+        await persistUpsert(
+            check,
+            table: "meal_logs",
+            onConflict: "user_id,date,meal_id",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
 
         if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            try requireCurrentAccountOperation(operation)
             lastSyncAt = .now
             return
         }
 
         do {
             _ = try await service.logStructuredMeal(meal: request, entries: [entry])
-            try await refreshDashboard()
+            try requireCurrentAccountOperation(operation)
+            try await refreshDashboard(expectedUserID: operation.ownerID)
+            try requireCurrentAccountOperation(operation)
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
+            try requireCurrentAccountOperation(operation)
             do {
                 let payload = StructuredMealRPCPayload(pMeal: request, pEntries: [entry])
-                try await offlineStore.enqueue(.rpc("log_structured_meal", params: payload), for: profile.userID)
-                pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
+                try await offlineStore.enqueue(
+                    .rpc("log_structured_meal", params: payload),
+                    for: operation.ownerID
+                )
+                try requireCurrentAccountOperation(operation)
+                let pendingCount = try? await offlineStore.pendingOperations(for: operation.ownerID).count
+                try requireCurrentAccountOperation(operation)
+                pendingSyncCount = pendingCount ?? pendingSyncCount + 1
                 /* Saved offline and queued. Deliberately silent: this is the app
                    working, not an event, and pendingSyncCount already shows it.
                    Naming the backend on a user's screen helps nobody. */
             } catch {
+                try requireCurrentAccountOperation(operation)
                 alertMessage = error.localizedDescription
             }
         }
     }
 
-    func toggleSupplement(_ supplement: Supplement, on date: Date = .now) async {
-        guard let profile else { return }
+    func toggleSupplement(
+        _ supplement: Supplement,
+        on date: Date = .now,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard supplement.userID == operation.ownerID else { throw CancellationError() }
         let day = date.apexDateKey
-        if let existing = data.supplementLogs.first(where: { $0.date == day && $0.supplementID == supplement.id }) {
-            data.supplementLogs.removeAll { $0.id == existing.id }
-            await persistDelete(table: "supplement_logs", id: existing.id)
+        if let existing = data.supplementLogs.first(where: {
+            $0.userID == operation.ownerID && $0.date == day && $0.supplementID == supplement.id
+        }) {
+            data.supplementLogs.removeAll {
+                $0.id == existing.id && $0.userID == operation.ownerID
+            }
+            await persistDelete(
+                table: "supplement_logs",
+                id: existing.id,
+                ownerID: operation.ownerID,
+                expectedAccountToken: operation.generation
+            )
         } else {
-            let row = SupplementLog(id: UUID(), userID: profile.userID, date: day, supplementID: supplement.id, checkedAt: Date().ISO8601Format())
+            let row = SupplementLog(
+                id: UUID(),
+                userID: operation.ownerID,
+                date: day,
+                supplementID: supplement.id,
+                checkedAt: Date().ISO8601Format()
+            )
             data.supplementLogs.append(row)
-            await persistUpsert(row, table: "supplement_logs", onConflict: "user_id,date,supplement_id")
+            await persistUpsert(
+                row,
+                table: "supplement_logs",
+                onConflict: "user_id,date,supplement_id",
+                ownerID: operation.ownerID,
+                expectedAccountToken: operation.generation
+            )
         }
-        await refreshNudges()
+        try requireCurrentAccountOperation(operation)
+        try await refreshNudges(operation: operation)
+        try requireCurrentAccountOperation(operation)
     }
 
     /// Adds a supplement to the plan from wherever the user happens to be.
@@ -1310,13 +1832,18 @@ final class AppSession {
     /// adding one meant leaving the thing you were doing and going to find the
     /// full editor. Sorting after the current last item keeps it in the group
     /// the user picked rather than jumping to the top.
-    func addSupplement(name: String, dose: String, groupLabel: String) async {
-        guard let profile else { return }
+    func addSupplement(
+        name: String,
+        dose: String,
+        groupLabel: String,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { return }
         let row = Supplement(
             id: UUID(),
-            userID: profile.userID,
+            userID: operation.ownerID,
             name: trimmedName,
             dose: dose.trimmingCharacters(in: .whitespacesAndNewlines),
             timing: "anytime",
@@ -1324,10 +1851,19 @@ final class AppSession {
             offsetMinutes: nil,
             groupLabel: groupLabel.trimmingCharacters(in: .whitespacesAndNewlines),
             trainingDaysOnly: false,
-            sortOrder: (data.supplements.map(\.sortOrder).max() ?? 0) + 1
+            sortOrder: (data.supplements
+                .filter { $0.userID == operation.ownerID }
+                .map(\.sortOrder).max() ?? 0) + 1
         )
         data.supplements.append(row)
-        await persistUpsert(row, table: "supplements", onConflict: "id")
+        await persistUpsert(
+            row,
+            table: "supplements",
+            onConflict: "id",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
     /// Retires a supplement from the plan, keeping what it recorded.
@@ -1336,17 +1872,47 @@ final class AppSession {
     /// every past check-off with it. For somebody paying for the app that is
     /// their data disappearing because they tidied a list, so the row stays
     /// and simply stops appearing in the plan.
-    func archiveSupplement(_ supplement: Supplement) async {
-        guard let index = data.supplements.firstIndex(where: { $0.id == supplement.id }) else { return }
+    func archiveSupplement(
+        _ supplement: Supplement,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard supplement.userID == operation.ownerID,
+              let index = data.supplements.firstIndex(where: {
+                  $0.id == supplement.id && $0.userID == operation.ownerID
+              }) else { throw CancellationError() }
         data.supplements[index].archived = true
-        await persistUpsert(data.supplements[index], table: "supplements", onConflict: "id")
+        let archived = data.supplements[index]
+        await persistUpsert(
+            archived,
+            table: "supplements",
+            onConflict: "id",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
     /// Puts an archived supplement back into the plan.
-    func restoreSupplement(_ supplement: Supplement) async {
-        guard let index = data.supplements.firstIndex(where: { $0.id == supplement.id }) else { return }
+    func restoreSupplement(
+        _ supplement: Supplement,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard supplement.userID == operation.ownerID,
+              let index = data.supplements.firstIndex(where: {
+                  $0.id == supplement.id && $0.userID == operation.ownerID
+              }) else { throw CancellationError() }
         data.supplements[index].archived = false
-        await persistUpsert(data.supplements[index], table: "supplements", onConflict: "id")
+        let restored = data.supplements[index]
+        await persistUpsert(
+            restored,
+            table: "supplements",
+            onConflict: "id",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
     /// Re-evaluate today's reminders from live data.
@@ -1355,10 +1921,14 @@ final class AppSession {
     /// a local notification is scheduled ahead of time and would otherwise fire
     /// on a stale reading. Being told you are short on protein an hour after
     /// hitting the target is the failure people actually notice.
-    func refreshNudges() async {
-        guard let profile else { return }
+    func refreshNudges(operation: AccountOperationLease) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard let profile, profile.userID == operation.ownerID else { throw CancellationError() }
+        NudgeCenter.shared.activate(ownerID: operation.ownerID)
         let today = Date().apexDateKey
-        let logs = data.activityLogs.filter { $0.date == today }
+        let logs = data.activityLogs.filter {
+            $0.userID == operation.ownerID && $0.date == today
+        }
         let targets = EnergyEngine.targets(
             profile: profile,
             logs: logs,
@@ -1368,11 +1938,11 @@ final class AppSession {
             wearableActiveCalories: WearableActivityRecord.activeCalories(
                 on: today,
                 settings: data.settings,
-                ownerID: profile.userID
+                ownerID: operation.ownerID
             )
         )
         let consumed = data.loggedMeals
-            .filter { $0.localDate == today }
+            .filter { $0.userID == operation.ownerID && $0.localDate == today }
             .reduce(0.0) { $0 + $1.totalProteinG }
         let creatine = activeSupplements.first { $0.name.lowercased().contains("creatine") }
         let creatineLogged = creatine.map { supplement in
@@ -1387,14 +1957,32 @@ final class AppSession {
             creatineInStack: creatine != nil,
             creatineLoggedToday: creatineLogged
         )
+        try requireCurrentAccountOperation(operation)
+    }
+
+    func refreshNudges() async {
+        guard let operation = accountOperationLease() else { return }
+        try? await refreshNudges(operation: operation)
     }
 
     /// What the plan should show: everything not retired.
     var activeSupplements: [Supplement] {
-        data.supplements.filter { !$0.archived }.sorted { $0.sortOrder < $1.sortOrder }
+        guard let ownerID = verifiedPersistenceOwnerID() else { return [] }
+        return data.supplements
+            .filter { $0.userID == ownerID && !$0.archived }
+            .sorted { $0.sortOrder < $1.sortOrder }
     }
 
-    func updateDailyLog(_ row: DailyLog, ownerID: UUID? = nil) async {
+    func updateDailyLog(
+        _ row: DailyLog,
+        ownerID: UUID? = nil,
+        expectedAccountToken: UInt64? = nil
+    ) async {
+        if let expectedAccountToken {
+            guard accountGeneration.accepts(expectedAccountToken),
+                  verifiedPersistenceOwnerID(ownerID) == ownerID,
+                  row.userID == ownerID else { return }
+        }
         if let index = data.dailyLogs.firstIndex(where: { $0.id == row.id }) {
             data.dailyLogs[index] = row
         } else {
@@ -1404,29 +1992,39 @@ final class AppSession {
             row,
             table: "daily_logs",
             onConflict: "user_id,date",
-            ownerID: ownerID
+            ownerID: ownerID,
+            expectedAccountToken: expectedAccountToken
         )
     }
 
-    func saveMorningWeight(_ weightKG: Double, on date: Date) async {
+    func saveMorningWeight(
+        _ weightKG: Double,
+        on date: Date,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
         guard weightKG.isFinite,
-              (25...350).contains(weightKG),
-              let ownerID = verifiedPersistenceOwnerID() else { return }
+              (25...350).contains(weightKG) else { return }
         let day = date.apexDateKey
         let existing = data.dailyLogs.first {
-            $0.userID == ownerID && $0.date == day
+            $0.userID == operation.ownerID && $0.date == day
         }
         let activityMode = data.activityLogs.contains {
-            $0.userID == ownerID && $0.date == day
+            $0.userID == operation.ownerID && $0.date == day
         } ? "precise" : "quick"
         let row = MorningCheckLogic.applyingWeight(
             weightKG,
             to: existing,
-            userID: ownerID,
+            userID: operation.ownerID,
             date: day,
             activityMode: activityMode
         )
-        await updateDailyLog(row, ownerID: ownerID)
+        await updateDailyLog(
+            row,
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
     /// Water naturally present in foods logged for the selected day. This is
@@ -1555,14 +2153,19 @@ final class AppSession {
         source: HydrationSource = .iPhone,
         on date: Date = .now,
         eventID: UUID = UUID(),
-        clientKey: String? = nil
-    ) async {
-        guard amountML > 0, amountML <= 10_000,
-              let ownerID = verifiedPersistenceOwnerID() else { return }
-        let accountToken = accountGeneration.token
+        clientKey: String? = nil,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard amountML > 0, amountML <= 10_000 else { return }
+        let ownerID = operation.ownerID
         let day = date.apexDateKey
-        await materializeLegacyHydrationIfNeeded(ownerID: ownerID, date: date)
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        try await materializeLegacyHydrationIfNeeded(
+            ownerID: ownerID,
+            date: date,
+            operation: operation
+        )
+        try requireCurrentAccountOperation(operation)
         let occurred = hydrationOccurrence(on: date)
         let now = Date().ISO8601Format()
         var event = HydrationEvent(
@@ -1585,11 +2188,14 @@ final class AppSession {
             event,
             table: "hydration_events",
             onConflict: "user_id,client_idempotency_key",
-            ownerID: ownerID
+            ownerID: ownerID,
+            expectedAccountToken: operation.generation
         )
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        try requireCurrentAccountOperation(operation)
 
-        if source == .iPhone, occurred <= Date().addingTimeInterval(60) {
+        if source == .iPhone,
+           healthImportIsEnabled(operation: operation),
+           occurred <= Date().addingTimeInterval(60) {
             do {
                 event.healthKitSampleID = try await HealthKitManager.shared.saveWater(
                     liters: Double(amountML) / 1_000,
@@ -1600,7 +2206,7 @@ final class AppSession {
                     paletteToken: paletteToken,
                     iconToken: iconToken
                 )
-                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+                try requireCurrentAccountOperation(operation)
                 event.updatedAt = Date().ISO8601Format()
                 upsertHydrationEventLocally(event)
                 await persistUpsert(
@@ -1608,104 +2214,188 @@ final class AppSession {
                     table: "hydration_events",
                     onConflict: "user_id,client_idempotency_key",
                     ownerID: ownerID,
+                    expectedAccountToken: operation.generation,
                     surfacePermanentFailure: false
                 )
-                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+                try requireCurrentAccountOperation(operation)
+            } catch is CancellationError {
+                throw CancellationError()
             } catch {
-                if hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) {
-                    HealthKitManager.shared.message = error.localizedDescription
-                }
+                try requireCurrentAccountOperation(operation)
+                HealthKitManager.shared.message = error.localizedDescription
             }
         }
-        await mirrorHydrationAggregate(ownerID: ownerID, on: date)
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        try await mirrorHydrationAggregate(ownerID: ownerID, on: date, operation: operation)
+        try requireCurrentAccountOperation(operation)
         publishHydrationState()
     }
 
-    func logHydration(preset: HydrationPreset, on date: Date = .now) async {
-        guard preset.userID == verifiedPersistenceOwnerID() else { return }
-        await logHydration(
+    func logHydration(
+        preset: HydrationPreset,
+        on date: Date = .now,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard preset.userID == operation.ownerID else { throw CancellationError() }
+        try await logHydration(
             amountML: preset.amountML,
             kind: preset.kind.eventKind,
             paletteToken: preset.paletteToken,
             iconToken: preset.iconToken,
-            on: date
+            on: date,
+            operation: operation
         )
+        try requireCurrentAccountOperation(operation)
     }
 
-    func deleteHydrationEvent(_ event: HydrationEvent, on date: Date) async {
-        guard let ownerID = verifiedPersistenceOwnerID(), event.userID == ownerID,
-              event.source != .healthKitExternal, event.source != .food else { return }
-        let accountToken = accountGeneration.token
-        data.hydrationEvents?.removeAll { $0.id == event.id && $0.userID == ownerID }
-        await persistDelete(table: "hydration_events", id: event.id, ownerID: ownerID)
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
-        if event.source == .iPhone {
-            try? await HealthKitManager.shared.deleteWater(eventID: event.id, date: date)
-            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+    func deleteHydrationEvent(
+        _ event: HydrationEvent,
+        on date: Date,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard event.userID == operation.ownerID,
+              event.source != .healthKitExternal, event.source != .food else {
+            throw CancellationError()
         }
-        await mirrorHydrationAggregate(ownerID: ownerID, on: date)
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        data.hydrationEvents?.removeAll {
+            $0.id == event.id && $0.userID == operation.ownerID
+        }
+        await persistDelete(
+            table: "hydration_events",
+            id: event.id,
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
+        if event.source == .iPhone, healthImportIsEnabled(operation: operation) {
+            try? await HealthKitManager.shared.deleteWater(eventID: event.id, date: date)
+            try requireCurrentAccountOperation(operation)
+        }
+        try await mirrorHydrationAggregate(
+            ownerID: operation.ownerID,
+            on: date,
+            operation: operation
+        )
+        try requireCurrentAccountOperation(operation)
         publishHydrationState()
     }
 
-    func saveHydrationPreset(_ preset: HydrationPreset) async {
-        guard let ownerID = verifiedPersistenceOwnerID(), preset.userID == ownerID else { return }
-        let accountToken = accountGeneration.token
+    func saveHydrationPreset(
+        _ preset: HydrationPreset,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard preset.userID == operation.ownerID else { throw CancellationError() }
         var rows = data.hydrationPresets ?? []
-        rows.removeAll { $0.id == preset.id && $0.userID == ownerID }
+        rows.removeAll { $0.id == preset.id && $0.userID == operation.ownerID }
         rows.append(preset)
         data.hydrationPresets = rows
-        await persistUpsert(preset, table: "hydration_presets", onConflict: "user_id,id", ownerID: ownerID)
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        await persistUpsert(
+            preset,
+            table: "hydration_presets",
+            onConflict: "user_id,id",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
         publishHydrationState()
     }
 
-    func deleteHydrationPreset(_ preset: HydrationPreset) async {
-        guard let ownerID = verifiedPersistenceOwnerID(), preset.userID == ownerID else { return }
-        let accountToken = accountGeneration.token
-        data.hydrationPresets?.removeAll { $0.id == preset.id && $0.userID == ownerID }
-        await persistDelete(table: "hydration_presets", id: preset.id, ownerID: ownerID)
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+    func deleteHydrationPreset(
+        _ preset: HydrationPreset,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard preset.userID == operation.ownerID else { throw CancellationError() }
+        data.hydrationPresets?.removeAll {
+            $0.id == preset.id && $0.userID == operation.ownerID
+        }
+        await persistDelete(
+            table: "hydration_presets",
+            id: preset.id,
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
         publishHydrationState()
     }
 
-    func saveHydrationPreferences(_ preferences: HydrationAccountPreferences) async {
-        guard let ownerID = verifiedPersistenceOwnerID(), preferences.userID == ownerID else { return }
-        let accountToken = accountGeneration.token
+    func saveHydrationPreferences(
+        _ preferences: HydrationAccountPreferences,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard preferences.userID == operation.ownerID else { throw CancellationError() }
         data.hydrationPreferences = preferences
         await persistUpsert(
             preferences,
             table: "hydration_preferences",
             onConflict: "user_id",
-            ownerID: ownerID
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
         )
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        try requireCurrentAccountOperation(operation)
         publishHydrationState()
     }
 
-    func setActivityLevel(_ level: ActivityLevel) async {
-        guard var profile else { return }
+    func setActivityLevel(
+        _ level: ActivityLevel,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard var profile, profile.userID == operation.ownerID else { throw CancellationError() }
         profile.activityLevel = level
         profile.updatedAt = Date().ISO8601Format()
         data.profile = profile
-        await persistUpsert(profile, table: "profile", onConflict: "user_id")
+        await persistUpsert(
+            profile,
+            table: "profile",
+            onConflict: "user_id",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
-    func setGoal(_ goal: Goal) async {
-        guard var profile else { return }
+    func setGoal(
+        _ goal: Goal,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard var profile, profile.userID == operation.ownerID else { throw CancellationError() }
         profile.goal = goal
         profile.updatedAt = Date().ISO8601Format()
         data.profile = profile
-        await persistUpsert(profile, table: "profile", onConflict: "user_id")
+        await persistUpsert(
+            profile,
+            table: "profile",
+            onConflict: "user_id",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
-    func updateSettings(_ transform: (inout UserSettings) -> Void) async {
-        guard let profile, var settings = data.settings else { return }
-        settings = settings.rebound(to: profile.userID)
+    func updateSettings(
+        _ transform: (inout UserSettings) -> Void,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard let profile, profile.userID == operation.ownerID,
+              var settings = data.settings,
+              settings.userID == operation.ownerID else { throw CancellationError() }
+        settings = settings.rebound(to: operation.ownerID)
         transform(&settings)
         data.settings = settings
-        await persistUpsert(settings, table: "settings", onConflict: "user_id")
+        await persistUpsert(
+            settings,
+            table: "settings",
+            onConflict: "user_id",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
     func setInterfaceMode(_ mode: PortalUIMode) {
@@ -1752,32 +2442,66 @@ final class AppSession {
      * a reversible delta. A local correction therefore stays corrected.
     */
     @discardableResult
-    func adjustWater(deltaLiters: Double, on date: Date) async -> Double {
+    func adjustWater(
+        deltaLiters: Double,
+        on date: Date,
+        operation: AccountOperationLease
+    ) async throws -> Double {
+        try requireCurrentAccountOperation(operation)
         let task = hydrationMutationQueue.enqueue { [weak self] in
             guard let self else { return 0 }
-            return await self.performWaterAdjustment(deltaLiters: deltaLiters, on: date)
+            return await self.performWaterAdjustment(
+                deltaLiters: deltaLiters,
+                on: date,
+                operation: operation
+            )
         }
-        return await task.value
+        let value = await task.value
+        try requireCurrentAccountOperation(operation)
+        return value
     }
 
-    private func performWaterAdjustment(deltaLiters: Double, on date: Date) async -> Double {
-        guard let ownerID = verifiedPersistenceOwnerID() else { return 0 }
-        let accountToken = accountGeneration.token
+    private func performWaterAdjustment(
+        deltaLiters: Double,
+        on date: Date,
+        operation: AccountOperationLease
+    ) async -> Double {
+        guard accountOperationIsCurrent(operation) else { return 0 }
         guard deltaLiters.isFinite, deltaLiters != 0 else {
-            return Double(hydrationResolution(ownerID: ownerID, on: date).drinkML) / 1_000
+            return Double(hydrationResolution(ownerID: operation.ownerID, on: date).drinkML) / 1_000
         }
         if deltaLiters > 0 {
-            await logHydration(amountML: Int((deltaLiters * 1_000).rounded()), on: date)
+            try? await logHydration(
+                amountML: Int((deltaLiters * 1_000).rounded()),
+                on: date,
+                operation: operation
+            )
         } else {
-            await reduceHydration(byML: Int((-deltaLiters * 1_000).rounded()), on: date)
+            try? await reduceHydration(
+                byML: Int((-deltaLiters * 1_000).rounded()),
+                on: date,
+                operation: operation
+            )
         }
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return 0 }
-        return Double(hydrationResolution(ownerID: ownerID, on: date).drinkML) / 1_000
+        guard accountOperationIsCurrent(operation) else { return 0 }
+        return Double(hydrationResolution(ownerID: operation.ownerID, on: date).drinkML) / 1_000
     }
 
-    func setWaterTotal(_ liters: Double, on date: Date) async {
-        let current = Double(hydrationResolution(on: date).drinkML) / 1_000
-        await adjustWater(deltaLiters: liters - current, on: date)
+    func setWaterTotal(
+        _ liters: Double,
+        on date: Date,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        let current = Double(
+            hydrationResolution(ownerID: operation.ownerID, on: date).drinkML
+        ) / 1_000
+        _ = try await adjustWater(
+            deltaLiters: liters - current,
+            on: date,
+            operation: operation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
     private func ensureHydrationDefaults(ownerID: UUID) async {
@@ -1811,6 +2535,7 @@ final class AppSession {
                     table: "hydration_presets",
                     onConflict: "user_id,id",
                     ownerID: ownerID,
+                    expectedAccountToken: accountToken,
                     surfacePermanentFailure: false
                 )
                 guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
@@ -1838,14 +2563,20 @@ final class AppSession {
                 table: "hydration_preferences",
                 onConflict: "user_id",
                 ownerID: ownerID,
+                expectedAccountToken: accountToken,
                 surfacePermanentFailure: false
             )
             guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
         }
     }
 
-    private func materializeLegacyHydrationIfNeeded(ownerID: UUID, date: Date) async {
-        let accountToken = accountGeneration.token
+    private func materializeLegacyHydrationIfNeeded(
+        ownerID: UUID,
+        date: Date,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard ownerID == operation.ownerID else { throw CancellationError() }
         let day = date.apexDateKey
         let events = data.hydrationEvents ?? []
         guard !events.contains(where: {
@@ -1887,10 +2618,20 @@ final class AppSession {
             table: "hydration_events",
             onConflict: "user_id,client_idempotency_key",
             ownerID: ownerID,
+            expectedAccountToken: operation.generation,
             surfacePermanentFailure: false
         )
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        try requireCurrentAccountOperation(operation)
         publishHydrationState()
+    }
+
+    private func materializeLegacyHydrationIfNeeded(ownerID: UUID, date: Date) async {
+        guard let operation = accountOperationLease(), operation.ownerID == ownerID else { return }
+        try? await materializeLegacyHydrationIfNeeded(
+            ownerID: ownerID,
+            date: date,
+            operation: operation
+        )
     }
 
     private func hydrationOccurrence(on date: Date) -> Date {
@@ -1906,9 +2647,13 @@ final class AppSession {
         data.hydrationEvents = rows
     }
 
-    private func mirrorHydrationAggregate(ownerID: UUID, on date: Date) async {
-        let accountToken = accountGeneration.token
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+    private func mirrorHydrationAggregate(
+        ownerID: UUID,
+        on date: Date,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard ownerID == operation.ownerID else { throw CancellationError() }
         let day = date.apexDateKey
         let resolved = hydrationResolution(ownerID: ownerID, on: date)
         let liters = Double(resolved.drinkML) / 1_000
@@ -1919,19 +2664,40 @@ final class AppSession {
             userID: ownerID, date: day,
             kcal: nil, proteinG: nil, fatG: nil, carbsG: nil, waterL: 0,
             estimatedTDEE: nil, computedPAL: nil,
-            activityMode: data.activityLogs.contains { $0.date == day } ? "precise" : "quick",
+            activityMode: data.activityLogs.contains {
+                $0.userID == ownerID && $0.date == day
+            } ? "precise" : "quick",
             weightKG: nil
         )
         row.waterL = liters
-        await updateDailyLog(row, ownerID: ownerID)
+        await updateDailyLog(
+            row,
+            ownerID: ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
-    private func reduceHydration(byML amountML: Int, on date: Date) async {
-        guard amountML > 0, let ownerID = verifiedPersistenceOwnerID() else { return }
-        let accountToken = accountGeneration.token
+    private func mirrorHydrationAggregate(ownerID: UUID, on date: Date) async {
+        guard let operation = accountOperationLease(), operation.ownerID == ownerID else { return }
+        try? await mirrorHydrationAggregate(ownerID: ownerID, on: date, operation: operation)
+    }
+
+    private func reduceHydration(
+        byML amountML: Int,
+        on date: Date,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard amountML > 0 else { return }
+        let ownerID = operation.ownerID
         let day = date.apexDateKey
-        await materializeLegacyHydrationIfNeeded(ownerID: ownerID, date: date)
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        try await materializeLegacyHydrationIfNeeded(
+            ownerID: ownerID,
+            date: date,
+            operation: operation
+        )
+        try requireCurrentAccountOperation(operation)
         let plan = HydrationLedger.reductionPlan(
             ownerID: ownerID,
             date: day,
@@ -1952,7 +2718,9 @@ final class AppSession {
             userID: ownerID, date: day,
             kcal: nil, proteinG: nil, fatG: nil, carbsG: nil, waterL: 0,
             estimatedTDEE: nil, computedPAL: nil,
-            activityMode: data.activityLogs.contains { $0.date == day } ? "precise" : "quick",
+            activityMode: data.activityLogs.contains {
+                $0.userID == ownerID && $0.date == day
+            } ? "precise" : "quick",
             weightKG: nil
         )
         aggregateRow.waterL = Double(plan.drinkML) / 1_000
@@ -1964,19 +2732,25 @@ final class AppSession {
         publishHydrationState()
 
         for event in plan.deletedEvents {
-            await persistDelete(table: "hydration_events", id: event.id, ownerID: ownerID)
-            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
-            if event.source == .iPhone {
+            await persistDelete(
+                table: "hydration_events",
+                id: event.id,
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
+            if event.source == .iPhone, healthImportIsEnabled(operation: operation) {
                 try? await HealthKitManager.shared.deleteWater(eventID: event.id, date: date)
-                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+                try requireCurrentAccountOperation(operation)
             }
         }
 
         for pair in plan.replacements {
             var replacement = pair.replacement
-            if pair.original.source == .iPhone {
+            if pair.original.source == .iPhone,
+               healthImportIsEnabled(operation: operation) {
                 try? await HealthKitManager.shared.deleteWater(eventID: pair.original.id, date: date)
-                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+                try requireCurrentAccountOperation(operation)
                 let occurred = ISO8601DateFormatter().date(from: pair.original.occurredAt)
                     ?? hydrationOccurrence(on: date)
                 if occurred <= Date().addingTimeInterval(60) {
@@ -1990,12 +2764,14 @@ final class AppSession {
                             paletteToken: replacement.paletteToken,
                             iconToken: replacement.iconToken
                         )
+                        try requireCurrentAccountOperation(operation)
                         replacement.updatedAt = Date().ISO8601Format()
                         upsertHydrationEventLocally(replacement)
+                    } catch is CancellationError {
+                        throw CancellationError()
                     } catch {
-                        if hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) {
-                            HealthKitManager.shared.message = error.localizedDescription
-                        }
+                        try requireCurrentAccountOperation(operation)
+                        HealthKitManager.shared.message = error.localizedDescription
                     }
                 }
             }
@@ -2003,23 +2779,33 @@ final class AppSession {
                 replacement,
                 table: "hydration_events",
                 onConflict: "user_id,client_idempotency_key",
-                ownerID: ownerID
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
             )
-            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            try requireCurrentAccountOperation(operation)
         }
 
         await persistUpsert(
             aggregateRow,
             table: "daily_logs",
             onConflict: "user_id,date",
-            ownerID: ownerID
+            ownerID: ownerID,
+            expectedAccountToken: operation.generation
         )
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        try requireCurrentAccountOperation(operation)
         publishHydrationState()
     }
 
-    private func syncFoodHydrationEvent(on date: Date, ownerID: UUID) async {
-        let accountToken = accountGeneration.token
+    private func syncFoodHydrationEvent(
+        on date: Date,
+        ownerID: UUID,
+        operation: AccountOperationLease? = nil
+    ) async {
+        let accountToken = operation?.generation ?? accountGeneration.token
+        if let operation {
+            guard operation.ownerID == ownerID,
+                  accountOperationIsCurrent(operation) else { return }
+        }
         guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
         let day = date.apexDateKey
         let key = "food:\(day)"
@@ -2030,7 +2816,12 @@ final class AppSession {
         guard amountML > 0 else {
             if let existing {
                 data.hydrationEvents?.removeAll { $0.id == existing.id }
-                await persistDelete(table: "hydration_events", id: existing.id, ownerID: ownerID)
+                await persistDelete(
+                    table: "hydration_events",
+                    id: existing.id,
+                    ownerID: ownerID,
+                    expectedAccountToken: operation?.generation
+                )
                 guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
                 publishHydrationState()
             }
@@ -2061,19 +2852,31 @@ final class AppSession {
             table: "hydration_events",
             onConflict: "user_id,client_idempotency_key",
             ownerID: ownerID,
+            expectedAccountToken: operation?.generation,
             surfacePermanentFailure: false
         )
         guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
         publishHydrationState()
     }
 
-    private func reconcileHealthHydration(_ snapshot: HealthSnapshot, ownerID: UUID) async {
+    private func reconcileHealthHydration(
+        _ snapshot: HealthSnapshot,
+        operation: AccountOperationLease
+    ) async {
         guard snapshot.importableDietaryWaterL != nil else { return }
-        let accountToken = accountGeneration.token
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken),
+        let ownerID = operation.ownerID
+        guard accountOperationIsCurrent(operation),
               let date = ISO8601DateFormatter.apexDateOnly.date(from: snapshot.date) else { return }
-        await materializeLegacyHydrationIfNeeded(ownerID: ownerID, date: date)
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        do {
+            try await materializeLegacyHydrationIfNeeded(
+                ownerID: ownerID,
+                date: date,
+                operation: operation
+            )
+        } catch {
+            return
+        }
+        guard accountOperationIsCurrent(operation) else { return }
         let imported = snapshot.hydrationSamples.filter {
             ($0.source == .apexWatch || $0.source == .external)
                 && hydrationHealthSampleBelongsToOwner($0, ownerID: ownerID)
@@ -2091,8 +2894,13 @@ final class AppSession {
         )
         for event in deleted {
             data.hydrationEvents?.removeAll { $0.id == event.id }
-            await persistDelete(table: "hydration_events", id: event.id, ownerID: ownerID)
-            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            await persistDelete(
+                table: "hydration_events",
+                id: event.id,
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
+            )
+            guard accountOperationIsCurrent(operation) else { return }
         }
 
         for sample in imported {
@@ -2132,12 +2940,21 @@ final class AppSession {
                 table: "hydration_events",
                 onConflict: "user_id,client_idempotency_key",
                 ownerID: ownerID,
+                expectedAccountToken: operation.generation,
                 surfacePermanentFailure: false
             )
-            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            guard accountOperationIsCurrent(operation) else { return }
         }
-        await mirrorHydrationAggregate(ownerID: ownerID, on: date)
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        do {
+            try await mirrorHydrationAggregate(
+                ownerID: ownerID,
+                on: date,
+                operation: operation
+            )
+        } catch {
+            return
+        }
+        guard accountOperationIsCurrent(operation) else { return }
         publishHydrationState()
     }
 
@@ -2177,7 +2994,7 @@ final class AppSession {
     }
 
     private func beginHydrationMutation(_ mutation: HydrationCompanionMutation) -> Bool {
-        let key = "apex.watch.hydration.processed.\(mutation.ownerID.uuidString.lowercased())"
+        let key = hydrationMutationProcessedKey(ownerID: mutation.ownerID)
         let processed = defaults.stringArray(forKey: key) ?? []
         let mutationID = mutation.id.uuidString.lowercased()
         guard !processed.contains(mutationID), !hydrationMutationsInFlight.contains(mutation.id) else {
@@ -2187,14 +3004,73 @@ final class AppSession {
         return true
     }
 
-    private func finishHydrationMutation(_ mutation: HydrationCompanionMutation) {
+    private func finishHydrationMutation(
+        _ mutation: HydrationCompanionMutation,
+        markProcessed: Bool
+    ) {
         hydrationMutationsInFlight.remove(mutation.id)
-        let key = "apex.watch.hydration.processed.\(mutation.ownerID.uuidString.lowercased())"
+        guard markProcessed else { return }
+        let key = hydrationMutationProcessedKey(ownerID: mutation.ownerID)
         var processed = defaults.stringArray(forKey: key) ?? []
         let mutationID = mutation.id.uuidString.lowercased()
-        guard !processed.contains(mutationID) else { return }
-        processed.append(mutationID)
-        defaults.set(Array(processed.suffix(512)), forKey: key)
+        if !processed.contains(mutationID) {
+            processed.append(mutationID)
+            defaults.set(Array(processed.suffix(512)), forKey: key)
+        }
+        removeHydrationMutationRetry(mutation)
+    }
+
+    private func hydrationMutationProcessedKey(ownerID: UUID) -> String {
+        "apex.watch.hydration.processed.\(ownerID.uuidString.lowercased())"
+    }
+
+    private func hydrationMutationWasProcessed(_ mutation: HydrationCompanionMutation) -> Bool {
+        let values = defaults.stringArray(
+            forKey: hydrationMutationProcessedKey(ownerID: mutation.ownerID)
+        ) ?? []
+        return values.contains(mutation.id.uuidString.lowercased())
+    }
+
+    private func hydrationMutationRetryKey(ownerID: UUID) -> String {
+        "apex.watch.hydration.pending-retry.\(ownerID.uuidString.lowercased())"
+    }
+
+    private func pendingHydrationMutationRetries(
+        ownerID: UUID
+    ) -> [PendingHydrationMutationRetry] {
+        guard let encoded = defaults.data(forKey: hydrationMutationRetryKey(ownerID: ownerID)),
+              let values = try? JSONDecoder().decode(
+                  [PendingHydrationMutationRetry].self,
+                  from: encoded
+              ) else { return [] }
+        return values
+    }
+
+    private func saveHydrationMutationRetries(
+        _ values: [PendingHydrationMutationRetry],
+        ownerID: UUID
+    ) {
+        let key = hydrationMutationRetryKey(ownerID: ownerID)
+        guard !values.isEmpty else {
+            defaults.removeObject(forKey: key)
+            return
+        }
+        guard let encoded = try? JSONEncoder().encode(Array(values.suffix(64))) else { return }
+        defaults.set(encoded, forKey: key)
+    }
+
+    private func enqueueHydrationMutationRetry(_ mutation: HydrationCompanionMutation) {
+        guard !hydrationMutationWasProcessed(mutation) else { return }
+        var values = pendingHydrationMutationRetries(ownerID: mutation.ownerID)
+        guard !values.contains(where: { $0.mutation.id == mutation.id }) else { return }
+        values.append(PendingHydrationMutationRetry(mutation: mutation, attempts: 0))
+        saveHydrationMutationRetries(values, ownerID: mutation.ownerID)
+    }
+
+    private func removeHydrationMutationRetry(_ mutation: HydrationCompanionMutation) {
+        var values = pendingHydrationMutationRetries(ownerID: mutation.ownerID)
+        values.removeAll { $0.mutation.id == mutation.id }
+        saveHydrationMutationRetries(values, ownerID: mutation.ownerID)
     }
 
     private func acknowledgedHydrationDeleteIDs(ownerID: UUID) -> [UUID] {
@@ -2230,10 +3106,41 @@ final class AppSession {
     }
 
     private func handleHydrationMutation(_ mutation: HydrationCompanionMutation) async {
-        guard let ownerID = verifiedPersistenceOwnerID(), mutation.belongs(to: ownerID),
-              beginHydrationMutation(mutation) else { return }
-        defer { finishHydrationMutation(mutation) }
-        let accountToken = accountGeneration.token
+        guard let operation = accountOperationLease() else {
+            enqueueHydrationMutationRetry(mutation)
+            return
+        }
+        guard mutation.ownerID == operation.ownerID else {
+            enqueueHydrationMutationRetry(mutation)
+            return
+        }
+        guard mutation.belongs(to: operation.ownerID) else {
+            if beginHydrationMutation(mutation) {
+                finishHydrationMutation(mutation, markProcessed: true)
+            }
+            return
+        }
+        await handleHydrationMutation(mutation, operation: operation)
+    }
+
+    private func handleHydrationMutation(
+        _ mutation: HydrationCompanionMutation,
+        operation: AccountOperationLease
+    ) async {
+        guard !Task.isCancelled,
+              mutation.belongs(to: operation.ownerID),
+              accountOperationIsCurrent(operation) else {
+            enqueueHydrationMutationRetry(mutation)
+            return
+        }
+        guard beginHydrationMutation(mutation) else { return }
+        var markProcessed = false
+        var retryIfInterrupted = true
+        defer {
+            finishHydrationMutation(mutation, markProcessed: markProcessed)
+            if retryIfInterrupted { enqueueHydrationMutationRetry(mutation) }
+        }
+        let ownerID = operation.ownerID
         switch mutation.action {
         case .upsertEvent:
             guard let event = mutation.event,
@@ -2243,7 +3150,11 @@ final class AppSession {
                           eventID: event.healthKitSampleID ?? event.id,
                           ownerID: ownerID
                       )
-                  ) else { return }
+                  ) else {
+                markProcessed = true
+                retryIfInterrupted = false
+                return
+            }
             let existing = (data.hydrationEvents ?? []).first {
                 $0.userID == ownerID && $0.clientIdempotencyKey == event.clientIdempotencyKey
             }
@@ -2254,16 +3165,29 @@ final class AppSession {
                     table: "hydration_events",
                     onConflict: "user_id,client_idempotency_key",
                     ownerID: ownerID,
+                    expectedAccountToken: operation.generation,
                     surfacePermanentFailure: false
                 )
-                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+                guard !Task.isCancelled, accountOperationIsCurrent(operation) else { return }
             }
             if let date = ISO8601DateFormatter.apexDateOnly.date(from: event.localDate) {
-                await mirrorHydrationAggregate(ownerID: ownerID, on: date)
-                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+                do {
+                    try await mirrorHydrationAggregate(
+                        ownerID: ownerID,
+                        on: date,
+                        operation: operation
+                    )
+                } catch {
+                    return
+                }
+                guard !Task.isCancelled, accountOperationIsCurrent(operation) else { return }
             }
         case .deleteEvent:
-            guard let eventID = mutation.eventID else { return }
+            guard let eventID = mutation.eventID else {
+                markProcessed = true
+                retryIfInterrupted = false
+                return
+            }
             recordHydrationTombstone(eventID: eventID, ownerID: ownerID, revision: mutation.createdAt)
             if let event = (data.hydrationEvents ?? []).first(where: {
                 $0.userID == ownerID && ($0.id == eventID || $0.healthKitSampleID == eventID)
@@ -2272,59 +3196,99 @@ final class AppSession {
                 afterTombstoneRevision: mutation.createdAt
             ) {
                 data.hydrationEvents?.removeAll { $0.userID == ownerID && $0.id == event.id }
-                await persistDelete(table: "hydration_events", id: event.id, ownerID: ownerID)
-                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+                await persistDelete(
+                    table: "hydration_events",
+                    id: event.id,
+                    ownerID: ownerID,
+                    expectedAccountToken: operation.generation
+                )
+                guard !Task.isCancelled, accountOperationIsCurrent(operation) else { return }
                 if let date = ISO8601DateFormatter.apexDateOnly.date(from: event.localDate) {
-                    await mirrorHydrationAggregate(ownerID: ownerID, on: date)
-                    guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+                    do {
+                        try await mirrorHydrationAggregate(
+                            ownerID: ownerID,
+                            on: date,
+                            operation: operation
+                        )
+                    } catch {
+                        return
+                    }
+                    guard !Task.isCancelled, accountOperationIsCurrent(operation) else { return }
                 }
             }
+            guard !Task.isCancelled, accountOperationIsCurrent(operation) else { return }
             recordHydrationDeleteAcknowledgement(eventID: eventID, ownerID: ownerID)
         case .updatePreferences:
             guard let preferences = mutation.preferences,
                   HydrationMutationOrdering.acceptsPreference(
                       incomingRevision: mutation.createdAt,
                       currentRevision: data.hydrationPreferences?.updatedAt
-                  ) else { return }
-            await saveHydrationPreferences(
-                preferences.accountRow(ownerID: ownerID, existing: data.hydrationPreferences)
-            )
-            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+                  ) else {
+                markProcessed = true
+                retryIfInterrupted = false
+                return
+            }
+            do {
+                try await saveHydrationPreferences(
+                    preferences.accountRow(ownerID: ownerID, existing: data.hydrationPreferences),
+                    operation: operation
+                )
+            } catch {
+                return
+            }
+            guard !Task.isCancelled, accountOperationIsCurrent(operation) else { return }
         }
+        guard !Task.isCancelled, accountOperationIsCurrent(operation) else { return }
         publishHydrationState()
+        markProcessed = true
+        retryIfInterrupted = false
     }
 
-    func applyHealthSnapshot(_ snapshot: HealthSnapshot) async {
-        guard let profile else { return }
-        let ownerID = profile.userID
-        let accountToken = accountGeneration.token
+    func applyHealthSnapshot(
+        _ snapshot: HealthSnapshot,
+        operation: AccountOperationLease
+    ) async {
+        guard healthImportIsEnabled(operation: operation),
+              profile?.userID == operation.ownerID else { return }
+        let ownerID = operation.ownerID
         if HealthKitManager.shared.waterWriteState == .authorized,
            let resolvedDate = ISO8601DateFormatter.apexDateOnly.date(from: snapshot.date) {
             try? await HealthKitManager.shared.syncFoodWater(
                 liters: foodHydrationLiters(on: resolvedDate),
                 on: resolvedDate,
-                accountID: profile.userID
+                accountID: ownerID
             )
-            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            guard accountOperationIsCurrent(operation) else { return }
         }
         if snapshot.weightKG != nil || snapshot.vo2Max != nil || snapshot.restingHeartRate != nil {
-            let existing = data.healthMetrics.first { $0.date == snapshot.date }
+            let existing = data.healthMetrics.first {
+                $0.userID == ownerID && $0.date == snapshot.date
+            }
             let metric = HealthMetric(
                 id: existing?.id ?? UUID(),
-                userID: profile.userID,
+                userID: ownerID,
                 date: snapshot.date,
                 weightKG: snapshot.weightKG ?? existing?.weightKG,
                 vo2Max: snapshot.vo2Max ?? existing?.vo2Max,
                 restingHeartRate: snapshot.restingHeartRate ?? existing?.restingHeartRate
             )
-            data.healthMetrics.removeAll { $0.id == metric.id }
+            data.healthMetrics.removeAll { $0.id == metric.id && $0.userID == ownerID }
             data.healthMetrics.append(metric)
-            await persistUpsert(metric, table: "health_metrics", onConflict: "user_id,date")
-            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            await persistUpsert(
+                metric,
+                table: "health_metrics",
+                onConflict: "user_id,date",
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
+            )
+            guard accountOperationIsCurrent(operation) else { return }
         }
 
-        await reconcileHealthHydration(snapshot, ownerID: ownerID)
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        await reconcileHealthHydration(snapshot, operation: operation)
+        guard accountOperationIsCurrent(operation) else { return }
+        if let anchorData = snapshot.hydrationDeletionAnchorData {
+            HealthKitManager.shared.commitDietaryWaterAnchor(anchorData, ownerID: ownerID)
+        }
 
         if snapshot.steps != nil || snapshot.activeEnergyKcal != nil || snapshot.exerciseMinutes != nil {
             let history = WearableActivityRecord.history(
@@ -2340,43 +3304,71 @@ final class AppSession {
             ) {
                 await saveWearableActivity(
                     wearable,
-                    automaticallyApply: snapshot.date == Date().apexDateKey
+                    automaticallyApply: snapshot.date == Date().apexDateKey,
+                    operation: operation
                 )
-                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+                guard accountOperationIsCurrent(operation) else { return }
             }
         }
 
         if snapshot.sleepDurationHours != nil || snapshot.heartRateVariabilityMS != nil {
-            await updateSettings { settings in
-                settings.addons["apple_recovery_context"] = .object([
-                    "date": .string(snapshot.date),
-                    "sleep_duration_hours": snapshot.sleepDurationHours.map(JSONValue.number) ?? .null,
-                    "heart_rate_variability_ms": snapshot.heartRateVariabilityMS.map(JSONValue.number) ?? .null,
-                    "resting_heart_rate": snapshot.restingHeartRate.map(JSONValue.number) ?? .null,
-                    "source": .string("apple_health"),
-                    "updated_at": .string(Date().ISO8601Format())
-                ])
-            }
-            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            guard accountOperationIsCurrent(operation),
+                  var settings = data.settings,
+                  settings.userID == ownerID else { return }
+            settings.addons["apple_recovery_context"] = .object([
+                "date": .string(snapshot.date),
+                "sleep_duration_hours": snapshot.sleepDurationHours.map(JSONValue.number) ?? .null,
+                "heart_rate_variability_ms": snapshot.heartRateVariabilityMS.map(JSONValue.number) ?? .null,
+                "resting_heart_rate": snapshot.restingHeartRate.map(JSONValue.number) ?? .null,
+                "source": .string("apple_health"),
+                "updated_at": .string(Date().ISO8601Format())
+            ])
+            data.settings = settings
+            await persistUpsert(
+                settings,
+                table: "settings",
+                onConflict: "user_id",
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
+            )
+            guard accountOperationIsCurrent(operation) else { return }
         }
 
-        await importHealthWorkoutChanges()
+        await importHealthWorkoutChanges(operation: operation)
     }
 
-    func saveWearableActivity(_ record: WearableActivityRecord, automaticallyApply: Bool) async {
-        await updateSettings { settings in
-            var history = WearableActivityRecord.history(from: settings.addons["watch_activity_history"])
-            history.removeAll { $0.date == record.date }
-            history.append(record)
-            history.sort { $0.date < $1.date }
-            settings.addons["watch_activity_history"] = .array(history.suffix(730).map(\.jsonValue))
-        }
+    func saveWearableActivity(
+        _ record: WearableActivityRecord,
+        automaticallyApply: Bool,
+        operation: AccountOperationLease
+    ) async {
+        guard accountOperationIsCurrent(operation),
+              var settings = data.settings,
+              settings.userID == operation.ownerID,
+              profile?.userID == operation.ownerID else { return }
+        var history = WearableActivityRecord.history(from: settings.addons["watch_activity_history"])
+        history.removeAll { $0.date == record.date }
+        history.append(record)
+        history.sort { $0.date < $1.date }
+        settings.addons["watch_activity_history"] = .array(history.suffix(730).map(\.jsonValue))
+        data.settings = settings
+        await persistUpsert(
+            settings,
+            table: "settings",
+            onConflict: "user_id",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        guard accountOperationIsCurrent(operation) else { return }
         if record.date == Date().apexDateKey { publishHydrationState() }
         guard let profile,
+              profile.userID == operation.ownerID,
               WearableActivityEngine.shouldAutomaticallyApplyMode(
                 profile: profile,
                 requested: automaticallyApply,
-                hasActivityLogs: data.activityLogs.contains { $0.date == record.date }
+                hasActivityLogs: data.activityLogs.contains {
+                    $0.userID == operation.ownerID && $0.date == record.date
+                }
               ) else { return }
         let suggested = WearableActivityEngine.suggestedLevel(
             persona: profile.persona,
@@ -2384,7 +3376,7 @@ final class AppSession {
             activeCalories: record.activeCalories,
             exerciseMinutes: record.exerciseMinutes
         )
-        await setActivityLevel(suggested)
+        try? await setActivityLevel(suggested, operation: operation)
     }
 
     func addActivity(
@@ -2394,13 +3386,15 @@ final class AppSession {
         durationMinutes: Int? = nil,
         distanceKM: Double? = nil,
         watchKcal: Double? = nil,
-        source: String = "manual"
-    ) async {
-        guard let profile else { return }
+        source: String = "manual",
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard let profile, profile.userID == operation.ownerID else { throw CancellationError() }
         let now = Date().ISO8601Format()
         let log = ActivityLog(
             id: UUID(),
-            userID: profile.userID,
+            userID: operation.ownerID,
             date: date.apexDateKey,
             typeID: type.id,
             quantity: quantity,
@@ -2421,14 +3415,24 @@ final class AppSession {
             updatedAt: now
         )
         data.activityLogs.append(log)
-        await persistUpsert(log, table: "activity_logs")
+        await persistUpsert(
+            log,
+            table: "activity_logs",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
-    func prefillEventActivitiesIfNeeded(for date: Date) async {
-        guard let profile else { return }
+    func prefillEventActivitiesIfNeeded(
+        for date: Date,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard let profile, profile.userID == operation.ownerID else { throw CancellationError() }
         let day = date.apexDateKey
         let event = data.events.first {
-            $0.userID == profile.userID
+            $0.userID == operation.ownerID
                 && $0.type == "filming_championship"
                 && $0.startDate <= day
                 && $0.endDate >= day
@@ -2436,68 +3440,123 @@ final class AppSession {
         guard let event else { return }
         guard data.activityLogs.contains(where: { $0.date == day }) == false else { return }
 
-        let marker = "apex.event-prefill.\(profile.userID.uuidString).\(event.id.uuidString).\(day)"
+        let marker = "apex.event-prefill.\(operation.ownerID.uuidString).\(event.id.uuidString).\(day)"
         guard defaults.bool(forKey: marker) == false else { return }
+        try requireCurrentAccountOperation(operation)
         defaults.set(true, forKey: marker)
 
         if let filming = data.activityTypes.first(where: { $0.id == "gimbal-filming" }) {
-            await addActivity(
+            try await addActivity(
                 type: filming,
                 date: date,
                 durationMinutes: 8 * 60,
-                source: "event_prefill"
+                source: "event_prefill",
+                operation: operation
             )
+            try requireCurrentAccountOperation(operation)
         }
         if let travel = data.activityTypes.first(where: { $0.id == "travel-day" }) {
-            await addActivity(
+            try await addActivity(
                 type: travel,
                 date: date,
                 durationMinutes: 2 * 60,
-                source: "event_prefill"
+                source: "event_prefill",
+                operation: operation
             )
+            try requireCurrentAccountOperation(operation)
         }
     }
 
-    func removeActivity(_ log: ActivityLog) async {
-        data.activityLogs.removeAll { $0.id == log.id }
-        await persistDelete(table: "activity_logs", id: log.id)
+    func removeActivity(
+        _ log: ActivityLog,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard log.userID == operation.ownerID else { throw CancellationError() }
+        data.activityLogs.removeAll { $0.id == log.id && $0.userID == operation.ownerID }
+        await persistDelete(
+            table: "activity_logs",
+            id: log.id,
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
-    func clearActivities(on date: Date) async {
-        let logs = data.activityLogs.filter { $0.date == date.apexDateKey }
-        for log in logs { await removeActivity(log) }
+    func clearActivities(
+        on date: Date,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        let logs = data.activityLogs.filter {
+            $0.userID == operation.ownerID && $0.date == date.apexDateKey
+        }
+        for log in logs {
+            try await removeActivity(log, operation: operation)
+            try requireCurrentAccountOperation(operation)
+        }
     }
 
-    func repeatYesterday(onto date: Date) async {
+    func repeatYesterday(
+        onto date: Date,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
         guard let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: date) else { return }
-        let previous = data.activityLogs.filter { $0.date == yesterday.apexDateKey }
+        let previous = data.activityLogs.filter {
+            $0.userID == operation.ownerID && $0.date == yesterday.apexDateKey
+        }
         for log in previous {
+            try requireCurrentAccountOperation(operation)
             guard let type = data.activityTypes.first(where: { $0.id == log.typeID }) else { continue }
-            await addActivity(
+            try await addActivity(
                 type: type,
                 date: date,
                 quantity: log.quantity,
                 durationMinutes: log.durationMinutes,
                 distanceKM: log.distanceKM,
                 watchKcal: log.watchKcal,
-                source: "manual"
+                source: "manual",
+                operation: operation
             )
+            try requireCurrentAccountOperation(operation)
         }
     }
 
-    func finalizeActivityDay(_ date: Date, targets: NutritionTargets) async {
-        guard let profile else { return }
+    func finalizeActivityDay(
+        _ date: Date,
+        targets: NutritionTargets,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard let profile, profile.userID == operation.ownerID else { throw CancellationError() }
         let day = date.apexDateKey
-        let indices = data.activityLogs.indices.filter { data.activityLogs[$0].date == day }
-        for index in indices {
-            data.activityLogs[index].reconciled = true
-            data.activityLogs[index].updatedAt = Date().ISO8601Format()
-            await persistUpsert(data.activityLogs[index], table: "activity_logs")
+        let activityIDs = data.activityLogs.compactMap { log in
+            log.userID == operation.ownerID && log.date == day ? log.id : nil
         }
-        let existing = data.dailyLogs.first { $0.date == day }
+        for activityID in activityIDs {
+            try requireCurrentAccountOperation(operation)
+            guard let index = data.activityLogs.firstIndex(where: {
+                $0.id == activityID && $0.userID == operation.ownerID
+            }) else { continue }
+            var reconciled = data.activityLogs[index]
+            reconciled.reconciled = true
+            reconciled.updatedAt = Date().ISO8601Format()
+            data.activityLogs[index] = reconciled
+            await persistUpsert(
+                reconciled,
+                table: "activity_logs",
+                ownerID: operation.ownerID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
+        }
+        let existing = data.dailyLogs.first {
+            $0.userID == operation.ownerID && $0.date == day
+        }
         let row = DailyLog(
             id: existing?.id ?? UUID(),
-            userID: profile.userID,
+            userID: operation.ownerID,
             date: day,
             kcal: existing?.kcal,
             proteinG: existing?.proteinG,
@@ -2506,7 +3565,7 @@ final class AppSession {
             waterL: existing?.waterL ?? 0,
             estimatedTDEE: targets.tdee,
             computedPAL: targets.pal,
-            activityMode: indices.isEmpty ? "quick" : "precise",
+            activityMode: activityIDs.isEmpty ? "quick" : "precise",
             weightKG: existing?.weightKG ?? profile.weightKG,
             nutritionSource: existing?.nutritionSource ?? "manual",
             manualKcal: existing?.manualKcal,
@@ -2514,16 +3573,24 @@ final class AppSession {
             manualFatG: existing?.manualFatG,
             manualCarbsG: existing?.manualCarbsG
         )
-        await updateDailyLog(row)
+        await updateDailyLog(
+            row,
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
         UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 
     /* A provider almost never publishes water, so it is estimated on the way in.
        Without this a scanned food silently contributes nothing to hydration. */
-    func lookupFood(barcode: String) async throws -> FoodLookupEnvelope {
-        let ownerID = verifiedPersistenceOwnerID()
-        let accountToken = accountGeneration.token
+    func lookupFood(
+        barcode: String,
+        operation: AccountOperationLease
+    ) async throws -> FoodLookupEnvelope {
+        try requireCurrentAccountOperation(operation)
         let envelope = try await service.lookupFood(barcode: barcode)
+        try requireCurrentAccountOperation(operation)
         let resolved = FoodLookupEnvelope(
             state: envelope.state,
             source: envelope.source,
@@ -2531,18 +3598,21 @@ final class AppSession {
             results: envelope.results?.map(FoodHydration.resolved),
             message: envelope.message
         )
-        if let ownerID, hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken),
-           let found = resolved.food {
+        if let found = resolved.food {
             data.foods.removeAll { $0.id.lowercased() == found.id.lowercased() }
             data.foods.insert(found, at: 0)
-            await saveLocalSnapshot()
+            try await saveLocalSnapshot(operation: operation)
         }
+        try requireCurrentAccountOperation(operation)
         return resolved
     }
 
-    func searchFoods(query: String) async throws -> [Food] {
-        let ownerID = verifiedPersistenceOwnerID()
-        let accountToken = accountGeneration.token
+    func searchFoods(
+        query: String,
+        operation: AccountOperationLease
+    ) async throws -> [Food] {
+        try requireCurrentAccountOperation(operation)
+        let ownerID = operation.ownerID
         let foods = data.foods
         let preferences = data.foodPreferences
         let local = MealMemory.searchFoods(
@@ -2554,15 +3624,13 @@ final class AppSession {
         let remote: FoodLookupEnvelope
         do {
             remote = try await foodSearchProvider(query)
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
-            guard foodSearchOperationIsCurrent(ownerID: ownerID, token: accountToken) else {
-                throw CancellationError()
-            }
+            try requireCurrentAccountOperation(operation)
             return FoodNutrientEvidence.overlayBundledNaturalFoodEvidence(local)
         }
-        guard foodSearchOperationIsCurrent(ownerID: ownerID, token: accountToken) else {
-            throw CancellationError()
-        }
+        try requireCurrentAccountOperation(operation)
         let resolved = (remote.results ?? []).map(FoodHydration.resolved)
         let combined = FoodNutrientEvidence.mergeLocalSearchFoods(local, with: resolved)
         return MealMemory.searchFoods(
@@ -2578,9 +3646,12 @@ final class AppSession {
     /// across both clients instead of creating one row per food.
     func saveStructuredMeal(
         _ draft: MealComposerDraft,
-        recordFoodUsage: Bool = true
+        recordFoodUsage: Bool = true,
+        operation: AccountOperationLease
     ) async throws {
-        guard let profile else { throw APEXServiceError.configurationMissing }
+        try requireCurrentAccountOperation(operation)
+        guard let profile, profile.userID == operation.ownerID else { throw CancellationError() }
+        let ownerID = operation.ownerID
         let validItems = draft.items.filter { $0.equivalentAmount > 0 }
         guard validItems.isEmpty == false else { throw APEXServiceError.incompleteFood }
 
@@ -2629,7 +3700,7 @@ final class AppSession {
         let totals = draft.totals
         let localMeal = LoggedMeal(
             id: draft.id,
-            userID: profile.userID,
+            userID: ownerID,
             localDate: draft.localDate,
             mealSlot: draft.mealSlot,
             displayName: request.displayName,
@@ -2648,7 +3719,7 @@ final class AppSession {
             return LoggedFoodEntry(
                 id: item.id,
                 mealID: draft.id,
-                userID: profile.userID,
+                userID: ownerID,
                 foodID: item.foodID,
                 sortOrder: index,
                 snapshotName: item.name,
@@ -2685,7 +3756,7 @@ final class AppSession {
             ? MealMemory.usagePreferenceUpdates(
                 current: data.foodPreferences,
                 items: validItems,
-                userID: profile.userID,
+                userID: ownerID,
                 usedAt: request.loggedAt
             )
             : []
@@ -2694,69 +3765,88 @@ final class AppSession {
         let payload = StructuredMealRPCPayload(pMeal: request, pEntries: entryRequests)
         let offlineOperation = try OfflineOperation.rpc("log_structured_meal", params: payload)
 
+        try requireCurrentAccountOperation(operation)
         if let replaced = draft.replaceMealID {
             data.loggedMeals.removeAll { $0.id == replaced }
             data.loggedFoodEntries.removeAll { $0.mealID == replaced }
         }
         data.loggedMeals.removeAll { $0.id == draft.id }
         data.loggedMeals.insert(localMeal, at: 0)
-        await refreshNudges()
+        try await refreshNudges(operation: operation)
+        try requireCurrentAccountOperation(operation)
         data.loggedFoodEntries.removeAll { $0.mealID == draft.id }
         data.loggedFoodEntries.insert(contentsOf: localEntries, at: 0)
         let updatedFoodIDs = Set(preferenceUpdates.map(\.foodID))
-        data.foodPreferences.removeAll { updatedFoodIDs.contains($0.foodID) }
+        data.foodPreferences.removeAll {
+            $0.userID == operation.ownerID && updatedFoodIDs.contains($0.foodID)
+        }
         data.foodPreferences.append(contentsOf: preferenceUpdates)
-        await recalculateLocalStructuredDay(draft.localDate, userID: profile.userID)
-        await saveLocalSnapshot()
+        try await recalculateLocalStructuredDay(draft.localDate, operation: operation)
+        try await saveLocalSnapshot(operation: operation)
 
         if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            try requireCurrentAccountOperation(operation)
             lastSyncAt = .now
             return
         }
 
         do {
             _ = try await service.logStructuredMeal(meal: request, entries: entryRequests)
+            try requireCurrentAccountOperation(operation)
             lastSyncAt = .now
         } catch {
+            try requireCurrentAccountOperation(operation)
             switch SyncFailurePolicy.classify(error) {
             case .transient, .authenticationRequired:
                 do {
-                    try await offlineStore.enqueue(offlineOperation, for: profile.userID)
-                    pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count)
-                        ?? pendingSyncCount + 1
+                    try await offlineStore.enqueue(offlineOperation, for: ownerID)
+                    try requireCurrentAccountOperation(operation)
+                    let pendingCount = try? await offlineStore.pendingOperations(for: ownerID).count
+                    try requireCurrentAccountOperation(operation)
+                    pendingSyncCount = pendingCount ?? pendingSyncCount + 1
                     /* Saved offline and queued. Deliberately silent: this is
                        normal offline operation, not a failed save. */
                 } catch {
+                    try requireCurrentAccountOperation(operation)
                     data = previousData
-                    await saveLocalSnapshot()
+                    try await saveLocalSnapshot(operation: operation)
                     throw error
                 }
             case .permanent:
+                try requireCurrentAccountOperation(operation)
                 data = previousData
-                await saveLocalSnapshot()
+                try await saveLocalSnapshot(operation: operation)
                 try? await offlineStore.recordFailure(
                     offlineOperation,
                     reason: error.localizedDescription,
-                    for: profile.userID
+                    for: ownerID
                 )
+                try requireCurrentAccountOperation(operation)
                 throw error
             }
         }
         for preference in preferenceUpdates {
+            try requireCurrentAccountOperation(operation)
             await persistUpsert(
                 preference,
                 table: "food_preferences",
                 onConflict: "user_id,food_id",
-                ownerID: profile.userID
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
             )
+            try requireCurrentAccountOperation(operation)
         }
 
         // The write is already committed and idempotent. A dashboard refresh
         // failure must not turn a successful meal into an offline retry or a
         // false error; the optimistic local meal remains the accurate view.
         do {
-            try await refreshDashboard(expectedUserID: profile.userID)
+            try await refreshDashboard(expectedUserID: ownerID)
+            try requireCurrentAccountOperation(operation)
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
+            try requireCurrentAccountOperation(operation)
             lastSyncAt = .now
         }
     }
@@ -2768,21 +3858,30 @@ final class AppSession {
     func copyNutritionDay(
         from sourceDate: Date,
         to destinationDate: Date,
-        mealIDs: Set<UUID>? = nil
+        mealIDs: Set<UUID>? = nil,
+        operation: AccountOperationLease
     ) async throws {
-        guard let profile else { throw APEXServiceError.configurationMissing }
+        try requireCurrentAccountOperation(operation)
+        guard let profile, operation.ownerID == profile.userID else { throw CancellationError() }
         let sourceKey = sourceDate.apexDateKey
         let destinationKey = destinationDate.apexDateKey
         guard sourceKey != destinationKey else { return }
 
         let sourceMeals = data.loggedMeals
-            .filter { $0.localDate == sourceKey && (mealIDs == nil || mealIDs?.contains($0.id) == true) }
+            .filter {
+                $0.userID == operation.ownerID
+                    && $0.localDate == sourceKey
+                    && (mealIDs == nil || mealIDs?.contains($0.id) == true)
+            }
             .sorted { $0.loggedAt < $1.loggedAt }
-        var destinationMeals = data.loggedMeals.filter { $0.localDate == destinationKey }
+        var destinationMeals = data.loggedMeals.filter {
+            $0.userID == operation.ownerID && $0.localDate == destinationKey
+        }
 
         for sourceMeal in sourceMeals {
+            try requireCurrentAccountOperation(operation)
             let sourceEntries = data.loggedFoodEntries
-                .filter { $0.mealID == sourceMeal.id }
+                .filter { $0.userID == operation.ownerID && $0.mealID == sourceMeal.id }
                 .sorted { $0.sortOrder < $1.sortOrder }
             guard sourceEntries.isEmpty == false else { continue }
 
@@ -2807,13 +3906,16 @@ final class AppSession {
                 loggedAs: sourceMeal.loggedAs,
                 items: items
             )
-            try await saveStructuredMeal(draft)
-            destinationMeals = data.loggedMeals.filter { $0.localDate == destinationKey }
+            try await saveStructuredMeal(draft, operation: operation)
+            try requireCurrentAccountOperation(operation)
+            destinationMeals = data.loggedMeals.filter {
+                $0.userID == operation.ownerID && $0.localDate == destinationKey
+            }
         }
 
         let structuredSourcePlannedIDs = Set(sourceMeals.compactMap(\.sourcePlannedMealID))
         let sourceChecks = data.mealLogs.filter { check in
-            guard check.date == sourceKey else { return false }
+            guard check.userID == operation.ownerID, check.date == sourceKey else { return false }
             if let mealIDs {
                 // A structured planned check follows the selected structured
                 // meal. Legacy checks without a structured meal are offered
@@ -2823,46 +3925,83 @@ final class AppSession {
             }
             return true
         }
-        var destinationChecks = Set(data.mealLogs.filter { $0.date == destinationKey }.map(\.mealID))
+        var destinationChecks = Set(data.mealLogs.filter {
+            $0.userID == operation.ownerID && $0.date == destinationKey
+        }.map(\.mealID))
         for sourceCheck in sourceChecks where destinationChecks.contains(sourceCheck.mealID) == false {
+            try requireCurrentAccountOperation(operation)
             let row = MealLog(
                 id: UUID(),
-                userID: profile.userID,
+                userID: operation.ownerID,
                 date: destinationKey,
                 mealID: sourceCheck.mealID,
                 checkedAt: Date().ISO8601Format()
             )
             data.mealLogs.append(row)
-            await persistUpsert(row, table: "meal_logs", onConflict: "user_id,date,meal_id")
+            await persistUpsert(
+                row,
+                table: "meal_logs",
+                onConflict: "user_id,date,meal_id",
+                ownerID: operation.ownerID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
             destinationChecks.insert(sourceCheck.mealID)
         }
 
-        await saveLocalSnapshot()
+        try await saveLocalSnapshot(operation: operation)
+        try requireCurrentAccountOperation(operation)
         UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 
     /// Calendar Clear intentionally removes only meals and snacks. Hydration,
     /// workouts, supplements and activity evidence remain untouched.
-    func clearNutritionDay(_ date: Date) async {
+    func clearNutritionDay(
+        _ date: Date,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
         let key = date.apexDateKey
-        let structured = data.loggedMeals.filter { $0.localDate == key }
-        let legacyChecks = data.mealLogs.filter { $0.date == key }
-        for meal in structured { await deleteLoggedMeal(meal) }
+        let structured = data.loggedMeals.filter {
+            $0.userID == operation.ownerID && $0.localDate == key
+        }
+        let legacyChecks = data.mealLogs.filter {
+            $0.userID == operation.ownerID && $0.date == key
+        }
+        for meal in structured {
+            try await deleteLoggedMeal(meal, operation: operation)
+            try requireCurrentAccountOperation(operation)
+        }
         for check in legacyChecks {
-            data.mealLogs.removeAll { $0.id == check.id }
-            await persistDelete(table: "meal_logs", id: check.id)
+            try requireCurrentAccountOperation(operation)
+            data.mealLogs.removeAll {
+                $0.id == check.id && $0.userID == operation.ownerID
+            }
+            await persistDelete(
+                table: "meal_logs",
+                id: check.id,
+                ownerID: operation.ownerID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
         }
-        if let userID = profile?.userID {
-            await recalculateLocalStructuredDay(key, userID: userID)
-            await saveLocalSnapshot()
-        }
+        try await recalculateLocalStructuredDay(key, operation: operation)
+        try await saveLocalSnapshot(operation: operation)
+        try requireCurrentAccountOperation(operation)
         UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 
     /// Moves an actual meal on the metabolic Dayline. The nutrition values do
     /// not change, only the recorded finish time used by timing intelligence.
-    func updateLoggedMealFinishedAt(_ mealID: UUID, to date: Date) async {
-        guard let index = data.loggedMeals.firstIndex(where: { $0.id == mealID }) else { return }
+    func updateLoggedMealFinishedAt(
+        _ mealID: UUID,
+        to date: Date,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard let index = data.loggedMeals.firstIndex(where: {
+                  $0.id == mealID && $0.userID == operation.ownerID
+              }) else { return }
         var meal = data.loggedMeals[index]
         meal.loggedAt = date.ISO8601Format()
         data.loggedMeals[index] = meal
@@ -2882,33 +4021,49 @@ final class AppSession {
                 .map(MealComposerItem.init(entry:))
         )
 
-        do {
-            try await saveStructuredMeal(
-                MealFinishedAtReplacement.retime(draft, to: date),
-                recordFoodUsage: false
-            )
-        } catch {
-            alertMessage = error.localizedDescription
-        }
+        try await saveStructuredMeal(
+            MealFinishedAtReplacement.retime(draft, to: date),
+            recordFoodUsage: false,
+            operation: operation
+        )
+        try requireCurrentAccountOperation(operation)
         UISelectionFeedbackGenerator().selectionChanged()
     }
 
     /// Moves a planned meal moment. This is intentionally account-scoped and
     /// persists the same `meals.time` value consumed by the web client.
-    func updatePlannedMealTime(_ mealID: UUID, to time: String) async {
-        guard let index = data.meals.firstIndex(where: { $0.id == mealID }) else { return }
+    func updatePlannedMealTime(
+        _ mealID: UUID,
+        to time: String,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard let index = data.meals.firstIndex(where: {
+            $0.id == mealID && $0.userID == operation.ownerID
+        }) else { return }
         var meal = data.meals[index]
         meal.time = time
         data.meals[index] = meal
-        await persistUpsert(meal, table: "meals")
+        await persistUpsert(
+            meal,
+            table: "meals",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
         UISelectionFeedbackGenerator().selectionChanged()
     }
 
     /// Reschedules one configured meal block, including on a fresh account
     /// where no legacy `meals` row exists yet. The settings object is shared by
     /// web and native, so the moved moment stays identical on both clients.
-    func updateMealBlockTime(_ blockID: String, to time: String) async {
-        await updateSettings { settings in
+    func updateMealBlockTime(
+        _ blockID: String,
+        to time: String,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        try await updateSettings({ settings in
             var root = settings.addons["meal_blocks"]?.objectValue ?? [:]
             let blocks = MealBlocks.normalized(settings.addons["meal_blocks"]).map { block in
                 JSONValue.object([
@@ -2922,19 +4077,33 @@ final class AppSession {
             if root["custom_blocks"] == nil { root["custom_blocks"] = .array([]) }
             if root["preset_assignments"] == nil { root["preset_assignments"] = .object([:]) }
             settings.addons["meal_blocks"] = .object(root)
-        }
+        }, operation: operation)
+        try requireCurrentAccountOperation(operation)
     }
 
     /// Moves the factual finish marker for a completed workout. Meal timing
     /// and recovery guidance consume this same account-scoped timestamp on web
     /// and native, so correcting it never creates a second local-only truth.
-    func updateWorkoutCompletedAt(_ sessionID: UUID, to date: Date) async {
-        guard let index = data.workoutSessions.firstIndex(where: { $0.id == sessionID }) else { return }
+    func updateWorkoutCompletedAt(
+        _ sessionID: UUID,
+        to date: Date,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard let index = data.workoutSessions.firstIndex(where: {
+            $0.id == sessionID && $0.userID == operation.ownerID
+        }) else { return }
         var workout = data.workoutSessions[index]
         guard workout.completed else { return }
         workout.completedAt = date.ISO8601Format()
         data.workoutSessions[index] = workout
-        await persistUpsert(workout, table: "workout_sessions")
+        await persistUpsert(
+            workout,
+            table: "workout_sessions",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
         UISelectionFeedbackGenerator().selectionChanged()
     }
 
@@ -2955,9 +4124,12 @@ final class AppSession {
         mealSlot: String,
         items: [MealComposerItem],
         subtitle: String = "",
-        existing: MealPreset? = nil
+        existing: MealPreset? = nil,
+        operation: AccountOperationLease
     ) async throws -> UUID {
-        guard let profile else { throw APEXServiceError.configurationMissing }
+        try requireCurrentAccountOperation(operation)
+        guard let profile, profile.userID == operation.ownerID else { throw CancellationError() }
+        if let existing, existing.userID != operation.ownerID { throw CancellationError() }
         let eligible = items.filter { $0.foodID != nil && $0.equivalentAmount > 0 }
         guard eligible.isEmpty == false else { throw APEXServiceError.incompleteFood }
         let presetID = existing?.id ?? UUID()
@@ -2983,14 +4155,14 @@ final class AppSession {
         }
         let expectedVersion = existing?.version ?? 0
         let localPreset = MealPreset(
-            id: presetID, userID: profile.userID,
+            id: presetID, userID: operation.ownerID,
             name: preset.name, mealSlot: mealSlot,
             sourcePlannedMealID: existing?.sourcePlannedMealID,
             archived: false, version: expectedVersion + 1
         )
         let localItems = itemRequests.map { value in
             MealPresetItem(
-                id: value.id, presetID: presetID, userID: profile.userID,
+                id: value.id, presetID: presetID, userID: operation.ownerID,
                 foodID: value.foodID, sortOrder: value.sortOrder,
                 quantity: value.quantity, unit: value.unit,
                 optional: value.optional, locked: value.locked,
@@ -3001,20 +4173,34 @@ final class AppSession {
                 adjustmentRole: value.adjustmentRole
             )
         }
-        data.mealPresets.removeAll { $0.id == presetID }
+        try requireCurrentAccountOperation(operation)
+        data.mealPresets.removeAll { $0.id == presetID && $0.userID == operation.ownerID }
         data.mealPresets.append(localPreset)
-        data.mealPresetItems.removeAll { $0.presetID == presetID }
+        data.mealPresetItems.removeAll {
+            $0.presetID == presetID && $0.userID == operation.ownerID
+        }
         data.mealPresetItems.append(contentsOf: localItems)
         if subtitle.isEmpty == false {
-            await updateSettings { settings in
-                var subtitles = settings.addons["meal_preset_subtitles"]?.objectValue ?? [:]
-                subtitles[presetID.uuidString.lowercased()] = .string(subtitle)
-                settings.addons["meal_preset_subtitles"] = .object(subtitles)
+            guard var settings = data.settings?.rebound(to: operation.ownerID) else {
+                throw APEXServiceError.configurationMissing
             }
+            var subtitles = settings.addons["meal_preset_subtitles"]?.objectValue ?? [:]
+            subtitles[presetID.uuidString.lowercased()] = .string(subtitle)
+            settings.addons["meal_preset_subtitles"] = .object(subtitles)
+            data.settings = settings
+            await persistUpsert(
+                settings,
+                table: "settings",
+                onConflict: "user_id",
+                ownerID: operation.ownerID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
         }
-        await saveLocalSnapshot()
+        try await saveLocalSnapshot(operation: operation)
 
         if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            try requireCurrentAccountOperation(operation)
             lastSyncAt = .now
             return presetID
         }
@@ -3025,16 +4211,27 @@ final class AppSession {
                 items: itemRequests,
                 expectedVersion: expectedVersion
             )
-            try await refreshDashboard()
+            try requireCurrentAccountOperation(operation)
+            try await refreshDashboard(expectedUserID: operation.ownerID)
+            try requireCurrentAccountOperation(operation)
             return savedID
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
+            try requireCurrentAccountOperation(operation)
             let payload = MealPresetRPCPayload(
                 pPreset: preset,
                 pItems: itemRequests,
                 pExpectedVersion: expectedVersion
             )
-            try await offlineStore.enqueue(.rpc("save_meal_preset", params: payload), for: profile.userID)
-            pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
+            try await offlineStore.enqueue(
+                .rpc("save_meal_preset", params: payload),
+                for: operation.ownerID
+            )
+            try requireCurrentAccountOperation(operation)
+            let pendingCount = try? await offlineStore.pendingOperations(for: operation.ownerID).count
+            try requireCurrentAccountOperation(operation)
+            pendingSyncCount = pendingCount ?? pendingSyncCount + 1
             /* Saved offline and queued. Deliberately silent: this is the app
                working, not an event, and pendingSyncCount already shows it.
                Naming the backend on a user's screen helps nobody. */
@@ -3042,52 +4239,95 @@ final class AppSession {
         }
     }
 
-    func deleteMealPreset(_ preset: MealPreset) async {
-        guard let profile else { return }
-        data.mealPresets.removeAll { $0.id == preset.id }
-        data.mealPresetItems.removeAll { $0.presetID == preset.id }
-        await saveLocalSnapshot()
+    func deleteMealPreset(
+        _ preset: MealPreset,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard preset.userID == operation.ownerID else { throw CancellationError() }
+        data.mealPresets.removeAll { $0.id == preset.id && $0.userID == operation.ownerID }
+        data.mealPresetItems.removeAll {
+            $0.presetID == preset.id && $0.userID == operation.ownerID
+        }
+        try await saveLocalSnapshot(operation: operation)
         if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            try requireCurrentAccountOperation(operation)
             lastSyncAt = .now
             return
         }
         do {
             try await service.deleteMealPreset(preset.id)
-            try await refreshDashboard()
+            try requireCurrentAccountOperation(operation)
+            try await refreshDashboard(expectedUserID: operation.ownerID)
+            try requireCurrentAccountOperation(operation)
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
+            try requireCurrentAccountOperation(operation)
             do {
                 try await offlineStore.enqueue(
                     .rpc("delete_meal_preset", params: ["p_preset_id": preset.id.uuidString]),
-                    for: profile.userID
+                    for: operation.ownerID
                 )
-                pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
+                try requireCurrentAccountOperation(operation)
+                let pendingCount = try? await offlineStore.pendingOperations(for: operation.ownerID).count
+                try requireCurrentAccountOperation(operation)
+                pendingSyncCount = pendingCount ?? pendingSyncCount + 1
             } catch {
+                try requireCurrentAccountOperation(operation)
                 alertMessage = error.localizedDescription
             }
         }
     }
 
-    func setFoodFavourite(_ food: Food, favourite: Bool) async {
-        guard let profile, let foodID = UUID(uuidString: food.id) else { return }
-        let existing = data.foodPreferences.first { $0.foodID == foodID }
+    func setFoodFavourite(
+        _ food: Food,
+        favourite: Bool,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard let foodID = UUID(uuidString: food.id) else { return }
+        let existing = data.foodPreferences.first {
+            $0.userID == operation.ownerID && $0.foodID == foodID
+        }
         let value = FoodPreference(
-            id: existing?.id ?? UUID(), userID: profile.userID, foodID: foodID,
+            id: existing?.id ?? UUID(), userID: operation.ownerID, foodID: foodID,
             personalName: existing?.personalName, aliases: existing?.aliases ?? [],
             favourite: favourite, usualAmount: existing?.usualAmount,
             usualUnit: existing?.usualUnit, usageCount: existing?.usageCount ?? 0,
             lastUsedAt: existing?.lastUsedAt, hidden: existing?.hidden ?? false
         )
-        data.foodPreferences.removeAll { $0.foodID == foodID }
+        data.foodPreferences.removeAll {
+            $0.userID == operation.ownerID && $0.foodID == foodID
+        }
         data.foodPreferences.append(value)
-        await persistUpsert(value, table: "food_preferences", onConflict: "user_id,food_id")
+        await persistUpsert(
+            value,
+            table: "food_preferences",
+            onConflict: "user_id,food_id",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
-    func updateProfile(_ transform: (inout Profile) -> Void) async {
-        guard var profile else { return }
+    func updateProfile(
+        _ transform: (inout Profile) -> Void,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard var profile, profile.userID == operation.ownerID else { throw CancellationError() }
         transform(&profile)
         profile.updatedAt = Date().ISO8601Format()
         data.profile = profile
-        await persistUpsert(profile, table: "profile", onConflict: "user_id")
+        await persistUpsert(
+            profile,
+            table: "profile",
+            onConflict: "user_id",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
     func logFood(
@@ -3095,9 +4335,11 @@ final class AppSession {
         amount: Double,
         unit: String,
         mealSlot: String,
-        date: Date
+        date: Date,
+        operation: AccountOperationLease
     ) async throws {
-        guard let profile else { throw APEXServiceError.configurationMissing }
+        try requireCurrentAccountOperation(operation)
+        guard let profile, operation.ownerID == profile.userID else { throw CancellationError() }
         let equivalentAmount: Double
         switch unit {
         case "piece": equivalentAmount = amount * (food.pieceGramsOrML ?? 0)
@@ -3152,7 +4394,7 @@ final class AppSession {
         )
         let localMeal = LoggedMeal(
             id: mealID,
-            userID: profile.userID,
+            userID: operation.ownerID,
             localDate: date.apexDateKey,
             mealSlot: mealSlot,
             displayName: food.name,
@@ -3169,7 +4411,7 @@ final class AppSession {
         let localEntry = LoggedFoodEntry(
             id: entryID,
             mealID: mealID,
-            userID: profile.userID,
+            userID: operation.ownerID,
             foodID: UUID(uuidString: food.id),
             sortOrder: 0,
             snapshotName: food.name,
@@ -3204,32 +4446,45 @@ final class AppSession {
         let preferenceUpdates = MealMemory.usagePreferenceUpdates(
             current: data.foodPreferences,
             items: [MealComposerItem(food: food, quantity: amount, unit: unit)],
-            userID: profile.userID,
+            userID: operation.ownerID,
             usedAt: now
         )
 
+        try requireCurrentAccountOperation(operation)
         data.loggedMeals.insert(localMeal, at: 0)
-        await refreshNudges()
+        try await refreshNudges(operation: operation)
+        try requireCurrentAccountOperation(operation)
         data.loggedFoodEntries.insert(localEntry, at: 0)
         let updatedFoodIDs = Set(preferenceUpdates.map(\.foodID))
-        data.foodPreferences.removeAll { updatedFoodIDs.contains($0.foodID) }
+        data.foodPreferences.removeAll {
+            $0.userID == operation.ownerID && updatedFoodIDs.contains($0.foodID)
+        }
         data.foodPreferences.append(contentsOf: preferenceUpdates)
-        await recalculateLocalStructuredDay(date.apexDateKey, userID: profile.userID)
-        await saveLocalSnapshot()
+        try await recalculateLocalStructuredDay(date.apexDateKey, operation: operation)
+        try await saveLocalSnapshot(operation: operation)
 
         if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            try requireCurrentAccountOperation(operation)
             lastSyncAt = .now
             return
         }
 
         do {
             _ = try await service.logStructuredMeal(meal: mealRequest, entries: [entryRequest])
-            try await refreshDashboard()
+            try requireCurrentAccountOperation(operation)
+            try await refreshDashboard(expectedUserID: operation.ownerID)
+            try requireCurrentAccountOperation(operation)
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
+            try requireCurrentAccountOperation(operation)
             let payload = StructuredMealRPCPayload(pMeal: mealRequest, pEntries: [entryRequest])
-            let operation = try OfflineOperation.rpc("log_structured_meal", params: payload)
-            try await offlineStore.enqueue(operation, for: profile.userID)
-            pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
+            let offlineOperation = try OfflineOperation.rpc("log_structured_meal", params: payload)
+            try await offlineStore.enqueue(offlineOperation, for: operation.ownerID)
+            try requireCurrentAccountOperation(operation)
+            let pendingCount = try? await offlineStore.pendingOperations(for: operation.ownerID).count
+            try requireCurrentAccountOperation(operation)
+            pendingSyncCount = pendingCount ?? pendingSyncCount + 1
             /* Saved offline and queued. Deliberately silent: this is the app
                working, not an event, and pendingSyncCount already shows it.
                Naming the backend on a user's screen helps nobody. */
@@ -3237,42 +4492,64 @@ final class AppSession {
         /* A successful meal RPC refreshes the dashboard before the separate
            preference upsert. Reapply the captured account-owned update so the
            freshly scanned food never vanishes from Recents during that gap. */
+        try requireCurrentAccountOperation(operation)
         let refreshedFoodIDs = Set(preferenceUpdates.map(\.foodID))
-        data.foodPreferences.removeAll { refreshedFoodIDs.contains($0.foodID) }
+        data.foodPreferences.removeAll {
+            $0.userID == operation.ownerID && refreshedFoodIDs.contains($0.foodID)
+        }
         data.foodPreferences.append(contentsOf: preferenceUpdates)
         for preference in preferenceUpdates {
+            try requireCurrentAccountOperation(operation)
             await persistUpsert(
                 preference,
                 table: "food_preferences",
                 onConflict: "user_id,food_id",
-                ownerID: profile.userID
+                ownerID: operation.ownerID,
+                expectedAccountToken: operation.generation
             )
+            try requireCurrentAccountOperation(operation)
         }
     }
 
-    func deleteLoggedMeal(_ meal: LoggedMeal) async {
-        guard let profile else { return }
-        data.loggedMeals.removeAll { $0.id == meal.id }
-        data.loggedFoodEntries.removeAll { $0.mealID == meal.id }
-        await recalculateLocalStructuredDay(meal.localDate, userID: profile.userID)
-        await saveLocalSnapshot()
+    func deleteLoggedMeal(
+        _ meal: LoggedMeal,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard meal.userID == operation.ownerID else { throw CancellationError() }
+        data.loggedMeals.removeAll { $0.id == meal.id && $0.userID == operation.ownerID }
+        data.loggedFoodEntries.removeAll {
+            $0.mealID == meal.id && $0.userID == operation.ownerID
+        }
+        try await recalculateLocalStructuredDay(meal.localDate, operation: operation)
+        try await saveLocalSnapshot(operation: operation)
         if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            try requireCurrentAccountOperation(operation)
             lastSyncAt = .now
             return
         }
         do {
             try await service.deleteStructuredMeal(meal.id)
-            try await refreshDashboard()
+            try requireCurrentAccountOperation(operation)
+            try await refreshDashboard(expectedUserID: operation.ownerID)
+            try requireCurrentAccountOperation(operation)
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
+            try requireCurrentAccountOperation(operation)
             do {
-                let operation = try OfflineOperation.rpc(
+                let offlineOperation = try OfflineOperation.rpc(
                     "delete_structured_meal",
                     params: ["p_meal_id": meal.id.uuidString]
                 )
-                try await offlineStore.enqueue(operation, for: profile.userID)
-                pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
+                try await offlineStore.enqueue(offlineOperation, for: operation.ownerID)
+                try requireCurrentAccountOperation(operation)
+                let pendingCount = try? await offlineStore.pendingOperations(for: operation.ownerID).count
+                try requireCurrentAccountOperation(operation)
+                pendingSyncCount = pendingCount ?? pendingSyncCount + 1
                 /* Queued, and silent for the same reason a queued save is. */
             } catch {
+                try requireCurrentAccountOperation(operation)
                 alertMessage = error.localizedDescription
             }
         }
@@ -3285,18 +4562,21 @@ final class AppSession {
         height: Int,
         pose: String,
         note: String,
-        date: Date = .now
+        date: Date = .now,
+        operation: AccountOperationLease
     ) async throws {
-        guard let profile else { throw APEXServiceError.configurationMissing }
+        try requireCurrentAccountOperation(operation)
+        guard let profile,
+              profile.userID == operation.ownerID else { throw CancellationError() }
         let id = UUID()
-        let owner = profile.userID.uuidString.lowercased()
+        let owner = operation.ownerID.uuidString.lowercased()
         let month = String(date.apexDateKey.prefix(7))
         let stem = id.uuidString.lowercased()
         let originalPath = "\(owner)/\(month)/\(stem)-original.jpg"
         let thumbnailPath = "\(owner)/\(month)/\(stem)-thumb.jpg"
         let row = ProgressPhoto(
             id: id,
-            userID: profile.userID,
+            userID: operation.ownerID,
             localDate: date.apexDateKey,
             capturedAt: date.ISO8601Format(),
             pose: pose,
@@ -3314,14 +4594,31 @@ final class AppSession {
             clientIdempotencyKey: "ios-progress-\(stem)"
         )
         if APEXRuntimeEnvironment.usesLocalUITestFixture() == false {
-            try await service.uploadProgressPhoto(row: row, original: original, thumbnail: thumbnail)
+            do {
+                try await service.uploadProgressPhoto(row: row, original: original, thumbnail: thumbnail)
+            } catch {
+                try requireCurrentAccountOperation(operation)
+                throw error
+            }
         }
+        try requireCurrentAccountOperation(operation)
         data.progressPhotos.insert(row, at: 0)
-        await saveLocalSnapshot()
+        try await saveLocalSnapshot(operation: operation)
+        try requireCurrentAccountOperation(operation)
     }
 
-    func signedProgressURL(for photo: ProgressPhoto, thumbnail: Bool) async throws -> URL {
-        try await service.signedProgressURL(path: thumbnail ? photo.thumbnailPath : photo.storagePath)
+    func signedProgressURL(
+        for photo: ProgressPhoto,
+        thumbnail: Bool,
+        operation: AccountOperationLease
+    ) async throws -> URL {
+        try requireCurrentAccountOperation(operation)
+        guard photo.userID == operation.ownerID else { throw CancellationError() }
+        let url = try await service.signedProgressURL(
+            path: thumbnail ? photo.thumbnailPath : photo.storagePath
+        )
+        try requireCurrentAccountOperation(operation)
+        return url
     }
 
     /// Returns the finished session's id so the caller can show its receipt.
@@ -3332,10 +4629,14 @@ final class AppSession {
         lite: Bool,
         startedAt: Date,
         wearableLinkRequest: WearableLinkRequest = .automatic,
-        completionDate: String? = nil
-    ) async -> UUID? {
-        guard let ownerID = TrainingInduction.workoutOwnerID(in: data, day: day) else { return nil }
-        let accountToken = accountGeneration.token
+        completionDate: String? = nil,
+        operation: AccountOperationLease
+    ) async throws -> UUID? {
+        try requireCurrentAccountOperation(operation)
+        let ownerID = operation.ownerID
+        guard TrainingInduction.workoutOwnerID(in: data, day: day) == ownerID else {
+            return nil
+        }
         let exercises = data.exercises
             .filter {
                 $0.userID == ownerID
@@ -3351,12 +4652,13 @@ final class AppSession {
             return nil
         }
         let now = Date().ISO8601Format()
+        let completedDate = completionDate ?? Date().apexDateKey
         let isDeload = TrainingAdjustmentEngine.isDeload(
-            on: Date().apexDateKey,
-            marks: data.deloadMarks ?? []
+            on: completedDate,
+            marks: (data.deloadMarks ?? []).filter { $0.userID == ownerID }
         )
         let workout = WorkoutSession(
-            id: UUID(), userID: ownerID, date: completionDate ?? Date().apexDateKey,
+            id: UUID(), userID: ownerID, date: completedDate,
             programDayID: day.id, isLite: lite, isDeload: isDeload,
             isEventRecovery: false, completed: true, qualityScore: 1,
             startedAt: startedAt.ISO8601Format(), completedAt: now,
@@ -3383,7 +4685,9 @@ final class AppSession {
         }
         var linkedWearable: ImportedActivity?
         if case let .activity(activityID) = wearableLinkRequest {
-            guard let selected = data.importedActivities.first(where: { $0.id == activityID }),
+            guard let selected = data.importedActivities.first(where: {
+                      $0.id == activityID && $0.userID == ownerID
+                  }),
                   let linked = WearableWorkoutLinking.explicitLink(selected, to: workout) else {
                 return nil
             }
@@ -3412,7 +4716,7 @@ final class AppSession {
             let activity = ActivityLog(
                 id: UUID(),
                 userID: ownerID,
-                date: Date().apexDateKey,
+                date: completedDate,
                 typeID: activityType.id,
                 quantity: 1,
                 durationMinutes: elapsed,
@@ -3439,16 +4743,17 @@ final class AppSession {
            for a chain of remote writes. Preserve one complete local snapshot
            first, durably enqueue its dependency bundle, then let the normal
            offline-aware sync path drain in the background. */
-        await saveLocalSnapshot()
+        try await saveLocalSnapshot(operation: operation)
+        try requireCurrentAccountOperation(operation)
         if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            try requireCurrentAccountOperation(operation)
             lastSyncAt = .now
             return workout.id
         }
         do {
-            guard accountGeneration.accepts(accountToken),
-                  verifiedPersistenceOwnerID(ownerID) == ownerID,
-                  TrainingInduction.belongsToAccount(data, userID: ownerID) else {
-                return workout.id
+            try requireCurrentAccountOperation(operation)
+            guard TrainingInduction.belongsToAccount(data, userID: ownerID) else {
+                throw CancellationError()
             }
             let parent = try OfflineOperation.upsert(
                 workout,
@@ -3485,29 +4790,26 @@ final class AppSession {
                 dependents: dependents,
                 for: ownerID
             )
+            try requireCurrentAccountOperation(operation)
             let storedPendingCount =
                 try? await offlineStore.pendingOperations(for: ownerID).count
-            guard accountGeneration.accepts(accountToken),
-                  verifiedPersistenceOwnerID(ownerID) == ownerID else {
-                return workout.id
-            }
+            try requireCurrentAccountOperation(operation)
             pendingSyncCount =
                 storedPendingCount ?? pendingSyncCount + dependents.count + 1
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
-            guard accountGeneration.accepts(accountToken),
-                  verifiedPersistenceOwnerID(ownerID) == ownerID else {
-                return workout.id
-            }
+            try requireCurrentAccountOperation(operation)
             alertMessage = error.localizedDescription
             return workout.id
         }
 
+        try requireCurrentAccountOperation(operation)
         workoutSyncTask?.cancel()
         workoutSyncTask = Task { @MainActor [weak self] in
             guard let self,
                   !Task.isCancelled,
-                  self.accountGeneration.accepts(accountToken),
-                  self.verifiedPersistenceOwnerID(ownerID) == ownerID else { return }
+                  self.accountOperationIsCurrent(operation) else { return }
             await self.flushPendingChanges(for: ownerID)
         }
         return workout.id
@@ -3517,15 +4819,27 @@ final class AppSession {
     /// keeps the original row identity, so history and progression never split
     /// one performed set into two events.
     @discardableResult
-    func updateWorkoutLog(id: UUID, draft: WorkoutSetInput) async -> Bool {
-        guard let ownerID = verifiedPersistenceOwnerID(),
-              let index = data.workoutLogs.firstIndex(where: { $0.id == id }),
-              data.workoutLogs[index].userID == ownerID else {
+    func updateWorkoutLog(
+        id: UUID,
+        draft: WorkoutSetInput,
+        operation: AccountOperationLease
+    ) async throws -> Bool {
+        try requireCurrentAccountOperation(operation)
+        let ownerID = operation.ownerID
+        guard let index = data.workoutLogs.firstIndex(where: {
+                  $0.id == id && $0.userID == ownerID
+              }) else {
             return false
         }
         let updated = WorkoutReceipt.correctedLog(data.workoutLogs[index], with: draft)
         data.workoutLogs[index] = updated
-        await persistUpsert(updated, table: "workout_logs", ownerID: ownerID)
+        await persistUpsert(
+            updated,
+            table: "workout_logs",
+            ownerID: ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
         return true
     }
 
@@ -3533,9 +4847,13 @@ final class AppSession {
     /// external workout is unlinked first and remains intact in Apple Health;
     /// unrelated activity records are never guessed by date or source.
     @discardableResult
-    func deleteCompletedWorkoutSession(id: UUID) async -> Bool {
-        guard let ownerID = verifiedPersistenceOwnerID(),
-              let plan = WorkoutReceipt.deletionPlan(
+    func deleteCompletedWorkoutSession(
+        id: UUID,
+        operation: AccountOperationLease
+    ) async throws -> Bool {
+        try requireCurrentAccountOperation(operation)
+        let ownerID = operation.ownerID
+        guard let plan = WorkoutReceipt.deletionPlan(
                 sessions: data.workoutSessions,
                 logs: data.workoutLogs,
                 sessionID: id,
@@ -3560,52 +4878,85 @@ final class AppSession {
         data.workoutLogs.removeAll { logIDs.contains($0.id) }
         data.workoutSessions.removeAll { $0.id == plan.sessionID }
         recomputeBrain()
-        await saveLocalSnapshot()
+        try await saveLocalSnapshot(operation: operation)
 
         for logID in plan.logIDs {
-            await persistDelete(table: "workout_logs", id: logID, ownerID: ownerID)
+            try requireCurrentAccountOperation(operation)
+            await persistDelete(
+                table: "workout_logs",
+                id: logID,
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
         }
         for activity in unlinkedWearables {
+            try requireCurrentAccountOperation(operation)
             await persistUpsert(
                 activity,
                 table: "imported_activities",
                 onConflict: "user_id,healthkit_workout_id",
-                ownerID: ownerID
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
             )
+            try requireCurrentAccountOperation(operation)
         }
-        await persistDelete(table: "workout_sessions", id: plan.sessionID, ownerID: ownerID)
+        await persistDelete(
+            table: "workout_sessions",
+            id: plan.sessionID,
+            ownerID: ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
         return true
     }
 
     /// Hide only APEX's account-owned receipt. The source HKWorkout remains
     /// untouched in Apple Health and can continue contributing to its totals.
     @discardableResult
-    func hideExternalWorkoutFromAPEX(id: UUID) async -> Bool {
-        guard let ownerID = verifiedPersistenceOwnerID(),
-              let index = data.importedActivities.firstIndex(where: {
+    func hideExternalWorkoutFromAPEX(
+        id: UUID,
+        operation: AccountOperationLease
+    ) async throws -> Bool {
+        try requireCurrentAccountOperation(operation)
+        let ownerID = operation.ownerID
+        guard let index = data.importedActivities.firstIndex(where: {
                   $0.id == id && $0.userID == ownerID && $0.healthKitWorkoutID != nil
               }) else { return false }
 
         let hidden = data.importedActivities[index].hidingFromAPEX(at: Date().ISO8601Format())
         data.importedActivities[index] = hidden
-        await saveLocalSnapshot()
+        try await saveLocalSnapshot(operation: operation)
         await persistUpsert(
             hidden,
             table: "imported_activities",
             onConflict: "user_id,healthkit_workout_id",
-            ownerID: ownerID
+            ownerID: ownerID,
+            expectedAccountToken: operation.generation
         )
+        try requireCurrentAccountOperation(operation)
         return true
     }
 
-    func toggleDeload(on date: Date = .now) async {
-        guard let ownerID = verifiedPersistenceOwnerID() else { return }
+    func toggleDeload(
+        on date: Date = .now,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        let ownerID = operation.ownerID
         let day = date.apexDateKey
         if let existing = (data.deloadMarks ?? []).first(where: {
             $0.userID == ownerID && $0.date == day
         }) {
-            data.deloadMarks?.removeAll { $0.id == existing.id }
-            await persistDelete(table: "deload_marks", id: existing.id, ownerID: ownerID)
+            data.deloadMarks?.removeAll {
+                $0.id == existing.id && $0.userID == ownerID
+            }
+            await persistDelete(
+                table: "deload_marks",
+                id: existing.id,
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
+            )
         } else {
             let mark = DeloadMark(id: UUID(), userID: ownerID, date: day)
             if data.deloadMarks == nil { data.deloadMarks = [] }
@@ -3614,9 +4965,11 @@ final class AppSession {
                 mark,
                 table: "deload_marks",
                 onConflict: "user_id,date",
-                ownerID: ownerID
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
             )
         }
+        try requireCurrentAccountOperation(operation)
     }
 
     func exportOrbitData() throws -> URL {
@@ -3626,43 +4979,58 @@ final class AppSession {
             .writeTemporaryFile()
     }
 
-    func deleteAllOrbitData() async {
-        guard let profile else { return }
+    func deleteAllOrbitData(operation: AccountOperationLease) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard profile?.userID == operation.ownerID else { throw CancellationError() }
+        let ownerID = operation.ownerID
 
-        let posters = data.orbitPosters.filter { $0.userID == profile.userID }
-        let segments = data.orbitSegments.filter { $0.userID == profile.userID }
-        let runs = data.orbitRuns.filter { $0.userID == profile.userID }
-        let campaignSessions = data.orbitCampaignSessions.filter { $0.userID == profile.userID }
-        let campaigns = data.orbitCampaigns.filter { $0.userID == profile.userID }
-        let inductions = data.orbitInductions.filter { $0.userID == profile.userID }
-        let routes = data.orbitRoutes.filter { $0.userID == profile.userID }
-        let shoes = data.orbitShoes.filter { $0.userID == profile.userID }
+        let posters = data.orbitPosters.filter { $0.userID == ownerID }
+        let segments = data.orbitSegments.filter { $0.userID == ownerID }
+        let runs = data.orbitRuns.filter { $0.userID == ownerID }
+        let campaignSessions = data.orbitCampaignSessions.filter { $0.userID == ownerID }
+        let campaigns = data.orbitCampaigns.filter { $0.userID == ownerID }
+        let inductions = data.orbitInductions.filter { $0.userID == ownerID }
+        let routes = data.orbitRoutes.filter { $0.userID == ownerID }
+        let shoes = data.orbitShoes.filter { $0.userID == ownerID }
 
         // Clear the local owner-scoped view first. Each remote delete then uses
         // the normal protected offline outbox if connectivity disappears.
-        data.orbitPosters.removeAll { $0.userID == profile.userID }
-        data.orbitSegments.removeAll { $0.userID == profile.userID }
-        data.orbitRuns.removeAll { $0.userID == profile.userID }
-        data.orbitCampaignSessions.removeAll { $0.userID == profile.userID }
-        data.orbitCampaigns.removeAll { $0.userID == profile.userID }
-        data.orbitInductions.removeAll { $0.userID == profile.userID }
-        data.orbitRoutes.removeAll { $0.userID == profile.userID }
-        data.orbitShoes.removeAll { $0.userID == profile.userID }
+        data.orbitPosters.removeAll { $0.userID == ownerID }
+        data.orbitSegments.removeAll { $0.userID == ownerID }
+        data.orbitRuns.removeAll { $0.userID == ownerID }
+        data.orbitCampaignSessions.removeAll { $0.userID == ownerID }
+        data.orbitCampaigns.removeAll { $0.userID == ownerID }
+        data.orbitInductions.removeAll { $0.userID == ownerID }
+        data.orbitRoutes.removeAll { $0.userID == ownerID }
+        data.orbitShoes.removeAll { $0.userID == ownerID }
         OrbitLocationManager.shared.cancel()
-        await saveLocalSnapshot()
+        try await saveLocalSnapshot(operation: operation)
 
-        for item in posters { await persistDelete(table: "orbit_posters", id: item.id) }
-        for item in segments { await persistDelete(table: "orbit_segments", id: item.id) }
-        for item in runs { await persistDelete(table: "orbit_runs", id: item.id) }
-        for item in campaignSessions { await persistDelete(table: "orbit_campaign_sessions", id: item.id) }
-        for item in campaigns { await persistDelete(table: "orbit_campaigns", id: item.id) }
-        for item in inductions { await persistDelete(table: "orbit_inductions", id: item.id) }
-        for item in routes { await persistDelete(table: "orbit_routes", id: item.id) }
-        for item in shoes { await persistDelete(table: "orbit_shoes", id: item.id) }
+        let deletions: [(String, UUID)] =
+            posters.map { ("orbit_posters", $0.id) }
+            + segments.map { ("orbit_segments", $0.id) }
+            + runs.map { ("orbit_runs", $0.id) }
+            + campaignSessions.map { ("orbit_campaign_sessions", $0.id) }
+            + campaigns.map { ("orbit_campaigns", $0.id) }
+            + inductions.map { ("orbit_inductions", $0.id) }
+            + routes.map { ("orbit_routes", $0.id) }
+            + shoes.map { ("orbit_shoes", $0.id) }
+        for (table, id) in deletions {
+            try requireCurrentAccountOperation(operation)
+            await persistDelete(
+                table: table,
+                id: id,
+                ownerID: operation.ownerID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
+        }
+        try requireCurrentAccountOperation(operation)
         alertMessage = "Orbit data deleted for this profile."
     }
 
     func saveOrbitRun(
+        ownerID: UUID,
         mission: String,
         startedAt: Date,
         endedAt: Date,
@@ -3673,9 +5041,13 @@ final class AppSession {
         manualLapsM: [Double] = [],
         routeID: UUID? = nil,
         campaignSessionID: UUID? = nil,
-        shoeID: UUID? = nil
-    ) async -> OrbitRunRecord? {
-        guard let profile else { return nil }
+        shoeID: UUID? = nil,
+        operation: AccountOperationLease
+    ) async throws -> OrbitRunRecord? {
+        try requireCurrentAccountOperation(operation)
+        guard let profile,
+              ownerID == operation.ownerID,
+              profile.userID == operation.ownerID else { throw CancellationError() }
         let metrics = OrbitRunMetricsEngine.calculate(
             samples: samples,
             elapsedSeconds: endedAt.timeIntervalSince(startedAt),
@@ -3713,16 +5085,33 @@ final class AppSession {
             ], nutritionAdjustmentAppliedAt: nil,
             status: "completed", createdAt: now, updatedAt: now
         )
+        try requireCurrentAccountOperation(operation)
         data.orbitRuns.insert(run, at: 0)
-        await persistUpsert(run, table: "orbit_runs", onConflict: "user_id,client_idempotency_key")
+        await persistUpsert(
+            run,
+            table: "orbit_runs",
+            onConflict: "user_id,client_idempotency_key",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
         if let campaignSessionID,
-           let index = data.orbitCampaignSessions.firstIndex(where: { $0.id == campaignSessionID }) {
+           let index = data.orbitCampaignSessions.firstIndex(where: {
+               $0.id == campaignSessionID && $0.userID == operation.ownerID
+           }) {
             data.orbitCampaignSessions[index].status = "completed"
             data.orbitCampaignSessions[index].completionRunID = runID
             data.orbitCampaignSessions[index].updatedAt = now
-            await persistUpsert(data.orbitCampaignSessions[index], table: "orbit_campaign_sessions")
+            await persistUpsert(
+                data.orbitCampaignSessions[index],
+                table: "orbit_campaign_sessions",
+                ownerID: operation.ownerID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
         }
-        await integrateOrbitRun(run)
+        try await integrateOrbitRun(run, operation: operation)
+        try requireCurrentAccountOperation(operation)
         return run
     }
 
@@ -3731,8 +5120,11 @@ final class AppSession {
         perceivedEffort: Int?,
         legs: String?,
         discomfort: String?,
-        note: String
-    ) async -> OrbitRunRecord {
+        note: String,
+        operation: AccountOperationLease
+    ) async throws -> OrbitRunRecord {
+        try requireCurrentAccountOperation(operation)
+        guard run.userID == operation.ownerID else { throw CancellationError() }
         let updated = OrbitRunRecord(
             id: run.id,
             userID: run.userID,
@@ -3759,35 +5151,54 @@ final class AppSession {
             createdAt: run.createdAt,
             updatedAt: Date().ISO8601Format()
         )
-        if let index = data.orbitRuns.firstIndex(where: { $0.id == run.id }) {
+        try requireCurrentAccountOperation(operation)
+        if let index = data.orbitRuns.firstIndex(where: {
+            $0.id == run.id && $0.userID == operation.ownerID
+        }) {
             data.orbitRuns[index] = updated
         }
-        await persistUpsert(updated, table: "orbit_runs", onConflict: "user_id,client_idempotency_key")
-        await adaptCampaignAfterRun(updated)
+        await persistUpsert(
+            updated,
+            table: "orbit_runs",
+            onConflict: "user_id,client_idempotency_key",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
+        try await adaptCampaignAfterRun(updated, operation: operation)
+        try requireCurrentAccountOperation(operation)
         return updated
     }
 
     func applyOrbitNutritionAdjustment(
         to run: OrbitRunRecord,
-        foodSuggestion: OrbitFoodMemorySuggestion?
-    ) async -> OrbitRunRecord {
-        guard let profile, run.userID == profile.userID,
+        foodSuggestion: OrbitFoodMemorySuggestion?,
+        operation: AccountOperationLease
+    ) async throws -> OrbitRunRecord {
+        try requireCurrentAccountOperation(operation)
+        guard let profile, run.userID == operation.ownerID,
+              profile.userID == operation.ownerID,
               run.nutritionAdjustmentAppliedAt == nil
         else { return run }
         let adjustment = OrbitIntegrations.nutritionAdjustment(run: run, weightKG: profile.weightKG)
         guard adjustment.kcal > 0 else { return run }
 
         guard let draft = OrbitIntegrations.nutritionMealDraft(run: run, suggestion: foodSuggestion) else {
+            try requireCurrentAccountOperation(operation)
             alertMessage = "Choose one of your saved foods before applying this Orbit adjustment."
             return run
         }
         do {
-            try await saveStructuredMeal(draft)
+            try await saveStructuredMeal(draft, operation: operation)
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
+            try requireCurrentAccountOperation(operation)
             alertMessage = "The Orbit food adjustment was not applied. \(error.localizedDescription)"
             return run
         }
 
+        try requireCurrentAccountOperation(operation)
         let updated = OrbitRunRecord(
             id: run.id, userID: run.userID, clientIdempotencyKey: run.clientIdempotencyKey,
             localDate: run.localDate, startedAt: run.startedAt, endedAt: run.endedAt,
@@ -3797,62 +5208,130 @@ final class AppSession {
             nutritionAdjustmentAppliedAt: Date().ISO8601Format(), status: run.status,
             createdAt: run.createdAt, updatedAt: Date().ISO8601Format()
         )
-        data.orbitRuns.removeAll { $0.id == run.id }
+        data.orbitRuns.removeAll {
+            $0.id == run.id && $0.userID == operation.ownerID
+        }
         data.orbitRuns.insert(updated, at: 0)
-        await persistUpsert(updated, table: "orbit_runs", onConflict: "user_id,client_idempotency_key")
+        await persistUpsert(
+            updated,
+            table: "orbit_runs",
+            onConflict: "user_id,client_idempotency_key",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
         return updated
     }
 
-    func saveOrbitInduction(_ induction: OrbitInduction) async {
-        if let index = data.orbitInductions.firstIndex(where: { $0.id == induction.id }) {
+    func saveOrbitInduction(
+        _ induction: OrbitInduction,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard induction.userID == operation.ownerID else { throw CancellationError() }
+        if let index = data.orbitInductions.firstIndex(where: {
+            $0.id == induction.id && $0.userID == operation.ownerID
+        }) {
             data.orbitInductions[index] = induction
         } else {
             data.orbitInductions.insert(induction, at: 0)
         }
-        await persistUpsert(induction, table: "orbit_inductions")
+        await persistUpsert(
+            induction,
+            table: "orbit_inductions",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
-    func completeOrbitInduction(_ induction: OrbitInduction) async -> OrbitCampaign {
-        await saveOrbitInduction(induction)
+    func completeOrbitInduction(
+        _ induction: OrbitInduction,
+        operation: AccountOperationLease
+    ) async throws -> OrbitCampaign {
+        try requireCurrentAccountOperation(operation)
+        guard induction.userID == operation.ownerID else { throw CancellationError() }
+        try await saveOrbitInduction(induction, operation: operation)
+        try requireCurrentAccountOperation(operation)
         let generated = OrbitCampaignEngine.createCampaign(
             induction: induction,
-            programDays: TrainingInduction.activeProgramDays(in: data),
-            events: data.events
+            programDays: TrainingInduction.activeProgramDays(in: data, userID: operation.ownerID),
+            events: data.events.filter { $0.userID == operation.ownerID }
         )
-        data.orbitCampaigns.removeAll { $0.id == generated.campaign.id }
+        guard generated.campaign.userID == operation.ownerID,
+              generated.sessions.allSatisfy({ $0.userID == operation.ownerID })
+        else { throw CancellationError() }
+        data.orbitCampaigns.removeAll {
+            $0.id == generated.campaign.id && $0.userID == operation.ownerID
+        }
         data.orbitCampaigns.insert(generated.campaign, at: 0)
         let generatedIDs = Set(generated.sessions.map(\.id))
-        data.orbitCampaignSessions.removeAll { generatedIDs.contains($0.id) }
+        data.orbitCampaignSessions.removeAll {
+            generatedIDs.contains($0.id) && $0.userID == operation.ownerID
+        }
         data.orbitCampaignSessions.append(contentsOf: generated.sessions)
         await persistUpsert(
             generated.campaign,
             table: "orbit_campaigns",
-            onConflict: "user_id,client_idempotency_key"
+            onConflict: "user_id,client_idempotency_key",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
         )
+        try requireCurrentAccountOperation(operation)
         for item in generated.sessions {
-            await persistUpsert(item, table: "orbit_campaign_sessions")
+            await persistUpsert(
+                item,
+                table: "orbit_campaign_sessions",
+                ownerID: operation.ownerID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
         }
         return generated.campaign
     }
 
-    func markOrbitCampaignSessionMissed(_ session: OrbitCampaignSession) async {
-        guard let campaign = data.orbitCampaigns.first(where: { $0.id == session.campaignID }) else { return }
+    func markOrbitCampaignSessionMissed(
+        _ session: OrbitCampaignSession,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard session.userID == operation.ownerID,
+              let campaign = data.orbitCampaigns.first(where: {
+                  $0.id == session.campaignID && $0.userID == operation.ownerID
+              }) else { throw CancellationError() }
         let bundle = OrbitCampaignEngine.adaptAfterMissed(
             campaign: campaign,
-            sessions: data.orbitCampaignSessions.filter { $0.campaignID == campaign.id },
+            sessions: data.orbitCampaignSessions.filter {
+                $0.campaignID == campaign.id && $0.userID == operation.ownerID
+            },
             missedID: session.id
         )
-        await saveCampaignBundle(bundle.campaign, sessions: bundle.sessions)
+        try await saveCampaignBundle(
+            bundle.campaign,
+            sessions: bundle.sessions,
+            operation: operation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
-    func chooseOrbitCampaignVersion(_ session: OrbitCampaignSession, useOriginal: Bool) async {
-        guard let campaignIndex = data.orbitCampaigns.firstIndex(where: { $0.id == session.campaignID }) else { return }
+    func chooseOrbitCampaignVersion(
+        _ session: OrbitCampaignSession,
+        useOriginal: Bool,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard session.userID == operation.ownerID,
+              let campaignIndex = data.orbitCampaigns.firstIndex(where: {
+                  $0.id == session.campaignID && $0.userID == operation.ownerID
+              }) else { throw CancellationError() }
         var updatedSession = session
         if useOriginal { updatedSession.adapted = updatedSession.original }
         updatedSession.userOverride = true
         if useOriginal { updatedSession.adaptationReason = "User kept the original prescription." }
         updatedSession.updatedAt = Date().ISO8601Format()
-        if let index = data.orbitCampaignSessions.firstIndex(where: { $0.id == session.id }) {
+        if let index = data.orbitCampaignSessions.firstIndex(where: {
+            $0.id == session.id && $0.userID == operation.ownerID
+        }) {
             data.orbitCampaignSessions[index] = updatedSession
         }
 
@@ -3866,8 +5345,21 @@ final class AppSession {
         }
         campaign.updatedAt = Date().ISO8601Format()
         data.orbitCampaigns[campaignIndex] = campaign
-        await persistUpsert(updatedSession, table: "orbit_campaign_sessions")
-        await persistUpsert(campaign, table: "orbit_campaigns", onConflict: "user_id,client_idempotency_key")
+        await persistUpsert(
+            updatedSession,
+            table: "orbit_campaign_sessions",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
+        await persistUpsert(
+            campaign,
+            table: "orbit_campaigns",
+            onConflict: "user_id,client_idempotency_key",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
     func saveOrbitRoute(
@@ -3875,9 +5367,10 @@ final class AppSession {
         name: String,
         mission: String,
         surface: String,
-        shape: String
-    ) async -> OrbitRouteRecord? {
-        guard let profile else { return nil }
+        shape: String,
+        operation: AccountOperationLease
+    ) async throws -> OrbitRouteRecord? {
+        try requireCurrentAccountOperation(operation)
         let id = UUID()
         let now = Date().ISO8601Format()
         let points = candidate.points.map { point in
@@ -3889,7 +5382,7 @@ final class AppSession {
         }
         let route = OrbitRouteRecord(
             id: id,
-            userID: profile.userID,
+            userID: operation.ownerID,
             clientIdempotencyKey: "ios-route-\(id.uuidString.lowercased())",
             name: name,
             note: candidate.explanation,
@@ -3912,26 +5405,51 @@ final class AppSession {
             updatedAt: now
         )
         data.orbitRoutes.insert(route, at: 0)
-        await persistUpsert(route, table: "orbit_routes", onConflict: "user_id,client_idempotency_key")
+        await persistUpsert(
+            route,
+            table: "orbit_routes",
+            onConflict: "user_id,client_idempotency_key",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
         return route
     }
 
-    func updateOrbitRoute(_ route: OrbitRouteRecord) async {
+    func updateOrbitRoute(
+        _ route: OrbitRouteRecord,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard route.userID == operation.ownerID else { throw CancellationError() }
         var updated = route
         updated.updatedAt = Date().ISO8601Format()
-        data.orbitRoutes.removeAll { $0.id == updated.id }
+        data.orbitRoutes.removeAll {
+            $0.id == updated.id && $0.userID == operation.ownerID
+        }
         data.orbitRoutes.insert(updated, at: 0)
-        await persistUpsert(updated, table: "orbit_routes", onConflict: "user_id,client_idempotency_key")
+        await persistUpsert(
+            updated,
+            table: "orbit_routes",
+            onConflict: "user_id,client_idempotency_key",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
-    func duplicateOrbitRoute(_ route: OrbitRouteRecord) async -> OrbitRouteRecord? {
-        guard let profile else { return nil }
+    func duplicateOrbitRoute(
+        _ route: OrbitRouteRecord,
+        operation: AccountOperationLease
+    ) async throws -> OrbitRouteRecord? {
+        try requireCurrentAccountOperation(operation)
+        guard route.userID == operation.ownerID else { throw CancellationError() }
         var copy = route
         let id = UUID()
         let now = Date().ISO8601Format()
         copy = OrbitRouteRecord(
             id: id,
-            userID: profile.userID,
+            userID: operation.ownerID,
             clientIdempotencyKey: "ios-route-\(id.uuidString.lowercased())",
             name: "\(route.name) copy",
             note: route.note,
@@ -3954,7 +5472,14 @@ final class AppSession {
             updatedAt: now
         )
         data.orbitRoutes.insert(copy, at: 0)
-        await persistUpsert(copy, table: "orbit_routes", onConflict: "user_id,client_idempotency_key")
+        await persistUpsert(
+            copy,
+            table: "orbit_routes",
+            onConflict: "user_id,client_idempotency_key",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
         return copy
     }
 
@@ -3965,15 +5490,19 @@ final class AppSession {
         firstUseDate: Date,
         surfaces: [String],
         notes: String,
-        archived: Bool = false
-    ) async {
-        guard let profile else { return }
+        archived: Bool = false,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
         let identifier = id ?? UUID()
-        let existing = data.orbitShoes.first { $0.id == identifier }
+        let existing = data.orbitShoes.first {
+            $0.id == identifier && $0.userID == operation.ownerID
+        }
+        if id != nil, existing == nil { throw CancellationError() }
         let now = Date().ISO8601Format()
         let shoe = OrbitShoe(
             id: identifier,
-            userID: profile.userID,
+            userID: operation.ownerID,
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             brand: brand.trimmingCharacters(in: .whitespacesAndNewlines),
             firstUseDate: firstUseDate.apexDateKey,
@@ -3983,40 +5512,64 @@ final class AppSession {
             createdAt: existing?.createdAt ?? now,
             updatedAt: now
         )
-        data.orbitShoes.removeAll { $0.id == identifier }
+        data.orbitShoes.removeAll {
+            $0.id == identifier && $0.userID == operation.ownerID
+        }
         data.orbitShoes.append(shoe)
-        await persistUpsert(shoe, table: "orbit_shoes")
+        await persistUpsert(
+            shoe,
+            table: "orbit_shoes",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
-    func archiveOrbitShoe(_ shoe: OrbitShoe) async {
-        await saveOrbitShoe(
+    func archiveOrbitShoe(
+        _ shoe: OrbitShoe,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard shoe.userID == operation.ownerID else { throw CancellationError() }
+        try await saveOrbitShoe(
             id: shoe.id,
             name: shoe.name,
             brand: shoe.brand,
             firstUseDate: ISO8601DateFormatter.apexDateOnly.date(from: shoe.firstUseDate) ?? .now,
             surfaces: shoe.preferredSurfaces,
             notes: shoe.notes,
-            archived: true
+            archived: true,
+            operation: operation
         )
+        try requireCurrentAccountOperation(operation)
     }
 
     func saveOrbitSegment(
         route: OrbitRouteRecord,
         name: String,
         startDistanceM: Int,
-        endDistanceM: Int
-    ) async {
-        guard let profile, endDistanceM > startDistanceM else { return }
+        endDistanceM: Int,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard route.userID == operation.ownerID,
+              endDistanceM > startDistanceM else { throw CancellationError() }
         let now = Date().ISO8601Format()
         let segment = OrbitSegment(
-            id: UUID(), userID: profile.userID, routeID: route.id,
+            id: UUID(), userID: operation.ownerID, routeID: route.id,
             name: name.trimmingCharacters(in: .whitespacesAndNewlines),
             startDistanceM: max(0, startDistanceM),
             endDistanceM: min(route.distanceM, endDistanceM),
             createdAt: now, updatedAt: now
         )
         data.orbitSegments.append(segment)
-        await persistUpsert(segment, table: "orbit_segments")
+        await persistUpsert(
+            segment,
+            table: "orbit_segments",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
     func saveOrbitPosterMetadata(
@@ -4024,45 +5577,76 @@ final class AppSession {
         style: String,
         privacyTrimM: Int,
         includeHeartRate: Bool,
-        note: String
-    ) async {
-        guard let profile else { return }
+        note: String,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard run.userID == operation.ownerID else { throw CancellationError() }
         let poster = OrbitPoster(
-            id: UUID(), userID: profile.userID, runID: run.id,
+            id: UUID(), userID: operation.ownerID, runID: run.id,
             style: style, privacyTrimM: max(0, privacyTrimM),
             includeHeartRate: includeHeartRate,
             note: note.trimmingCharacters(in: .whitespacesAndNewlines),
             createdAt: Date().ISO8601Format()
         )
         data.orbitPosters.insert(poster, at: 0)
-        await persistUpsert(poster, table: "orbit_posters")
+        await persistUpsert(
+            poster,
+            table: "orbit_posters",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
-    private func adaptCampaignAfterRun(_ run: OrbitRunRecord) async {
+    private func adaptCampaignAfterRun(
+        _ run: OrbitRunRecord,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard run.userID == operation.ownerID else { throw CancellationError() }
         guard let campaignSessionID = run.campaignSessionID,
-              let completedSession = data.orbitCampaignSessions.first(where: { $0.id == campaignSessionID }),
-              let campaign = data.orbitCampaigns.first(where: { $0.id == completedSession.campaignID })
+              let completedSession = data.orbitCampaignSessions.first(where: {
+                  $0.id == campaignSessionID && $0.userID == operation.ownerID
+              }),
+              let campaign = data.orbitCampaigns.first(where: {
+                  $0.id == completedSession.campaignID && $0.userID == operation.ownerID
+              })
         else { return }
+        let currentSessions = data.orbitCampaignSessions.filter {
+            $0.campaignID == campaign.id && $0.userID == operation.ownerID
+        }
         let bundle = OrbitCampaignEngine.adaptAfterRun(
             campaign: campaign,
-            sessions: data.orbitCampaignSessions.filter { $0.campaignID == campaign.id },
+            sessions: currentSessions,
             run: run
         )
-        guard bundle.campaign != campaign || bundle.sessions != data.orbitCampaignSessions.filter({ $0.campaignID == campaign.id }) else { return }
-        await saveCampaignBundle(bundle.campaign, sessions: bundle.sessions)
+        guard bundle.campaign != campaign || bundle.sessions != currentSessions else { return }
+        try await saveCampaignBundle(
+            bundle.campaign,
+            sessions: bundle.sessions,
+            operation: operation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
-    private func integrateOrbitRun(_ run: OrbitRunRecord) async {
-        guard let profile, run.userID == profile.userID else { return }
+    private func integrateOrbitRun(
+        _ run: OrbitRunRecord,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard let profile,
+              profile.userID == operation.ownerID,
+              run.userID == operation.ownerID else { throw CancellationError() }
         let distanceKM = max(0, (run.metrics["distance_m"]?.numberValue ?? 0) / 1_000)
         let durationMinutes = max(1, Int(((run.metrics["moving_s"]?.numberValue ?? 0) / 60).rounded()))
         let id = APEXStableID.scopedUUID(
             namespace: "activity-log:orbit:\(run.id.uuidString.lowercased())",
             date: run.localDate,
-            userID: profile.userID
+            userID: operation.ownerID
         )
         let activity = ActivityLog(
-            id: id, userID: profile.userID, date: run.localDate,
+            id: id, userID: operation.ownerID, date: run.localDate,
             typeID: "jog-run", quantity: 1,
             durationMinutes: durationMinutes, distanceKM: distanceKM,
             watchKcal: nil, computedKcal: (profile.weightKG * distanceKM).rounded(),
@@ -4073,19 +5657,28 @@ final class AppSession {
             existing: data.activityLogs,
             generated: activity
         )
-        await persistUpsert(activity, table: "activity_logs")
+        await persistUpsert(
+            activity,
+            table: "activity_logs",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
 
         let healthAlreadyRepresentsRun = OrbitIntegrations.healthWorkoutRepresentsRun(
             data.importedActivities,
-            ownerID: profile.userID,
+            ownerID: operation.ownerID,
             localDate: run.localDate,
             durationMinutes: durationMinutes,
             startedAt: run.startedAt
         )
         if healthAlreadyRepresentsRun == false {
-            let importedID = APEXStableID.orbitUUID(userID: profile.userID, key: "imported:\(run.id.uuidString.lowercased())")
+            let importedID = APEXStableID.orbitUUID(
+                userID: operation.ownerID,
+                key: "imported:\(run.id.uuidString.lowercased())"
+            )
             let imported = ImportedActivity(
-                id: importedID, userID: profile.userID, date: run.localDate,
+                id: importedID, userID: operation.ownerID, date: run.localDate,
                 kind: "endurance",
                 activity: "APEX Orbit: \(run.mission.replacingOccurrences(of: "_", with: " "))",
                 durationMinutes: durationMinutes,
@@ -4093,10 +5686,19 @@ final class AppSession {
             )
             data.importedActivities.removeAll { $0.id == importedID }
             data.importedActivities.append(imported)
-            await persistUpsert(imported, table: "imported_activities")
+            await persistUpsert(
+                imported,
+                table: "imported_activities",
+                ownerID: operation.ownerID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
         }
 
-        let dayLogs = data.activityLogs.filter { $0.date == run.localDate }
+        try requireCurrentAccountOperation(operation)
+        let dayLogs = data.activityLogs.filter {
+            $0.userID == operation.ownerID && $0.date == run.localDate
+        }
         let targets = EnergyEngine.targets(
             profile: profile,
             logs: dayLogs,
@@ -4106,13 +5708,19 @@ final class AppSession {
             wearableActiveCalories: WearableActivityRecord.activeCalories(
                 on: run.localDate,
                 settings: data.settings,
-                ownerID: profile.userID
+                ownerID: operation.ownerID
             )
         )
-        let existing = data.dailyLogs.first { $0.date == run.localDate }
+        let existing = data.dailyLogs.first {
+            $0.userID == operation.ownerID && $0.date == run.localDate
+        }
         let daily = DailyLog(
-            id: existing?.id ?? APEXStableID.scopedUUID(namespace: "daily-log", date: run.localDate, userID: profile.userID),
-            userID: profile.userID, date: run.localDate,
+            id: existing?.id ?? APEXStableID.scopedUUID(
+                namespace: "daily-log",
+                date: run.localDate,
+                userID: operation.ownerID
+            ),
+            userID: operation.ownerID, date: run.localDate,
             kcal: existing?.kcal, proteinG: existing?.proteinG,
             fatG: existing?.fatG, carbsG: existing?.carbsG,
             waterL: existing?.waterL ?? 0,
@@ -4122,17 +5730,46 @@ final class AppSession {
             manualKcal: existing?.manualKcal, manualProteinG: existing?.manualProteinG,
             manualFatG: existing?.manualFatG, manualCarbsG: existing?.manualCarbsG
         )
-        await updateDailyLog(daily)
+        await updateDailyLog(
+            daily,
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
-    private func saveCampaignBundle(_ campaign: OrbitCampaign, sessions: [OrbitCampaignSession]) async {
+    private func saveCampaignBundle(
+        _ campaign: OrbitCampaign,
+        sessions: [OrbitCampaignSession],
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard campaign.userID == operation.ownerID,
+              sessions.allSatisfy({ $0.userID == operation.ownerID }) else {
+            throw CancellationError()
+        }
         data.orbitCampaigns.removeAll { $0.id == campaign.id }
         data.orbitCampaigns.insert(campaign, at: 0)
         let ids = Set(sessions.map(\.id))
         data.orbitCampaignSessions.removeAll { ids.contains($0.id) }
         data.orbitCampaignSessions.append(contentsOf: sessions)
-        await persistUpsert(campaign, table: "orbit_campaigns", onConflict: "user_id,client_idempotency_key")
-        for item in sessions { await persistUpsert(item, table: "orbit_campaign_sessions") }
+        await persistUpsert(
+            campaign,
+            table: "orbit_campaigns",
+            onConflict: "user_id,client_idempotency_key",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
+        for item in sessions {
+            await persistUpsert(
+                item,
+                table: "orbit_campaign_sessions",
+                ownerID: operation.ownerID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
+        }
     }
 
     // Save a custom session. Saving the same weekday twice replaces that day
@@ -4141,14 +5778,20 @@ final class AppSession {
     func installRecoveryPlan(
         target: RecoveryPlanner.Target,
         source: RecoveryPlanner.Source,
-        startDate: String
-    ) async -> Int {
+        startDate: String,
+        operation: AccountOperationLease
+    ) async throws -> Int {
+        try requireCurrentAccountOperation(operation)
         guard coachClientPolicy.canCreateCustomWorkouts else {
-            alertMessage = LanguageState.shared.text("Ask your coach to add recovery sessions to your plan.")
+            if accountOperationIsCurrent(operation) {
+                alertMessage = LanguageState.shared.text("Ask your coach to add recovery sessions to your plan.")
+            }
             return 0
         }
-        guard let profile else { return 0 }
-        let ownerID = profile.userID
+        guard let profile, profile.userID == operation.ownerID else {
+            throw CancellationError()
+        }
+        let ownerID = operation.ownerID
         let result = RecoveryPlanner.build(
             data: data,
             ownerID: ownerID,
@@ -4157,29 +5800,64 @@ final class AppSession {
             source: source
         )
         guard !result.days.isEmpty else {
-            alertMessage = LanguageState.shared.text("Build or restore a current Fitness Plan before adding recovery sessions.")
+            if accountOperationIsCurrent(operation) {
+                alertMessage = LanguageState.shared.text("Build or restore a current Fitness Plan before adding recovery sessions.")
+            }
             return 0
         }
+        guard result.days.allSatisfy({ $0.userID == ownerID }),
+              result.exercises.allSatisfy({ $0.userID == ownerID }) else {
+            throw CancellationError()
+        }
 
-        let usedDayIDs = Set(data.workoutSessions.map(\.programDayID))
+        let usedDayIDs = Set(data.workoutSessions
+            .filter { $0.userID == ownerID }
+            .map(\.programDayID))
         let deactivated = RecoveryPlanner.futureRowsToDeactivate(
-            data.programDays,
+            data.programDays.filter { $0.userID == ownerID },
             ownerID: ownerID,
             target: target,
             today: startDate,
             protectedDayIDs: usedDayIDs
         )
         for row in deactivated {
-            if let index = data.programDays.firstIndex(where: { $0.id == row.id }) {
+            if let index = data.programDays.firstIndex(where: {
+                $0.id == row.id && $0.userID == ownerID
+            }) {
                 data.programDays[index] = row
             }
         }
         data.programDays.append(contentsOf: result.days)
         data.exercises.append(contentsOf: result.exercises)
 
-        for row in deactivated { await persistUpsert(row, table: "program_days") }
-        for row in result.days { await persistUpsert(row, table: "program_days") }
-        for row in result.exercises { await persistUpsert(row, table: "exercises") }
+        for row in deactivated {
+            await persistUpsert(
+                row,
+                table: "program_days",
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
+        }
+        for row in result.days {
+            await persistUpsert(
+                row,
+                table: "program_days",
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
+        }
+        for row in result.exercises {
+            await persistUpsert(
+                row,
+                table: "exercises",
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
+        }
+        try requireCurrentAccountOperation(operation)
         alertMessage = LanguageState.shared.text("Recovery sessions added to your calendar.")
         return result.days.count
     }
@@ -4189,16 +5867,24 @@ final class AppSession {
         weekday: Int,
         estimatedMinutes: Int,
         sessionMode: WorkoutSessionMode,
-        picks: [CustomWorkoutBuilder.Pick]
-    ) async {
+        picks: [CustomWorkoutBuilder.Pick],
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
         guard coachClientPolicy.canCreateCustomWorkouts else {
-            alertMessage = LanguageState.shared.text("Coach-sponsored accounts follow the coach plan. An individual subscription keeps custom workouts available.")
+            if accountOperationIsCurrent(operation) {
+                alertMessage = LanguageState.shared.text("Coach-sponsored accounts follow the coach plan. An individual subscription keeps custom workouts available.")
+            }
             return
         }
-        guard let profile else { return }
-        let userID = profile.userID
+        guard let profile, profile.userID == operation.ownerID else {
+            throw CancellationError()
+        }
+        let userID = operation.ownerID
 
-        let program = data.programs.first { $0.slug == "custom" }
+        let program = data.programs.first {
+            $0.userID == userID && $0.slug == "custom"
+        }
             ?? Program(
                 id: UUID(),
                 userID: userID,
@@ -4206,7 +5892,9 @@ final class AppSession {
                 name: "Custom workouts",
                 description: "Your searchable exercise studio, saved privately."
             )
-        let existingDay = data.programDays.first { $0.programID == program.id && $0.weekday == weekday }
+        let existingDay = data.programDays.first {
+            $0.userID == userID && $0.programID == program.id && $0.weekday == weekday
+        }
         let day = ProgramDay(
             id: existingDay?.id ?? UUID(),
             userID: userID,
@@ -4220,30 +5908,66 @@ final class AppSession {
             sessionMode: sessionMode.rawValue
         )
 
-        let replaced = data.exercises.filter { $0.programDayID == day.id }
+        let replaced = data.exercises.filter {
+            $0.userID == userID && $0.programDayID == day.id
+        }
         let rows = CustomWorkoutBuilder.exerciseRows(
             userID: userID,
             programDayID: day.id,
             picks: picks
         )
 
-        data.exercises.removeAll { $0.programDayID == day.id }
-        if let index = data.programs.firstIndex(where: { $0.id == program.id }) {
+        data.exercises.removeAll {
+            $0.userID == userID && $0.programDayID == day.id
+        }
+        if let index = data.programs.firstIndex(where: {
+            $0.id == program.id && $0.userID == userID
+        }) {
             data.programs[index] = program
         } else {
             data.programs.append(program)
         }
-        if let index = data.programDays.firstIndex(where: { $0.id == day.id }) {
+        if let index = data.programDays.firstIndex(where: {
+            $0.id == day.id && $0.userID == userID
+        }) {
             data.programDays[index] = day
         } else {
             data.programDays.append(day)
         }
         data.exercises.append(contentsOf: rows)
 
-        for exercise in replaced { await persistDelete(table: "exercises", id: exercise.id) }
-        await persistUpsert(program, table: "programs")
-        await persistUpsert(day, table: "program_days")
-        for row in rows { await persistUpsert(row, table: "exercises") }
+        for exercise in replaced {
+            await persistDelete(
+                table: "exercises",
+                id: exercise.id,
+                ownerID: userID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
+        }
+        await persistUpsert(
+            program,
+            table: "programs",
+            ownerID: userID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
+        await persistUpsert(
+            day,
+            table: "program_days",
+            ownerID: userID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
+        for row in rows {
+            await persistUpsert(
+                row,
+                table: "exercises",
+                ownerID: userID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
+        }
     }
 
     /*
@@ -4255,10 +5979,14 @@ final class AppSession {
         date: String,
         title: String,
         exercises: [ManualWorkout.ExerciseDraft],
-        editing sessionID: UUID? = nil
-    ) async -> Bool {
-        guard let profile else { return false }
-        let userID = profile.userID
+        editing sessionID: UUID? = nil,
+        operation: AccountOperationLease
+    ) async throws -> Bool {
+        try requireCurrentAccountOperation(operation)
+        guard let profile, profile.userID == operation.ownerID else {
+            throw CancellationError()
+        }
+        let userID = operation.ownerID
 
         let valid = !exercises.isEmpty && exercises.allSatisfy { draft in
             if let treadmill = draft.treadmill {
@@ -4275,7 +6003,9 @@ final class AppSession {
         guard valid else { return false }
         let usable = exercises
 
-        let existingProgram = data.programs.first { $0.slug == "custom" }
+        let existingProgram = data.programs.first {
+            $0.userID == userID && $0.slug == "custom"
+        }
         let program = existingProgram ?? Program(
             id: UUID(),
             userID: userID,
@@ -4284,7 +6014,9 @@ final class AppSession {
             description: "Your searchable exercise studio, saved privately."
         )
         let weekday = APEXDateMath.isoWeekday(date)
-        let existingDay = data.programDays.first { $0.programID == program.id && $0.weekday == weekday }
+        let existingDay = data.programDays.first {
+            $0.userID == userID && $0.programID == program.id && $0.weekday == weekday
+        }
         let day = existingDay ?? ProgramDay(
             id: UUID(),
             userID: userID,
@@ -4297,7 +6029,9 @@ final class AppSession {
             sortOrder: weekday
         )
 
-        let existingSession = sessionID.flatMap { id in data.workoutSessions.first { $0.id == id } }
+        let existingSession = sessionID.flatMap { id in
+            data.workoutSessions.first { $0.id == id && $0.userID == userID }
+        }
         if sessionID != nil && existingSession == nil { return false }
 
         let formatter = ISO8601DateFormatter()
@@ -4320,7 +6054,11 @@ final class AppSession {
         )
 
         let existingLogs = existingSession
-            .map { session in data.workoutLogs.filter { $0.sessionID == session.id } } ?? []
+            .map { session in
+                data.workoutLogs.filter {
+                    $0.userID == userID && $0.sessionID == session.id
+                }
+            } ?? []
         /* Chronology is the durable identity here: give every exercise its own
            minute so a movement repeated later in the session never collapses
            into its earlier occurrence. */
@@ -4338,24 +6076,63 @@ final class AppSession {
 
         if existingSession == nil, existingProgram == nil { data.programs.append(program) }
         if existingSession == nil, existingDay == nil { data.programDays.append(day) }
-        if let index = data.workoutSessions.firstIndex(where: { $0.id == workout.id }) {
+        if let index = data.workoutSessions.firstIndex(where: {
+            $0.id == workout.id && $0.userID == userID
+        }) {
             data.workoutSessions[index] = workout
         } else {
             data.workoutSessions.append(workout)
         }
-        data.workoutLogs.removeAll { $0.sessionID == workout.id }
+        data.workoutLogs.removeAll {
+            $0.userID == userID && $0.sessionID == workout.id
+        }
         data.workoutLogs.append(contentsOf: reconciled.logs)
 
         if existingSession == nil, existingProgram == nil {
-            await persistUpsert(program, table: "programs")
+            await persistUpsert(
+                program,
+                table: "programs",
+                ownerID: userID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
         }
         if existingSession == nil, existingDay == nil {
-            await persistUpsert(day, table: "program_days")
+            await persistUpsert(
+                day,
+                table: "program_days",
+                ownerID: userID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
         }
-        await persistUpsert(workout, table: "workout_sessions")
-        for log in reconciled.logs { await persistUpsert(log, table: "workout_logs") }
-        for staleID in reconciled.staleIDs { await persistDelete(table: "workout_logs", id: staleID) }
+        await persistUpsert(
+            workout,
+            table: "workout_sessions",
+            ownerID: userID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
+        for log in reconciled.logs {
+            await persistUpsert(
+                log,
+                table: "workout_logs",
+                ownerID: userID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
+        }
+        for staleID in reconciled.staleIDs {
+            await persistDelete(
+                table: "workout_logs",
+                id: staleID,
+                ownerID: userID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
+        }
         /* A completed session moves the stat line, so replay the brain. */
+        try requireCurrentAccountOperation(operation)
         recomputeBrain()
         return true
     }
@@ -4368,16 +6145,20 @@ final class AppSession {
      * it simply vanishes, which is indistinguishable from data loss. The caller
      * is responsible for confirming before this runs.
     */
-    func installInductionPlan(_ input: TrainingInduction.Input) async {
-        let accountToken = accountGeneration.token
+    func installInductionPlan(
+        _ input: TrainingInduction.Input,
+        operation: AccountOperationLease
+    ) async {
+        guard accountOperationIsCurrent(operation) else { return }
         guard !isBusy else { return }
         isBusy = true
         defer {
-            if accountGeneration.accepts(accountToken) { isBusy = false }
+            if accountOperationIsCurrent(operation) { isBusy = false }
         }
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-first-run"),
-           var settings = data.settings {
+           var settings = data.settings,
+           settings.userID == operation.ownerID {
             settings = TrainingInduction.protectingOriginalProgramme(settings, in: data)
             if TrainingInduction.hasRestorableOverlay(in: data) {
                 settings = TrainingInduction.invalidatingPlanMetadata(
@@ -4404,15 +6185,15 @@ final class AppSession {
         #endif
 
         guard let userID = await service.currentUserID() else {
-            guard accountGeneration.accepts(accountToken) else { return }
+            guard accountOperationIsCurrent(operation) else { return }
             alertMessage = "Sign in again to build your plan."
             return
         }
-        guard accountGeneration.accepts(accountToken) else { return }
+        guard accountOperationIsCurrent(operation), userID == operation.ownerID else { return }
         do {
             var settings = try await service.createSettingsIfNeeded(userID: userID)
                 .rebound(to: userID)
-            guard accountGeneration.accepts(accountToken) else { return }
+            try requireCurrentAccountOperation(operation)
             settings = TrainingInduction.protectingOriginalProgramme(settings, in: data)
 
             /* Archive the current overlay before saving its replacement. The
@@ -4429,10 +6210,9 @@ final class AppSession {
                     )
                 )
                 try await service.upsert(settings, table: "settings", onConflict: "user_id")
-                guard accountGeneration.accepts(accountToken) else { return }
+                try requireCurrentAccountOperation(operation)
                 data.settings = settings
-                await saveLocalSnapshot()
-                guard accountGeneration.accepts(accountToken) else { return }
+                try await saveLocalSnapshot(operation: operation)
             }
             let plan = TrainingInduction.generate(
                 userID: userID,
@@ -4442,21 +6222,21 @@ final class AppSession {
             )
             settings = TrainingInduction.markingPendingPlan(settings, plan: plan)
             try await service.upsert(settings, table: "settings", onConflict: "user_id")
-            guard accountGeneration.accepts(accountToken) else { return }
+            try requireCurrentAccountOperation(operation)
             data.settings = settings
-            await saveLocalSnapshot()
-            guard accountGeneration.accepts(accountToken) else { return }
+            try await saveLocalSnapshot(operation: operation)
             try await service.saveInductionPlan(plan)
-            guard accountGeneration.accepts(accountToken) else { return }
+            try requireCurrentAccountOperation(operation)
             settings = TrainingInduction.Submission.answered(input)
                 .applyingAccountMetadata(to: settings, plan: plan)
             try await service.upsert(settings, table: "settings", onConflict: "user_id")
-            guard accountGeneration.accepts(accountToken) else { return }
+            try requireCurrentAccountOperation(operation)
             applyInductionPlan(plan, settings: settings)
-            await saveLocalSnapshot()
-            guard accountGeneration.accepts(accountToken) else { return }
+            try await saveLocalSnapshot(operation: operation)
+        } catch is CancellationError {
+            return
         } catch {
-            guard accountGeneration.accepts(accountToken) else { return }
+            guard accountOperationIsCurrent(operation) else { return }
             alertMessage = error.localizedDescription
         }
     }
@@ -4466,11 +6246,12 @@ final class AppSession {
     /// plan it later installs is sufficient evidence to repair the account.
     /// Deferring this until the final button also keeps the briefing stable
     /// while the portal changes from a settings identity to a full profile.
-    func prepareCommittedPlanForPortal() async -> Bool {
-        let accountToken = accountGeneration.token
+    func prepareCommittedPlanForPortal(operation: AccountOperationLease) async -> Bool {
+        guard accountOperationIsCurrent(operation) else { return false }
         guard !isBusy else { return false }
-        guard data.profile == nil else { return true }
+        guard data.profile == nil else { return data.profile?.userID == operation.ownerID }
         guard let settings = data.settings,
+              settings.userID == operation.ownerID,
               let bootstrap = TrainingInduction.missingProfileBootstrap(
                   in: data,
                   authenticatedUserID: settings.userID
@@ -4482,7 +6263,7 @@ final class AppSession {
 
         isBusy = true
         defer {
-            if accountGeneration.accepts(accountToken) { isBusy = false }
+            if accountOperationIsCurrent(operation) { isBusy = false }
         }
 
         #if DEBUG
@@ -4496,21 +6277,26 @@ final class AppSession {
 
         guard let authenticatedUserID = await service.currentUserID(),
               authenticatedUserID == bootstrap.userID,
-              accountGeneration.accepts(accountToken)
+              authenticatedUserID == operation.ownerID,
+              accountOperationIsCurrent(operation)
         else {
-            alertMessage = "Sign in again to open your plan."
+            if accountOperationIsCurrent(operation) {
+                alertMessage = "Sign in again to open your plan."
+            }
             return false
         }
         do {
             try await refreshDashboard(expectedUserID: authenticatedUserID)
-            guard accountGeneration.accepts(accountToken) else { return false }
+            try requireCurrentAccountOperation(operation)
             guard data.profile?.userID == authenticatedUserID else {
                 alertMessage = "Your account setup is not complete yet. Please try again."
                 return false
             }
             return true
+        } catch is CancellationError {
+            return false
         } catch {
-            guard accountGeneration.accepts(accountToken) else { return false }
+            guard accountOperationIsCurrent(operation) else { return false }
             alertMessage = error.localizedDescription
             return false
         }
@@ -4524,25 +6310,27 @@ final class AppSession {
     }
 
     /// Puts the original programme back and removes only generated overlay rows.
-    func restoreOriginalProgramme() async {
-        let accountToken = accountGeneration.token
+    func restoreOriginalProgramme(operation: AccountOperationLease) async {
+        guard accountOperationIsCurrent(operation) else { return }
         guard !isBusy else { return }
         isBusy = true
         defer {
-            if accountGeneration.accepts(accountToken) { isBusy = false }
+            if accountOperationIsCurrent(operation) { isBusy = false }
         }
         guard let userID = profile?.userID ?? data.settings?.userID,
+              userID == operation.ownerID,
               let restoration = TrainingInduction.restoration(in: data, userID: userID),
               let restoredSettings = restoration.dashboard.settings else { return }
         do {
             try await service.upsert(restoredSettings, table: "settings", onConflict: "user_id")
-            guard accountGeneration.accepts(accountToken) else { return }
+            try requireCurrentAccountOperation(operation)
             data = restoration.dashboard
             data.settings = restoredSettings
-            await saveLocalSnapshot()
-            guard accountGeneration.accepts(accountToken) else { return }
+            try await saveLocalSnapshot(operation: operation)
+        } catch is CancellationError {
+            return
         } catch {
-            guard accountGeneration.accepts(accountToken) else { return }
+            guard accountOperationIsCurrent(operation) else { return }
             alertMessage = error.localizedDescription
         }
     }
@@ -4550,9 +6338,15 @@ final class AppSession {
     /// Store a rewritten predefined list, keyed so an edit to one meal on one
     /// goal never quietly rewrites the others. An emptied list falls back to
     /// the protocol default.
-    func saveMealProtocolOverride(key: String, lines: [String]) async {
-        guard let profile, var settings = data.settings else { return }
-        settings = settings.rebound(to: profile.userID)
+    func saveMealProtocolOverride(
+        key: String,
+        lines: [String],
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard var settings = data.settings?.rebound(to: operation.ownerID) else {
+            throw APEXServiceError.configurationMissing
+        }
         var overrides = settings.addons["meal_protocol_overrides"]?.objectValue ?? [:]
         if lines.isEmpty {
             overrides.removeValue(forKey: key)
@@ -4561,7 +6355,14 @@ final class AppSession {
         }
         settings.addons["meal_protocol_overrides"] = .object(overrides)
         data.settings = settings
-        await persistUpsert(settings, table: "settings", onConflict: "user_id")
+        await persistUpsert(
+            settings,
+            table: "settings",
+            onConflict: "user_id",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
     private func verifiedPersistenceOwnerID(_ expectedOwnerID: UUID? = nil) -> UUID? {
@@ -4572,10 +6373,13 @@ final class AppSession {
         return ownerID
     }
 
-    func recordFitnessEvidence(_ evidence: NormalizedFitnessEvidence) async throws {
-        let accountToken = accountGeneration.token
+    func recordFitnessEvidence(
+        _ evidence: NormalizedFitnessEvidence,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
         guard let ownerID = UUID(uuidString: evidence.userID),
-              verifiedPersistenceOwnerID(ownerID) == ownerID else {
+              ownerID == operation.ownerID else {
             throw FitnessEvidenceRecordingError.accountMismatch
         }
         guard evidence.confidence == .low,
@@ -4589,53 +6393,56 @@ final class AppSession {
 
         #if DEBUG
         if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            try requireCurrentAccountOperation(operation)
             mergeFitnessEvidenceRecord(localFitnessEvidenceRecord(evidence, ownerID: ownerID))
-            await saveLocalSnapshot()
+            try await saveLocalSnapshot(operation: operation)
             return
         }
         #endif
 
         do {
             let record = try await service.recordUserFitnessEvidence(evidence)
-            guard accountGeneration.accepts(accountToken),
-                  verifiedPersistenceOwnerID(ownerID) == ownerID else {
-                throw CancellationError()
-            }
+            try requireCurrentAccountOperation(operation)
             guard record.userID == ownerID else {
                 throw FitnessEvidenceRecordingError.accountMismatch
             }
             mergeFitnessEvidenceRecord(record)
-            await saveLocalSnapshot()
+            try await saveLocalSnapshot(operation: operation)
+            try requireCurrentAccountOperation(operation)
             lastSyncAt = .now
         } catch let evidenceError as FitnessEvidenceRecordingError {
+            try requireCurrentAccountOperation(operation)
             try? await offlineStore.recordFailure(
                 offlineOperation,
                 reason: String(describing: evidenceError),
                 for: ownerID
             )
-            failedSyncCount = (try? await offlineStore.failedOperations(for: ownerID).count)
-                ?? failedSyncCount + 1
+            try requireCurrentAccountOperation(operation)
+            let failedCount = try? await offlineStore.failedOperations(for: ownerID).count
+            try requireCurrentAccountOperation(operation)
+            failedSyncCount = failedCount ?? failedSyncCount + 1
             throw evidenceError
         } catch {
-            guard accountGeneration.accepts(accountToken),
-                  verifiedPersistenceOwnerID(ownerID) == ownerID else {
-                throw CancellationError()
-            }
+            try requireCurrentAccountOperation(operation)
             switch SyncFailurePolicy.classify(error) {
             case .transient, .authenticationRequired:
                 try await offlineStore.enqueue(offlineOperation, for: ownerID)
+                try requireCurrentAccountOperation(operation)
                 mergeFitnessEvidenceRecord(localFitnessEvidenceRecord(evidence, ownerID: ownerID))
-                await saveLocalSnapshot()
-                pendingSyncCount = (try? await offlineStore.pendingOperations(for: ownerID).count)
-                    ?? pendingSyncCount + 1
+                try await saveLocalSnapshot(operation: operation)
+                let pendingCount = try? await offlineStore.pendingOperations(for: ownerID).count
+                try requireCurrentAccountOperation(operation)
+                pendingSyncCount = pendingCount ?? pendingSyncCount + 1
             case .permanent:
                 try? await offlineStore.recordFailure(
                     offlineOperation,
                     reason: error.localizedDescription,
                     for: ownerID
                 )
-                failedSyncCount = (try? await offlineStore.failedOperations(for: ownerID).count)
-                    ?? failedSyncCount + 1
+                try requireCurrentAccountOperation(operation)
+                let failedCount = try? await offlineStore.failedOperations(for: ownerID).count
+                try requireCurrentAccountOperation(operation)
+                failedSyncCount = failedCount ?? failedSyncCount + 1
                 throw error
             }
         }
@@ -4643,11 +6450,11 @@ final class AppSession {
 
     func saveBaselineCalibration(
         _ answers: BaselineCalibrationAnswers,
-        measuredAt: Date = .now
+        measuredAt: Date = .now,
+        operation: AccountOperationLease
     ) async throws -> OnboardingBaselineBands {
-        guard let ownerID = verifiedPersistenceOwnerID() else {
-            throw BaselineCalibrationSaveError.missingAccount
-        }
+        try requireCurrentAccountOperation(operation)
+        let ownerID = operation.ownerID
         let importedAt = Date().ISO8601Format()
         let measuredAtString = measuredAt.ISO8601Format()
         guard case .accepted(let evaluation) = BaselineCalibrationAssessment.evaluate(
@@ -4659,6 +6466,7 @@ final class AppSession {
             throw BaselineCalibrationSaveError.invalidAssessment
         }
         for draft in evaluation.evidence {
+            try requireCurrentAccountOperation(operation)
             guard case .accepted(let evidence) = FitnessEvidenceNormalizer.normalize(
                 draft,
                 admission: .user,
@@ -4666,8 +6474,9 @@ final class AppSession {
             ) else {
                 throw BaselineCalibrationSaveError.invalidEvidence
             }
-            try await recordFitnessEvidence(evidence)
+            try await recordFitnessEvidence(evidence, operation: operation)
         }
+        try requireCurrentAccountOperation(operation)
         return evaluation.bands
     }
 
@@ -4676,11 +6485,11 @@ final class AppSession {
         value: Double,
         unit: String,
         declaredSource: String,
-        measuredAt: Date
+        measuredAt: Date,
+        operation: AccountOperationLease
     ) async throws {
-        guard let ownerID = verifiedPersistenceOwnerID() else {
-            throw BaselineCalibrationSaveError.missingAccount
-        }
+        try requireCurrentAccountOperation(operation)
+        let ownerID = operation.ownerID
         let importedAt = Date().ISO8601Format()
         guard case .accepted(let evidence) = BaselineCalibrationAssessment.manualEvidence(
             userID: ownerID.uuidString,
@@ -4693,18 +6502,18 @@ final class AppSession {
         ) else {
             throw BaselineCalibrationSaveError.invalidEvidence
         }
-        try await recordFitnessEvidence(evidence)
+        try await recordFitnessEvidence(evidence, operation: operation)
     }
 
     func saveManualDEXACalibrationResult(
         bodyFatPercentage: Double?,
         restingMetabolicRate: Double?,
         declaredSource: String,
-        measuredAt: Date
+        measuredAt: Date,
+        operation: AccountOperationLease
     ) async throws -> [NormalizedFitnessEvidence] {
-        guard let ownerID = verifiedPersistenceOwnerID() else {
-            throw BaselineCalibrationSaveError.missingAccount
-        }
+        try requireCurrentAccountOperation(operation)
+        let ownerID = operation.ownerID
         let importedAt = Date().ISO8601Format()
         guard case .accepted(let evidence) = BaselineCalibrationAssessment.manualDEXAEvidence(
             userID: ownerID.uuidString,
@@ -4717,18 +6526,15 @@ final class AppSession {
             throw BaselineCalibrationSaveError.invalidEvidence
         }
         for item in evidence {
-            try await recordFitnessEvidence(item)
+            try requireCurrentAccountOperation(operation)
+            try await recordFitnessEvidence(item, operation: operation)
         }
+        try requireCurrentAccountOperation(operation)
         return evidence
     }
 
-    func connectHealthForBaselineCalibration() async -> Bool {
-        guard verifiedPersistenceOwnerID() != nil else { return false }
-        guard let snapshot = await HealthKitManager.shared.requestAccessAndImport() else {
-            return false
-        }
-        await applyHealthSnapshot(snapshot)
-        return true
+    func connectHealthForBaselineCalibration(operation: AccountOperationLease) async -> Bool {
+        await connectHealth(operation: operation)
     }
 
     private func mergeFitnessEvidenceRecord(_ record: FitnessEvidenceRecord) {
@@ -4767,8 +6573,15 @@ final class AppSession {
         table: String,
         onConflict: String? = nil,
         ownerID: UUID? = nil,
+        expectedAccountToken: UInt64? = nil,
         surfacePermanentFailure: Bool = true
     ) async {
+        let persistenceOwnerID = verifiedPersistenceOwnerID(ownerID)
+        if let expectedAccountToken {
+            guard accountGeneration.accepts(expectedAccountToken),
+                  verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID,
+                  persistenceOwnerID != nil else { return }
+        }
         #if DEBUG
         /* The authenticated first-run UI fixture is deliberately local. Once
            its missing profile is repaired, view tasks may save preferences or
@@ -4780,20 +6593,42 @@ final class AppSession {
             return
         }
         #endif
-        let persistenceOwnerID = verifiedPersistenceOwnerID(ownerID)
-        await saveLocalSnapshot()
+        if let persistenceOwnerID {
+            let snapshot = data
+            try? await offlineStore.saveDashboard(snapshot, for: persistenceOwnerID)
+        }
+        if let expectedAccountToken {
+            guard accountGeneration.accepts(expectedAccountToken),
+                  verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID else { return }
+        }
         do {
             try await service.upsert(value, table: table, onConflict: onConflict)
+            if let expectedAccountToken {
+                guard accountGeneration.accepts(expectedAccountToken),
+                      verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID else { return }
+            }
             lastSyncAt = .now
         } catch {
+            if let expectedAccountToken {
+                guard accountGeneration.accepts(expectedAccountToken),
+                      verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID else { return }
+            }
             guard let userID = persistenceOwnerID else { return }
             do {
                 let operation = try OfflineOperation.upsert(value, table: table, onConflict: onConflict)
                 switch SyncFailurePolicy.classify(error) {
                 case .transient, .authenticationRequired:
                     try await offlineStore.enqueue(operation, for: userID)
-                    pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count)
-                        ?? pendingSyncCount + 1
+                    if let expectedAccountToken {
+                        guard accountGeneration.accepts(expectedAccountToken),
+                              verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID else { return }
+                    }
+                    let pendingCount = try? await offlineStore.pendingOperations(for: userID).count
+                    if let expectedAccountToken {
+                        guard accountGeneration.accepts(expectedAccountToken),
+                              verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID else { return }
+                    }
+                    pendingSyncCount = pendingCount ?? pendingSyncCount + 1
                     /* Silent, like the other offline saves. Working without a
                        connection is the feature, not an incident report. */
                 case .permanent:
@@ -4802,13 +6637,25 @@ final class AppSession {
                         reason: error.localizedDescription,
                         for: userID
                     )
-                    failedSyncCount = (try? await offlineStore.failedOperations(for: userID).count)
-                        ?? failedSyncCount + 1
+                    if let expectedAccountToken {
+                        guard accountGeneration.accepts(expectedAccountToken),
+                              verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID else { return }
+                    }
+                    let failedCount = try? await offlineStore.failedOperations(for: userID).count
+                    if let expectedAccountToken {
+                        guard accountGeneration.accepts(expectedAccountToken),
+                              verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID else { return }
+                    }
+                    failedSyncCount = failedCount ?? failedSyncCount + 1
                     if surfacePermanentFailure {
                         alertMessage = "APEX could not sync that change. Please try again after refreshing your account."
                     }
                 }
             } catch {
+                if let expectedAccountToken {
+                    guard accountGeneration.accepts(expectedAccountToken),
+                          verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID else { return }
+                }
                 if surfacePermanentFailure {
                     alertMessage = "APEX could not preserve that change offline. \(error.localizedDescription)"
                 }
@@ -4816,27 +6663,60 @@ final class AppSession {
         }
     }
 
-    private func persistDelete(table: String, id: UUID, ownerID: UUID? = nil) async {
+    private func persistDelete(
+        table: String,
+        id: UUID,
+        ownerID: UUID? = nil,
+        expectedAccountToken: UInt64? = nil
+    ) async {
+        let persistenceOwnerID = verifiedPersistenceOwnerID(ownerID)
+        if let expectedAccountToken {
+            guard accountGeneration.accepts(expectedAccountToken),
+                  verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID,
+                  persistenceOwnerID != nil else { return }
+        }
         #if DEBUG
         if APEXRuntimeEnvironment.usesLocalUITestFixture() {
             lastSyncAt = .now
             return
         }
         #endif
-        let persistenceOwnerID = verifiedPersistenceOwnerID(ownerID)
-        await saveLocalSnapshot()
+        if let persistenceOwnerID {
+            let snapshot = data
+            try? await offlineStore.saveDashboard(snapshot, for: persistenceOwnerID)
+        }
+        if let expectedAccountToken {
+            guard accountGeneration.accepts(expectedAccountToken),
+                  verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID else { return }
+        }
         do {
             try await service.delete(table: table, id: id)
+            if let expectedAccountToken {
+                guard accountGeneration.accepts(expectedAccountToken),
+                      verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID else { return }
+            }
             lastSyncAt = .now
         } catch {
+            if let expectedAccountToken {
+                guard accountGeneration.accepts(expectedAccountToken),
+                      verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID else { return }
+            }
             guard let userID = persistenceOwnerID else { return }
             do {
                 let operation = OfflineOperation.delete(table: table, id: id)
                 switch SyncFailurePolicy.classify(error) {
                 case .transient, .authenticationRequired:
                     try await offlineStore.enqueue(operation, for: userID)
-                    pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count)
-                        ?? pendingSyncCount + 1
+                    if let expectedAccountToken {
+                        guard accountGeneration.accepts(expectedAccountToken),
+                              verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID else { return }
+                    }
+                    let pendingCount = try? await offlineStore.pendingOperations(for: userID).count
+                    if let expectedAccountToken {
+                        guard accountGeneration.accepts(expectedAccountToken),
+                              verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID else { return }
+                    }
+                    pendingSyncCount = pendingCount ?? pendingSyncCount + 1
                     /* Silent, like the other offline saves. Working without a
                        connection is the feature, not an incident report. */
                 case .permanent:
@@ -4845,24 +6725,47 @@ final class AppSession {
                         reason: error.localizedDescription,
                         for: userID
                     )
-                    failedSyncCount = (try? await offlineStore.failedOperations(for: userID).count)
-                        ?? failedSyncCount + 1
+                    if let expectedAccountToken {
+                        guard accountGeneration.accepts(expectedAccountToken),
+                              verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID else { return }
+                    }
+                    let failedCount = try? await offlineStore.failedOperations(for: userID).count
+                    if let expectedAccountToken {
+                        guard accountGeneration.accepts(expectedAccountToken),
+                              verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID else { return }
+                    }
+                    failedSyncCount = failedCount ?? failedSyncCount + 1
                     alertMessage = "APEX could not sync that change. Please try again after refreshing your account."
                 }
             } catch {
+                if let expectedAccountToken {
+                    guard accountGeneration.accepts(expectedAccountToken),
+                          verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID else { return }
+                }
                 alertMessage = "APEX could not preserve that change offline. \(error.localizedDescription)"
             }
         }
     }
 
-    private func saveLocalSnapshot() async {
-        guard let userID = verifiedPersistenceOwnerID() else { return }
-        try? await offlineStore.saveDashboard(data, for: userID)
+    private func saveLocalSnapshot(operation: AccountOperationLease) async throws {
+        try requireCurrentAccountOperation(operation)
+        let snapshot = data
+        try? await offlineStore.saveDashboard(snapshot, for: operation.ownerID)
+        try requireCurrentAccountOperation(operation)
     }
 
-    private func recalculateLocalStructuredDay(_ date: String, userID: UUID) async {
-        let meals = data.loggedMeals.filter { $0.localDate == date }
-        let existing = data.dailyLogs.first { $0.date == date }
+    private func recalculateLocalStructuredDay(
+        _ date: String,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        let userID = operation.ownerID
+        let meals = data.loggedMeals.filter {
+            $0.userID == operation.ownerID && $0.localDate == date
+        }
+        let existing = data.dailyLogs.first {
+            $0.userID == operation.ownerID && $0.date == date
+        }
         let manualKcal = existing?.nutritionSource == "manual" ? existing?.kcal : existing?.manualKcal
         let manualProtein = existing?.nutritionSource == "manual" ? existing?.proteinG : existing?.manualProteinG
         let manualFat = existing?.nutritionSource == "manual" ? existing?.fatG : existing?.manualFatG
@@ -4886,18 +6789,30 @@ final class AppSession {
             manualFatG: manualFat,
             manualCarbsG: manualCarbs
         )
-        data.dailyLogs.removeAll { $0.date == date }
+        try requireCurrentAccountOperation(operation)
+        data.dailyLogs.removeAll {
+            $0.userID == operation.ownerID && $0.date == date
+        }
         data.dailyLogs.append(row)
         if let resolvedDate = ISO8601DateFormatter.apexDateOnly.date(from: date) {
-            await syncFoodHydrationEvent(on: resolvedDate, ownerID: userID)
-        }
-        if HealthKitManager.shared.waterWriteState == .authorized,
-           let resolvedDate = ISO8601DateFormatter.apexDateOnly.date(from: date) {
-            try? await HealthKitManager.shared.syncFoodWater(
-                liters: foodHydrationLiters(on: resolvedDate),
+            await syncFoodHydrationEvent(
                 on: resolvedDate,
-                accountID: userID
+                ownerID: operation.ownerID,
+                operation: operation
             )
+            try requireCurrentAccountOperation(operation)
+        }
+        if healthImportIsEnabled(operation: operation),
+           HealthKitManager.shared.waterWriteState == .authorized,
+           let resolvedDate = ISO8601DateFormatter.apexDateOnly.date(from: date) {
+            let liters = foodHydrationLiters(on: resolvedDate)
+            try requireCurrentAccountOperation(operation)
+            try? await HealthKitManager.shared.syncFoodWater(
+                liters: liters,
+                on: resolvedDate,
+                accountID: operation.ownerID
+            )
+            try requireCurrentAccountOperation(operation)
         }
     }
 
@@ -4910,8 +6825,9 @@ final class AppSession {
         return "dinner"
     }
 
-    private func considerWeeklyCalibration() async {
-        guard var profile else { return }
+    private func considerWeeklyCalibration(operation: AccountOperationLease) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard var profile, profile.userID == operation.ownerID else { return }
         /* Constantine and June use explicit, confirmation-only whole-day
            protocols. The generic activity coefficient must never drift their
            authored calorie tables in the background. */
@@ -4958,8 +6874,16 @@ final class AppSession {
         ))
         profile.calibrationHistory = Array(profile.calibrationHistory.suffix(52))
         profile.updatedAt = Date().ISO8601Format()
+        try requireCurrentAccountOperation(operation)
         data.profile = profile
-        await persistUpsert(profile, table: "profile", onConflict: "user_id")
+        await persistUpsert(
+            profile,
+            table: "profile",
+            onConflict: "user_id",
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+        try requireCurrentAccountOperation(operation)
     }
 
     func refreshFailedSyncOperations() async {
@@ -5041,47 +6965,95 @@ final class AppSession {
         if report.succeeded > 0 { lastSyncAt = .now }
     }
 
-    private func startRealtimeSync() async {
-        HealthKitManager.shared.startBackgroundMonitoring { [weak self] snapshot in
-            await self?.applyHealthSnapshot(snapshot)
+    private func bindHealthBackgroundMonitoring(operation: AccountOperationLease) {
+        guard healthImportIsEnabled(operation: operation) else { return }
+        HealthKitManager.shared.startBackgroundMonitoring(
+            ownerID: operation.ownerID
+        ) { [weak self, operation] snapshot in
+            await self?.applyHealthSnapshot(snapshot, operation: operation)
         }
+    }
+
+    private func retryPendingHydrationMutations(operation: AccountOperationLease) async {
+        guard !Task.isCancelled, accountOperationIsCurrent(operation) else { return }
+        var pending = pendingHydrationMutationRetries(ownerID: operation.ownerID)
+            .filter { !hydrationMutationWasProcessed($0.mutation) }
+        saveHydrationMutationRetries(pending, ownerID: operation.ownerID)
+        let retryable = pending.filter { $0.attempts < 1 }
+        for candidate in retryable {
+            guard !Task.isCancelled,
+                  accountOperationIsCurrent(operation),
+                  candidate.mutation.ownerID == operation.ownerID else { return }
+            if let index = pending.firstIndex(where: {
+                $0.mutation.id == candidate.mutation.id
+            }) {
+                pending[index].attempts += 1
+                saveHydrationMutationRetries(pending, ownerID: operation.ownerID)
+            }
+            await handleHydrationMutation(candidate.mutation, operation: operation)
+            pending = pendingHydrationMutationRetries(ownerID: operation.ownerID)
+        }
+    }
+
+    private func startRealtimeSync(operation: AccountOperationLease) async {
+        guard accountOperationIsCurrent(operation) else { return }
+        await retryPendingHydrationMutations(operation: operation)
+        guard accountOperationIsCurrent(operation) else { return }
+        bindHealthBackgroundMonitoring(operation: operation)
         do {
-            try await service.startRealtime { [weak self] in
+            try await service.startRealtime { [weak self, operation] in
                 Task { @MainActor [weak self] in
-                    self?.scheduleRealtimeRefresh()
+                    self?.scheduleRealtimeRefresh(operation: operation)
                 }
             }
+            guard accountOperationIsCurrent(operation) else { return }
         } catch {
             // Foreground refresh and the offline outbox remain available if
             // Realtime is temporarily unavailable.
         }
     }
 
-    private func scheduleRealtimeRefresh() {
+    private func scheduleRealtimeRefresh(operation: AccountOperationLease) {
+        guard accountOperationIsCurrent(operation) else { return }
         realtimeDebounceTask?.cancel()
         realtimeDebounceTask = Task { [weak self] in
             try? await Task.sleep(for: .milliseconds(900))
-            guard Task.isCancelled == false else { return }
-            await self?.refresh()
+            guard let self,
+                  Task.isCancelled == false,
+                  self.accountOperationIsCurrent(operation) else { return }
+            await self.flushPendingChanges(for: operation.ownerID)
+            guard Task.isCancelled == false,
+                  self.accountOperationIsCurrent(operation) else { return }
+            do {
+                try await self.refreshDashboard(expectedUserID: operation.ownerID)
+            } catch is CancellationError {
+                // Account transitions intentionally revoke realtime work.
+            } catch let error as URLError where error.code == .cancelled {
+                // URLSession cancellation is the same benign control flow.
+            } catch {
+                // Foreground refresh and the offline outbox remain available.
+            }
         }
     }
 
-    func refreshExternalWorkouts() async {
-        await importHealthWorkoutChanges()
+    func refreshExternalWorkouts(operation: AccountOperationLease) async {
+        guard healthImportIsEnabled(operation: operation) else { return }
+        await importHealthWorkoutChanges(operation: operation)
     }
 
-    private func importHealthWorkoutChanges() async {
-        guard let profile else { return }
-        let ownerID = profile.userID
-        let accountToken = accountGeneration.token
+    private func importHealthWorkoutChanges(
+        operation: AccountOperationLease
+    ) async {
+        guard healthImportIsEnabled(operation: operation) else { return }
+        let ownerID = operation.ownerID
         guard let changes = try? await HealthKitManager.shared.workoutChanges(ownerID: ownerID) else {
             return
         }
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        guard accountOperationIsCurrent(operation) else { return }
 
         let persistedWorkoutSessions =
             (try? await service.loadWorkoutSessionIdentities(ownerID: ownerID)) ?? []
-        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        guard accountOperationIsCurrent(operation) else { return }
         let currentWorkoutSessions = data.workoutSessions.compactMap { session -> ExternalWorkoutImport.APEXSessionIdentity? in
             guard session.userID == ownerID,
                   let value = session.startedAt ?? session.completedAt,
@@ -5120,13 +7092,23 @@ final class AppSession {
 
         for rowID in reconciled.importedActivityIDsToDelete {
             data.importedActivities.removeAll { $0.id == rowID && $0.userID == ownerID }
-            await persistDelete(table: "imported_activities", id: rowID, ownerID: ownerID)
-            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            await persistDelete(
+                table: "imported_activities",
+                id: rowID,
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
+            )
+            guard accountOperationIsCurrent(operation) else { return }
         }
         for logID in reconciled.activityLogIDsToDelete {
             data.activityLogs.removeAll { $0.id == logID && $0.userID == ownerID }
-            await persistDelete(table: "activity_logs", id: logID, ownerID: ownerID)
-            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            await persistDelete(
+                table: "activity_logs",
+                id: logID,
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
+            )
+            guard accountOperationIsCurrent(operation) else { return }
         }
         var persistenceRows = reconciled.upserts
         for row in persistenceRows {
@@ -5148,12 +7130,15 @@ final class AppSession {
             await persistUpsert(
                 batch,
                 table: "imported_activities",
-                onConflict: "user_id,healthkit_workout_id"
+                onConflict: "user_id,healthkit_workout_id",
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
             )
-            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            guard accountOperationIsCurrent(operation) else { return }
         }
 
         if let anchorData = changes.anchorData {
+            guard accountOperationIsCurrent(operation) else { return }
             HealthKitManager.shared.commitWorkoutAnchor(anchorData, ownerID: ownerID)
         }
     }

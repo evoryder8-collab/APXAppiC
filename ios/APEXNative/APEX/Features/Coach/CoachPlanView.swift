@@ -29,9 +29,16 @@ struct CoachPlanView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task { syncPrivacyState() }
         .onChange(of: session.coachContext) { _, _ in syncPrivacyState() }
+        .onChange(of: session.profile?.userID) { _, _ in
+            busy = false
+            invitationPreview = nil
+            invitationToken = ""
+            syncPrivacyState()
+        }
         .confirmationDialog(language.text("End coach access"), isPresented: $confirmEnd) {
             Button(language.text("End coach access"), role: .destructive) {
-                Task { await endRelationship() }
+                guard let operation = session.accountOperationLease() else { return }
+                Task { await endRelationship(operation: operation) }
             }
             Button(language.text("Cancel"), role: .cancel) {}
         }
@@ -111,7 +118,8 @@ struct CoachPlanView: View {
                     if !session.coachClientPolicy.coachPlanReadOnly {
                         HStack(spacing: 9) {
                             Button {
-                                Task { await acknowledgeCoachPlan(plan.id) }
+                                guard let operation = session.accountOperationLease() else { return }
+                                Task { await acknowledgeCoachPlan(plan.id, operation: operation) }
                             } label: {
                                 Label(language.text("Acknowledge plan"), systemImage: plan.acknowledgedAt == nil ? "checkmark.circle" : "checkmark.circle.fill")
                                     .frame(maxWidth: .infinity)
@@ -120,7 +128,8 @@ struct CoachPlanView: View {
                             .disabled(busy || plan.acknowledgedAt != nil)
 
                             Button {
-                                Task { await activateCoachPlan(plan.id) }
+                                guard let operation = session.accountOperationLease() else { return }
+                                Task { await activateCoachPlan(plan.id, operation: operation) }
                             } label: {
                                 Label(language.text("Activate plan"), systemImage: plan.activatedAt == nil ? "bolt.circle" : "checkmark.seal.fill")
                                     .frame(maxWidth: .infinity)
@@ -180,7 +189,8 @@ struct CoachPlanView: View {
                 .disabled(session.coachClientPolicy.coachPlanReadOnly)
 
                 Button(language.text("Save sharing choices")) {
-                    Task { await updateCoachScopes(sponsorship.relationshipID) }
+                    guard let operation = session.accountOperationLease() else { return }
+                    Task { await updateCoachScopes(sponsorship.relationshipID, operation: operation) }
                 }
                 .font(APEXFont.body(14, weight: .bold))
                 .frame(maxWidth: .infinity)
@@ -226,7 +236,8 @@ struct CoachPlanView: View {
                         visualProgressOffered: invitationPreview.visualProgressRequested
                     )
                     Button(language.text("Accept and continue")) {
-                        Task { await acceptInvitation() }
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task { await acceptInvitation(operation: operation) }
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(APEXColor.violet)
@@ -234,7 +245,8 @@ struct CoachPlanView: View {
                     .disabled(busy || scopes.isEmpty)
                 } else {
                     Button(language.text("Review invitation")) {
-                        Task { await previewInvitation() }
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task { await previewInvitation(operation: operation) }
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(APEXColor.violet)
@@ -251,63 +263,95 @@ struct CoachPlanView: View {
     }
 
     @MainActor
-    private func acknowledgeCoachPlan(_ id: UUID) async {
-        await perform { try await session.acknowledgeCoachPlan(planVersionID: id) }
+    private func acknowledgeCoachPlan(_ id: UUID, operation: AccountOperationLease) async {
+        await perform(operation: operation) {
+            try await session.acknowledgeCoachPlan(planVersionID: id, operation: operation)
+        }
     }
 
     @MainActor
-    private func activateCoachPlan(_ id: UUID) async {
-        await perform { try await session.activateCoachPlan(planVersionID: id) }
+    private func activateCoachPlan(_ id: UUID, operation: AccountOperationLease) async {
+        await perform(operation: operation) {
+            try await session.activateCoachPlan(planVersionID: id, operation: operation)
+        }
     }
 
     @MainActor
-    private func updateCoachScopes(_ relationshipID: UUID) async {
-        await perform {
+    private func updateCoachScopes(_ relationshipID: UUID, operation: AccountOperationLease) async {
+        await perform(operation: operation) {
             try await session.updateCoachScopes(
                 relationshipID: relationshipID,
                 scopes: scopes,
-                visualProgressConsent: visualProgress
+                visualProgressConsent: visualProgress,
+                operation: operation
             )
         }
     }
 
     @MainActor
-    private func endRelationship() async {
+    private func endRelationship(operation: AccountOperationLease) async {
         guard let relationshipID = session.coachContext.sponsorship?.relationshipID else { return }
-        await perform { try await session.endCoachRelationship(relationshipID: relationshipID) }
+        await perform(operation: operation) {
+            try await session.endCoachRelationship(
+                relationshipID: relationshipID,
+                operation: operation
+            )
+        }
     }
 
     @MainActor
-    private func previewInvitation() async {
+    private func previewInvitation(operation: AccountOperationLease) async {
         busy = true
-        defer { busy = false }
+        defer {
+            if session.accountOperationIsCurrent(operation) { busy = false }
+        }
         do {
-            let preview = try await session.previewCoachInvitation(token: invitationToken)
+            let preview = try await session.previewCoachInvitation(
+                token: invitationToken,
+                operation: operation
+            )
+            guard session.accountOperationIsCurrent(operation) else { return }
             invitationPreview = preview
             scopes = preview.requestedScopes.subtracting([.visualProgress])
             visualProgress = false
+        } catch is CancellationError {
+            return
         } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
             session.alertMessage = error.localizedDescription
         }
     }
 
     @MainActor
-    private func acceptInvitation() async {
-        await perform {
+    private func acceptInvitation(operation: AccountOperationLease) async {
+        await perform(operation: operation) {
             try await session.acceptCoachInvitation(
                 token: invitationToken,
                 scopes: scopes,
-                visualProgressConsent: visualProgress
+                visualProgressConsent: visualProgress,
+                operation: operation
             )
         }
     }
 
     @MainActor
-    private func perform(_ operation: @escaping () async throws -> Void) async {
+    private func perform(
+        operation: AccountOperationLease,
+        _ action: @escaping () async throws -> Void
+    ) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
         busy = true
-        defer { busy = false }
-        do { try await operation() }
-        catch { session.alertMessage = error.localizedDescription }
+        defer {
+            if session.accountOperationIsCurrent(operation) { busy = false }
+        }
+        do {
+            try await action()
+        } catch is CancellationError {
+            return
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
+            session.alertMessage = error.localizedDescription
+        }
     }
 }
 

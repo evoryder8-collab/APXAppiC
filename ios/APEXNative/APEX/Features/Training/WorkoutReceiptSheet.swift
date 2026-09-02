@@ -195,7 +195,21 @@ struct WorkoutReceiptSheet: View {
                 guard let current = currentLog(log.id) else { return }
                 var draft = WorkoutReceipt.editInput(current)
                 draft.skipped = next
-                Task { await session.updateWorkoutLog(id: current.id, draft: draft) }
+                guard let operation = session.accountOperationLease() else { return }
+                Task {
+                    do {
+                        _ = try await session.updateWorkoutLog(
+                            id: current.id,
+                            draft: draft,
+                            operation: operation
+                        )
+                    } catch is CancellationError {
+                        return
+                    } catch {
+                        guard session.accountOperationIsCurrent(operation) else { return }
+                        session.alertMessage = error.localizedDescription
+                    }
+                }
             }
         )
     }
@@ -228,7 +242,21 @@ struct WorkoutReceiptSheet: View {
                 draft.rounds = values.rounds
                 draft.workSeconds = values.workSeconds
                 draft.recoverySeconds = values.recoverySeconds
-                Task { await session.updateWorkoutLog(id: current.id, draft: draft) }
+                guard let operation = session.accountOperationLease() else { return }
+                Task {
+                    do {
+                        _ = try await session.updateWorkoutLog(
+                            id: current.id,
+                            draft: draft,
+                            operation: operation
+                        )
+                    } catch is CancellationError {
+                        return
+                    } catch {
+                        guard session.accountOperationIsCurrent(operation) else { return }
+                        session.alertMessage = error.localizedDescription
+                    }
+                }
             }
         )
     }
@@ -310,10 +338,24 @@ struct CompletedWorkoutHistoryCards: View {
                 presenting: pendingDeletion
             ) { item in
                 Button(language.text("Delete workout"), role: .destructive) {
+                    guard let operation = session.accountOperationLease() else { return }
                     pendingDeletion = nil
-                    revealedSessionID = nil
-                    expanded.remove(item.id)
-                    Task { await session.deleteCompletedWorkoutSession(id: item.id) }
+                    Task {
+                        do {
+                            guard try await session.deleteCompletedWorkoutSession(
+                                id: item.id,
+                                operation: operation
+                            ) else { return }
+                            guard session.accountOperationIsCurrent(operation) else { return }
+                            revealedSessionID = nil
+                            expanded.remove(item.id)
+                        } catch is CancellationError {
+                            return
+                        } catch {
+                            guard session.accountOperationIsCurrent(operation) else { return }
+                            session.alertMessage = error.localizedDescription
+                        }
+                    }
                 }
                 Button(language.text("Cancel"), role: .cancel) { pendingDeletion = nil }
             } message: { _ in
@@ -328,10 +370,24 @@ struct CompletedWorkoutHistoryCards: View {
                 presenting: pendingHide
             ) { item in
                 Button(language.text("Hide from APEX"), role: .destructive) {
+                    guard let operation = session.accountOperationLease() else { return }
                     pendingHide = nil
-                    expanded.remove(item.id)
-                    revealedSessionID = nil
-                    Task { await session.hideExternalWorkoutFromAPEX(id: item.id) }
+                    Task {
+                        do {
+                            guard try await session.hideExternalWorkoutFromAPEX(
+                                id: item.id,
+                                operation: operation
+                            ) else { return }
+                            guard session.accountOperationIsCurrent(operation) else { return }
+                            expanded.remove(item.id)
+                            revealedSessionID = nil
+                        } catch is CancellationError {
+                            return
+                        } catch {
+                            guard session.accountOperationIsCurrent(operation) else { return }
+                            session.alertMessage = error.localizedDescription
+                        }
+                    }
                 }
                 Button(language.text("Cancel"), role: .cancel) { pendingHide = nil }
             } message: { _ in

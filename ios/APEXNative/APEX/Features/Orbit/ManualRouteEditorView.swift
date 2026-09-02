@@ -74,7 +74,10 @@ struct ManualRouteEditorView: View {
                         ForEach(["road", "path", "trail", "mixed"], id: \.self) { Text(language.text($0.capitalized)).tag($0) }
                     }
                 }
-                Button { Task { await save() } } label: {
+                Button {
+                    guard let operation = session.accountOperationLease() else { return }
+                    Task { await save(operation: operation) }
+                } label: {
                     if saving { ProgressView().tint(.white) }
                     else { Label(language.text("Save drawn route"), systemImage: "checkmark") }
                 }
@@ -93,16 +96,30 @@ struct ManualRouteEditorView: View {
     private var distanceLabel: String { language.format("%.2f km", Double(candidate.distanceM) / 1_000) }
 
     @MainActor
-    private func save() async {
+    private func save(operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
         saving = true
-        _ = await session.saveOrbitRoute(
-            candidate,
-            name: name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Drawn route" : name,
-            mission: mission,
-            surface: surface,
-            shape: "point_to_point"
-        )
-        saving = false
-        dismiss()
+        defer {
+            if session.accountOperationIsCurrent(operation) {
+                saving = false
+            }
+        }
+        do {
+            _ = try await session.saveOrbitRoute(
+                candidate,
+                name: name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "Drawn route" : name,
+                mission: mission,
+                surface: surface,
+                shape: "point_to_point",
+                operation: operation
+            )
+            guard session.accountOperationIsCurrent(operation) else { return }
+            dismiss()
+        } catch is CancellationError {
+            return
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
+            session.alertMessage = error.localizedDescription
+        }
     }
 }

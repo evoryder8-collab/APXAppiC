@@ -484,7 +484,11 @@ final class MealMemoryParityTests: XCTestCase {
         })
         session.data = dashboard
 
-        let results = try await session.searchFoods(query: "strawberries")
+        let operation = try XCTUnwrap(session.accountOperationLease())
+        let results = try await session.searchFoods(
+            query: "strawberries",
+            operation: operation
+        )
         let result = try XCTUnwrap(results.first {
             $0.id == dashboard.foods[localIndex].id
         })
@@ -541,7 +545,11 @@ final class MealMemoryParityTests: XCTestCase {
         })
         session.data = dashboard
 
-        let results = try await session.searchFoods(query: "strawberries")
+        let operation = try XCTUnwrap(session.accountOperationLease())
+        let results = try await session.searchFoods(
+            query: "strawberries",
+            operation: operation
+        )
         let result = try XCTUnwrap(results.first {
             $0.id == dashboard.foods[localIndex].id
         })
@@ -554,6 +562,110 @@ final class MealMemoryParityTests: XCTestCase {
     }
 
     @MainActor
+    func testLatestFoodSearchRequestRejectsAnOlderCompletion() {
+        let gate = FoodSearchRequestGate()
+        let first = gate.begin()
+        let latest = gate.begin()
+
+        XCTAssertFalse(
+            gate.canPublish(first, taskIsCancelled: false),
+            "a result for an earlier query must not overwrite the latest query's results"
+        )
+        XCTAssertTrue(gate.canPublish(latest, taskIsCancelled: false))
+    }
+
+    @MainActor
+    func testClearingFoodSearchInvalidatesItsInFlightRequest() {
+        let gate = FoodSearchRequestGate()
+        let request = gate.begin()
+
+        gate.clear()
+
+        XCTAssertFalse(
+            gate.canPublish(request, taskIsCancelled: false),
+            "clearing search must prevent its in-flight result from being published"
+        )
+    }
+
+    @MainActor
+    func testCancelledFoodSearchRequestCannotPublishResults() {
+        let gate = FoodSearchRequestGate()
+        let request = gate.begin()
+
+        XCTAssertFalse(
+            gate.canPublish(request, taskIsCancelled: true),
+            "a cancelled search task must not publish its result or failure state"
+        )
+    }
+
+    @MainActor
+    func testCancellationCleanupOnlyBelongsToTheCurrentFoodSearchRequest() {
+        let gate = FoodSearchRequestGate()
+        let first = gate.begin()
+
+        XCTAssertTrue(
+            gate.isCurrent(first),
+            "a provider cancellation must be allowed to clear the spinner for the request that still owns it"
+        )
+
+        _ = gate.begin()
+        XCTAssertFalse(
+            gate.isCurrent(first),
+            "an older cancelled request must not clear a newer request's spinner"
+        )
+    }
+
+    func testFoodSearchSurfacesClearPreviousResultsAndResetWhenTheOwnerChanges() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let foodSearchSource = try String(contentsOf: root.appendingPathComponent("APEX/Features/Nutrition/FoodLoggingViews.swift"))
+        let mealPickerSource = try String(contentsOf: root.appendingPathComponent("APEX/Features/Nutrition/MealComposerView.swift"))
+
+        for (name, source) in [("food search", foodSearchSource), ("meal picker", mealPickerSource)] {
+            XCTAssertTrue(
+                source.contains(".onChange(of: session.profile?.userID)"),
+                "\(name) must clear account-owned remote results when the visible owner changes"
+            )
+            XCTAssertTrue(
+                source.contains("remoteResults = []\n        isSearching = true"),
+                "\(name) must not display the previous query's remote results while a replacement is loading"
+            )
+            XCTAssertTrue(
+                source.contains("searchGate.isCurrent(request) else { return }"),
+                "\(name) must end a cancelled current request without disturbing a newer request"
+            )
+            let lease = try XCTUnwrap(source.range(of: "session.accountOperationLease()"))
+            let task = try XCTUnwrap(
+                source.range(of: "searchTask = Task", range: lease.upperBound..<source.endIndex)
+            )
+            XCTAssertLessThan(lease.lowerBound, task.lowerBound)
+            XCTAssertTrue(source.contains(
+                "session.searchFoods(query: query, operation: operation)"
+            ))
+            XCTAssertTrue(source.contains(
+                "session.accountOperationIsCurrent(operation)"
+            ))
+        }
+    }
+
+    @MainActor
+    func testCancelledFoodSearchProviderPropagatesCancellationInsteadOfFallback() async throws {
+        let session = AppSession(foodSearchProvider: { _ in
+            throw CancellationError()
+        })
+        session.data = APEXDebugFixture.dashboard()
+        let operation = try XCTUnwrap(session.accountOperationLease())
+
+        do {
+            _ = try await session.searchFoods(query: "strawberries", operation: operation)
+            XCTFail("task cancellation must not be converted into cached search results")
+        } catch is CancellationError {
+            // Expected control flow: the owning view quietly discards it.
+        }
+    }
+
+    @MainActor
     func testInFlightRemoteFoodSearchRejectsSuccessAfterTheAccountChanges() async throws {
         let provider = DeferredFoodSearchProvider()
         let ownerA = UUID()
@@ -562,8 +674,11 @@ final class MealMemoryParityTests: XCTestCase {
             try await provider.search(query)
         })
         session.data = APEXDebugFixture.dashboard(userID: ownerA)
+        let operation = try XCTUnwrap(session.accountOperationLease())
 
-        let search = Task { try await session.searchFoods(query: "strawberries") }
+        let search = Task {
+            try await session.searchFoods(query: "strawberries", operation: operation)
+        }
         await provider.waitUntilStarted()
         session.data = APEXDebugFixture.dashboard(userID: ownerB)
         await provider.succeed(with: FoodLookupEnvelope(
@@ -591,8 +706,11 @@ final class MealMemoryParityTests: XCTestCase {
             try await provider.search(query)
         })
         session.data = APEXDebugFixture.dashboard(userID: ownerA)
+        let operation = try XCTUnwrap(session.accountOperationLease())
 
-        let search = Task { try await session.searchFoods(query: "strawberries") }
+        let search = Task {
+            try await session.searchFoods(query: "strawberries", operation: operation)
+        }
         await provider.waitUntilStarted()
         session.data = APEXDebugFixture.dashboard(userID: ownerB)
         await provider.fail()
@@ -603,5 +721,477 @@ final class MealMemoryParityTests: XCTestCase {
         } catch is CancellationError {
             // Expected: even an offline fallback is scoped to the captured owner.
         }
+    }
+
+    func testMealComposerCapturesAccountLeaseBeforeLaunchingStructuredSave() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: root.appendingPathComponent("APEX/Features/Nutrition/MealComposerView.swift")
+        )
+
+        XCTAssertTrue(
+            source.contains(
+                "guard let operation = session.accountOperationLease() else { return }\n"
+                    + "                Task { await save(operation: operation) }"
+            ),
+            "the account lease must be captured synchronously in the button action, before the unstructured Task can adopt a later account"
+        )
+        XCTAssertTrue(
+            source.contains("private func save(operation: AccountOperationLease) async"),
+            "the captured lease must remain explicit throughout the composer save flow"
+        )
+        XCTAssertTrue(
+            source.contains("try await session.saveStructuredMeal(draft, operation: operation)"),
+            "MealComposer must pass its original account lease into the structured-meal mutation"
+        )
+    }
+
+    func testStructuredMealSaveGuardsRollbackAndQueuedCountAfterSuspension() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(contentsOf: root.appendingPathComponent("APEX/App/AppSession.swift"))
+        let body = try sourceSlice(
+            source,
+            from: "func saveStructuredMeal(",
+            to: "/// Copies the selected structured meals"
+        )
+        let compactBody = body
+            .split(whereSeparator: { $0.isWhitespace })
+            .joined(separator: " ")
+
+        XCTAssertTrue(
+            compactBody.contains("operation: AccountOperationLease"),
+            "saveStructuredMeal must require the lease captured by the initiating account"
+        )
+        XCTAssertTrue(
+            compactBody.contains("try requireCurrentAccountOperation(operation)"),
+            "saveStructuredMeal must reject an already-stale operation before its optimistic mutation"
+        )
+        XCTAssertTrue(
+            compactBody.contains("recalculateLocalStructuredDay(draft.localDate, operation: operation)"),
+            "daily nutrition recalculation must inherit the same account lease instead of a bare user ID"
+        )
+        XCTAssertFalse(
+            compactBody.contains("pendingSyncCount = (try? await"),
+            "an awaited queue count cannot be assigned directly because the account may change before the await returns"
+        )
+        assertEveryPostAwaitMutationIsLeaseGuarded(
+            "pendingSyncCount =",
+            in: body,
+            message: "queued-count publication must revalidate the lease after the count lookup completes"
+        )
+        assertEveryPostAwaitMutationIsLeaseGuarded(
+            "data = previousData",
+            in: body,
+            message: "a late failure must not roll account B back to account A's previous dashboard"
+        )
+    }
+
+    func testStructuredDayRecalculationKeepsTheLeaseAcrossHydrationAwaits() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(contentsOf: root.appendingPathComponent("APEX/App/AppSession.swift"))
+        let body = try sourceSlice(
+            source,
+            from: "private func recalculateLocalStructuredDay(",
+            to: "private func plannedMealSlot"
+        )
+        let compactBody = body
+            .split(whereSeparator: { $0.isWhitespace })
+            .joined(separator: " ")
+
+        XCTAssertTrue(
+            compactBody.contains("operation: AccountOperationLease"),
+            "structured-day recalculation must carry the initiating account generation"
+        )
+        XCTAssertTrue(
+            compactBody.contains("ownerID: operation.ownerID"),
+            "food-hydration publication must use the lease owner, not whichever profile is current later"
+        )
+        XCTAssertTrue(
+            compactBody.contains("accountID: operation.ownerID"),
+            "HealthKit food-water attribution must use the lease owner"
+        )
+        XCTAssertGreaterThanOrEqual(
+            compactBody.components(separatedBy: "try requireCurrentAccountOperation(operation)").count - 1,
+            3,
+            "recalculation must validate before local publication, after hydration-event sync, and after HealthKit sync"
+        )
+        assertEveryPostAwaitMutationIsLeaseGuarded(
+            "data.dailyLogs.removeAll",
+            in: body,
+            message: "daily-log publication must belong to the account that initiated the meal save"
+        )
+    }
+
+    func testAccountOwnedNutritionMutationAPIsRequireTheInitiatingLease() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(contentsOf: root.appendingPathComponent("APEX/App/AppSession.swift"))
+        let mutations = [
+            ("func toggleMeal(", "/// Mirrors the browser Simple Mode contract"),
+            ("func togglePlannedMeal(", "func toggleSupplement("),
+            ("func saveMealPreset(", "func deleteMealPreset("),
+            ("func deleteMealPreset(", "func setFoodFavourite("),
+            ("func setFoodFavourite(", "func updateProfile("),
+            ("func logFood(", "func deleteLoggedMeal("),
+            ("func deleteLoggedMeal(", "func saveProgressPhoto("),
+            ("func copyNutritionDay(", "/// Calendar Clear intentionally"),
+            ("func clearNutritionDay(", "/// Moves an actual meal"),
+            ("func updateLoggedMealFinishedAt(", "/// Moves a planned meal"),
+            ("func saveMealProtocolOverride(", "private func verifiedPersistenceOwnerID"),
+            ("func setActivityLevel(", "func setGoal("),
+            ("func setGoal(", "func updateSettings("),
+        ]
+
+        for (start, end) in mutations {
+            let body = compact(try sourceSlice(source, from: start, to: end))
+            XCTAssertTrue(
+                body.contains("operation:AccountOperationLease"),
+                "\(start) must receive the lease captured by its initiating UI action"
+            )
+            XCTAssertTrue(
+                body.contains("tryrequireCurrentAccountOperation(operation)"),
+                "\(start) must reject stale work before publishing account-owned state"
+            )
+        }
+    }
+
+    func testActivityMutationPipelineKeepsOneLeaseAndDoesNotRetainIndicesAcrossAwait() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(contentsOf: root.appendingPathComponent("APEX/App/AppSession.swift"))
+        let mutations = [
+            ("func addActivity(", "func prefillEventActivitiesIfNeeded("),
+            ("func prefillEventActivitiesIfNeeded(", "func removeActivity("),
+            ("func removeActivity(", "func clearActivities("),
+            ("func clearActivities(", "func repeatYesterday("),
+            ("func repeatYesterday(", "func finalizeActivityDay("),
+            ("func finalizeActivityDay(", "/* A provider almost never publishes water"),
+        ]
+
+        for (start, end) in mutations {
+            let body = compact(try sourceSlice(source, from: start, to: end))
+            XCTAssertTrue(body.contains("operation:AccountOperationLease"), "missing lease in \(start)")
+            XCTAssertTrue(
+                body.contains("tryrequireCurrentAccountOperation(operation)"),
+                "missing account-generation validation in \(start)"
+            )
+        }
+
+        let finalize = compact(try sourceSlice(
+            source,
+            from: "func finalizeActivityDay(",
+            to: "/* A provider almost never publishes water"
+        ))
+        XCTAssertFalse(
+            finalize.contains("data.activityLogs.indices"),
+            "finalization must retain stable activity IDs, never array indices, across persistence awaits"
+        )
+        XCTAssertTrue(
+            finalize.contains("activityIDs") && finalize.contains("firstIndex"),
+            "each post-await activity update must resolve its current index from a stable ID"
+        )
+
+        let wearable = compact(try sourceSlice(
+            source,
+            from: "func saveWearableActivity(",
+            to: "func addActivity("
+        ))
+        XCTAssertTrue(wearable.contains("operation:AccountOperationLease"))
+        XCTAssertTrue(wearable.contains("settings.userID==operation.ownerID"))
+        XCTAssertTrue(wearable.contains("expectedAccountToken:operation.generation"))
+        XCTAssertGreaterThanOrEqual(
+            wearable.components(separatedBy: "accountOperationIsCurrent(operation)").count - 1,
+            2,
+            "wearable settings and the suggested mode must remain owned by the initiating account"
+        )
+    }
+
+    func testNutritionAndActivityButtonsCaptureLeaseBeforeStartingTasks() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sources = try [
+            "APEX/Features/Nutrition/FoodLoggingViews.swift",
+            "APEX/Features/Nutrition/MealComposerView.swift",
+            "APEX/Features/Nutrition/AddActivitySheet.swift",
+            "APEX/Features/Nutrition/NutritionView.swift",
+            "APEX/Features/Nutrition/NutritionParityViews.swift",
+            "APEX/Features/Portal/SimpleHomeView.swift",
+            "APEX/Features/Training/TrainingInductionPanel.swift",
+        ].map { path in
+            (path, compact(try String(contentsOf: root.appendingPathComponent(path))))
+        }
+        let sensitiveCalls = [
+            "toggleMeal", "togglePlannedMeal", "saveMealPreset", "deleteMealPreset",
+            "setFoodFavourite", "logFood", "deleteLoggedMeal", "copyNutritionDay",
+            "clearNutritionDay", "updateLoggedMealFinishedAt", "saveMealProtocolOverride",
+            "addActivity", "removeActivity", "clearActivities", "repeatYesterday",
+            "finalizeActivityDay", "setActivityLevel", "setGoal", "saveWearableActivity",
+        ]
+
+        for (path, source) in sources {
+            for call in sensitiveCalls where source.contains("session.\(call)(") {
+                XCTAssertFalse(
+                    source.contains("Task{awaitsession.\(call)("),
+                    "\(path) must capture an account lease synchronously before starting \(call)"
+                )
+                XCTAssertTrue(
+                    source.contains("session.\(call)(") && source.contains("operation:operation"),
+                    "\(path) must pass the captured lease into \(call)"
+                )
+            }
+        }
+    }
+
+    func testRemainingAccountOwnedMutationAPIsRequireTheInitiatingLease() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(contentsOf: root.appendingPathComponent("APEX/App/AppSession.swift"))
+        let mutations = [
+            ("func toggleSupplement(", "func addSupplement("),
+            ("func addSupplement(", "func archiveSupplement("),
+            ("func archiveSupplement(", "func restoreSupplement("),
+            ("func restoreSupplement(", "/// Re-evaluate today's reminders"),
+            ("func saveMorningWeight(", "/// Water naturally present"),
+            ("func logHydration(\n        amountML:", "func logHydration(\n        preset:"),
+            ("func deleteHydrationEvent(", "func saveHydrationPreset("),
+            ("func saveHydrationPreset(", "func deleteHydrationPreset("),
+            ("func deleteHydrationPreset(", "func saveHydrationPreferences("),
+            ("func saveHydrationPreferences(", "func setActivityLevel("),
+            ("func updateSettings(", "func setInterfaceMode("),
+            ("func adjustWater(", "private func performWaterAdjustment("),
+            ("func setWaterTotal(", "private func ensureHydrationDefaults("),
+            ("func updateProfile(", "func logFood("),
+            ("func updatePlannedMealTime(", "/// Reschedules one configured meal block"),
+            ("func updateMealBlockTime(", "/// Moves the factual finish marker"),
+            ("func updateWorkoutCompletedAt(", "private func copiedClock("),
+            ("func toggleDeload(", "func exportOrbitData("),
+            ("func installRecoveryPlan(", "func saveCustomWorkout("),
+            ("func saveCustomWorkout(", "/*\n     * Save a session that was not on the plan"),
+            ("func saveManualWorkout(", "/*\n     * Install a generated starter plan"),
+        ]
+
+        for (start, end) in mutations {
+            let body = compact(try sourceSlice(source, from: start, to: end))
+            XCTAssertTrue(
+                body.contains("operation:AccountOperationLease"),
+                "\(start) must receive the account lease captured by the initiating UI action"
+            )
+            XCTAssertTrue(
+                body.contains("tryrequireCurrentAccountOperation(operation)"),
+                "\(start) must reject stale work before publishing account-owned state"
+            )
+        }
+    }
+
+    func testHydrationMutationQueueCarriesOneLeaseThroughEveryAwaitedStage() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(contentsOf: root.appendingPathComponent("APEX/App/AppSession.swift"))
+        let adjustment = compact(try sourceSlice(
+            source,
+            from: "func adjustWater(",
+            to: "func setWaterTotal("
+        ))
+        XCTAssertTrue(adjustment.contains("operation:AccountOperationLease"))
+        XCTAssertTrue(adjustment.contains("performWaterAdjustment(deltaLiters:deltaLiters,on:date,operation:operation)"))
+        XCTAssertTrue(adjustment.contains("logHydration(amountML:"))
+        XCTAssertTrue(adjustment.contains("operation:operation"))
+        XCTAssertTrue(adjustment.contains("reduceHydration(byML:"))
+
+        let hydrationWrite = compact(try sourceSlice(
+            source,
+            from: "func logHydration(\n        amountML:",
+            to: "func logHydration(\n        preset:"
+        ))
+        XCTAssertTrue(
+            hydrationWrite.contains("healthImportIsEnabled(operation:operation)"),
+            "an account may mirror water to HealthKit only after that owner explicitly opted in"
+        )
+
+        let hydrationDelete = compact(try sourceSlice(
+            source,
+            from: "func deleteHydrationEvent(",
+            to: "func saveHydrationPreset("
+        ))
+        XCTAssertTrue(hydrationDelete.contains("healthImportIsEnabled(operation:operation)"))
+
+        for (start, end) in [
+            ("private func materializeLegacyHydrationIfNeeded(", "private func hydrationOccurrence("),
+            ("private func mirrorHydrationAggregate(", "private func reduceHydration("),
+            ("private func reduceHydration(", "private func syncFoodHydrationEvent("),
+        ] {
+            let body = compact(try sourceSlice(source, from: start, to: end))
+            XCTAssertTrue(body.contains("operation:AccountOperationLease"), "missing hydration lease in \(start)")
+            XCTAssertTrue(body.contains("tryrequireCurrentAccountOperation(operation)"), "missing hydration validation in \(start)")
+            XCTAssertTrue(body.contains("expectedAccountToken:operation.generation"), "persistence must retain the original account generation in \(start)")
+        }
+        let reduction = compact(try sourceSlice(
+            source,
+            from: "private func reduceHydration(",
+            to: "private func syncFoodHydrationEvent("
+        ))
+        XCTAssertGreaterThanOrEqual(
+            reduction.components(separatedBy: "healthImportIsEnabled(operation:operation)").count - 1,
+            2,
+            "hydration reductions must gate both HealthKit deletion and replacement under the initiating owner"
+        )
+    }
+
+    func testRemainingMutationButtonsCaptureLeaseBeforeStartingTasks() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let paths = [
+            "APEX/Features/Portal/SimpleHomeView.swift",
+            "APEX/Features/Nutrition/NutritionView.swift",
+            "APEX/Features/Nutrition/NutritionParityViews.swift",
+            "APEX/Features/Avatar/AvatarView.swift",
+            "APEX/Features/Settings/SettingsView.swift",
+            "APEX/Features/Avatar/RecoveryPlannerView.swift",
+            "APEX/Features/Training/CustomWorkoutBuilder.swift",
+            "APEX/Features/Training/ManualWorkoutLoggerView.swift",
+            "APEX/Features/Training/TrainingProgramView.swift",
+            "APEX/Features/Training/WorkoutDaySheet.swift",
+            "APEX/Features/Training/TrainingCalendarView.swift",
+        ]
+        let sensitiveCalls = [
+            "toggleSupplement", "addSupplement", "archiveSupplement", "restoreSupplement",
+            "saveMorningWeight", "logHydration", "deleteHydrationEvent",
+            "saveHydrationPreset", "deleteHydrationPreset", "saveHydrationPreferences",
+            "adjustWater", "setWaterTotal", "updateSettings", "updateProfile",
+            "updatePlannedMealTime", "updateMealBlockTime", "updateWorkoutCompletedAt",
+            "installRecoveryPlan", "saveCustomWorkout", "saveManualWorkout", "toggleDeload",
+        ]
+
+        for path in paths {
+            let source = compact(try String(contentsOf: root.appendingPathComponent(path)))
+            for call in sensitiveCalls where source.contains("session.\(call)(") {
+                XCTAssertTrue(
+                    source.contains("session.\(call)(") && source.contains("operation:operation"),
+                    "\(path) must pass its synchronously captured lease into \(call)"
+                )
+                XCTAssertFalse(
+                    source.contains("Task{awaitsession.\(call)("),
+                    "\(path) must capture the lease before launching \(call)"
+                )
+            }
+        }
+    }
+
+    func testBarcodeLookupRejectsAResponseAfterItsInitiatingAccountExpires() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let sessionSource = try String(
+            contentsOf: root.appendingPathComponent("APEX/App/AppSession.swift")
+        )
+        let lookup = compact(try sourceSlice(
+            sessionSource,
+            from: "func lookupFood(",
+            to: "func searchFoods("
+        ))
+        XCTAssertTrue(lookup.contains("operation:AccountOperationLease"))
+        XCTAssertGreaterThanOrEqual(
+            lookup.components(separatedBy: "tryrequireCurrentAccountOperation(operation)").count - 1,
+            3,
+            "barcode lookup must validate before the request, before cache publication, and before returning"
+        )
+
+        let scannerSource = compact(try String(
+            contentsOf: root.appendingPathComponent("APEX/Features/Nutrition/BarcodeScannerView.swift")
+        ))
+        XCTAssertTrue(
+            scannerSource.contains("guardletoperation=session.accountOperationLease()else{return}")
+                && scannerSource.contains("lookupTask=Task"),
+            "the scanner must capture its lease before launching a lookup task"
+        )
+        XCTAssertTrue(scannerSource.contains("lookupFood(barcode:barcode,operation:operation)"))
+        XCTAssertTrue(
+            scannerSource.contains("catchisCancellationError"),
+            "an account boundary is normal cancellation, not an unavailable-lookup message"
+        )
+        XCTAssertTrue(
+            scannerSource.contains("onChange(of:session.profile?.userID)"),
+            "the scanner must invalidate visible account-owned results when its owner changes"
+        )
+    }
+
+    private func sourceSlice(
+        _ source: String,
+        from startMarker: String,
+        to endMarker: String,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) throws -> String {
+        let start = try XCTUnwrap(
+            source.range(of: startMarker),
+            "missing source marker: \(startMarker)",
+            file: file,
+            line: line
+        )
+        let end = try XCTUnwrap(
+            source.range(of: endMarker, range: start.upperBound..<source.endIndex),
+            "missing source marker: \(endMarker)",
+            file: file,
+            line: line
+        )
+        return String(source[start.lowerBound..<end.lowerBound])
+    }
+
+    private func compact(_ source: String) -> String {
+        source.split(whereSeparator: { $0.isWhitespace }).joined()
+    }
+
+    private func assertEveryPostAwaitMutationIsLeaseGuarded(
+        _ mutation: String,
+        in source: String,
+        message: String,
+        file: StaticString = #filePath,
+        line: UInt = #line
+    ) {
+        var searchStart = source.startIndex
+        var foundMutation = false
+
+        while let mutationRange = source.range(
+            of: mutation,
+            range: searchStart..<source.endIndex
+        ) {
+            foundMutation = true
+            let prefix = source[..<mutationRange.lowerBound]
+            let latestAwait = prefix.range(of: "await ", options: .backwards)
+            let latestGuard = prefix.range(
+                of: "try requireCurrentAccountOperation(operation)",
+                options: .backwards
+            )
+
+            if let latestAwait {
+                XCTAssertNotNil(latestGuard, message, file: file, line: line)
+                if let latestGuard {
+                    XCTAssertGreaterThan(
+                        latestGuard.lowerBound,
+                        latestAwait.lowerBound,
+                        message,
+                        file: file,
+                        line: line
+                    )
+                }
+            } else {
+                XCTAssertNotNil(latestGuard, message, file: file, line: line)
+            }
+            searchStart = mutationRange.upperBound
+        }
+
+        XCTAssertTrue(foundMutation, "expected mutation not found: \(mutation)", file: file, line: line)
     }
 }

@@ -428,7 +428,19 @@ struct NutritionTargetSheet: View {
                         NutritionGoalPresetPicker(
                             presets: goalPresets,
                             selected: session.profile?.goal,
-                            onSelect: { goal in Task { await session.setGoal(goal) } }
+                            onSelect: { goal in
+                                guard let operation = session.accountOperationLease() else { return }
+                                Task {
+                                    do {
+                                        try await session.setGoal(goal, operation: operation)
+                                    } catch is CancellationError {
+                                        return
+                                    } catch {
+                                        guard session.accountOperationIsCurrent(operation) else { return }
+                                        session.alertMessage = error.localizedDescription
+                                    }
+                                }
+                            }
                         )
                     }
 
@@ -438,7 +450,20 @@ struct NutritionTargetSheet: View {
                                 ForEach(ActivityLevel.allCases, id: \.self) { level in
                                     Button(language.text(level.title)) {
                                         if logs.isEmpty {
-                                            Task { await session.setActivityLevel(level) }
+                                            guard let operation = session.accountOperationLease() else { return }
+                                            Task {
+                                                do {
+                                                    try await session.setActivityLevel(
+                                                        level,
+                                                        operation: operation
+                                                    )
+                                                } catch is CancellationError {
+                                                    return
+                                                } catch {
+                                                    guard session.accountOperationIsCurrent(operation) else { return }
+                                                    session.alertMessage = error.localizedDescription
+                                                }
+                                            }
                                         } else {
                                             pendingQuickLevel = level
                                         }
@@ -477,9 +502,23 @@ struct NutritionTargetSheet: View {
                 Button(language.text("Switch to manual activity"), role: .destructive) {
                     guard let level = pendingQuickLevel else { return }
                     pendingQuickLevel = nil
+                    guard let operation = session.accountOperationLease() else { return }
                     Task {
-                        await session.clearActivities(on: date)
-                        await session.setActivityLevel(level)
+                        do {
+                            try await session.clearActivities(
+                                on: date,
+                                operation: operation
+                            )
+                            try await session.setActivityLevel(
+                                level,
+                                operation: operation
+                            )
+                        } catch is CancellationError {
+                            return
+                        } catch {
+                            guard session.accountOperationIsCurrent(operation) else { return }
+                            session.alertMessage = error.localizedDescription
+                        }
                     }
                 }
                 Button(language.text("Cancel"), role: .cancel) { pendingQuickLevel = nil }
@@ -1156,7 +1195,20 @@ struct APEXDaylineView: View {
                                 onDelete: {
                                     guard let logged = entry.loggedMeal else { return }
                                     closeReveal()
-                                    Task { await session.deleteLoggedMeal(logged) }
+                                    guard let operation = session.accountOperationLease() else { return }
+                                    Task {
+                                        do {
+                                            try await session.deleteLoggedMeal(
+                                                logged,
+                                                operation: operation
+                                            )
+                                        } catch is CancellationError {
+                                            return
+                                        } catch {
+                                            guard session.accountOperationIsCurrent(operation) else { return }
+                                            session.alertMessage = error.localizedDescription
+                                        }
+                                    }
                                 }
                             )
                             .frame(width: proxy.size.width)
@@ -1178,11 +1230,20 @@ struct APEXDaylineView: View {
                                 onDragEnded: { locationY in
                                     let snapped = snap(minuteAt(y: locationY, height: timelineHeight))
                                     workoutDragPreview[workout.id] = nil
+                                    guard let operation = session.accountOperationLease() else { return }
                                     Task {
-                                        await session.updateWorkoutCompletedAt(
-                                            workout.id,
-                                            to: dateAt(lineMinute: snapped)
-                                        )
+                                        do {
+                                            try await session.updateWorkoutCompletedAt(
+                                                workout.id,
+                                                to: dateAt(lineMinute: snapped),
+                                                operation: operation
+                                            )
+                                        } catch is CancellationError {
+                                            return
+                                        } catch {
+                                            guard session.accountOperationIsCurrent(operation) else { return }
+                                            session.alertMessage = error.localizedDescription
+                                        }
                                     }
                                 }
                             )
@@ -1265,11 +1326,27 @@ struct APEXDaylineView: View {
     }
 
     private func move(_ entry: DaylineEntry, to lineMinute: Int, clockMinute: Int) {
+        guard let operation = session.accountOperationLease() else { return }
         Task {
-            if let logged = entry.loggedMeal {
-                await session.updateLoggedMealFinishedAt(logged.id, to: dateAt(lineMinute: lineMinute))
-            } else {
-                await session.updateMealBlockTime(entry.slot, to: clock(clockMinute))
+            do {
+                if let logged = entry.loggedMeal {
+                    try await session.updateLoggedMealFinishedAt(
+                        logged.id,
+                        to: dateAt(lineMinute: lineMinute),
+                        operation: operation
+                    )
+                } else {
+                    try await session.updateMealBlockTime(
+                        entry.slot,
+                        to: clock(clockMinute),
+                        operation: operation
+                    )
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
             }
         }
     }
@@ -1979,11 +2056,24 @@ struct NutritionCalendarSheet: View {
             }
             .buttonStyle(CalendarWorkflowButtonStyle(color: APEXColor.cyan))
             Button(role: .destructive) {
+                guard let operation = session.accountOperationLease() else { return }
                 isWorking = true
                 Task {
-                    await session.clearNutritionDay(date)
-                    isWorking = false
-                    workflow = nil
+                    do {
+                        try await session.clearNutritionDay(
+                            date,
+                            operation: operation
+                        )
+                        guard session.accountOperationIsCurrent(operation) else { return }
+                        isWorking = false
+                        workflow = nil
+                    } catch is CancellationError {
+                        return
+                    } catch {
+                        guard session.accountOperationIsCurrent(operation) else { return }
+                        isWorking = false
+                        errorMessage = error.localizedDescription
+                    }
                 }
             } label: {
                 Label(isWorking ? "Clearing…" : "Clear", systemImage: "xmark")
@@ -2112,18 +2202,30 @@ struct NutritionCalendarSheet: View {
     }
 
     private func pasteDay(source: Date, destination: Date, mealIDs: Set<UUID>?) {
+        guard let operation = session.accountOperationLease() else { return }
         isWorking = true
         Task {
             do {
-                try await session.copyNutritionDay(from: source, to: destination, mealIDs: mealIDs)
+                try await session.copyNutritionDay(
+                    from: source,
+                    to: destination,
+                    mealIDs: mealIDs,
+                    operation: operation
+                )
+                guard session.accountOperationIsCurrent(operation) else { return }
                 onSelect(destination)
                 copiedSource = nil
                 workflow = nil
                 dismiss()
+            } catch is CancellationError {
+                return
             } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
                 errorMessage = error.localizedDescription
             }
-            isWorking = false
+            if session.accountOperationIsCurrent(operation) {
+                isWorking = false
+            }
         }
     }
 
@@ -2273,7 +2375,20 @@ struct LoggedMealsCard: View {
                         .buttonStyle(.plain)
                         .contextMenu {
                             Button(language.text("Delete meal"), role: .destructive) {
-                                Task { await session.deleteLoggedMeal(meal) }
+                                guard let operation = session.accountOperationLease() else { return }
+                                Task {
+                                    do {
+                                        try await session.deleteLoggedMeal(
+                                            meal,
+                                            operation: operation
+                                        )
+                                    } catch is CancellationError {
+                                        return
+                                    } catch {
+                                        guard session.accountOperationIsCurrent(operation) else { return }
+                                        session.alertMessage = error.localizedDescription
+                                    }
+                                }
                             }
                         }
                     }

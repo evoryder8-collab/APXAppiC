@@ -65,6 +65,7 @@ struct BarcodeScannerView: View {
     @State private var isLookingUp = false
     @State private var lookupMessage: String?
     @State private var showPortion = false
+    @State private var lookupTask: Task<Void, Never>?
 
     private var scannerPhase: BarcodeScannerPhase {
         BarcodeScannerPhase.resolve(
@@ -190,8 +191,17 @@ struct BarcodeScannerView: View {
         }
         .onChange(of: code) { _, newCode in
             guard let newCode else { return }
+            guard let operation = session.accountOperationLease() else { return }
             UINotificationFeedbackGenerator().notificationOccurred(.success)
-            Task { await lookup(newCode) }
+            lookupTask?.cancel()
+            lookupTask = Task { await lookup(newCode, operation: operation) }
+        }
+        .onChange(of: session.profile?.userID) { _, _ in
+            cancelLookupAndClearResult()
+        }
+        .onDisappear {
+            lookupTask?.cancel()
+            lookupTask = nil
         }
         .sheet(isPresented: $showPortion) {
             if let food {
@@ -225,20 +235,47 @@ struct BarcodeScannerView: View {
     }
 
     @MainActor
-    private func lookup(_ barcode: String) async {
+    private func lookup(_ barcode: String, operation: AccountOperationLease) async {
         isLookingUp = true
         lookupMessage = nil
-        defer { isLookingUp = false }
+        defer {
+            if session.accountOperationIsCurrent(operation), code == barcode {
+                isLookingUp = false
+                lookupTask = nil
+            }
+        }
         do {
-            let response = try await session.lookupFood(barcode: barcode)
+            let response = try await session.lookupFood(
+                barcode: barcode,
+                operation: operation
+            )
+            guard !Task.isCancelled,
+                  session.accountOperationIsCurrent(operation),
+                  code == barcode else { return }
             if let found = response.food {
                 food = found
             } else {
                 lookupMessage = response.message ?? "This product is not in the nutrition database yet."
             }
+        } catch is CancellationError {
+            return
         } catch {
+            guard !Task.isCancelled,
+                  session.accountOperationIsCurrent(operation),
+                  code == barcode else { return }
             lookupMessage = "The barcode is valid, but nutrition lookup is unavailable right now. Try again when connected."
         }
+    }
+
+    @MainActor
+    private func cancelLookupAndClearResult() {
+        lookupTask?.cancel()
+        lookupTask = nil
+        code = nil
+        food = nil
+        lookupMessage = nil
+        isLookingUp = false
+        showPortion = false
     }
 }
 

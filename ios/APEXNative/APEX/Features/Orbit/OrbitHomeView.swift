@@ -70,8 +70,8 @@ struct OrbitHomeView: View {
                             )
                         } label: {
                             Label(
-                                language.text(location.hasRecoverableRun ? "Continue interrupted run" : "Start today's run"),
-                                systemImage: location.hasRecoverableRun ? "arrow.clockwise.circle.fill" : "play.fill"
+                                language.text(hasRecoverableRun ? "Continue interrupted run" : "Start today's run"),
+                                systemImage: hasRecoverableRun ? "arrow.clockwise.circle.fill" : "play.fill"
                             )
                         }
                         .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.cyan))
@@ -210,7 +210,17 @@ struct OrbitHomeView: View {
             titleVisibility: .visible
         ) {
             Button(language.text("Delete permanently"), role: .destructive) {
-                Task { await session.deleteAllOrbitData() }
+                guard let operation = session.accountOperationLease() else { return }
+                Task {
+                    do {
+                        try await session.deleteAllOrbitData(operation: operation)
+                    } catch is CancellationError {
+                        return
+                    } catch {
+                        guard session.accountOperationIsCurrent(operation) else { return }
+                        session.alertMessage = error.localizedDescription
+                    }
+                }
             }
             Button(language.text("Cancel"), role: .cancel) {}
         }
@@ -221,6 +231,10 @@ struct OrbitHomeView: View {
         return session.data.orbitRoutes.first { $0.id == routeID }
     }
 
+    private var hasRecoverableRun: Bool {
+        location.hasRecoverableRun(for: session.profile?.userID)
+    }
+
     private var todayCampaignSession: OrbitCampaignSession? {
         guard let campaign = session.data.orbitCampaigns.first(where: { $0.status == "active" }) else { return nil }
         return session.data.orbitCampaignSessions.first {
@@ -229,7 +243,7 @@ struct OrbitHomeView: View {
     }
 
     private var recommendedMission: String {
-        if location.hasRecoverableRun { return location.draftMission ?? "Free run" }
+        if hasRecoverableRun { return location.draftMission ?? "Free run" }
         if let mission = todayCampaignSession?.adapted["mission"]?.stringValue {
             return mission.replacingOccurrences(of: "_", with: " ").capitalized
         }
@@ -245,7 +259,7 @@ struct OrbitHomeView: View {
     }
 
     private var recommendedPrescription: String {
-        if location.hasRecoverableRun {
+        if hasRecoverableRun {
             return language.format("%d km · paused and protected", Int(location.distanceM / 1_000))
         }
         if let duration = todayCampaignSession?.adapted["duration_min"]?.numberValue {
@@ -255,7 +269,7 @@ struct OrbitHomeView: View {
     }
 
     private var recommendationReason: String {
-        if location.hasRecoverableRun {
+        if hasRecoverableRun {
             return "Your active GPS track was recovered on this iPhone. Continue when ready or discard it from the live run screen."
         }
         if let why = todayCampaignSession?.adapted["why"]?.stringValue { return language.text(why) }

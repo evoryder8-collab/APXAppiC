@@ -187,16 +187,26 @@ private struct ActivityEntryForm: View {
                 }
 
                 Button {
+                    guard let operation = session.accountOperationLease() else { return }
                     Task {
-                        await session.addActivity(
-                            type: type,
-                            date: date,
-                            quantity: type.inputStyle == .steps ? steps : quantity,
-                            durationMinutes: [.count, .duration].contains(type.inputStyle) ? durationMinutes : nil,
-                            distanceKM: type.inputStyle == .distance ? distanceKM : nil,
-                            watchKcal: watchKcal > 0 ? watchKcal : nil
-                        )
-                        onSaved()
+                        do {
+                            try await session.addActivity(
+                                type: type,
+                                date: date,
+                                quantity: type.inputStyle == .steps ? steps : quantity,
+                                durationMinutes: [.count, .duration].contains(type.inputStyle) ? durationMinutes : nil,
+                                distanceKM: type.inputStyle == .distance ? distanceKM : nil,
+                                watchKcal: watchKcal > 0 ? watchKcal : nil,
+                                operation: operation
+                            )
+                            guard session.accountOperationIsCurrent(operation) else { return }
+                            onSaved()
+                        } catch is CancellationError {
+                            return
+                        } catch {
+                            guard session.accountOperationIsCurrent(operation) else { return }
+                            session.alertMessage = error.localizedDescription
+                        }
                     }
                 } label: {
                     Label(language.text("Add to today"), systemImage: "plus")

@@ -32,6 +32,8 @@ Task 1 evidence: complete on 2026-09-02. The dedicated APEX lane finished 30/30 
 4. Scope nudges, notification identifiers, read state, and pending notifications to their owner.
 5. Verify A → logout → B and A → slow request → B races.
 
+Task 2 evidence: complete on 2026-09-02. A single owner-and-generation lease now follows every audited long-running mutation and private presentation through its final publication; account boundaries synchronously clear derived state, private media, notifications, Health observers, Orbit state, coach state, and entitlement state. OAuth failure recovery revalidates an owner-scoped cache before restoring entitlements and realtime. Watch workout handoff now uses a durable per-launch causal identifier, so stop-before-start, delayed stop, disconnect, and direct A → B transitions cannot create or terminate the wrong owner's session. Independent adversarial review found and closed late Watch launch, cached OAuth, notification-delivery, and camera-dismissal races. The final dedicated APEX-lane suite passed 351/351 with no failures or skips; all 60 changed Swift files parsed and `git diff --check` passed. These source/unit results are supporting evidence only and do not promote acceptance-matrix rows that still require runtime or human-discoverability proof.
+
 ## Task 3 — Make subscriber goal and energy math total
 
 1. Define one canonical persisted goal vocabulary shared by native and web clients.

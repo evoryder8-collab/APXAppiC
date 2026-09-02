@@ -11,6 +11,28 @@ final class ManualWorkoutTests: XCTestCase {
     private let user = UUID()
     private let session = UUID()
 
+    func testManualLoggerCapturesTheAccountLeaseAndGatesEveryLateCallback() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: root.appendingPathComponent("APEX/Features/Training/ManualWorkoutLoggerView.swift")
+        )
+        let compact = source.filter { !$0.isWhitespace }
+
+        XCTAssertTrue(compact.contains(
+            "guardletoperation=session.accountOperationLease()else{return}Task{do{letsaved=tryawaitsession.saveManualWorkout("
+        ))
+        XCTAssertTrue(compact.contains("operation:operation"))
+        XCTAssertTrue(compact.contains(
+            "guardsession.accountOperationIsCurrent(operation)else{return}ifsaved{onSaved()dismiss()}else{problem=language.text(\"Addrepsorcardiotimebeforesaving.\")}"
+        ))
+        XCTAssertTrue(compact.contains("catchisCancellationError{return}"))
+        XCTAssertTrue(compact.contains(
+            "catch{guardsession.accountOperationIsCurrent(operation)else{return}problem=error.localizedDescription}"
+        ))
+    }
+
     func testTitleSurvivesTheRoundTrip() {
         let notes = ManualWorkout.notes(title: "Sunday hill session")
         XCTAssertEqual(ManualWorkout.title(fromNotes: notes), "Sunday hill session")
@@ -418,7 +440,14 @@ final class WorkoutSessionModeContractTests: XCTestCase {
         XCTAssertTrue(programView.contains("WorkoutSessionModeButtons("))
         XCTAssertTrue(daySheet.contains("TrackedWorkoutView("))
         XCTAssertTrue(programView.contains("TrackedWorkoutView("))
-        XCTAssertTrue(programView.contains("session.completeWorkout(\n                day: day, setInputs: setInputs, lite: lite, startedAt: startedAt\n            )"))
+        XCTAssertEqual(
+            programView.components(separatedBy: "try await session.completeWorkout(").count - 1,
+            3
+        )
+        XCTAssertGreaterThanOrEqual(
+            programView.components(separatedBy: "operation: operation").count - 1,
+            3
+        )
     }
 
     func testCustomBuilderPersistsItsAuthoredSessionMode() throws {
@@ -652,7 +681,11 @@ final class TrainingInductionTests: XCTestCase {
             appSession.range(of: "func toggleDeload", range: start.upperBound..<appSession.endIndex)
         )
         let completion = String(appSession[start.lowerBound..<end.lowerBound])
-        XCTAssertTrue(completion.contains("guard let ownerID = TrainingInduction.workoutOwnerID"))
+        XCTAssertTrue(completion.contains("operation: AccountOperationLease"))
+        XCTAssertTrue(completion.contains("let ownerID = operation.ownerID"))
+        XCTAssertTrue(completion.contains(
+            "guard TrainingInduction.workoutOwnerID(in: data, day: day) == ownerID"
+        ))
         XCTAssertFalse(completion.contains("guard let profile else { return nil }"))
         XCTAssertTrue(completion.contains(
             "if wearableLinkRequest == .automatic,\n           let profile, profile.userID == ownerID"
@@ -678,13 +711,15 @@ final class TrainingInductionTests: XCTestCase {
         let waterStart = try XCTUnwrap(appSession.range(of: "func adjustWater"))
         let waterEnd = try XCTUnwrap(appSession.range(of: "func setWaterTotal", range: waterStart.upperBound..<appSession.endIndex))
         let water = String(appSession[waterStart.lowerBound..<waterEnd.lowerBound])
-        XCTAssertTrue(water.contains("guard let ownerID = verifiedPersistenceOwnerID()"))
+        XCTAssertTrue(water.contains("operation: AccountOperationLease"))
+        XCTAssertTrue(water.contains("operation.ownerID"))
         XCTAssertFalse(water.contains("guard let profile"))
 
         let deloadStart = try XCTUnwrap(appSession.range(of: "func toggleDeload"))
         let deloadEnd = try XCTUnwrap(appSession.range(of: "func exportOrbitData", range: deloadStart.upperBound..<appSession.endIndex))
         let deload = String(appSession[deloadStart.lowerBound..<deloadEnd.lowerBound])
-        XCTAssertTrue(deload.contains("guard let ownerID = verifiedPersistenceOwnerID()"))
+        XCTAssertTrue(deload.contains("operation: AccountOperationLease"))
+        XCTAssertTrue(deload.contains("let ownerID = operation.ownerID"))
         XCTAssertFalse(deload.contains("guard let profile"))
     }
 
@@ -890,16 +925,20 @@ final class TrainingInductionTests: XCTestCase {
             appSession.range(of: "private func applyInductionPlan", range: installStart.upperBound..<appSession.endIndex)
         )
         let install = String(appSession[installStart.lowerBound..<installEnd.lowerBound])
+        XCTAssertTrue(install.contains("operation: AccountOperationLease"))
+        XCTAssertTrue(install.contains("guard accountOperationIsCurrent(operation) else { return }"))
         XCTAssertTrue(install.contains("guard !isBusy else { return }\n        isBusy = true"))
         XCTAssertTrue(install.contains(
-            "if accountGeneration.accepts(accountToken) { isBusy = false }"
+            "if accountOperationIsCurrent(operation) { isBusy = false }"
         ))
 
         let restoreStart = try XCTUnwrap(appSession.range(of: "func restoreOriginalProgramme"))
         let restore = String(appSession[restoreStart.lowerBound...])
+        XCTAssertTrue(restore.contains("operation: AccountOperationLease"))
+        XCTAssertTrue(restore.contains("guard accountOperationIsCurrent(operation) else { return }"))
         XCTAssertTrue(restore.contains("guard !isBusy else { return }\n        isBusy = true"))
         XCTAssertTrue(restore.contains(
-            "if accountGeneration.accepts(accountToken) { isBusy = false }"
+            "if accountOperationIsCurrent(operation) { isBusy = false }"
         ))
 
         XCTAssertGreaterThanOrEqual(
@@ -946,7 +985,9 @@ final class TrainingInductionTests: XCTestCase {
         )
 
         XCTAssertEqual(
-            settingsView.components(separatedBy: "Task { await session.restoreOriginalProgramme() }").count - 1,
+            settingsView.components(
+                separatedBy: "Task { await session.restoreOriginalProgramme(operation: operation) }"
+            ).count - 1,
             2,
             "both switching starter mode off and the explicit Restore action must archive generated rows"
         )
@@ -1086,7 +1127,10 @@ final class TrainingInductionTests: XCTestCase {
         let submit = String(appSession[submitStart.lowerBound..<submitEnd.lowerBound])
         let pendingApply = try XCTUnwrap(submit.range(of: "data.settings = settings"))
         let pendingSnapshot = try XCTUnwrap(
-            submit.range(of: "await saveLocalSnapshot()", range: pendingApply.upperBound..<submit.endIndex)
+            submit.range(
+                of: "try await saveLocalSnapshot(operation: operation)",
+                range: pendingApply.upperBound..<submit.endIndex
+            )
         )
         let generatedRowWrite = try XCTUnwrap(submit.range(of: "service.saveInductionPlan(plan)"))
         XCTAssertLessThan(pendingApply.lowerBound, pendingSnapshot.lowerBound)
@@ -1095,7 +1139,9 @@ final class TrainingInductionTests: XCTestCase {
             generatedRowWrite.lowerBound,
             "first-run pending metadata must reach the account cache before generated row writes"
         )
-        let finalSnapshot = try XCTUnwrap(submit.range(of: "await saveLocalSnapshot()", options: .backwards))
+        let finalSnapshot = try XCTUnwrap(
+            submit.range(of: "try await saveLocalSnapshot(operation: operation)", options: .backwards)
+        )
         let refresh = try XCTUnwrap(submit.range(of: "refreshDashboard(expectedUserID: userID)"))
         let bestEffortFallback = try XCTUnwrap(submit.range(of: "lastSyncAt = .now"))
         XCTAssertLessThan(finalSnapshot.lowerBound, refresh.lowerBound)
@@ -1113,7 +1159,7 @@ final class TrainingInductionTests: XCTestCase {
         )
         let install = String(appSession[installStart.lowerBound..<installEnd.lowerBound])
         XCTAssertEqual(
-            install.components(separatedBy: "await saveLocalSnapshot()").count - 1,
+            install.components(separatedBy: "try await saveLocalSnapshot(operation: operation)").count - 1,
             3,
             "offline relaunch must retain invalidated, pending, and finally committed plan state"
         )
@@ -2249,5 +2295,79 @@ final class TrainingInductionTests: XCTestCase {
         XCTAssertTrue(source.contains("abs(velocity.x) > abs(velocity.y) * 1.4"))
         XCTAssertTrue(source.contains("HorizontalTurnSurface"))
         XCTAssertFalse(source.contains(".simultaneousGesture(turnGesture)"))
+    }
+
+    func testOnboardingSubmissionCannotAdoptTheNextSignedInAccount() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let session = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let induction = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Onboarding/InductionView.swift")
+        )
+        let consent = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Onboarding/ConsentView.swift")
+        )
+
+        let submitStart = try XCTUnwrap(session.range(of: "private func submitInduction("))
+        let submitEnd = try XCTUnwrap(
+            session.range(of: "private func persistInductionEvidence(", range: submitStart.upperBound..<session.endIndex)
+        )
+        let submit = String(session[submitStart.lowerBound..<submitEnd.lowerBound])
+        XCTAssertTrue(submit.contains("operation: AccountOperationLease"))
+        XCTAssertTrue(submit.contains("try requireCurrentAccountOperation(operation)"))
+        XCTAssertTrue(submit.contains("userID == operation.ownerID"))
+        XCTAssertTrue(submit.contains("saveLocalSnapshot(operation: operation)"))
+        XCTAssertTrue(submit.contains("persistInductionEvidence(") && submit.contains("operation: operation"))
+
+        XCTAssertGreaterThanOrEqual(
+            induction.components(
+                separatedBy: "guard let operation = session.accountOperationLease() else { return }"
+            ).count - 1,
+            2
+        )
+        XCTAssertTrue(induction.contains("completeInduction(input, operation: operation)"))
+        XCTAssertTrue(induction.contains("skipRemainingInduction(input, operation: operation)"))
+        XCTAssertTrue(consent.contains("finishOnboarding(operation: operation)"))
+    }
+
+    func testNewlyAuthenticatedAccountCanLeaseOnboardingBeforeItsProfileExists() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let session = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+
+        XCTAssertTrue(
+            session.contains("@ObservationIgnored private var authenticatedOwnerID: UUID?"),
+            "the authenticated identity must exist independently of a not-yet-created profile"
+        )
+        XCTAssertTrue(
+            session.contains("authenticatedOwnerID = nil"),
+            "every account boundary must synchronously revoke the pre-profile identity"
+        )
+        XCTAssertTrue(
+            session.contains("let ownerID = authenticatedOwnerID ?? verifiedPersistenceOwnerID()"),
+            "first-run onboarding must be able to capture a lease before profile creation"
+        )
+        XCTAssertTrue(
+            session.contains("authenticatedOwnerID == operation.ownerID"),
+            "a lease must remain bound to the account that actually authenticated"
+        )
+
+        for authenticatedEntry in [
+            "authenticatedOwnerID = userID\n            try await refreshDashboard",
+            "authenticatedOwnerID = userID\n                EntitlementStore.shared.prepareForAccount(userID)",
+            "authenticatedOwnerID = userID\n            selectedPersona = nil",
+            "authenticatedOwnerID = userID\n            EntitlementStore.shared.prepareForAccount(userID)",
+        ] {
+            XCTAssertTrue(session.contains(authenticatedEntry), authenticatedEntry)
+        }
+        XCTAssertTrue(session.contains("authenticatedOwnerID = Self.firstRunFixtureOwnerID"))
+        XCTAssertTrue(session.contains("submitInductionToFirstRunFixture(submission, operation: operation)"))
+        XCTAssertTrue(session.contains("operation.ownerID == Self.firstRunFixtureOwnerID"))
     }
 }

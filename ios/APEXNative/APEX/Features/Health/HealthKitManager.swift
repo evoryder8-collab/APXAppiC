@@ -11,6 +11,7 @@ struct HealthSnapshot: Sendable {
     let importableDietaryWaterL: Double?
     let hydrationSamples: [HealthHydrationSample]
     let deletedHydrationSampleIDs: Set<UUID>
+    let hydrationDeletionAnchorData: Data?
     let steps: Double?
     let activeEnergyKcal: Double?
     let exerciseMinutes: Double?
@@ -105,17 +106,20 @@ struct HealthWaterTotals: Sendable {
     let importableDrink: Double?
     let samples: [HealthHydrationSample]
     let deletedSampleIDs: Set<UUID>
+    let deletionAnchorData: Data?
 
     init(
         total: Double?,
         importableDrink: Double?,
         samples: [HealthHydrationSample] = [],
-        deletedSampleIDs: Set<UUID> = []
+        deletedSampleIDs: Set<UUID> = [],
+        deletionAnchorData: Data? = nil
     ) {
         self.total = total
         self.importableDrink = importableDrink
         self.samples = samples
         self.deletedSampleIDs = deletedSampleIDs
+        self.deletionAnchorData = deletionAnchorData
     }
 
     static let unavailable = HealthWaterTotals(total: nil, importableDrink: nil)
@@ -218,6 +222,7 @@ struct HealthTodayReadings: Sendable {
             importableDietaryWaterL: water.importableDrink,
             hydrationSamples: water.samples,
             deletedHydrationSampleIDs: water.deletedSampleIDs,
+            hydrationDeletionAnchorData: water.deletionAnchorData,
             steps: steps.resolved(or: nil),
             activeEnergyKcal: activeEnergyKcal.resolved(or: nil),
             exerciseMinutes: exerciseMinutes.resolved(or: nil),
@@ -485,33 +490,64 @@ final class HealthKitManager {
     let store = HKHealthStore()
     private var observerQueries: [HKObserverQuery] = []
     private var importHandler: (@MainActor @Sendable (HealthSnapshot) async -> Void)?
-    private static let dietaryWaterAnchorKey = "apex.hk.dietary-water.anchor.v1"
+    private var accountGeneration: UInt64 = 0
+    private static let dietaryWaterAnchorKeyPrefix = "apex.hk.dietary-water.anchor.v2"
     private static let workoutAnchorKeyPrefix = "apex.hk.workouts.anchor.v1"
 
     private init() {}
 
-    func requestAccessAndImport() async -> HealthSnapshot? {
+    /// HealthKit authorization belongs to the device, but the visible import
+    /// state belongs to the authenticated APEX account. Clearing observers and
+    /// presentation state at an account boundary prevents a delayed callback
+    /// or Account A's last snapshot from appearing for Account B.
+    func resetAccountBoundary() {
+        accountGeneration &+= 1
+        stopBackgroundMonitoring()
+        isAuthorized = false
+        waterWriteState = .notDetermined
+        isSyncing = false
+        lastSnapshot = nil
+        message = nil
+    }
+
+    func stopBackgroundMonitoring() {
+        for query in observerQueries {
+            store.stop(query)
+        }
+        observerQueries.removeAll()
+        importHandler = nil
+    }
+
+    func requestAccessAndImport(ownerID: UUID) async -> HealthSnapshot? {
+        let requestGeneration = accountGeneration
         guard isAvailable else {
             message = "Apple Health is not available on this device."
             return nil
         }
         isSyncing = true
-        defer { isSyncing = false }
+        defer {
+            if accountGeneration == requestGeneration { isSyncing = false }
+        }
 
         do {
             let read = Set(readTypes)
             let share = Set(writeTypes)
             try await store.requestAuthorization(toShare: share, read: read)
+            guard accountGeneration == requestGeneration else { return nil }
             isAuthorized = true
             refreshWaterWriteState()
-            let snapshot = try await readToday()
+            let snapshot = try await readToday(ownerID: ownerID)
+            guard accountGeneration == requestGeneration else { return nil }
             lastSnapshot = snapshot
             message = "Apple Health synced. APEX only imported the categories you allowed."
             await enableBackgroundDelivery()
-            startBackgroundMonitoring(handler: importHandler)
+            guard accountGeneration == requestGeneration else { return nil }
+            startBackgroundMonitoring(ownerID: ownerID, handler: importHandler)
             return snapshot
         } catch {
-            message = error.localizedDescription
+            if accountGeneration == requestGeneration {
+                message = error.localizedDescription
+            }
             return nil
         }
     }
@@ -526,16 +562,19 @@ final class HealthKitManager {
     ///
     /// Returns nil when nothing was readable, so a silent failure never
     /// overwrites a hand-entered day with zeroes.
-    func silentRefresh() async -> HealthSnapshot? {
+    func silentRefresh(ownerID: UUID) async -> HealthSnapshot? {
+        let requestGeneration = accountGeneration
         guard isAvailable else { return nil }
         refreshWaterWriteState()
-        guard let snapshot = try? await readToday() else { return nil }
+        guard let snapshot = try? await readToday(ownerID: ownerID) else { return nil }
+        guard accountGeneration == requestGeneration else { return nil }
         guard snapshot.hasImportableSignal else { return nil }
         isAuthorized = true
         lastSnapshot = snapshot
         /* Keep it current for the rest of the day rather than only at open. */
         await enableBackgroundDelivery()
-        startBackgroundMonitoring(handler: importHandler)
+        guard accountGeneration == requestGeneration else { return nil }
+        startBackgroundMonitoring(ownerID: ownerID, handler: importHandler)
         return snapshot
     }
 
@@ -544,6 +583,7 @@ final class HealthKitManager {
     /// system sheet is required, so this never manufactures an authorization
     /// state or repeatedly prompts after the user has answered.
     func requestNewReadAccessIfNeeded() async {
+        let requestGeneration = accountGeneration
         guard isAvailable else { return }
         do {
             let status = try await store.statusForAuthorizationRequest(
@@ -555,14 +595,17 @@ final class HealthKitManager {
                 toShare: Set(writeTypes),
                 read: Set(readTypes)
             )
+            guard accountGeneration == requestGeneration else { return }
             isAuthorized = true
             refreshWaterWriteState()
         } catch {
-            message = error.localizedDescription
+            if accountGeneration == requestGeneration {
+                message = error.localizedDescription
+            }
         }
     }
 
-    func readToday() async throws -> HealthSnapshot {
+    func readToday(ownerID: UUID) async throws -> HealthSnapshot {
         let calendar = Calendar.current
         let start = calendar.startOfDay(for: .now)
         let end = Date()
@@ -578,7 +621,7 @@ final class HealthKitManager {
                 try await latestQuantity(.restingHeartRate, unit: HKUnit.count().unitDivided(by: .minute()))
             },
             dietaryWater: { [self] in
-                try await dietaryWaterTotals(start: start, end: end)
+                try await dietaryWaterTotals(start: start, end: end, ownerID: ownerID)
             },
             steps: { [self] in
                 try await cumulativeQuantity(.stepCount, unit: .count(), start: start, end: end)
@@ -603,10 +646,12 @@ final class HealthKitManager {
     }
 
     func startBackgroundMonitoring(
+        ownerID: UUID,
         handler: (@MainActor @Sendable (HealthSnapshot) async -> Void)?
     ) {
         if let handler { importHandler = handler }
         guard observerQueries.isEmpty, isAvailable else { return }
+        let monitorGeneration = accountGeneration
         for sampleType in [
             quantity(.bodyMass), quantity(.dietaryWater), quantity(.vo2Max),
             quantity(.restingHeartRate), quantity(.stepCount), quantity(.activeEnergyBurned),
@@ -620,10 +665,11 @@ final class HealthKitManager {
                     await HealthObserverDelivery.process(
                         load: { [weak self] in
                             guard let self else { return nil }
-                            return try? await self.readToday()
+                            return try? await self.readToday(ownerID: ownerID)
                         },
                         consume: { [weak self] (snapshot: HealthSnapshot) in
-                            guard let self else { return }
+                            guard let self,
+                                  self.accountGeneration == monitorGeneration else { return }
                             self.lastSnapshot = snapshot
                             if let importHandler = self.importHandler {
                                 await importHandler(snapshot)
@@ -736,6 +782,7 @@ final class HealthKitManager {
     }
 
     func reconnectWaterAccess() async {
+        let requestGeneration = accountGeneration
         guard isAvailable,
               let type = HKQuantityType.quantityType(forIdentifier: .dietaryWater)
         else {
@@ -745,17 +792,20 @@ final class HealthKitManager {
         }
         do {
             try await store.requestAuthorization(toShare: [type], read: [type])
+            guard accountGeneration == requestGeneration else { return }
             refreshWaterWriteState()
             message = waterWriteState == .authorized
                 ? "Apple Health water sharing is connected."
                 : HealthWaterWriteError.denied.localizedDescription
         } catch {
+            guard accountGeneration == requestGeneration else { return }
             refreshWaterWriteState()
             message = error.localizedDescription
         }
     }
 
     func startWatchWorkout(_ kind: WatchWorkoutKind) async -> Bool {
+        let requestGeneration = accountGeneration
         guard isAvailable else {
             message = "Apple Watch workout handoff is unavailable."
             return false
@@ -786,6 +836,10 @@ final class HealthKitManager {
                 continuation.resume(returning: (started, error?.localizedDescription))
             }
         }
+        /* The caller needs to know whether the external launch happened even
+           when this manager's account generation was revoked meanwhile, so
+           it can send the owner-qualified compensating stop. */
+        guard accountGeneration == requestGeneration else { return result.started }
         if let error = result.error { message = error }
         return result.started
     }
@@ -882,7 +936,11 @@ final class HealthKitManager {
         }
     }
 
-    private func dietaryWaterTotals(start: Date, end: Date) async throws -> HealthWaterTotals {
+    private func dietaryWaterTotals(
+        start: Date,
+        end: Date,
+        ownerID: UUID
+    ) async throws -> HealthWaterTotals {
         guard let type = quantity(.dietaryWater) else {
             return HealthWaterTotals(total: nil, importableDrink: nil)
         }
@@ -891,7 +949,7 @@ final class HealthKitManager {
             end: end,
             options: [.strictStartDate]
         )
-        async let deletedSampleIDs = dietaryWaterDeletionIDs(type: type)
+        async let deletionChange = dietaryWaterDeletionChange(type: type, ownerID: ownerID)
         let samples: [HKQuantitySample] = try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(
                 sampleType: type,
@@ -904,12 +962,13 @@ final class HealthKitManager {
             }
             store.execute(query)
         }
-        let deleted = try await deletedSampleIDs
+        let deletion = try await deletionChange
         guard !samples.isEmpty else {
             return HealthWaterTotals(
                 total: 0,
                 importableDrink: 0,
-                deletedSampleIDs: deleted
+                deletedSampleIDs: deletion.ids,
+                deletionAnchorData: deletion.anchorData
             )
         }
 
@@ -958,13 +1017,19 @@ final class HealthKitManager {
             total: total,
             importableDrink: HydrationReconciliation.importableDrinkLiters(classified),
             samples: detailed,
-            deletedSampleIDs: deleted
+            deletedSampleIDs: deletion.ids,
+            deletionAnchorData: deletion.anchorData
         )
     }
 
-    private func dietaryWaterDeletionIDs(type: HKQuantityType) async throws -> Set<UUID> {
+    private func dietaryWaterDeletionChange(
+        type: HKQuantityType,
+        ownerID: UUID
+    ) async throws -> (ids: Set<UUID>, anchorData: Data?) {
         let defaults = UserDefaults.standard
-        let previousAnchor: HKQueryAnchor? = defaults.data(forKey: Self.dietaryWaterAnchorKey)
+        let previousAnchor: HKQueryAnchor? = defaults.data(
+            forKey: Self.dietaryWaterAnchorKey(ownerID: ownerID)
+        )
             .flatMap { try? NSKeyedUnarchiver.unarchivedObject(ofClass: HKQueryAnchor.self, from: $0) }
         let result: (ids: Set<UUID>, anchorData: Data?) = try await withCheckedThrowingContinuation { continuation in
             let query = HKAnchoredObjectQuery(
@@ -990,10 +1055,15 @@ final class HealthKitManager {
             }
             store.execute(query)
         }
-        if let anchorData = result.anchorData {
-            defaults.set(anchorData, forKey: Self.dietaryWaterAnchorKey)
-        }
-        return result.ids
+        return result
+    }
+
+    func commitDietaryWaterAnchor(_ data: Data, ownerID: UUID) {
+        UserDefaults.standard.set(data, forKey: Self.dietaryWaterAnchorKey(ownerID: ownerID))
+    }
+
+    private static func dietaryWaterAnchorKey(ownerID: UUID) -> String {
+        "\(dietaryWaterAnchorKeyPrefix).\(ownerID.uuidString.lowercased())"
     }
 
     private func authorizedWaterType() async throws -> HKQuantityType {

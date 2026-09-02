@@ -36,6 +36,28 @@ final class CustomWorkoutBuilderTests: XCTestCase {
         )
     }
 
+    func testBuilderCapturesTheAccountLeaseBeforeSaveAndGatesDismissal() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: root.appendingPathComponent("APEX/Features/Training/CustomWorkoutBuilder.swift")
+        )
+        let compact = source.filter { !$0.isWhitespace }
+
+        XCTAssertTrue(compact.contains(
+            "guardletoperation=session.accountOperationLease()else{return}Task{do{tryawaitsession.saveCustomWorkout("
+        ))
+        XCTAssertTrue(compact.contains("operation:operation"))
+        XCTAssertTrue(compact.contains(
+            "guardsession.accountOperationIsCurrent(operation)else{return}didSave=truedismiss()"
+        ))
+        XCTAssertTrue(compact.contains("catchisCancellationError{return}"))
+        XCTAssertTrue(compact.contains(
+            "catch{guardsession.accountOperationIsCurrent(operation)else{return}session.alertMessage=error.localizedDescription}"
+        ))
+    }
+
     func testCatalogueShipsEntireCanonicalLibraryInsideTheBundle() {
         XCTAssertEqual(ExerciseCatalog.all.count, 549)
         XCTAssertEqual(Set(ExerciseCatalog.all.map(\.id)).count, 549)

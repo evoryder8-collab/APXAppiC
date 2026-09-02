@@ -442,19 +442,19 @@ struct WorkoutDaySheet: View {
                         .foregroundStyle(APEXColor.cyan)
                     HStack(spacing: 8) {
                         stepButton("minus") {
-                            Task { await adjust(-0.25) }
+                            adjust(-0.25)
                         }
                         Text(String(format: "%.2f L", water))
                             .font(APEXFont.mono(13, weight: .bold))
                             .frame(minWidth: 62)
                         stepButton("plus") {
-                            Task { await adjust(0.25) }
+                            adjust(0.25)
                         }
                     }
                 }
                 Spacer(minLength: 0)
                 Button {
-                    Task { await session.toggleDeload(on: APEXDateMath.date(from: date) ?? .now) }
+                    toggleDeload()
                 } label: {
                     Text(language.text(isDeloadMarked ? "Deload day ✓" : "Mark deload"))
                         .font(APEXFont.body(12, weight: .bold))
@@ -485,8 +485,37 @@ struct WorkoutDaySheet: View {
         .buttonStyle(.plain)
     }
 
-    private func adjust(_ delta: Double) async {
-        guard let day = APEXDateMath.date(from: date) else { return }
-        await session.adjustWater(deltaLiters: delta, on: day)
+    private func adjust(_ delta: Double) {
+        guard let day = APEXDateMath.date(from: date),
+              let operation = session.accountOperationLease() else { return }
+        Task {
+            do {
+                _ = try await session.adjustWater(
+                    deltaLiters: delta,
+                    on: day,
+                    operation: operation
+                )
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func toggleDeload() {
+        guard let operation = session.accountOperationLease() else { return }
+        let day = APEXDateMath.date(from: date) ?? .now
+        Task {
+            do {
+                try await session.toggleDeload(on: day, operation: operation)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
+        }
     }
 }

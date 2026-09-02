@@ -263,11 +263,23 @@ final class HealthImportParityTests: XCTestCase {
         let player = try String(contentsOf: nativeRoot.appending(
             path: "APEX/Features/Training/TrainingProgramView.swift"
         ))
+        let compactSession = appSession.filter { !$0.isWhitespace }
+        let compactPlayer = player.filter { !$0.isWhitespace }
 
         XCTAssertTrue(appSession.contains("completionDate: String? = nil"))
-        XCTAssertTrue(appSession.contains("date: completionDate ?? Date().apexDateKey"))
+        XCTAssertTrue(appSession.contains(
+            "let completedDate = completionDate ?? Date().apexDateKey"
+        ))
+        XCTAssertGreaterThanOrEqual(
+            compactSession.components(separatedBy: "date:completedDate").count - 1,
+            2,
+            "both the workout receipt and its generated activity must use the viewed day"
+        )
+        XCTAssertTrue(compactSession.contains("isDeload(on:completedDate,"))
         XCTAssertTrue(appSession.contains("if wearableLinkRequest == .automatic,\n           let profile"))
-        XCTAssertTrue(player.contains("wearableLinkRequest: linkRequest,\n                completionDate: date"))
+        XCTAssertTrue(compactPlayer.contains(
+            "wearableLinkRequest:linkRequest,completionDate:date,operation:operation"
+        ))
     }
 
     func testDailyLogsMatchTheWeb() {
@@ -894,6 +906,529 @@ final class HealthImportParityTests: XCTestCase {
             activityTypeRaw: Int(HKWorkoutActivityType.running.rawValue),
             apexSessionID: apexSessionID
         )
+    }
+}
+
+final class HealthAccountBoundarySourceTests: XCTestCase {
+    private var nativeRoot: URL {
+        URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+    }
+
+    private func source(_ relativePath: String) throws -> String {
+        try String(contentsOf: nativeRoot.appending(path: relativePath))
+    }
+
+    private func compact(_ value: String) -> String {
+        value.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+    }
+
+    private func withoutWhitespace(_ value: String) -> String {
+        value.filter { !$0.isWhitespace }
+    }
+
+    func testHealthImportRequiresAnAccountScopedOptInAndOneLeaseAcrossEveryAwait() throws {
+        let rawSession = try source("APEX/App/AppSession.swift")
+        let session = compact(rawSession)
+        let unspacedSession = withoutWhitespace(rawSession)
+
+        XCTAssertTrue(session.contains("static func healthImportOptInKey(ownerID: UUID) -> String"))
+        XCTAssertTrue(session.contains("apex.health-import.opt-in."))
+        XCTAssertTrue(session.contains("func importHealthQuietly(operation: AccountOperationLease) async"))
+        XCTAssertTrue(session.contains("healthImportIsEnabled(operation: operation)"))
+        XCTAssertTrue(session.contains("func applyHealthSnapshot( _ snapshot: HealthSnapshot, operation: AccountOperationLease ) async"))
+        XCTAssertTrue(session.contains("private func importHealthWorkoutChanges( operation: AccountOperationLease ) async"))
+        XCTAssertTrue(session.contains("expectedAccountToken: operation.generation"))
+        XCTAssertTrue(unspacedSession.contains(
+            "startBackgroundMonitoring(ownerID:operation.ownerID){[weakself,operation]snapshotinawaitself?.applyHealthSnapshot(snapshot,operation:operation)"
+        ))
+        XCTAssertTrue(session.contains("HealthKitManager.shared.resetAccountBoundary()"))
+    }
+
+    func testDietaryWaterDeletionAnchorIsOwnerScopedAndCommittedAfterReconciliation() throws {
+        let manager = withoutWhitespace(try source("APEX/Features/Health/HealthKitManager.swift"))
+        let session = withoutWhitespace(try source("APEX/App/AppSession.swift"))
+
+        XCTAssertTrue(manager.contains("dietaryWaterAnchorKey(ownerID:UUID)"))
+        XCTAssertTrue(manager.contains("dietaryWaterDeletionChange(type:HKQuantityType,ownerID:UUID)"))
+        XCTAssertFalse(manager.contains("defaults.set(anchorData,forKey:Self.dietaryWaterAnchorKey"))
+        XCTAssertTrue(session.contains(
+            "awaitreconcileHealthHydration(snapshot,operation:operation)guardaccountOperationIsCurrent(operation)else{return}ifletanchorData=snapshot.hydrationDeletionAnchorData{HealthKitManager.shared.commitDietaryWaterAnchor(anchorData,ownerID:ownerID)}"
+        ))
+    }
+
+    func testEveryManualHealthImportCapturesTheLeaseBeforeStartingAsyncWork() throws {
+        let expected: [(path: String, call: String)] = [
+            ("APEX/Features/Settings/SettingsView.swift", "session.connectHealth(operation:operation)"),
+            ("APEX/Features/Portal/SimpleHomeView.swift", "session.connectHealth(operation:operation)"),
+            (
+                "APEX/Features/Avatar/BaselineCalibrationSheet.swift",
+                "session.connectHealthForBaselineCalibration(operation:operation)"
+            ),
+            ("APEX/Features/Onboarding/ConsentView.swift", "session.connectHealth(operation:operation)"),
+        ]
+
+        for contract in expected {
+            let body = withoutWhitespace(try source(contract.path))
+            let call = try XCTUnwrap(
+                body.range(of: contract.call),
+                "Missing account-bound Health action in \(contract.path)"
+            )
+            let lease = try XCTUnwrap(
+                body.range(
+                    of: "guardletoperation=session.accountOperationLease()else{return}",
+                    options: .backwards,
+                    range: body.startIndex..<call.lowerBound
+                ),
+                "Missing synchronously captured account lease in \(contract.path)"
+            )
+            let leaseOffset = body.distance(from: body.startIndex, to: lease.lowerBound)
+            let callOffset = body.distance(from: body.startIndex, to: call.lowerBound)
+            XCTAssertLessThan(
+                leaseOffset,
+                callOffset,
+                "The lease must be captured before async Health work is scheduled in \(contract.path)"
+            )
+            if lease.lowerBound < call.lowerBound {
+                XCTAssertTrue(
+                    body[lease.lowerBound..<call.lowerBound].contains("Task{"),
+                    "The already-captured lease must cross the Task boundary in \(contract.path)"
+                )
+            }
+            XCTAssertFalse(
+                body.contains("health.requestAccessAndImport()"),
+                "Views must not bypass the account-scoped session Health gateway in \(contract.path)"
+            )
+        }
+    }
+
+    func testWaterReconnectAndFoodWaterWritesRequireTheInitiatingAccountsConsent() throws {
+        let settings = withoutWhitespace(try source("APEX/Features/Settings/SettingsView.swift"))
+        let session = withoutWhitespace(try source("APEX/App/AppSession.swift"))
+
+        XCTAssertTrue(settings.contains(
+            "guardletoperation=session.accountOperationLease()else{return}Task{awaitsession.reconnectHealthWaterAccess(operation:operation)}"
+        ))
+        XCTAssertFalse(settings.contains("health.reconnectWaterAccess()"))
+        XCTAssertTrue(session.contains(
+            "funcreconnectHealthWaterAccess(operation:AccountOperationLease)async"
+        ))
+        XCTAssertTrue(session.contains("tryenableHealthImport(operation:operation)"))
+        XCTAssertTrue(session.contains("awaitHealthKitManager.shared.reconnectWaterAccess()"))
+        XCTAssertTrue(session.contains(
+            "ifhealthImportIsEnabled(operation:operation),HealthKitManager.shared.waterWriteState==.authorized"
+        ))
+    }
+
+    func testNotificationConsentCapturesItsOwnerBeforeSchedulingAndRejectsStaleUI() throws {
+        let consent = withoutWhitespace(try source("APEX/Features/Onboarding/ConsentView.swift"))
+        let request = try XCTUnwrap(
+            consent.range(of: "nudges.requestPermission(ownerID:operation.ownerID)")
+        )
+        let lease = try XCTUnwrap(
+            consent.range(
+                of: "guardletoperation=session.accountOperationLease()else{return}",
+                options: .backwards,
+                range: consent.startIndex..<request.lowerBound
+            )
+        )
+        let preflightGuard = try XCTUnwrap(
+            consent.range(
+                of: "guardsession.accountOperationIsCurrent(operation)else{return}",
+                options: .backwards,
+                range: lease.upperBound..<request.lowerBound
+            )
+        )
+        let staleGuard = try XCTUnwrap(
+            consent.range(
+                of: "guardsession.accountOperationIsCurrent(operation)else{return}",
+                range: request.upperBound..<consent.endIndex
+            )
+        )
+
+        XCTAssertLessThan(
+            consent.distance(from: consent.startIndex, to: lease.lowerBound),
+            consent.distance(from: consent.startIndex, to: request.lowerBound)
+        )
+        XCTAssertLessThan(
+            consent.distance(from: consent.startIndex, to: preflightGuard.lowerBound),
+            consent.distance(from: consent.startIndex, to: request.lowerBound)
+        )
+        XCTAssertGreaterThan(
+            consent.distance(from: consent.startIndex, to: staleGuard.lowerBound),
+            consent.distance(from: consent.startIndex, to: request.lowerBound)
+        )
+        XCTAssertFalse(consent.contains("session.profile?.userID"))
+    }
+
+    func testHealthAndWatchHydrationPersistenceUsesTheOriginalOperationLease() throws {
+        let session = withoutWhitespace(try source("APEX/App/AppSession.swift"))
+        let reconcileStart = try XCTUnwrap(session.range(of: "privatefuncreconcileHealthHydration"))
+        let reconcileEnd = try XCTUnwrap(
+            session.range(
+                of: "privatefunchydrationHealthSampleBelongsToOwner",
+                range: reconcileStart.upperBound..<session.endIndex
+            )
+        )
+        let reconcile = String(session[reconcileStart.lowerBound..<reconcileEnd.lowerBound])
+        let watchStart = try XCTUnwrap(
+            session.range(of: "privatefunchandleHydrationMutation(_mutation:HydrationCompanionMutation,operation:AccountOperationLease)")
+        )
+        let watchEnd = try XCTUnwrap(
+            session.range(
+                of: "funcapplyHealthSnapshot",
+                range: watchStart.upperBound..<session.endIndex
+            )
+        )
+        let watchMutation = String(session[watchStart.lowerBound..<watchEnd.lowerBound])
+
+        XCTAssertTrue(reconcile.contains(
+            "materializeLegacyHydrationIfNeeded(ownerID:ownerID,date:date,operation:operation)"
+        ))
+        XCTAssertFalse(reconcile.contains("materializeLegacyHydrationIfNeeded(ownerID:ownerID,date:date)"))
+        XCTAssertTrue(reconcile.contains(
+            "mirrorHydrationAggregate(ownerID:ownerID,on:date,operation:operation)"
+        ))
+        XCTAssertTrue(watchMutation.contains(
+            "mirrorHydrationAggregate(ownerID:ownerID,on:date,operation:operation)"
+        ))
+        XCTAssertTrue(watchMutation.contains(
+            "saveHydrationPreferences(preferences.accountRow(ownerID:ownerID,existing:data.hydrationPreferences),operation:operation)"
+        ))
+    }
+
+    func testWorkoutViewsKeepTheSameOwnerLeaseFromWatchStartThroughStop() throws {
+        let player = withoutWhitespace(try source("APEX/Features/Training/TrainingProgramView.swift"))
+
+        XCTAssertEqual(
+            player.components(separatedBy: "@StateprivatevarwatchWorkoutOperation:AccountOperationLease?").count - 1,
+            2,
+            "Both tracked and follow-along workout surfaces need their own view-lifetime lease"
+        )
+        XCTAssertEqual(
+            player.components(separatedBy: "@StateprivatevarwatchWorkoutStartTask:Task<Void,Never>?").count - 1,
+            2,
+            "Both workout surfaces must be able to cancel a Watch launch that is still awaiting handoff"
+        )
+        XCTAssertEqual(
+            player.components(separatedBy: "@StateprivatevarwatchWorkoutLaunchID:UUID?").count - 1,
+            2,
+            "Both workout surfaces must retain the exact Watch launch they started"
+        )
+        XCTAssertEqual(
+            player.components(separatedBy: "watchWorkoutOperation=operation").count - 1,
+            2,
+            "Each surface must retain the lease it captured before starting the Watch workout"
+        )
+        XCTAssertTrue(player.contains(
+            "session.startWatchWorkout(day:day,exercises:exercises,launchID:launchID,operation:operation)"
+        ))
+        XCTAssertTrue(player.contains(
+            "session.stopWatchWorkout(launchID:launchID,operation:operation)"
+        ))
+        XCTAssertGreaterThanOrEqual(
+            player.components(separatedBy: "watchWorkoutStartTask?.cancel()").count - 1,
+            4,
+            "Disappear and completion paths must cancel a launch before issuing stop"
+        )
+        XCTAssertFalse(player.contains("session.stopWatchWorkout()"))
+
+        let session = withoutWhitespace(try source("APEX/App/AppSession.swift"))
+        let start = try XCTUnwrap(session.range(of: "funcstartWatchWorkout("))
+        let end = try XCTUnwrap(
+            session.range(of: "funcstopWatchWorkout(", range: start.upperBound..<session.endIndex)
+        )
+        let handoff = String(session[start.lowerBound..<end.lowerBound])
+        XCTAssertTrue(handoff.contains(
+            "TrainingInduction.workoutOwnerID(in:data,day:day)==operation.ownerID"
+        ))
+        XCTAssertTrue(handoff.contains(
+            "exercises.allSatisfy({$0.userID==operation.ownerID&&$0.programDayID==day.id})"
+        ))
+        let launchCommand = try XCTUnwrap(
+            handoff.range(of: "letlaunchCommand=WatchWorkoutCommand.starting(ownerID:operation.ownerID,launchID:launchID)")
+        )
+        let healthStartCall = try XCTUnwrap(
+            handoff.range(of: "letstarted=awaitHealthKitManager.shared.startWatchWorkout(kind)")
+        )
+        let successfulHandoff = try XCTUnwrap(
+            handoff.range(of: "guardstartedelse{return}")
+        )
+        let commandSend = try XCTUnwrap(
+            handoff.range(of: "hydrationConnectivity.send(launchCommand)")
+        )
+        XCTAssertLessThan(launchCommand.lowerBound, healthStartCall.lowerBound)
+        XCTAssertGreaterThan(successfulHandoff.lowerBound, healthStartCall.lowerBound)
+        XCTAssertGreaterThan(commandSend.lowerBound, healthStartCall.lowerBound)
+        XCTAssertGreaterThan(commandSend.lowerBound, successfulHandoff.lowerBound)
+        XCTAssertTrue(handoff.contains("letstarted=awaitHealthKitManager.shared.startWatchWorkout(kind)"))
+        XCTAssertTrue(handoff.contains(
+            "stopWatchWorkout(launchID:launchID,operation:operation)"
+        ))
+
+        let health = withoutWhitespace(try source("APEX/Features/Health/HealthKitManager.swift"))
+        let healthStart = try XCTUnwrap(health.range(of: "funcstartWatchWorkout("))
+        let healthEnd = try XCTUnwrap(
+            health.range(of: "privatevarreadTypes", range: healthStart.upperBound..<health.endIndex)
+        )
+        let healthHandoff = String(health[healthStart.lowerBound..<healthEnd.lowerBound])
+        XCTAssertTrue(healthHandoff.contains(
+            "guardaccountGeneration==requestGenerationelse{returnresult.started}"
+        ))
+    }
+
+    func testWatchLaunchAcceptanceIsDurableAndLaunchSpecific() throws {
+        let watchApp = withoutWhitespace(try source("APEXWatch/APEXWaterWatchApp.swift"))
+        let watchStore = withoutWhitespace(try source("APEXWatch/WatchHydrationStore.swift"))
+
+        XCTAssertTrue(watchApp.contains(
+            "ch.apexperformance.APEX.watch.workout-launch-ledger.v1"
+        ))
+        XCTAssertTrue(watchApp.contains(
+            "JSONDecoder().decode(WatchWorkoutLaunchLedger.self,from:data)"
+        ))
+        XCTAssertTrue(watchApp.contains(
+            "awaitWatchWorkoutSessionController.shared.receive(workoutConfiguration)"
+        ))
+        XCTAssertTrue(watchApp.contains(
+            "funcreceive(_command:WatchWorkoutCommand)async"
+        ))
+        XCTAssertFalse(watchApp.contains(
+            "funcreceive(_command:WatchWorkoutCommand,activeOwnerID:UUID?)"
+        ))
+        XCTAssertTrue(watchApp.contains(
+            "launchLedger.permitsStart(launchID:intent.id,ownerID:intent.ownerID,activeOwnerID:activeOwnerID)"
+        ))
+        XCTAssertTrue(watchApp.contains("awaitstopSession(matching:launchID)"))
+        XCTAssertTrue(watchStore.contains(
+            "Task{@MainActor[weakself]inguardself!=nilelse{return}awaitWatchWorkoutSessionController.shared.receive(command)}"
+        ))
+        XCTAssertTrue(watchStore.contains("letdisconnectedOwnerID=activeOwnerID"))
+        XCTAssertTrue(watchStore.contains(
+            "WatchWorkoutSessionController.shared.updateActiveOwner(snapshot.ownerID,revision:snapshot.revision)"
+        ))
+        XCTAssertTrue(watchStore.contains(
+            "WatchWorkoutSessionController.shared.disconnect(ownerID:disconnectedOwnerID,revision:revision)"
+        ))
+        XCTAssertTrue(watchApp.contains(
+            "activeOwnerID=WatchWorkoutOwnerBoundary.ownerAfterDisconnect(activeOwnerID:activeOwnerID,disconnectedOwnerID:disconnectedOwnerID)"
+        ))
+        XCTAssertTrue(watchApp.contains(
+            "launchLedger.revoke(ownerID:oldOwnerID,revision:boundaryRevision)"
+        ))
+        XCTAssertFalse(watchStore.contains(
+            "guardself?.activeOwnerID==command.ownerID,command.action==.stop"
+        ))
+    }
+
+    func testCancelledWatchHydrationMutationIsNotAcknowledgedAndGetsOneOwnerScopedRetry() throws {
+        let session = withoutWhitespace(try source("APEX/App/AppSession.swift"))
+
+        XCTAssertTrue(session.contains("finishHydrationMutation(_mutation:HydrationCompanionMutation,markProcessed:Bool)"))
+        XCTAssertTrue(session.contains("guardmarkProcessedelse{return}"))
+        XCTAssertTrue(session.contains("guard!Task.isCancelled,mutation.belongs(to:operation.ownerID),accountOperationIsCurrent(operation)else{"))
+        XCTAssertTrue(session.contains("guard!Task.isCancelled,accountOperationIsCurrent(operation)else{return}publishHydrationState()markProcessed=true"))
+        XCTAssertTrue(session.contains("enqueueHydrationMutationRetry(mutation)"))
+        XCTAssertTrue(session.contains("retryPendingHydrationMutations(operation:operation)"))
+        XCTAssertTrue(session.contains("attempts<1"))
+        XCTAssertTrue(session.contains("mutation.ownerID==operation.ownerID"))
+    }
+}
+
+final class WatchWorkoutLaunchLedgerTests: XCTestCase {
+    private let ownerID = UUID(uuidString: "9a0b7ae1-d759-4c94-bcfd-1910bd10ddc0")!
+
+    func testStopBeforeStartDiscardsTheMatchingLateConfigurationAfterRelaunch() throws {
+        let launchID = UUID(uuidString: "23d75561-ef88-4f8f-8fe9-d6a8232334d3")!
+        var ledger = WatchWorkoutLaunchLedger()
+
+        XCTAssertEqual(
+            ledger.receive(.stopping(ownerID: ownerID, launchID: launchID)),
+            .none
+        )
+        let persisted = try JSONEncoder().encode(ledger)
+        ledger = try JSONDecoder().decode(WatchWorkoutLaunchLedger.self, from: persisted)
+        XCTAssertEqual(
+            ledger.receive(.starting(ownerID: ownerID, launchID: launchID)),
+            .none
+        )
+        XCTAssertEqual(
+            ledger.resolveNextConfiguration(activeOwnerID: ownerID),
+            .discard(launchID)
+        )
+        XCTAssertNil(ledger.active)
+    }
+
+    func testWrongOwnerStopCannotCancelAStartAwaitingAuthorization() {
+        let launchID = UUID(uuidString: "de5107fd-1124-4a2b-98ca-61e247b9a0d2")!
+        let otherOwnerID = UUID(uuidString: "a41d6198-d6a2-48cc-9c8b-4e0985dd284b")!
+        var ledger = WatchWorkoutLaunchLedger()
+
+        _ = ledger.receive(.starting(ownerID: ownerID, launchID: launchID))
+        guard case .start = ledger.resolveNextConfiguration(activeOwnerID: ownerID) else {
+            return XCTFail("The owner-qualified launch should be accepted")
+        }
+        XCTAssertEqual(
+            ledger.receive(.stopping(ownerID: otherOwnerID, launchID: launchID)),
+            .none
+        )
+        XCTAssertTrue(ledger.permitsStart(
+            launchID: launchID,
+            ownerID: ownerID,
+            activeOwnerID: ownerID
+        ))
+    }
+
+    func testDelayedDisconnectForOwnerADoesNotClearCanonicalOwnerB() {
+        let otherOwnerID = UUID(uuidString: "a41d6198-d6a2-48cc-9c8b-4e0985dd284b")!
+
+        XCTAssertEqual(
+            WatchWorkoutOwnerBoundary.ownerAfterDisconnect(
+                activeOwnerID: otherOwnerID,
+                disconnectedOwnerID: ownerID
+            ),
+            otherOwnerID
+        )
+        XCTAssertNil(WatchWorkoutOwnerBoundary.ownerAfterDisconnect(
+            activeOwnerID: ownerID,
+            disconnectedOwnerID: ownerID
+        ))
+    }
+
+    func testDelayedOldStopCannotEndANewerWorkoutForTheSameOwner() {
+        let oldID = UUID(uuidString: "914c9d89-c817-49db-b8b5-655d997757bd")!
+        let newID = UUID(uuidString: "3d542bbf-c860-47aa-8986-e4ad3076f799")!
+        var ledger = WatchWorkoutLaunchLedger()
+
+        _ = ledger.receive(.starting(ownerID: ownerID, launchID: oldID))
+        guard case .start(let oldIntent) = ledger.resolveNextConfiguration(activeOwnerID: ownerID) else {
+            return XCTFail("The first launch should start")
+        }
+        XCTAssertEqual(oldIntent.id, oldID)
+        XCTAssertEqual(
+            ledger.receive(.stopping(ownerID: ownerID, launchID: oldID)),
+            .stopActive(oldID)
+        )
+
+        _ = ledger.receive(.starting(ownerID: ownerID, launchID: newID))
+        guard case .start(let newIntent) = ledger.resolveNextConfiguration(activeOwnerID: ownerID) else {
+            return XCTFail("The newer launch should start")
+        }
+        XCTAssertEqual(newIntent.id, newID)
+        XCTAssertEqual(
+            ledger.receive(.stopping(ownerID: ownerID, launchID: oldID)),
+            .none
+        )
+        XCTAssertEqual(ledger.active?.id, newID)
+    }
+
+    func testDisconnectTombstoneSurvivesRelaunchAndRejectsAnOlderDelayedStart() throws {
+        let launchID = UUID(uuidString: "6e18e2ef-5595-40b2-a61e-2f7cf38f73b3")!
+        var ledger = WatchWorkoutLaunchLedger()
+        XCTAssertEqual(
+            ledger.disconnect(
+                ownerID: ownerID,
+                revision: "2026-09-02T07:05:00.000Z"
+            ),
+            .none
+        )
+
+        let persisted = try JSONEncoder().encode(ledger)
+        var restored = try JSONDecoder().decode(WatchWorkoutLaunchLedger.self, from: persisted)
+        _ = restored.receive(.starting(
+            ownerID: ownerID,
+            launchID: launchID,
+            createdAt: "2026-09-02T07:04:59.000Z"
+        ))
+
+        XCTAssertEqual(
+            restored.resolveNextConfiguration(activeOwnerID: ownerID),
+            .discard(launchID)
+        )
+        XCTAssertNil(restored.active)
+    }
+
+    func testAStartCreatedAfterReconnectCanRunForTheSameOwner() {
+        let launchID = UUID(uuidString: "7dd58d83-82f4-472f-b55b-c2dd8369611a")!
+        var ledger = WatchWorkoutLaunchLedger()
+        _ = ledger.disconnect(ownerID: ownerID, revision: "2026-09-02T07:05:00.000Z")
+        _ = ledger.receive(.starting(
+            ownerID: ownerID,
+            launchID: launchID,
+            createdAt: "2026-09-02T07:05:01.000Z"
+        ))
+
+        guard case .start(let intent) = ledger.resolveNextConfiguration(activeOwnerID: ownerID) else {
+            return XCTFail("A post-reconnect launch should start")
+        }
+        XCTAssertEqual(intent.id, launchID)
+        XCTAssertEqual(intent.ownerID, ownerID)
+    }
+
+    func testDisconnectStopsTheMatchingActiveLaunchButNotANewerOne() {
+        let oldID = UUID(uuidString: "b8ac5bea-a6ea-43c8-93d4-f4de12609b80")!
+        let newID = UUID(uuidString: "ef45752f-c567-46ae-a858-c57837827d79")!
+        var ledger = WatchWorkoutLaunchLedger()
+
+        _ = ledger.receive(.starting(
+            ownerID: ownerID,
+            launchID: oldID,
+            createdAt: "2026-09-02T07:04:59.000Z"
+        ))
+        _ = ledger.resolveNextConfiguration(activeOwnerID: ownerID)
+        XCTAssertEqual(
+            ledger.disconnect(ownerID: ownerID, revision: "2026-09-02T07:05:00.000Z"),
+            .stopActive(oldID)
+        )
+
+        _ = ledger.receive(.starting(
+            ownerID: ownerID,
+            launchID: newID,
+            createdAt: "2026-09-02T07:05:01.000Z"
+        ))
+        _ = ledger.resolveNextConfiguration(activeOwnerID: ownerID)
+        XCTAssertEqual(
+            ledger.disconnect(ownerID: ownerID, revision: "2026-09-02T07:05:00.000Z"),
+            .none
+        )
+        XCTAssertEqual(ledger.active?.id, newID)
+    }
+
+    func testCanonicalOwnerChangeRevokesOwnerAAndAllowsOwnerBToStart() {
+        let otherOwnerID = UUID(uuidString: "a41d6198-d6a2-48cc-9c8b-4e0985dd284b")!
+        let oldID = UUID(uuidString: "f49f77a1-a7db-4e24-8385-480f12c9a95c")!
+        let newID = UUID(uuidString: "09648237-2f21-4ff1-9e33-01ba51af7225")!
+        var ledger = WatchWorkoutLaunchLedger()
+
+        _ = ledger.receive(.starting(
+            ownerID: ownerID,
+            launchID: oldID,
+            createdAt: "2026-09-02T07:05:01.000Z"
+        ))
+        _ = ledger.resolveNextConfiguration(activeOwnerID: ownerID)
+        XCTAssertEqual(
+            ledger.revoke(ownerID: ownerID, revision: "2026-09-02T07:05:00.000Z"),
+            .stopActive(oldID),
+            "An accepted owner change revokes A even if A's launch timestamp is newer"
+        )
+
+        _ = ledger.receive(.starting(
+            ownerID: otherOwnerID,
+            launchID: newID,
+            createdAt: "2026-09-02T07:05:02.000Z"
+        ))
+        guard case .start(let intent) = ledger.resolveNextConfiguration(
+            activeOwnerID: otherOwnerID
+        ) else {
+            return XCTFail("Owner B must be able to start after A is revoked")
+        }
+        XCTAssertEqual(intent.id, newID)
+        XCTAssertEqual(
+            ledger.receive(.stopping(ownerID: ownerID, launchID: oldID)),
+            .none
+        )
+        XCTAssertEqual(ledger.active?.id, newID)
     }
 }
 

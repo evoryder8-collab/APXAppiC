@@ -206,20 +206,25 @@ final class EntitlementTests: XCTestCase {
         let scope = try XCTUnwrap(
             callback.range(of: "EntitlementStore.shared.prepareForAccount(userID)")
         )
+        let bindOwner = try XCTUnwrap(
+            callback.range(of: "authenticatedOwnerID = userID")
+        )
         let clear = try XCTUnwrap(callback.range(of: "data = .empty"))
         let refresh = try XCTUnwrap(
             callback.range(of: "try await refreshDashboard(expectedUserID: userID)")
         )
 
         XCTAssertLessThan(reset.lowerBound, authenticate.lowerBound)
-        XCTAssertLessThan(authenticate.lowerBound, scope.lowerBound)
+        XCTAssertLessThan(authenticate.lowerBound, bindOwner.lowerBound)
+        XCTAssertLessThan(bindOwner.lowerBound, scope.lowerBound)
         XCTAssertLessThan(scope.lowerBound, clear.lowerBound)
         XCTAssertLessThan(clear.lowerBound, refresh.lowerBound)
         XCTAssertTrue(callback.contains("var switchedAccounts = false"))
         XCTAssertTrue(callback.contains("switchedAccounts = true"))
         XCTAssertTrue(callback.contains("if !switchedAccounts {"))
         XCTAssertTrue(callback.contains("await resolveEntitlements()"))
-        XCTAssertTrue(callback.contains("if route == .portal { await startRealtimeSync() }"))
+        XCTAssertTrue(callback.contains("if route == .portal, let operation = accountOperationLease()"))
+        XCTAssertTrue(callback.contains("await startRealtimeSync(operation: operation)"))
     }
 
     func testAccountGenerationRejectsACompletionFromBeforeAnAuthBoundary() {
@@ -235,6 +240,164 @@ final class EntitlementTests: XCTestCase {
         XCTAssertFalse(generation.accepts(accountA))
         XCTAssertFalse(generation.accepts(capturedDuringTransition))
         XCTAssertTrue(generation.accepts(generation.token))
+    }
+
+    @MainActor
+    func testAccountBoundaryImmediatelyClearsPublishedPrivateAccountState() {
+        let session = AppSession()
+        session.data = APEXDebugFixture.dashboard()
+        session.brainSynergies = [
+            FBSynergyEvent(
+                date: "2026-09-02",
+                kind: .proteinStrength,
+                label: "private account A signal"
+            )
+        ]
+        session.navigationPath = [.settings]
+        session.greetingPersona = .constantine
+        session.awaitingConfirmationFor = "private@example.com"
+        session.alertMessage = "private account A message"
+
+        session.beginAccountBoundary()
+
+        XCTAssertNil(session.data.profile)
+        XCTAssertNil(session.data.settings)
+        XCTAssertTrue(session.data.snapshots.isEmpty)
+        XCTAssertTrue(session.brainSynergies.isEmpty)
+        XCTAssertTrue(session.navigationPath.isEmpty)
+        XCTAssertNil(session.greetingPersona)
+        XCTAssertNil(session.awaitingConfirmationFor)
+        XCTAssertNil(session.alertMessage)
+    }
+
+    @MainActor
+    func testProfilelessDashboardCannotRetainPriorAccountsBrainSynergies() {
+        let session = AppSession()
+        session.brainSynergies = [
+            FBSynergyEvent(
+                date: "2026-09-02",
+                kind: .hydrationEndurance,
+                label: "private account A signal"
+            )
+        ]
+
+        session.data = .empty
+
+        XCTAssertTrue(session.brainSynergies.isEmpty)
+    }
+
+    @MainActor
+    func testOwnedOperationLeaseExpiresAtTheAccountBoundary() throws {
+        let ownerID = UUID()
+        let session = AppSession()
+        session.data = APEXDebugFixture.dashboard(userID: ownerID)
+        let operation = try XCTUnwrap(session.accountOperationLease())
+
+        XCTAssertTrue(session.accountOperationIsCurrent(operation))
+        session.beginAccountBoundary()
+        XCTAssertFalse(
+            session.accountOperationIsCurrent(operation),
+            "work queued by account A must already be invalid before it can enter an async mutation under B"
+        )
+    }
+
+    @MainActor
+    func testAccountBoundarySynchronouslyResetsEntitlementOwnership() {
+        let ownerID = UUID()
+        EntitlementStore.shared.prepareForAccount(ownerID)
+        XCTAssertEqual(EntitlementStore.shared.resolvedUserID, ownerID)
+
+        AppSession().beginAccountBoundary()
+
+        XCTAssertNil(EntitlementStore.shared.resolvedUserID)
+        XCTAssertEqual(EntitlementStore.shared.access, .locked)
+    }
+
+    func testGuardedPersistenceCannotPublishNestedFailureAcrossAnAccountBoundary() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift"))
+        let start = try XCTUnwrap(source.range(of: "private func persistUpsert"))
+        let end = try XCTUnwrap(source.range(of: "private func persistDelete", range: start.upperBound..<source.endIndex))
+        let persistence = String(source[start.lowerBound..<end.lowerBound])
+        let nestedCatch = try XCTUnwrap(persistence.range(of: "            } catch {", options: .backwards))
+        let failureTail = String(persistence[nestedCatch.lowerBound...])
+
+        XCTAssertTrue(
+            failureTail.contains("guard accountGeneration.accepts(expectedAccountToken)")
+                && failureTail.contains("verifiedPersistenceOwnerID(ownerID) == persistenceOwnerID"),
+            "an offline-store failure must not alert whichever account became active while it was suspended"
+        )
+    }
+
+    func testBetaRedemptionIsBoundToTheInitiatingAuthenticatedAccount() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let store = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Core/Engine/EntitlementStore.swift")
+        )
+        let session = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let paywall = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Settings/PaywallView.swift")
+        )
+
+        let storeStart = try XCTUnwrap(store.range(of: "func redeemBeta("))
+        let storeEnd = try XCTUnwrap(
+            store.range(of: "private func hash", range: storeStart.upperBound..<store.endIndex)
+        )
+        let redemption = String(store[storeStart.lowerBound..<storeEnd.lowerBound])
+        XCTAssertTrue(
+            redemption.contains(") async throws -> RedeemOutcome"),
+            "beta redemption must be able to propagate account-bound cancellation"
+        )
+        let expectedOwner = try XCTUnwrap(redemption.range(of: "expectedUserID: UUID"))
+        let localOwner = try XCTUnwrap(redemption.range(of: "resolvedUserID == expectedUserID"))
+        let authOwner = try XCTUnwrap(redemption.range(of: "service.currentUserID()"))
+        let rpc = try XCTUnwrap(redemption.range(of: "service.redeemBetaCode"))
+        let postflight = try XCTUnwrap(
+            redemption.range(of: "service.currentUserID()", range: rpc.upperBound..<redemption.endIndex)
+        )
+        XCTAssertLessThan(expectedOwner.lowerBound, localOwner.lowerBound)
+        XCTAssertLessThan(localOwner.lowerBound, authOwner.lowerBound)
+        XCTAssertLessThan(authOwner.lowerBound, rpc.lowerBound)
+        XCTAssertLessThan(rpc.lowerBound, postflight.lowerBound)
+        let cancellation = try XCTUnwrap(redemption.range(of: "catch is CancellationError"))
+        let genericFailure = try XCTUnwrap(
+            redemption.range(of: "catch {", range: cancellation.upperBound..<redemption.endIndex)
+        )
+        XCTAssertLessThan(cancellation.lowerBound, genericFailure.lowerBound)
+        XCTAssertTrue(
+            redemption[cancellation.lowerBound..<genericFailure.lowerBound].contains("throw CancellationError()"),
+            "task cancellation must not be translated into an unavailable beta-code outcome"
+        )
+
+        let sessionStart = try XCTUnwrap(session.range(of: "func redeemBetaAccess("))
+        let sessionEnd = try XCTUnwrap(
+            session.range(of: "func loadCoachRoster", range: sessionStart.upperBound..<session.endIndex)
+        )
+        let guardedRedemption = String(session[sessionStart.lowerBound..<sessionEnd.lowerBound])
+        XCTAssertTrue(guardedRedemption.contains("operation: AccountOperationLease"))
+        XCTAssertGreaterThanOrEqual(
+            guardedRedemption.components(separatedBy: "try requireCurrentAccountOperation(operation)").count - 1,
+            2
+        )
+        XCTAssertTrue(guardedRedemption.contains("expectedUserID: operation.ownerID"))
+
+        let capture = try XCTUnwrap(
+            paywall.range(of: "guard let operation = session.accountOperationLease() else")
+        )
+        let task = try XCTUnwrap(
+            paywall.range(of: "Task { await submitCode(operation: operation) }")
+        )
+        XCTAssertLessThan(capture.lowerBound, task.lowerBound)
+        XCTAssertTrue(paywall.contains("session.redeemBetaAccess(code: code, operation: operation)"))
+        XCTAssertTrue(paywall.contains("refreshDashboard(expectedUserID: operation.ownerID)"))
+        XCTAssertTrue(paywall.contains("catch is CancellationError"))
+        XCTAssertTrue(paywall.contains("session.accountOperationIsCurrent(operation)"))
     }
 
     func testRefreshAndInductionMutationsCheckTheAccountGeneration() throws {
@@ -270,17 +433,179 @@ final class EntitlementTests: XCTestCase {
         XCTAssertTrue(refresh.contains("TrainingInduction.isCompatibleDashboard(next, userID: currentUserID)"))
 
         let mutations = [
-            (try body("private func submitInduction", before: "/// Deterministic authenticated first-run"), 6),
-            (try body("func installInductionPlan", before: "private func applyInductionPlan"), 8),
-            (try body("func restoreOriginalProgramme", before: "/// Store a rewritten predefined list"), 2),
+            try body("private func submitInduction", before: "/// Deterministic authenticated first-run"),
+            try body("func installInductionPlan", before: "private func applyInductionPlan"),
+            try body("func restoreOriginalProgramme", before: "/// Store a rewritten predefined list"),
         ]
-        for (mutation, minimumChecks) in mutations {
-            XCTAssertTrue(mutation.contains("let accountToken = accountGeneration.token"))
+        for mutation in mutations {
+            XCTAssertTrue(mutation.contains("operation: AccountOperationLease"))
             XCTAssertGreaterThanOrEqual(
-                mutation.components(separatedBy: "guard accountGeneration.accepts(accountToken) else { return }").count - 1,
-                minimumChecks
+                mutation.components(separatedBy: "requireCurrentAccountOperation(operation)").count - 1
+                    + mutation.components(separatedBy: "accountOperationIsCurrent(operation)").count - 1,
+                2
             )
+            XCTAssertFalse(mutation.contains("let accountToken = accountGeneration.token"))
         }
+    }
+
+    func testDelayedFitnessPlanIntroductionCannotPersistIntoAnotherAccount() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Portal/PortalHomeView.swift")
+        )
+        let start = try XCTUnwrap(source.range(of: "private func beginIntroductionReveal()"))
+        let end = try XCTUnwrap(
+            source.range(of: "private func cancelReveal()", range: start.upperBound..<source.endIndex)
+        )
+        let reveal = String(source[start.lowerBound..<end.lowerBound])
+
+        let lease = try XCTUnwrap(reveal.range(of: "session.accountOperationLease()"))
+        let task = try XCTUnwrap(reveal.range(of: "revealTask = Task"))
+        XCTAssertLessThan(lease.lowerBound, task.lowerBound)
+        XCTAssertGreaterThanOrEqual(
+            reveal.components(separatedBy: "session.accountOperationIsCurrent(operation)").count - 1,
+            2
+        )
+        XCTAssertTrue(reveal.contains("operation: operation"))
+    }
+
+    func testWeeklyCalibrationCannotPublishAfterItsAccountExpires() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let start = try XCTUnwrap(source.range(of: "private func considerWeeklyCalibration("))
+        let end = try XCTUnwrap(
+            source.range(of: "func refreshFailedSyncOperations", range: start.upperBound..<source.endIndex)
+        )
+        let calibration = String(source[start.lowerBound..<end.lowerBound])
+
+        XCTAssertTrue(calibration.contains("operation: AccountOperationLease"))
+        XCTAssertTrue(calibration.contains("profile.userID == operation.ownerID"))
+        XCTAssertGreaterThanOrEqual(
+            calibration.components(separatedBy: "requireCurrentAccountOperation(operation)").count - 1,
+            3
+        )
+        XCTAssertTrue(calibration.contains("ownerID: operation.ownerID"))
+        XCTAssertTrue(calibration.contains("expectedAccountToken: operation.generation"))
+    }
+
+    func testPersistenceHelpersSnapshotTheVerifiedOwnerBeforeSuspending() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        func body(_ start: String, before end: String) throws -> String {
+            let lower = try XCTUnwrap(source.range(of: start))
+            let upper = try XCTUnwrap(
+                source.range(of: end, range: lower.upperBound..<source.endIndex)
+            )
+            return String(source[lower.lowerBound..<upper.lowerBound])
+        }
+
+        let upsert = try body("private func persistUpsert", before: "private func persistDelete")
+        let delete = try body("private func persistDelete", before: "private func saveLocalSnapshot(operation:")
+        for helper in [upsert, delete] {
+            XCTAssertTrue(helper.contains("if let persistenceOwnerID"))
+            XCTAssertTrue(helper.contains("let snapshot = data"))
+            XCTAssertTrue(helper.contains("offlineStore.saveDashboard(snapshot, for: persistenceOwnerID)"))
+            XCTAssertFalse(helper.contains("await saveLocalSnapshot()"))
+        }
+    }
+
+    func testRealtimeCallbacksRetainTheAccountThatOpenedTheirChannel() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let start = try XCTUnwrap(source.range(of: "private func startRealtimeSync("))
+        let end = try XCTUnwrap(
+            source.range(of: "func refreshExternalWorkouts", range: start.upperBound..<source.endIndex)
+        )
+        let realtime = String(source[start.lowerBound..<end.lowerBound])
+        XCTAssertTrue(realtime.contains("scheduleRealtimeRefresh(operation: operation)"))
+        XCTAssertTrue(realtime.contains("accountOperationIsCurrent(operation)"))
+        XCTAssertTrue(realtime.contains("refreshDashboard(expectedUserID: operation.ownerID)"))
+        XCTAssertFalse(realtime.contains("await self?.refresh()"))
+    }
+
+    func testPersonaMismatchRevokesTheAuthenticatedOwnerBeforePublishingItsError() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let start = try XCTUnwrap(source.range(of: "func signIn(email:"))
+        let end = try XCTUnwrap(
+            source.range(of: "func signUp(email:", range: start.upperBound..<source.endIndex)
+        )
+        let signIn = String(source[start.lowerBound..<end.lowerBound])
+        let mismatch = try XCTUnwrap(signIn.range(of: "APEXServiceError.personaMismatch"))
+        let prefix = String(signIn[..<mismatch.lowerBound])
+        XCTAssertTrue(prefix.contains("accountToken = beginAccountBoundary()"))
+    }
+
+    func testAuthCallbackCannotExposeWritableInductionBeforeDashboardOwnershipIsProven() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let start = try XCTUnwrap(source.range(of: "func handleAuthCallback("))
+        let end = try XCTUnwrap(
+            source.range(of: "func toggleMeal(", range: start.upperBound..<source.endIndex)
+        )
+        let callback = String(source[start.lowerBound..<end.lowerBound])
+        let stopRealtime = try XCTUnwrap(callback.range(of: "await service.stopRealtime()"))
+        let loading = try XCTUnwrap(callback.range(of: "route = .launching"))
+        let refresh = try XCTUnwrap(
+            callback.range(of: "try await refreshDashboard(expectedUserID: userID)")
+        )
+        XCTAssertLessThan(loading.lowerBound, stopRealtime.lowerBound)
+        XCTAssertLessThan(loading.lowerBound, refresh.lowerBound)
+        XCTAssertTrue(callback.contains("offlineStore.loadDashboard(for: userID)"))
+        XCTAssertTrue(callback.contains("TrainingInduction.belongsToAccount(cached, userID: userID)"))
+        XCTAssertTrue(callback.contains("try? await service.signOut()"))
+        XCTAssertTrue(callback.contains("accountToken = beginAccountBoundary()"))
+        XCTAssertTrue(callback.contains("route = .welcome"))
+    }
+
+    func testAuthCallbackRefreshFailureRevalidatesAndReactivatesAnOwnedCache() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let start = try XCTUnwrap(source.range(of: "func handleAuthCallback("))
+        let end = try XCTUnwrap(
+            source.range(of: "func toggleMeal(", range: start.upperBound..<source.endIndex)
+        )
+        let callback = String(source[start.lowerBound..<end.lowerBound])
+
+        let recovery = try XCTUnwrap(callback.range(of: "else if switchedAccounts,"))
+        let recoveryBody = String(callback[recovery.lowerBound...])
+        let revalidate = try XCTUnwrap(recoveryBody.range(of: "await service.currentUserID()"))
+        let coach = try XCTUnwrap(recoveryBody.range(of: "await refreshCoachContext(expectedUserID: ownerID)"))
+        let entitlements = try XCTUnwrap(recoveryBody.range(of: "await resolveEntitlements()"))
+        let realtime = try XCTUnwrap(recoveryBody.range(of: "await startRealtimeSync(operation: operation)"))
+
+        XCTAssertLessThan(revalidate.lowerBound, coach.lowerBound)
+        XCTAssertLessThan(coach.lowerBound, entitlements.lowerBound)
+        XCTAssertLessThan(entitlements.lowerBound, realtime.lowerBound)
+        XCTAssertTrue(recoveryBody.contains("currentUserID == ownerID"))
+        XCTAssertTrue(recoveryBody.contains("TrainingInduction.belongsToAccount(data, userID: ownerID)"))
+        XCTAssertTrue(recoveryBody.contains("accountOperationLease()"))
     }
 
 }

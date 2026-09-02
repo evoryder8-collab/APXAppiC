@@ -1,5 +1,31 @@
 import SwiftUI
 
+struct FoodSearchRequest: Sendable {
+    fileprivate let generation: UInt64
+}
+
+@MainActor
+final class FoodSearchRequestGate {
+    private var generation: UInt64 = 0
+
+    func begin() -> FoodSearchRequest {
+        generation &+= 1
+        return FoodSearchRequest(generation: generation)
+    }
+
+    func clear() {
+        generation &+= 1
+    }
+
+    func canPublish(_ request: FoodSearchRequest, taskIsCancelled: Bool) -> Bool {
+        taskIsCancelled == false && request.generation == generation
+    }
+
+    func isCurrent(_ request: FoodSearchRequest) -> Bool {
+        request.generation == generation
+    }
+}
+
 struct FoodMemorySearchBar: View {
     @Binding var query: String
     @FocusState.Binding var isFocused: Bool
@@ -51,6 +77,8 @@ struct FoodSearchSheet: View {
     @State private var selectedFood: Food?
     @State private var isSearching = false
     @State private var message: String?
+    @State private var searchTask: Task<Void, Never>?
+    @State private var searchGate = FoodSearchRequestGate()
     @FocusState private var searchFocused: Bool
 
     private var localFoods: [Food] {
@@ -151,15 +179,12 @@ struct FoodSearchSheet: View {
                     query: $query,
                     isFocused: $searchFocused,
                     placeholder: language.text("Search foods and brands"),
-                    onSearch: { Task { await search() } }
+                    onSearch: { beginSearch() }
                 )
             }
-            .onChange(of: query) { _, value in
-                if value.isEmpty {
-                    remoteResults = []
-                    message = nil
-                }
-            }
+            .onChange(of: query) { _, _ in clearSearch() }
+            .onChange(of: session.profile?.userID) { _, _ in clearSearch() }
+            .onDisappear { cancelSearch() }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(language.text("Done")) { dismiss() }
@@ -202,19 +227,67 @@ struct FoodSearchSheet: View {
         }
     }
 
-    @MainActor
-    private func search() async {
+    private func beginSearch() {
         let cleaned = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard cleaned.count >= 2 else { return }
+        guard cleaned.count >= 2 else {
+            clearSearch()
+            return
+        }
+        guard let operation = session.accountOperationLease() else {
+            clearSearch()
+            return
+        }
+        searchTask?.cancel()
+        let request = searchGate.begin()
+        remoteResults = []
         isSearching = true
         message = nil
-        defer { isSearching = false }
+        searchTask = Task { @MainActor in
+            await search(query: cleaned, request: request, operation: operation)
+        }
+    }
+
+    private func clearSearch() {
+        searchTask?.cancel()
+        searchTask = nil
+        searchGate.clear()
+        remoteResults = []
+        isSearching = false
+        message = nil
+    }
+
+    private func cancelSearch() {
+        searchTask?.cancel()
+        searchTask = nil
+        searchGate.clear()
+    }
+
+    @MainActor
+    private func search(
+        query: String,
+        request: FoodSearchRequest,
+        operation: AccountOperationLease
+    ) async {
         do {
-            remoteResults = try await session.searchFoods(query: cleaned)
+            let results = try await session.searchFoods(query: query, operation: operation)
+            guard session.accountOperationIsCurrent(operation),
+                  searchGate.canPublish(request, taskIsCancelled: Task.isCancelled) else { return }
+            remoteResults = results
             if remoteResults.isEmpty { message = "No reliable nutrition match was returned." }
+            isSearching = false
+            searchTask = nil
+        } catch is CancellationError {
+            guard session.accountOperationIsCurrent(operation),
+                  searchGate.isCurrent(request) else { return }
+            isSearching = false
+            searchTask = nil
         } catch {
+            guard session.accountOperationIsCurrent(operation),
+                  searchGate.canPublish(request, taskIsCancelled: Task.isCancelled) else { return }
             remoteResults = []
             message = "Online search is unavailable. Your saved Food Memory remains usable."
+            isSearching = false
+            searchTask = nil
         }
     }
 }
@@ -330,7 +403,8 @@ struct FoodPortionSheet: View {
                     }
 
                     Button {
-                        Task { await save() }
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task { await save(operation: operation) }
                     } label: {
                         if isSaving { ProgressView().tint(.white) }
                         else { Label(language.text("Log food"), systemImage: "checkmark.circle.fill") }
@@ -378,18 +452,34 @@ struct FoodPortionSheet: View {
     }
 
     @MainActor
-    private func save() async {
+    private func save(operation: AccountOperationLease) async {
         isSaving = true
-        defer { isSaving = false }
+        defer {
+            if session.accountOperationIsCurrent(operation) {
+                isSaving = false
+            }
+        }
         if let onAdd {
+            guard session.accountOperationIsCurrent(operation) else { return }
             onAdd(food, amount, unit)
             dismiss()
             return
         }
         do {
-            try await session.logFood(food, amount: amount, unit: unit, mealSlot: mealSlot, date: date)
+            try await session.logFood(
+                food,
+                amount: amount,
+                unit: unit,
+                mealSlot: mealSlot,
+                date: date,
+                operation: operation
+            )
+            guard session.accountOperationIsCurrent(operation) else { return }
             dismiss()
+        } catch is CancellationError {
+            return
         } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
             errorMessage = error.localizedDescription
         }
     }

@@ -127,7 +127,10 @@ struct LiveRunView: View {
 
                     HStack(spacing: 18) {
                         if location.state == .idle || location.state == .finished {
-                            Button { location.beginCountdown() } label: {
+                            Button {
+                                guard let operation = session.accountOperationLease() else { return }
+                                location.beginCountdown(for: operation.ownerID)
+                            } label: {
                                 Image(systemName: "play.fill")
                                     .font(.system(size: 29, weight: .bold))
                                     .frame(width: 78, height: 78)
@@ -182,30 +185,33 @@ struct LiveRunView: View {
         }
         .confirmationDialog("Finish this run?", isPresented: $showFinish, titleVisibility: .visible) {
             Button(language.text("Finish and save")) {
-                let endedAt = Date()
-                let startedAt = location.startedAt ?? endedAt
-                location.finish()
-                let samples = location.samples
-                let distanceM = location.distanceM
-                let movingSeconds = location.movingSeconds
-                let pauses = location.pauseIntervals
-                let manualLaps = location.manualLapsM
-                let routeID = activeRoute?.id
+                guard let operation = session.accountOperationLease(),
+                      let completion = location.finish(for: operation.ownerID) else { return }
                 Task {
-                    let run = await session.saveOrbitRun(
-                        mission: effectiveMission.lowercased().replacingOccurrences(of: " ", with: "_"),
-                        startedAt: startedAt, endedAt: endedAt,
-                        samples: samples, distanceM: distanceM,
-                        movingSeconds: movingSeconds,
-                        pauses: pauses,
-                        manualLapsM: manualLaps,
-                        routeID: routeID,
-                        campaignSessionID: location.draftCampaignSessionID ?? campaignSessionID,
-                        shoeID: location.draftShoeID ?? selectedShoeID
-                    )
-                    if let run {
-                        location.clearCompletedRun()
-                        debriefRun = run
+                    do {
+                        let run = try await session.saveOrbitRun(
+                            ownerID: completion.ownerID,
+                            mission: effectiveMission.lowercased().replacingOccurrences(of: " ", with: "_"),
+                            startedAt: completion.startedAt, endedAt: completion.endedAt,
+                            samples: completion.samples, distanceM: completion.distanceM,
+                            movingSeconds: completion.movingSeconds,
+                            pauses: completion.pauses,
+                            manualLapsM: completion.manualLapsM,
+                            routeID: completion.routeID ?? activeRoute?.id,
+                            campaignSessionID: completion.campaignSessionID ?? campaignSessionID,
+                            shoeID: completion.shoeID ?? selectedShoeID,
+                            operation: operation
+                        )
+                        guard session.accountOperationIsCurrent(operation) else { return }
+                        if let run {
+                            location.clearCompletedRun()
+                            debriefRun = run
+                        }
+                    } catch is CancellationError {
+                        return
+                    } catch {
+                        guard session.accountOperationIsCurrent(operation) else { return }
+                        session.alertMessage = error.localizedDescription
                     }
                 }
             }

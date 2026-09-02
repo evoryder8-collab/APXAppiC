@@ -243,7 +243,18 @@ struct TrainingCalendarView: View {
         .contextMenu {
             if inMonth {
                 Button(isDeloadMarked(key) ? language.text("Clear deload") : language.text("Mark deload")) {
-                    Task { await session.toggleDeload(on: APEXDateMath.date(from: key) ?? .now) }
+                    guard let operation = session.accountOperationLease() else { return }
+                    let date = APEXDateMath.date(from: key) ?? .now
+                    Task {
+                        do {
+                            try await session.toggleDeload(on: date, operation: operation)
+                        } catch is CancellationError {
+                            return
+                        } catch {
+                            guard session.accountOperationIsCurrent(operation) else { return }
+                            session.alertMessage = error.localizedDescription
+                        }
+                    }
                 }
             }
         }

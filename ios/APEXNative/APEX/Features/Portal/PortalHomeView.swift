@@ -275,11 +275,13 @@ private struct FitnessPlanDisclosure: View {
 
     private func beginIntroductionReveal() {
         guard state.expanded, state.showsIntroduction else { return }
+        guard let operation = session.accountOperationLease() else { return }
         revealTask = Task { @MainActor in
             if !reduceMotion {
                 try? await Task.sleep(for: .milliseconds(360))
             }
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled,
+                  session.accountOperationIsCurrent(operation) else { return }
             withAnimation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.38, dampingFraction: 0.82)) {
                 _ = state.recordIntroductionPresented(for: .transition)
             }
@@ -287,14 +289,15 @@ private struct FitnessPlanDisclosure: View {
             if !reduceMotion {
                 try? await Task.sleep(for: .milliseconds(120))
             }
-            guard !Task.isCancelled else { return }
+            guard !Task.isCancelled,
+                  session.accountOperationIsCurrent(operation) else { return }
             let shouldPersist = withAnimation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.38, dampingFraction: 0.82)) {
                 state.recordIntroductionPresented(for: .main)
             }
             if shouldPersist {
-                await session.updateSettings { settings in
+                try? await session.updateSettings({ settings in
                     settings.addons["fitness_plan_intro_seen"] = .bool(true)
-                }
+                }, operation: operation)
             }
         }
     }

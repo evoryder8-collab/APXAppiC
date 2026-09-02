@@ -170,7 +170,10 @@ struct RunDebriefView: View {
                                 .font(APEXFont.body(11, weight: .medium))
                                 .foregroundStyle(APEXColor.secondaryInk)
                             if nutritionAdjustment.kcal > 0 {
-                                Button { Task { await applyNutrition() } } label: {
+                                Button {
+                                    guard let operation = session.accountOperationLease() else { return }
+                                    Task { await applyNutrition(operation: operation) }
+                                } label: {
                                     if isApplyingNutrition { ProgressView().tint(.white) }
                                     else {
                                         Label(
@@ -282,7 +285,10 @@ struct RunDebriefView: View {
                                     .foregroundStyle(APEXColor.secondaryInk)
                             }
 
-                            Button { Task { await saveAndFinish() } } label: {
+                            Button {
+                                guard let operation = session.accountOperationLease() else { return }
+                                Task { await saveAndFinish(operation: operation) }
+                            } label: {
                                 if isSaving { ProgressView().tint(.white) }
                                 else { Label(language.text("Save debrief"), systemImage: "checkmark") }
                             }
@@ -512,27 +518,58 @@ struct RunDebriefView: View {
     }
 
     @MainActor
-    private func saveAndFinish() async {
+    private func saveAndFinish(operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
         isSaving = true
-        _ = await session.updateOrbitRunCheckIn(
-            run,
-            perceivedEffort: perceivedEffort,
-            legs: legs,
-            discomfort: discomfort,
-            note: note
-        )
-        isSaving = false
-        UINotificationFeedbackGenerator().notificationOccurred(.success)
-        onDone()
+        defer {
+            if session.accountOperationIsCurrent(operation) {
+                isSaving = false
+            }
+        }
+        do {
+            _ = try await session.updateOrbitRunCheckIn(
+                run,
+                perceivedEffort: perceivedEffort,
+                legs: legs,
+                discomfort: discomfort,
+                note: note,
+                operation: operation
+            )
+            guard session.accountOperationIsCurrent(operation) else { return }
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            onDone()
+        } catch is CancellationError {
+            return
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
+            session.alertMessage = error.localizedDescription
+        }
     }
 
     @MainActor
-    private func applyNutrition() async {
+    private func applyNutrition(operation: AccountOperationLease) async {
         guard nutritionApplied == false else { return }
+        guard session.accountOperationIsCurrent(operation) else { return }
         isApplyingNutrition = true
-        let updated = await session.applyOrbitNutritionAdjustment(to: run, foodSuggestion: foodSuggestion)
-        nutritionApplied = updated.nutritionAdjustmentAppliedAt != nil
-        isApplyingNutrition = false
-        if nutritionApplied { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+        defer {
+            if session.accountOperationIsCurrent(operation) {
+                isApplyingNutrition = false
+            }
+        }
+        do {
+            let updated = try await session.applyOrbitNutritionAdjustment(
+                to: run,
+                foodSuggestion: foodSuggestion,
+                operation: operation
+            )
+            guard session.accountOperationIsCurrent(operation) else { return }
+            nutritionApplied = updated.nutritionAdjustmentAppliedAt != nil
+            if nutritionApplied { UINotificationFeedbackGenerator().notificationOccurred(.success) }
+        } catch is CancellationError {
+            return
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
+            session.alertMessage = error.localizedDescription
+        }
     }
 }

@@ -551,7 +551,21 @@ struct MealComposerView: View {
             language: language.language.rawValue
         )
         guideEditing = false
-        Task { await session.saveMealProtocolOverride(key: key, lines: cleaned) }
+        guard let operation = session.accountOperationLease() else { return }
+        Task {
+            do {
+                try await session.saveMealProtocolOverride(
+                    key: key,
+                    lines: cleaned,
+                    operation: operation
+                )
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                errorMessage = error.localizedDescription
+            }
+        }
     }
 
     private var discoveryCard: some View {
@@ -621,7 +635,20 @@ struct MealComposerView: View {
                                 .buttonStyle(.plain)
                                 .contextMenu {
                                     Button(language.text("Delete preset"), role: .destructive) {
-                                        Task { await session.deleteMealPreset(preset) }
+                                        guard let operation = session.accountOperationLease() else { return }
+                                        Task {
+                                            do {
+                                                try await session.deleteMealPreset(
+                                                    preset,
+                                                    operation: operation
+                                                )
+                                            } catch is CancellationError {
+                                                return
+                                            } catch {
+                                                guard session.accountOperationIsCurrent(operation) else { return }
+                                                errorMessage = error.localizedDescription
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -736,7 +763,8 @@ struct MealComposerView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             Button {
-                Task { await save() }
+                guard let operation = session.accountOperationLease() else { return }
+                Task { await save(operation: operation) }
             } label: {
                 if isSaving {
                     ProgressView().tint(.white)
@@ -827,8 +855,23 @@ struct MealComposerView: View {
     }
 
     private func toggleFavourite(_ item: MealComposerItem) {
-        guard let food = food(for: item) else { return }
-        Task { await session.setFoodFavourite(food, favourite: !isFavourite(item)) }
+        guard let food = food(for: item),
+              let operation = session.accountOperationLease() else { return }
+        let nextValue = !isFavourite(item)
+        Task {
+            do {
+                try await session.setFoodFavourite(
+                    food,
+                    favourite: nextValue,
+                    operation: operation
+                )
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                errorMessage = error.localizedDescription
+            }
+        }
     }
 
     private func toggleSelection(_ id: UUID) {
@@ -907,20 +950,36 @@ struct MealComposerView: View {
     }
 
     @MainActor
-    private func save() async {
+    private func save(operation: AccountOperationLease) async {
         isSaving = true
-        defer { isSaving = false }
+        defer {
+            if session.accountOperationIsCurrent(operation) {
+                isSaving = false
+            }
+        }
         if draft.items.isEmpty, let existingMeal = request.existingMeal {
-            await session.deleteLoggedMeal(existingMeal)
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
-            dismiss()
+            do {
+                try await session.deleteLoggedMeal(existingMeal, operation: operation)
+                guard session.accountOperationIsCurrent(operation) else { return }
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                dismiss()
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                errorMessage = error.localizedDescription
+            }
             return
         }
         do {
-            try await session.saveStructuredMeal(draft)
+            try await session.saveStructuredMeal(draft, operation: operation)
+            guard session.accountOperationIsCurrent(operation) else { return }
             UINotificationFeedbackGenerator().notificationOccurred(.success)
             dismiss()
+        } catch is CancellationError {
+            return
         } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
             errorMessage = error.localizedDescription
         }
     }
@@ -1213,6 +1272,8 @@ private struct MealFoodPicker: View {
     @State private var isSearching = false
     @State private var showScanner = false
     @State private var message: String?
+    @State private var searchTask: Task<Void, Never>?
+    @State private var searchGate = FoodSearchRequestGate()
     @FocusState private var searchFocused: Bool
     /* Food whose amount is being configured, and per-food burst counters
        that drive the quick-add confirmation animation. */
@@ -1380,11 +1441,13 @@ private struct MealFoodPicker: View {
                     query: $query,
                     isFocused: $searchFocused,
                     placeholder: language.text("Search foods, aliases or brands"),
-                    onSearch: { Task { await search() } }
+                    onSearch: { beginSearch() }
                 )
             }
-            .onChange(of: query) { _, value in if value.isEmpty { remoteResults = []; message = nil } }
+            .onChange(of: query) { _, _ in clearSearch() }
+            .onChange(of: session.profile?.userID) { _, _ in clearSearch() }
             .onAppear { if query.isEmpty { query = initialQuery } }
+            .onDisappear { cancelSearch() }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(language.text("Done")) { dismiss() } }
             }
@@ -1466,19 +1529,67 @@ private struct MealFoodPicker: View {
         }
     }
 
-    @MainActor
-    private func search() async {
+    private func beginSearch() {
         let value = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard value.count >= 2 else { return }
+        guard value.count >= 2 else {
+            clearSearch()
+            return
+        }
+        guard let operation = session.accountOperationLease() else {
+            clearSearch()
+            return
+        }
+        searchTask?.cancel()
+        let request = searchGate.begin()
+        remoteResults = []
         isSearching = true
         message = nil
-        defer { isSearching = false }
+        searchTask = Task { @MainActor in
+            await search(query: value, request: request, operation: operation)
+        }
+    }
+
+    private func clearSearch() {
+        searchTask?.cancel()
+        searchTask = nil
+        searchGate.clear()
+        remoteResults = []
+        isSearching = false
+        message = nil
+    }
+
+    private func cancelSearch() {
+        searchTask?.cancel()
+        searchTask = nil
+        searchGate.clear()
+    }
+
+    @MainActor
+    private func search(
+        query: String,
+        request: FoodSearchRequest,
+        operation: AccountOperationLease
+    ) async {
         do {
-            remoteResults = try await session.searchFoods(query: value)
+            let results = try await session.searchFoods(query: query, operation: operation)
+            guard session.accountOperationIsCurrent(operation),
+                  searchGate.canPublish(request, taskIsCancelled: Task.isCancelled) else { return }
+            remoteResults = results
             if remoteResults.isEmpty { message = "No reliable nutrition match was returned." }
+            isSearching = false
+            searchTask = nil
+        } catch is CancellationError {
+            guard session.accountOperationIsCurrent(operation),
+                  searchGate.isCurrent(request) else { return }
+            isSearching = false
+            searchTask = nil
         } catch {
+            guard session.accountOperationIsCurrent(operation),
+                  searchGate.canPublish(request, taskIsCancelled: Task.isCancelled) else { return }
             remoteResults = []
             message = "Online search is unavailable. Your saved Food Memory remains usable."
+            isSearching = false
+            searchTask = nil
         }
     }
 }
@@ -1507,7 +1618,8 @@ private struct PresetCreationSheet: View {
                 TextField(language.text("Subtitle (optional)"), text: $subtitle)
                     .textFieldStyle(.roundedBorder)
                 Button {
-                    Task { await save() }
+                    guard let operation = session.accountOperationLease() else { return }
+                    Task { await save(operation: operation) }
                 } label: {
                     if isSaving { ProgressView().tint(.white) }
                     else { Text(language.text("Save preset")) }
@@ -1532,14 +1644,28 @@ private struct PresetCreationSheet: View {
     }
 
     @MainActor
-    private func save() async {
+    private func save(operation: AccountOperationLease) async {
         isSaving = true
-        defer { isSaving = false }
+        defer {
+            if session.accountOperationIsCurrent(operation) {
+                isSaving = false
+            }
+        }
         do {
-            _ = try await session.saveMealPreset(name: title, mealSlot: mealSlot, items: items, subtitle: subtitle)
+            _ = try await session.saveMealPreset(
+                name: title,
+                mealSlot: mealSlot,
+                items: items,
+                subtitle: subtitle,
+                operation: operation
+            )
+            guard session.accountOperationIsCurrent(operation) else { return }
             onSaved()
             dismiss()
+        } catch is CancellationError {
+            return
         } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
             errorMessage = error.localizedDescription
         }
     }

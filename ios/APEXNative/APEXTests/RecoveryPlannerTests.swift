@@ -19,6 +19,28 @@ final class RecoveryPlannerTests: XCTestCase {
         return data
     }
 
+    func testRecoveryInstallCapturesTheAccountLeaseBeforeItsTaskAndGatesLateUI() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: root.appendingPathComponent("APEX/Features/Avatar/RecoveryPlannerView.swift")
+        )
+        let compact = source.filter { !$0.isWhitespace }
+
+        XCTAssertTrue(compact.contains(
+            "guardletoperation=session.accountOperationLease()else{return}installing=trueTask{do{letcount=tryawaitsession.installRecoveryPlan("
+        ))
+        XCTAssertTrue(compact.contains("operation:operation"))
+        XCTAssertTrue(compact.contains(
+            "guardsession.accountOperationIsCurrent(operation)else{return}installing=falseifcount>0{dismiss()}"
+        ))
+        XCTAssertTrue(compact.contains("catchisCancellationError{return}"))
+        XCTAssertTrue(compact.contains(
+            "catch{guardsession.accountOperationIsCurrent(operation)else{return}installing=falsesession.alertMessage=error.localizedDescription}"
+        ))
+    }
+
     func testRecoveryDatesAreBoundedAcrossFourWeeksWithTwoSessionsPerWeek() {
         let dates = RecoveryPlanner.scheduledDates(
             startDate: "2026-09-02",

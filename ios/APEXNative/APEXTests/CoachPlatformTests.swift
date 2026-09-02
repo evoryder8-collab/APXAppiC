@@ -162,4 +162,169 @@ final class CoachPlatformTests: XCTestCase {
         XCTAssertEqual(APEXDebugFixture.coachRoster().first?.displayName, "June")
         XCTAssertEqual(APEXDebugFixture.coachClientOverview()?.workouts?.completed30Days, 12)
     }
+
+    func testCoachRosterRequestGateOnlyAcceptsTheLatestSameAccountSearch() {
+        var gate = CoachRosterRequestGate()
+
+        let older = gate.begin(query: "ju")
+        let newer = gate.begin(query: "june")
+
+        XCTAssertEqual(older.query, "ju")
+        XCTAssertEqual(newer.query, "june")
+        XCTAssertFalse(gate.accepts(older))
+        XCTAssertTrue(gate.accepts(newer))
+    }
+
+    /// AppSession currently hard-wires its remote coach service, so a suspended
+    /// request cannot be driven deterministically from this target. Keep the
+    /// mutation boundary explicit until that service becomes injectable: the
+    /// response must be validated against both the initiating owner and account
+    /// generation before it is published into observable state.
+    func testCoachContextMutationsRejectLateResultsFromAnotherAccount() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        func body(_ start: String, before end: String) throws -> String {
+            let lower = try XCTUnwrap(source.range(of: start))
+            let upper = try XCTUnwrap(source.range(of: end, range: lower.upperBound..<source.endIndex))
+            return String(source[lower.lowerBound..<upper.lowerBound])
+        }
+        func assertGuardedMutation(
+            _ mutation: String,
+            remoteCall: String,
+            file: StaticString = #filePath,
+            line: UInt = #line
+        ) throws {
+            let leaseArgument = try XCTUnwrap(
+                mutation.range(of: "operation: AccountOperationLease"),
+                "require the account lease captured synchronously by the coach action",
+                file: file,
+                line: line
+            )
+            let request = try XCTUnwrap(
+                mutation.range(of: "context = try await service.\(remoteCall)"),
+                "hold the remote result locally until ownership is revalidated",
+                file: file,
+                line: line
+            )
+            let revalidation = try XCTUnwrap(
+                mutation.range(
+                    of: "try requireCurrentAccountOperation(operation)",
+                    range: request.upperBound..<mutation.endIndex
+                ),
+                "reject a completion whose owner or account generation changed",
+                file: file,
+                line: line
+            )
+            let publication = try XCTUnwrap(
+                mutation.range(of: "coachContext = context"),
+                "publish only the revalidated coach context",
+                file: file,
+                line: line
+            )
+
+            XCTAssertLessThan(leaseArgument.lowerBound, request.lowerBound, file: file, line: line)
+            XCTAssertLessThan(request.lowerBound, revalidation.lowerBound, file: file, line: line)
+            XCTAssertLessThan(revalidation.lowerBound, publication.lowerBound, file: file, line: line)
+            XCTAssertTrue(
+                mutation.contains("catch {\n                try requireCurrentAccountOperation(operation)"),
+                "a late service failure must be converted to cancellation after an account switch",
+                file: file,
+                line: line
+            )
+        }
+
+        let accept = try body(
+            "func acceptCoachInvitation(",
+            before: "func loadCoachClientOverview("
+        )
+        try assertGuardedMutation(accept, remoteCall: "acceptCoachInvitation(")
+        let entitlementResolution = try XCTUnwrap(accept.range(of: "await resolveEntitlements()"))
+        let acceptedContext = try XCTUnwrap(accept.range(of: "coachContext = context"))
+        XCTAssertLessThan(acceptedContext.lowerBound, entitlementResolution.lowerBound)
+
+        let update = try body(
+            "func updateCoachScopes(",
+            before: "func endCoachRelationship("
+        )
+        try assertGuardedMutation(update, remoteCall: "updateCoachScopes(")
+
+        let view = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Coach/CoachPlanView.swift")
+        )
+        XCTAssertGreaterThanOrEqual(
+            view.components(separatedBy: "guard let operation = session.accountOperationLease() else { return }").count - 1,
+            6,
+            "every coach action must capture its owner and generation before creating an unstructured Task"
+        )
+        XCTAssertTrue(view.contains("catch is CancellationError"))
+        XCTAssertTrue(view.contains("session.accountOperationIsCurrent(operation)"))
+    }
+
+    func testCoachWorkspaceRequestsCannotOutliveTheirInitiatingAccount() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let session = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let view = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Coach/CoachWorkspaceView.swift")
+        )
+
+        func body(_ start: String, before end: String) throws -> String {
+            let lower = try XCTUnwrap(session.range(of: start))
+            let upper = try XCTUnwrap(
+                session.range(of: end, range: lower.upperBound..<session.endIndex)
+            )
+            return String(session[lower.lowerBound..<upper.lowerBound])
+        }
+
+        let requests = [
+            ("func loadCoachRoster(", "func createCoachInvitation(", "service.loadCoachRoster"),
+            ("func createCoachInvitation(", "func previewCoachInvitation(", "service.createCoachInvitation"),
+            ("func loadCoachClientOverview(", "func saveCoachPlan(", "service.loadCoachClientOverview"),
+            ("func saveCoachPlan(", "func publishCoachPlan(", "service.saveCoachPlan"),
+            ("func publishCoachPlan(", "func acknowledgeCoachPlan(", "service.saveCoachPlan"),
+        ]
+        for (start, end, remoteCall) in requests {
+            let request = try body(start, before: end)
+            let lease = try XCTUnwrap(request.range(of: "operation: AccountOperationLease"))
+            let preflight = try XCTUnwrap(request.range(of: "try requireCurrentAccountOperation(operation)"))
+            let remote = try XCTUnwrap(request.range(of: remoteCall))
+            let revalidation = try XCTUnwrap(
+                request.range(
+                    of: "try requireCurrentAccountOperation(operation)",
+                    range: remote.upperBound..<request.endIndex
+                )
+            )
+            XCTAssertLessThan(lease.lowerBound, preflight.lowerBound)
+            XCTAssertLessThan(preflight.lowerBound, remote.lowerBound)
+            XCTAssertLessThan(remote.lowerBound, revalidation.lowerBound)
+            XCTAssertTrue(
+                request.contains("catch {\n            try requireCurrentAccountOperation(operation)"),
+                "late failures from \(remoteCall) must become cancellation after an account switch"
+            )
+        }
+
+        XCTAssertGreaterThanOrEqual(
+            view.components(separatedBy: "guard let operation = session.accountOperationLease() else { return }").count - 1,
+            7,
+            "search, refresh, initial load, invitation creation, client load, draft save and publish must capture a lease before work starts"
+        )
+        for call in [
+            "reload(operation: operation)",
+            "createInvite(operation: operation)",
+            "load(operation: operation)",
+            "save(publish: false, operation: operation)",
+            "save(publish: true, operation: operation)",
+        ] {
+            XCTAssertTrue(view.contains(call), "missing account-bound coach action: \(call)")
+        }
+        XCTAssertTrue(view.contains("catch is CancellationError"))
+        XCTAssertTrue(view.contains("session.accountOperationIsCurrent(operation)"))
+    }
 }

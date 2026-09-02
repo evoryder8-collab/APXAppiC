@@ -648,14 +648,26 @@ struct AvatarView: View {
     }
 
     private func saveJointCheck() {
+        guard let operation = session.accountOperationLease() else { return }
+        let arms = jointArms
+        let core = jointCore
+        let legs = jointLegs
         Task {
-            await session.updateSettings {
-                $0.addons["avatar_joint_check"] = .object([
-                    "date": .string(Date().apexDateKey), "arms": .number(jointArms),
-                    "core": .number(jointCore), "legs": .number(jointLegs),
-                ])
+            do {
+                try await session.updateSettings({
+                    $0.addons["avatar_joint_check"] = .object([
+                        "date": .string(Date().apexDateKey), "arms": .number(arms),
+                        "core": .number(core), "legs": .number(legs),
+                    ])
+                }, operation: operation)
+                guard session.accountOperationIsCurrent(operation) else { return }
+                jointSaved = true
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
             }
-            jointSaved = true
         }
     }
 

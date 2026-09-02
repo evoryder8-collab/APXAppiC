@@ -327,7 +327,8 @@ struct SettingsView: View {
                     if enabled {
                         pendingNewbieMode = true
                     } else {
-                        Task { await session.restoreOriginalProgramme() }
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task { await session.restoreOriginalProgramme(operation: operation) }
                     }
                 }
                 .disabled(session.isBusy)
@@ -356,7 +357,8 @@ struct SettingsView: View {
         .alert(language.text("Restore your original programme?"), isPresented: $confirmRestorePlan) {
             Button(language.text("Cancel"), role: .cancel) {}
             Button(language.text("Restore")) {
-                Task { await session.restoreOriginalProgramme() }
+                guard let operation = session.accountOperationLease() else { return }
+                Task { await session.restoreOriginalProgramme(operation: operation) }
             }
             .disabled(session.isBusy)
         } message: {
@@ -373,7 +375,7 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 17) {
                 sectionTitle("Body profile", subtitle: language.format("Age %d, computed from your birthdate. Never hardcoded.", profile?.age ?? 0))
                 profileStepper("Weight", value: profile?.weightKG ?? 0, unit: "kg", step: 0.5) { delta in
-                    Task { await session.updateProfile { $0.weightKG = max(25, $0.weightKG + delta) } }
+                    mutateProfile { $0.weightKG = max(25, $0.weightKG + delta) }
                 }
                 Divider()
                 VStack(alignment: .leading, spacing: 9) {
@@ -384,33 +386,27 @@ struct SettingsView: View {
                         .foregroundStyle(APEXColor.secondaryInk)
                     if let bodyFatPercent = profile?.bodyFatPercent {
                         profileStepper("Body fat", value: bodyFatPercent, unit: "%", step: 0.5) { delta in
-                            Task {
-                                await session.updateProfile {
-                                    let current = $0.bodyFatPercent ?? 20
-                                    $0.bodyFatPercent = min(70, max(2, current + delta))
-                                    $0.bodyFatSource = .selfEstimate
-                                    $0.bodyFatMeasuredAt = nil
-                                }
+                            mutateProfile {
+                                let current = $0.bodyFatPercent ?? 20
+                                $0.bodyFatPercent = min(70, max(2, current + delta))
+                                $0.bodyFatSource = .selfEstimate
+                                $0.bodyFatMeasuredAt = nil
                             }
                         }
                         Button(language.text("Remove"), role: .destructive) {
-                            Task {
-                                await session.updateProfile {
-                                    $0.bodyFatPercent = nil
-                                    $0.bodyFatSource = nil
-                                    $0.bodyFatMeasuredAt = nil
-                                }
+                            mutateProfile {
+                                $0.bodyFatPercent = nil
+                                $0.bodyFatSource = nil
+                                $0.bodyFatMeasuredAt = nil
                             }
                         }
                         .frame(minHeight: 44)
                     } else {
                         Button(language.text("Add")) {
-                            Task {
-                                await session.updateProfile {
-                                    $0.bodyFatPercent = 20
-                                    $0.bodyFatSource = .selfEstimate
-                                    $0.bodyFatMeasuredAt = nil
-                                }
+                            mutateProfile {
+                                $0.bodyFatPercent = 20
+                                $0.bodyFatSource = .selfEstimate
+                                $0.bodyFatMeasuredAt = nil
                             }
                         }
                         .buttonStyle(.borderedProminent)
@@ -420,7 +416,7 @@ struct SettingsView: View {
                 }
                 Divider()
                 profileStepper("Height", value: profile?.heightCM ?? 0, unit: "cm", step: 1) { delta in
-                    Task { await session.updateProfile { $0.heightCM = min(240, max(100, $0.heightCM + delta)) } }
+                    mutateProfile { $0.heightCM = min(240, max(100, $0.heightCM + delta)) }
                 }
                 Divider()
                 VStack(alignment: .leading, spacing: 7) {
@@ -439,10 +435,10 @@ struct SettingsView: View {
                     }
                 }
                 profileTextRow("Birthdate", value: profile?.birthdate ?? "") { next in
-                    Task { await session.updateProfile { $0.birthdate = next } }
+                    mutateProfile { $0.birthdate = next }
                 }
                 profileTextRow("Default training time", value: profile?.trainingTime ?? "19:00") { next in
-                    Task { await session.updateProfile { $0.trainingTime = next } }
+                    mutateProfile { $0.trainingTime = next }
                 }
             }
         }
@@ -453,11 +449,11 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 3) {
                 sectionTitle("Player", subtitle: nil)
                 settingsToggle("Voice announcements", icon: "waveform", value: settings?.voiceOn ?? true) { next in
-                    Task { await session.updateSettings { $0.voiceOn = next } }
+                    mutateSettings { $0.voiceOn = next }
                 }
                 Divider()
                 settingsToggle("Cadence ticks", icon: "metronome", value: settings?.ticksOn ?? true) { next in
-                    Task { await session.updateSettings { $0.ticksOn = next } }
+                    mutateSettings { $0.ticksOn = next }
                 }
                 Divider()
                 HStack {
@@ -474,7 +470,7 @@ struct SettingsView: View {
                 }.padding(.vertical, 11)
                 Divider()
                 settingsToggle("Meal + stack reminders", icon: "bell", value: settings?.notificationsOn ?? false) { next in
-                    Task { await session.updateSettings { $0.notificationsOn = next } }
+                    mutateSettings { $0.notificationsOn = next }
                 }
             }
         }
@@ -518,10 +514,19 @@ struct SettingsView: View {
                 Text(language.text("Anything logged manually in APEX wins over imported values. Imports only add signal and never create decay."))
                     .font(APEXFont.body(11, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
                 Button {
-                    Task { if let snapshot = await health.requestAccessAndImport() { await session.applyHealthSnapshot(snapshot) } }
+                    guard let operation = session.accountOperationLease() else { return }
+                    Task { _ = await session.connectHealth(operation: operation) }
                 } label: {
                     if health.isSyncing { ProgressView().tint(.white) }
-                    else { Label(language.text(health.isAuthorized ? "Sync now" : "Connect Apple Health"), systemImage: "heart.fill") }
+                    else {
+                        Label(
+                            language.text(
+                                session.healthImportIsEnabledForCurrentAccount
+                                    ? "Sync now" : "Connect Apple Health"
+                            ),
+                            systemImage: "heart.fill"
+                        )
+                    }
                 }
                 .buttonStyle(APEXPrimaryButtonStyle(color: .red))
                 if let snapshot = health.lastSnapshot {
@@ -556,7 +561,8 @@ struct SettingsView: View {
 
         if health.waterWriteState != .authorized {
             Button {
-                Task { await health.reconnectWaterAccess() }
+                guard let operation = session.accountOperationLease() else { return }
+                Task { await session.reconnectHealthWaterAccess(operation: operation) }
             } label: {
                 Label(language.text("Reconnect water access"), systemImage: "drop.fill")
                     .frame(maxWidth: .infinity)
@@ -725,10 +731,40 @@ struct SettingsView: View {
         Binding(get: { addonBool(key, default: fallback) }, set: { setAddon(key, .bool($0)) })
     }
     private func setAddon(_ key: String, _ value: JSONValue) {
-        Task { await session.updateSettings { $0.addons[key] = value } }
+        mutateSettings { $0.addons[key] = value }
     }
     private func adjustGuardian(_ delta: Double) {
-        Task { await session.updateSettings { $0.guardianFactor = min(3, max(1, (($0.guardianFactor + delta) * 10).rounded() / 10)) } }
+        mutateSettings {
+            $0.guardianFactor = min(3, max(1, (($0.guardianFactor + delta) * 10).rounded() / 10))
+        }
+    }
+
+    private func mutateProfile(_ transform: @escaping (inout Profile) -> Void) {
+        guard let operation = session.accountOperationLease() else { return }
+        Task {
+            do {
+                try await session.updateProfile(transform, operation: operation)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func mutateSettings(_ transform: @escaping (inout UserSettings) -> Void) {
+        guard let operation = session.accountOperationLease() else { return }
+        Task {
+            do {
+                try await session.updateSettings(transform, operation: operation)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
+        }
     }
 
     private var mealBlocks: [NativeMealBlock] {

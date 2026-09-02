@@ -256,18 +256,28 @@ struct ManualWorkoutLoggerView: View {
     }
 
     private func save() {
+        guard let operation = session.accountOperationLease() else { return }
         Task {
-            let saved = await session.saveManualWorkout(
-                date: day,
-                title: title,
-                exercises: exercises,
-                editing: editing?.id
-            )
-            if saved {
-                onSaved()
-                dismiss()
-            } else {
-                problem = language.text("Add reps or cardio time before saving.")
+            do {
+                let saved = try await session.saveManualWorkout(
+                    date: day,
+                    title: title,
+                    exercises: exercises,
+                    editing: editing?.id,
+                    operation: operation
+                )
+                guard session.accountOperationIsCurrent(operation) else { return }
+                if saved {
+                    onSaved()
+                    dismiss()
+                } else {
+                    problem = language.text("Add reps or cardio time before saving.")
+                }
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                problem = error.localizedDescription
             }
         }
     }

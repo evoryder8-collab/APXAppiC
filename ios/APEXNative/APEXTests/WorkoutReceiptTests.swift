@@ -593,4 +593,197 @@ final class WorkoutReceiptTests: XCTestCase {
         XCTAssertEqual(lines.count, 1)
         XCTAssertTrue(lines[0].contains("baseline"))
     }
+
+    func testWorkoutCompletionAndReceiptMutationsRequireTheInitiatingAccountLease() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let mutations = [
+            ("func completeWorkout(", "func updateWorkoutLog("),
+            ("func updateWorkoutLog(", "/// Remove a completed receipt"),
+            ("func deleteCompletedWorkoutSession(", "/// Hide only APEX's"),
+            ("func hideExternalWorkoutFromAPEX(", "func toggleDeload("),
+        ]
+
+        for (start, end) in mutations {
+            let body = compact(try sourceSlice(source, from: start, to: end))
+            XCTAssertTrue(
+                body.contains("operation:AccountOperationLease"),
+                "\(start) must receive the lease captured by the initiating UI action"
+            )
+            XCTAssertTrue(
+                body.contains("tryrequireCurrentAccountOperation(operation)"),
+                "\(start) must reject stale work before publishing account-owned state"
+            )
+            XCTAssertTrue(
+                body.contains("ownerID=operation.ownerID"),
+                "\(start) must never adopt whichever account is active after Task scheduling"
+            )
+            XCTAssertTrue(
+                body.contains("asyncthrows"),
+                "\(start) must distinguish an expired lease from an ordinary no-op result"
+            )
+        }
+
+        let completion = compact(try sourceSlice(
+            source,
+            from: "func completeWorkout(",
+            to: "func updateWorkoutLog("
+        ))
+        XCTAssertTrue(completion.contains("asyncthrows->UUID?"))
+        XCTAssertTrue(completion.contains("saveLocalSnapshot(operation:operation)"))
+        XCTAssertTrue(completion.contains("for:ownerID"))
+        XCTAssertFalse(completion.contains("letaccountToken=accountGeneration.token"))
+        XCTAssertTrue(completion.contains(
+            "letstoredPendingCount=try?awaitofflineStore.pendingOperations(for:ownerID).count"
+                + "tryrequireCurrentAccountOperation(operation)pendingSyncCount="
+        ))
+        XCTAssertTrue(completion.contains(
+            "catchisCancellationError{throwCancellationError()}"
+        ))
+        XCTAssertGreaterThanOrEqual(
+            completion.components(separatedBy: "tryrequireCurrentAccountOperation(operation)").count - 1,
+            5,
+            "workout completion must revalidate the initiating lease across local storage and queue awaits"
+        )
+
+        for (start, end) in mutations.dropFirst() {
+            let body = compact(try sourceSlice(source, from: start, to: end))
+            XCTAssertTrue(body.contains("expectedAccountToken:operation.generation"))
+        }
+    }
+
+    func testWorkoutCompletionSurfacesGateEveryPostAwaitUIEffect() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Training/TrainingProgramView.swift")
+        )
+        let trackedView = try sourceSlice(
+            source,
+            from: "struct TrackedWorkoutView: View",
+            to: "struct WorkoutDayView: View"
+        )
+        let playerStart = try XCTUnwrap(source.range(of: "struct WorkoutPlayerView: View"))
+        let playerView = String(source[playerStart.lowerBound...])
+        let trackedFinish = try sourceSlice(
+            trackedView,
+            from: "private func finishWorkout()",
+            to: "}\n}"
+        )
+        let externalFinish = try sourceSlice(
+            playerView,
+            from: "private func finishAlreadyCompletedWorkout(",
+            to: "private var playerHeader"
+        )
+        let guidedFinish = try sourceSlice(
+            playerView,
+            from: "private func finishWorkout()",
+            to: "private func clock(_ seconds: Int)"
+        )
+
+        for body in [trackedFinish, externalFinish, guidedFinish] {
+            let value = compact(body)
+            let lease = try XCTUnwrap(value.range(
+                of: "letoperation=session.accountOperationLease()"
+            ))
+            let task = try XCTUnwrap(value.range(of: "Task{"))
+            let completion = try XCTUnwrap(value.range(of: "tryawaitsession.completeWorkout("))
+            let revalidation = try XCTUnwrap(
+                value.range(
+                    of: "guardsession.accountOperationIsCurrent(operation)else{return}",
+                    range: completion.upperBound..<value.endIndex
+                )
+            )
+            XCTAssertLessThan(lease.lowerBound, task.lowerBound)
+            XCTAssertLessThan(completion.lowerBound, revalidation.lowerBound)
+            XCTAssertTrue(value.contains("operation:operation"))
+            XCTAssertTrue(value.contains("catchisCancellationError{return}"))
+            XCTAssertGreaterThanOrEqual(
+                value.components(
+                    separatedBy: "guardsession.accountOperationIsCurrent(operation)else{return}"
+                ).count - 1,
+                2,
+                "both success publication and late error handling must reject an expired lease"
+            )
+        }
+
+        let compactExternal = compact(externalFinish)
+        let externalGuard = try XCTUnwrap(compactExternal.range(
+            of: "guardsession.accountOperationIsCurrent(operation)else{return}"
+        ))
+        let draftClear = try XCTUnwrap(compactExternal.range(of: "clearDraft()"))
+        let watchStop = try XCTUnwrap(compactExternal.range(of: "session.stopWatchWorkout("))
+        XCTAssertLessThan(externalGuard.lowerBound, draftClear.lowerBound)
+        XCTAssertLessThan(externalGuard.lowerBound, watchStop.lowerBound)
+
+        let compactGuided = compact(guidedFinish)
+        let guidedGuard = try XCTUnwrap(compactGuided.range(
+            of: "guardsession.accountOperationIsCurrent(operation)else{return}"
+        ))
+        let guidedDraftClear = try XCTUnwrap(compactGuided.range(of: "clearDraft()"))
+        let receipt = try XCTUnwrap(compactGuided.range(of: "completedSession=FinishedSession"))
+        XCTAssertLessThan(guidedGuard.lowerBound, guidedDraftClear.lowerBound)
+        XCTAssertLessThan(guidedGuard.lowerBound, receipt.lowerBound)
+    }
+
+    func testReceiptEditingDeletionAndHidingCaptureLeaseBeforeTheirTasks() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Training/WorkoutReceiptSheet.swift")
+        )
+        let compactSource = compact(source)
+
+        for call in [
+            "updateWorkoutLog(id:current.id,draft:draft,operation:operation)",
+            "deleteCompletedWorkoutSession(id:item.id,operation:operation)",
+            "hideExternalWorkoutFromAPEX(id:item.id,operation:operation)",
+        ] {
+            XCTAssertTrue(compactSource.contains("tryawaitsession.\(call)"), call)
+        }
+        XCTAssertFalse(compactSource.contains("Task{awaitsession.updateWorkoutLog("))
+        XCTAssertFalse(compactSource.contains("Task{awaitsession.deleteCompletedWorkoutSession("))
+        XCTAssertFalse(compactSource.contains("Task{awaitsession.hideExternalWorkoutFromAPEX("))
+        XCTAssertGreaterThanOrEqual(
+            compactSource.components(
+                separatedBy: "letoperation=session.accountOperationLease()"
+            ).count - 1,
+            4,
+            "both receipt editors plus delete and hide must capture the account lease synchronously"
+        )
+        XCTAssertGreaterThanOrEqual(
+            compactSource.components(separatedBy: "catchisCancellationError{return}").count - 1,
+            4,
+            "stale receipt work must be discarded as cancellation, never surfaced as another account's error"
+        )
+        XCTAssertGreaterThanOrEqual(
+            compactSource.components(
+                separatedBy: "guardsession.accountOperationIsCurrent(operation)else{return}"
+            ).count - 1,
+            6,
+            "receipt results and errors must publish only while their initiating lease remains current"
+        )
+    }
+
+    private func sourceSlice(
+        _ source: String,
+        from start: String,
+        to end: String
+    ) throws -> String {
+        let lower = try XCTUnwrap(source.range(of: start))
+        let upper = try XCTUnwrap(
+            source.range(of: end, range: lower.upperBound..<source.endIndex)
+        )
+        return String(source[lower.lowerBound..<upper.lowerBound])
+    }
+
+    private func compact(_ source: String) -> String {
+        source.split(whereSeparator: { $0.isWhitespace }).joined()
+    }
 }

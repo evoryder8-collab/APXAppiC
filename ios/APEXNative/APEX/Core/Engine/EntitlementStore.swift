@@ -35,13 +35,27 @@ final class EntitlementStore {
     /// This cannot be decided on the device: a local flag is per install, so
     /// the same code would work again on another phone, or after deleting and
     /// reinstalling. The claim is recorded against the account server side.
-    func redeemBeta(code: String, service: SupabaseService) async -> RedeemOutcome {
+    func redeemBeta(
+        code: String,
+        expectedUserID: UUID,
+        service: SupabaseService
+    ) async throws -> RedeemOutcome {
+        guard resolvedUserID == expectedUserID else { return .notSignedIn }
+        guard await service.currentUserID() == expectedUserID else { return .notSignedIn }
+
         let result: String
         do {
             result = try await service.redeemBetaCode(hash: hash(of: code))
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
+            guard resolvedUserID == expectedUserID else { return .notSignedIn }
+            guard await service.currentUserID() == expectedUserID else { return .notSignedIn }
             return .unavailable
         }
+
+        guard resolvedUserID == expectedUserID else { return .notSignedIn }
+        guard await service.currentUserID() == expectedUserID else { return .notSignedIn }
 
         switch result {
         case "ok": return .unlocked

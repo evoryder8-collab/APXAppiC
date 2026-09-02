@@ -18,6 +18,7 @@ struct ProgressComparisonView: View {
     @State private var synced = true
     @State private var exported: URL?
     @State private var isExporting = false
+    @State private var exportTask: Task<Void, Never>?
 
     let before: ProgressPhoto
     let after: ProgressPhoto
@@ -36,7 +37,8 @@ struct ProgressComparisonView: View {
         let from = min(before.localDate, after.localDate)
         let to = max(before.localDate, after.localDate)
         return session.data.workoutSessions.filter {
-            $0.completed && $0.date >= from && $0.date <= to
+            $0.userID == before.userID
+                && $0.completed && $0.date >= from && $0.date <= to
         }.count
     }
 
@@ -59,17 +61,57 @@ struct ProgressComparisonView: View {
         .sheet(item: $exported) { url in
             ShareSheet(items: [url])
         }
-        .task(id: before.id) { beforeImage = await load(before) }
-        .task(id: after.id) { afterImage = await load(after) }
+        .task(id: before.id) {
+            guard let operation = session.accountOperationLease() else { return }
+            do {
+                let image = try await load(before, operation: operation)
+                guard session.accountOperationIsCurrent(operation) else { return }
+                beforeImage = image
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                loadFailed = true
+            }
+        }
+        .task(id: after.id) {
+            guard let operation = session.accountOperationLease() else { return }
+            do {
+                let image = try await load(after, operation: operation)
+                guard session.accountOperationIsCurrent(operation) else { return }
+                afterImage = image
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                loadFailed = true
+            }
+        }
+        .onChange(of: session.profile?.userID) { _, _ in
+            exportTask?.cancel()
+            exportTask = nil
+            beforeImage = nil
+            afterImage = nil
+            exported = nil
+            loadFailed = false
+            isExporting = false
+            onClose()
+        }
     }
 
-    private func load(_ photo: ProgressPhoto) async -> UIImage? {
-        guard let url = try? await session.signedProgressURL(for: photo, thumbnail: false),
-              let (data, _) = try? await URLSession.shared.data(from: url),
-              let image = UIImage(data: data) else {
-            loadFailed = true
-            return nil
-        }
+    private func load(
+        _ photo: ProgressPhoto,
+        operation: AccountOperationLease
+    ) async throws -> UIImage {
+        guard session.accountOperationIsCurrent(operation) else { throw CancellationError() }
+        let url = try await session.signedProgressURL(
+            for: photo,
+            thumbnail: false,
+            operation: operation
+        )
+        let (data, _) = try await URLSession.shared.data(from: url)
+        guard session.accountOperationIsCurrent(operation),
+              let image = UIImage(data: data) else { throw CancellationError() }
         return image
     }
 
@@ -286,10 +328,13 @@ struct ProgressComparisonView: View {
             loadFailed = true
             return
         }
+        guard let operation = session.accountOperationLease(),
+              before.userID == operation.ownerID,
+              after.userID == operation.ownerID else { return }
         isExporting = true
         let strength = ProgressComparison.strength(
-            sessions: session.data.workoutSessions,
-            logs: session.data.workoutLogs,
+            sessions: session.data.workoutSessions.filter { $0.userID == operation.ownerID },
+            logs: session.data.workoutLogs.filter { $0.userID == operation.ownerID },
             firstDate: before.localDate,
             secondDate: after.localDate
         )
@@ -307,7 +352,9 @@ struct ProgressComparisonView: View {
             /* Torso pairs get a shorter photo block, so the card does not
                stretch two chest-height frames into a full-body shape. */
             torsoLayout: bothTorso,
-            athleteName: session.profile?.displayName ?? "",
+            athleteName: session.profile.flatMap {
+                $0.userID == operation.ownerID ? $0.displayName : nil
+            } ?? "",
             daysApart: daysApart,
             workouts: workoutsBetween,
             averageLoadDeltaKG: strength.averageLoadDeltaKG,
@@ -316,9 +363,19 @@ struct ProgressComparisonView: View {
             beforeWeightKG: before.weightKG,
             afterWeightKG: after.weightKG
         )
-        Task {
-            exported = ProgressPosterRenderer.write(ProgressPosterRenderer.render(input))
+        exportTask?.cancel()
+        exportTask = Task { @MainActor in
+            guard Task.isCancelled == false,
+                  session.accountOperationIsCurrent(operation) else { return }
+            let url = ProgressPosterRenderer.write(ProgressPosterRenderer.render(input))
+            guard Task.isCancelled == false,
+                  session.accountOperationIsCurrent(operation) else {
+                if let url { try? FileManager.default.removeItem(at: url) }
+                return
+            }
+            exported = url
             isExporting = false
+            exportTask = nil
         }
     }
 }

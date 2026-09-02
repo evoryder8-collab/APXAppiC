@@ -238,7 +238,11 @@ struct PaywallView: View {
                         .padding(.vertical, 11)
                         .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 13))
                     Button(language.text("Redeem")) {
-                        Task { await submitCode() }
+                        guard let operation = session.accountOperationLease() else {
+                            codeMessage = language.text("Sign in first, then enter your code.")
+                            return
+                        }
+                        Task { await submitCode(operation: operation) }
                     }
                     .font(APEXFont.body(13, weight: .bold))
                     .disabled(code.isEmpty || redeeming)
@@ -256,19 +260,41 @@ struct PaywallView: View {
         }
     }
 
-    private func submitCode() async {
+    @MainActor
+    private func submitCode(operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
         redeeming = true
-        defer { redeeming = false }
-        switch await entitlements.redeemBeta(code: code, service: .shared) {
+        defer {
+            if session.accountOperationIsCurrent(operation) { redeeming = false }
+        }
+
+        let outcome: EntitlementStore.RedeemOutcome
+        do {
+            outcome = try await session.redeemBetaAccess(code: code, operation: operation)
+        } catch is CancellationError {
+            return
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
+            codeMessage = language.text("Could not reach APEX. Try again when you are online.")
+            return
+        }
+        guard session.accountOperationIsCurrent(operation) else { return }
+
+        switch outcome {
         case .unlocked:
             do {
-                try await session.refreshDashboard()
-                guard entitlements.isUnlocked else {
+                try await session.refreshDashboard(expectedUserID: operation.ownerID)
+                guard session.accountOperationIsCurrent(operation) else { return }
+                guard entitlements.resolvedUserID == operation.ownerID,
+                      entitlements.isUnlocked else {
                     codeMessage = language.text("APEX could not verify this account's beta access yet. Try again.")
                     return
                 }
                 onClose?()
+            } catch is CancellationError {
+                return
             } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
                 codeMessage = language.text("Could not reach APEX. Try again when you are online.")
             }
         case .alreadyRedeemed:

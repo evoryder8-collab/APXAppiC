@@ -163,7 +163,10 @@ private struct RouteLibraryCard: View {
                                 .buttonStyle(.bordered)
                             Button(language.text("Reverse")) { reverse() }
                                 .buttonStyle(.bordered)
-                            Button(language.text("Duplicate")) { Task { _ = await session.duplicateOrbitRoute(route) } }
+                            Button(language.text("Duplicate")) {
+                                guard let operation = session.accountOperationLease() else { return }
+                                Task { await duplicate(operation: operation) }
+                            }
                                 .buttonStyle(.bordered)
                             Button(language.text("Add segment")) { showSegmentEditor = true }
                                 .buttonStyle(.bordered)
@@ -200,16 +203,47 @@ private struct RouteLibraryCard: View {
     }
 
     private func toggleFavourite() {
+        guard let operation = session.accountOperationLease() else { return }
         var updated = route
         updated.favourite.toggle()
-        Task { await session.updateOrbitRoute(updated) }
+        Task { await update(updated, operation: operation) }
     }
 
     private func reverse() {
+        guard let operation = session.accountOperationLease() else { return }
         var updated = route
         updated.points.reverse()
         updated.name = "\(route.name) reversed"
-        Task { await session.updateOrbitRoute(updated) }
+        Task { await update(updated, operation: operation) }
+    }
+
+    @MainActor
+    private func update(
+        _ route: OrbitRouteRecord,
+        operation: AccountOperationLease
+    ) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
+        do {
+            try await session.updateOrbitRoute(route, operation: operation)
+        } catch is CancellationError {
+            return
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
+            session.alertMessage = error.localizedDescription
+        }
+    }
+
+    @MainActor
+    private func duplicate(operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
+        do {
+            _ = try await session.duplicateOrbitRoute(route, operation: operation)
+        } catch is CancellationError {
+            return
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
+            session.alertMessage = error.localizedDescription
+        }
     }
 }
 
@@ -297,19 +331,35 @@ private struct SegmentEditorSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button(language.text("Cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(language.text("Save")) {
+                        guard let operation = session.accountOperationLease() else { return }
                         Task {
-                            await session.saveOrbitSegment(
-                                route: route,
-                                name: name,
-                                startDistanceM: Int(startM),
-                                endDistanceM: Int(endM)
-                            )
-                            dismiss()
+                            await save(operation: operation)
                         }
                     }
                     .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || endM <= startM + 50)
                 }
             }
+        }
+    }
+
+    @MainActor
+    private func save(operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
+        do {
+            try await session.saveOrbitSegment(
+                route: route,
+                name: name,
+                startDistanceM: Int(startM),
+                endDistanceM: Int(endM),
+                operation: operation
+            )
+            guard session.accountOperationIsCurrent(operation) else { return }
+            dismiss()
+        } catch is CancellationError {
+            return
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
+            session.alertMessage = error.localizedDescription
         }
     }
 }
@@ -364,14 +414,27 @@ private struct RouteEditorSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button(language.text("Cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(language.text("Save")) {
-                        Task {
-                            await session.updateOrbitRoute(route)
-                            dismiss()
-                        }
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task { await save(operation: operation) }
                     }
                     .disabled(route.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                 }
             }
+        }
+    }
+
+    @MainActor
+    private func save(operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
+        do {
+            try await session.updateOrbitRoute(route, operation: operation)
+            guard session.accountOperationIsCurrent(operation) else { return }
+            dismiss()
+        } catch is CancellationError {
+            return
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
+            session.alertMessage = error.localizedDescription
         }
     }
 

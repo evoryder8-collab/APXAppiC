@@ -8,7 +8,6 @@ import SwiftUI
 struct ConsentView: View {
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
-    @State private var health = HealthKitManager.shared
     @State private var nudges = NudgeCenter.shared
     @State private var healthAsked = false
     @State private var notificationsAsked = false
@@ -39,8 +38,9 @@ struct ConsentView: View {
                         buttonTitle: healthAsked ? language.text("Asked") : language.text("Allow Health access"),
                         done: healthAsked
                     ) {
+                        guard let operation = session.accountOperationLease() else { return }
                         healthAsked = true
-                        Task { _ = await health.requestAccessAndImport() }
+                        Task { _ = await session.connectHealth(operation: operation) }
                     }
 
                     consentCard(
@@ -50,15 +50,22 @@ struct ConsentView: View {
                         buttonTitle: notificationsAsked ? language.text("Asked") : language.text("Allow reminders"),
                         done: notificationsAsked
                     ) {
+                        guard let operation = session.accountOperationLease() else { return }
                         notificationsAsked = true
-                        Task { await nudges.requestPermission() }
+                        Task {
+                            guard session.accountOperationIsCurrent(operation) else { return }
+                            _ = await nudges.requestPermission(ownerID: operation.ownerID)
+                            guard session.accountOperationIsCurrent(operation) else { return }
+                            notificationsAsked = true
+                        }
                     }
                 }
                 .padding(22)
             }
 
             Button {
-                Task { await session.finishOnboarding() }
+                guard let operation = session.accountOperationLease() else { return }
+                Task { await session.finishOnboarding(operation: operation) }
             } label: {
                 HStack {
                     Text(language.text("Continue"))

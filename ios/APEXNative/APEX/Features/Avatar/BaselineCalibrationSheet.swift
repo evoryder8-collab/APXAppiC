@@ -305,7 +305,8 @@ struct BaselineCalibrationSheet: View {
                     savedEvidencePanel
                 } else {
                     Button {
-                        Task { await saveQuestionnaire() }
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task { await saveQuestionnaire(operation: operation) }
                     } label: {
                         Text(language.text(saveState == .saving ? "Saving…" : "Save baseline"))
                             .frame(maxWidth: .infinity)
@@ -417,7 +418,8 @@ struct BaselineCalibrationSheet: View {
 
                 Button {
                     focusedField = nil
-                    Task { await saveDEXAResult() }
+                    guard let operation = session.accountOperationLease() else { return }
+                    Task { await saveDEXAResult(operation: operation) }
                 } label: {
                     Text(language.text(saveState == .saving ? "Saving…" : "Save DEXA results"))
                         .frame(maxWidth: .infinity)
@@ -474,7 +476,8 @@ struct BaselineCalibrationSheet: View {
 
                 Button {
                     focusedField = nil
-                    Task { await saveOtherResult() }
+                    guard let operation = session.accountOperationLease() else { return }
+                    Task { await saveOtherResult(operation: operation) }
                 } label: {
                     Text(language.text(saveState == .saving ? "Saving…" : "Save result"))
                         .frame(maxWidth: .infinity)
@@ -595,9 +598,15 @@ struct BaselineCalibrationSheet: View {
             }
 
             Button {
+                guard let operation = session.accountOperationLease() else { return }
                 Task {
+                    guard session.accountOperationIsCurrent(operation) else { return }
                     saveState = .saving
-                    healthStatus = await session.connectHealthForBaselineCalibration()
+                    let result = await session.connectHealthForBaselineCalibration(
+                        operation: operation
+                    )
+                    guard session.accountOperationIsCurrent(operation) else { return }
+                    healthStatus = result
                     saveState = .idle
                 }
             } label: {
@@ -818,23 +827,30 @@ struct BaselineCalibrationSheet: View {
     }
 
     @MainActor
-    private func saveQuestionnaire() async {
+    private func saveQuestionnaire(operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
         saveState = .saving
         do {
-            _ = try await session.saveBaselineCalibration(draft.answers)
-            if let userID = session.profile?.userID {
-                BaselineCalibrationDraftStore.clear(userID: userID)
-            }
+            _ = try await session.saveBaselineCalibration(
+                draft.answers,
+                operation: operation
+            )
+            guard session.accountOperationIsCurrent(operation) else { return }
+            BaselineCalibrationDraftStore.clear(userID: operation.ownerID)
             saveState = .saved
             UIAccessibility.post(notification: .announcement, argument: language.text("Saved to your evidence"))
+        } catch is CancellationError {
+            return
         } catch {
-            persistDraft()
+            guard session.accountOperationIsCurrent(operation) else { return }
+            BaselineCalibrationDraftStore.save(draft, userID: operation.ownerID)
             saveState = .failed
         }
     }
 
     @MainActor
-    private func saveDEXAResult() async {
+    private func saveDEXAResult(operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
         guard let bodyFat = optionalNumber(dxaBodyFat),
               let restingEnergy = optionalNumber(dxaRestingEnergy) else {
             saveState = .failed
@@ -846,21 +862,27 @@ struct BaselineCalibrationSheet: View {
                 bodyFatPercentage: bodyFat,
                 restingMetabolicRate: restingEnergy,
                 declaredSource: resultSource,
-                measuredAt: resultDate
+                measuredAt: resultDate,
+                operation: operation
             )
+            guard session.accountOperationIsCurrent(operation) else { return }
             savedResultSummaries = [
                 bodyFat.map { "\(language.text("Body fat")) · \($0.formatted(.number.precision(.fractionLength(0...1))))%" },
                 restingEnergy.map { "\(language.text("Resting energy (BMR/RMR)")) · \($0.formatted(.number.precision(.fractionLength(0)))) \(language.text("kcal/day"))" },
             ].compactMap { $0 }
             saveState = .saved
             UIAccessibility.post(notification: .announcement, argument: language.text("DEXA results saved"))
+        } catch is CancellationError {
+            return
         } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
             saveState = .failed
         }
     }
 
     @MainActor
-    private func saveOtherResult() async {
+    private func saveOtherResult(operation: AccountOperationLease) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
         guard let value = parsedResultValue else { return }
         saveState = .saving
         do {
@@ -869,14 +891,19 @@ struct BaselineCalibrationSheet: View {
                 value: value,
                 unit: resultMetric.unit,
                 declaredSource: resultSource,
-                measuredAt: resultDate
+                measuredAt: resultDate,
+                operation: operation
             )
+            guard session.accountOperationIsCurrent(operation) else { return }
             savedResultSummaries = [
                 "\(language.text(resultMetric.title)) · \(value.formatted(.number.precision(.fractionLength(0...1)))) \(language.text(resultMetric.unitLabel))"
             ]
             saveState = .saved
             UIAccessibility.post(notification: .announcement, argument: language.text("Result saved"))
+        } catch is CancellationError {
+            return
         } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
             saveState = .failed
         }
     }
