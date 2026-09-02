@@ -6,6 +6,57 @@ final class FoodEvidenceEnrichmentTests: XCTestCase {
     private let foodID = "10000000-0000-4000-8000-000000000046"
     private let providerID = "apex-curated:usda-fdc-167762"
 
+    private let shippedNaturalFoodDisplayKeys: [String: String] = [
+        "CA": "Calcium",
+        "CARTB": "Beta-carotene",
+        "CHOAVL": "Total carbs",
+        "CHOLE": "Cholesterol",
+        "CU": "Copper",
+        "ENERC_KCAL": "Calories",
+        "FAMS": "Monounsaturated fat",
+        "FAPU": "Polyunsaturated fat",
+        "FASAT": "Saturated fat",
+        "FAT": "Total fat",
+        "FATRN": "Trans fat",
+        "FE": "Iron",
+        "FIBT": "Dietary fibre",
+        "I": "Iodine",
+        "K": "Potassium",
+        "MG": "Magnesium",
+        "MN": "Manganese",
+        "NA": "Sodium",
+        "NACL": "Salt",
+        "OMEGA3": "Omega-3 fat",
+        "OMEGA3_ALA": "Alpha-linolenic acid (ALA)",
+        "OMEGA3_DHA": "Docosahexaenoic acid (DHA)",
+        "OMEGA3_DPA": "Docosapentaenoic acid (DPA)",
+        "OMEGA3_EPA": "Eicosapentaenoic acid (EPA)",
+        "OMEGA6": "Omega-6 fat",
+        "OMEGA6_AA": "Arachidonic acid (AA)",
+        "OMEGA6_GLA": "Gamma-linolenic acid (GLA)",
+        "OMEGA6_LA": "Linoleic acid (LA)",
+        "P": "Phosphorus",
+        "PROT": "Protein",
+        "SE": "Selenium",
+        "STARCH": "Starch",
+        "SUGAR": "Total sugars",
+        "VITA": "Vitamin A",
+        "VITB1": "Thiamin (B1)",
+        "VITB12": "Vitamin B12",
+        "VITB2": "Riboflavin (B2)",
+        "VITB3": "Niacin (B3)",
+        "VITB5": "Pantothenic acid (B5)",
+        "VITB6": "Vitamin B6",
+        "VITB7": "Biotin (B7)",
+        "VITB9": "Folate (B9)",
+        "VITC": "Vitamin C",
+        "VITD": "Vitamin D",
+        "VITE": "Vitamin E",
+        "VITK": "Vitamin K",
+        "WATER": "Water",
+        "ZN": "Zinc"
+    ]
+
     private var vitaminC: NutrientEvidenceObservation {
         NutrientEvidenceObservation(
             nutrientCode: "VITC", name: "Vitamin C", valuePer100: 58.8,
@@ -163,6 +214,137 @@ final class FoodEvidenceEnrichmentTests: XCTestCase {
         XCTAssertEqual(enriched[0].nutrientEvidence, [localVitaminC])
     }
 
+    func testDetailedNutritionUsesTheSameCanonicalTotalsAsTheAmountCard() {
+        let donorFacts = [
+            NutrientEvidenceObservation(
+                nutrientCode: "ENERC_KCAL", name: "Energy from donor", valuePer100: 33,
+                unit: "kcal", observationStatus: .measured, originalValueText: "33",
+                derivationMethod: nil, sourceKey: "fixture", sourceReference: "fixture"
+            ),
+            NutrientEvidenceObservation(
+                nutrientCode: "PROT", name: "Protein from donor", valuePer100: 0.72,
+                unit: "g", observationStatus: .measured, originalValueText: "0.72",
+                derivationMethod: nil, sourceKey: "fixture", sourceReference: "fixture"
+            ),
+            NutrientEvidenceObservation(
+                nutrientCode: "CHOAVL", name: "Carbohydrate from donor", valuePer100: 7.9,
+                unit: "g", observationStatus: .measured, originalValueText: "7.9",
+                derivationMethod: nil, sourceKey: "fixture", sourceReference: "fixture"
+            ),
+            NutrientEvidenceObservation(
+                nutrientCode: "FAT", name: "Fat from donor", valuePer100: 0.32,
+                unit: "g", observationStatus: .measured, originalValueText: "0.32",
+                derivationMethod: nil, sourceKey: "fixture", sourceReference: "fixture"
+            ),
+            vitaminC
+        ]
+        let food = strawberry(evidence: donorFacts)
+        let rows = FoodNutrientEvidence.observations(for: food)
+
+        XCTAssertEqual(rows.first { $0.nutrientCode == "ENERC_KCAL" }?.valuePer100, food.kcal100)
+        XCTAssertEqual(rows.first { $0.nutrientCode == "PROT" }?.valuePer100, food.protein100)
+        XCTAssertEqual(rows.first { $0.nutrientCode == "CHOAVL" }?.valuePer100, food.carbs100)
+        XCTAssertEqual(rows.first { $0.nutrientCode == "FAT" }?.valuePer100, food.fat100)
+        XCTAssertEqual(rows.first { $0.nutrientCode == "VITC" }, vitaminC)
+        for code in ["ENERC_KCAL", "PROT", "CHOAVL", "FAT"] {
+            XCTAssertEqual(rows.filter { $0.nutrientCode == code }.count, 1)
+        }
+    }
+
+    func testLegacyServerUnitsCanonicalizeAndOpaqueUnitsFailClosed() {
+        let rows = [
+            NutrientEvidenceObservation(
+                nutrientCode: "VITC", name: "Vitamin C", valuePer100: 50,
+                unit: "MG / 100g", observationStatus: .measured,
+                originalValueText: "50", derivationMethod: nil,
+                sourceKey: "legacy-server", sourceReference: "1"
+            ),
+            NutrientEvidenceObservation(
+                nutrientCode: "VITA", name: "Vitamin A", valuePer100: 700,
+                unit: "RE (ug/100 g)", observationStatus: .measured,
+                originalValueText: "700", derivationMethod: nil,
+                sourceKey: "legacy-server", sourceReference: "2"
+            ),
+            NutrientEvidenceObservation(
+                nutrientCode: "VITE", name: "Vitamin E", valuePer100: 2,
+                unit: "alfa-TE", observationStatus: .measured,
+                originalValueText: "2", derivationMethod: nil,
+                sourceKey: "legacy-server", sourceReference: "3"
+            ),
+            NutrientEvidenceObservation(
+                nutrientCode: "VITD", name: "Vitamin D", valuePer100: 20,
+                unit: "i.u.", observationStatus: .measured,
+                originalValueText: "20", derivationMethod: nil,
+                sourceKey: "legacy-server", sourceReference: "4"
+            ),
+            NutrientEvidenceObservation(
+                nutrientCode: "FE", name: "Iron", valuePer100: 9,
+                unit: "publisher score", observationStatus: .measured,
+                originalValueText: "9", derivationMethod: nil,
+                sourceKey: "legacy-server", sourceReference: "5"
+            )
+        ]
+        let projected = FoodNutrientEvidence.observations(for: strawberry(evidence: rows))
+        let units = Dictionary(uniqueKeysWithValues: projected.compactMap { observation in
+            ["VITC", "VITA", "VITE", "VITD", "FE"].contains(observation.nutrientCode)
+                ? (observation.nutrientCode, observation.unit) : nil
+        })
+
+        XCTAssertEqual(units, [
+            "VITC": "mg", "VITA": "µg RE", "VITE": "mg α-TE", "VITD": "IU"
+        ])
+        XCTAssertEqual(FoodNutrientEvidence.canonicalUnit("KCAL/100 g"), "kcal")
+        XCTAssertEqual(FoodNutrientEvidence.canonicalUnit("μg per 100g"), "µg")
+        XCTAssertEqual(FoodNutrientEvidence.canonicalUnit("ug RAE"), "µg RAE")
+        XCTAssertNil(FoodNutrientEvidence.canonicalUnit("publisher score"))
+    }
+
+    func testLegacyEquivalentUnitsMergeInPatternsWhileOpaqueUnitsAreOmitted() {
+        let ownerID = UUID()
+        let firstMeal = UUID()
+        let secondMeal = UUID()
+        func row(_ code: String, _ value: Double, _ unit: String) -> NutrientEvidenceObservation {
+            NutrientEvidenceObservation(
+                nutrientCode: code, name: code, valuePer100: value,
+                unit: unit, observationStatus: .measured,
+                originalValueText: String(value), derivationMethod: nil,
+                sourceKey: "legacy-server", sourceReference: "fixture"
+            )
+        }
+        let summary = NutrientPatternEngine.summarize(
+            meals: [
+                NutrientPatternMeal(id: firstMeal, userID: ownerID, localDate: "2026-09-01"),
+                NutrientPatternMeal(id: secondMeal, userID: ownerID, localDate: "2026-09-02")
+            ],
+            entries: [
+                NutrientPatternEntry(
+                    mealID: firstMeal, userID: ownerID, equivalentAmount: 100,
+                    evidence: [row("VITC", 40, "MG"), row("VITA", 10, "UG RAE")]
+                ),
+                NutrientPatternEntry(
+                    mealID: secondMeal, userID: ownerID, equivalentAmount: 100,
+                    evidence: [
+                        row("VITC", 60, "mg per 100g"),
+                        row("VITA", 20, "µg RAE"),
+                        row("FE", 99, "publisher score")
+                    ]
+                )
+            ],
+            ownerID: ownerID,
+            anchorDate: "2026-09-02",
+            period: .week
+        )
+
+        let vitaminC = summary.rows.filter { $0.nutrientCode == "VITC" }
+        XCTAssertEqual(vitaminC.count, 1)
+        XCTAssertEqual(vitaminC.first?.unit, "mg")
+        XCTAssertEqual(vitaminC.first?.total, 100)
+        XCTAssertEqual(vitaminC.first?.averagePerObservedDay, 50)
+        XCTAssertEqual(summary.rows.first { $0.nutrientCode == "VITA" }?.unit, "µg RAE")
+        XCTAssertEqual(summary.rows.first { $0.nutrientCode == "VITA" }?.total, 30)
+        XCTAssertFalse(summary.rows.contains { $0.nutrientCode == "FE" })
+    }
+
     func testWhitespaceAndEmptyPublicAndProviderIdentifiersRejectTransfer() {
         let cases: [(String, Food, Food)] = [
             ("empty matching ids", strawberry(id: ""), strawberry(id: "", evidence: [vitaminC, iron])),
@@ -267,6 +449,38 @@ final class FoodEvidenceEnrichmentTests: XCTestCase {
         XCTAssertEqual(merged[0].nutrientEvidence, donorEvidence)
     }
 
+    func testSearchMergePrefersExactServerEvidenceOverBundledFallbackEvidence() {
+        let local = bundledStrawberry()
+        let serverEvidence = NutrientEvidenceObservation(
+            nutrientCode: "VITC", name: "Server vitamin C", valuePer100: 61,
+            unit: "mg", observationStatus: .reported, originalValueText: "61",
+            derivationMethod: nil, sourceKey: "server-official",
+            sourceReference: "server:strawberry"
+        )
+        let server = bundledStrawberry(name: "Exact server strawberry", evidence: [serverEvidence])
+
+        let merged = FoodNutrientEvidence.mergeLocalSearchFoods([local], with: [server])
+
+        XCTAssertEqual(merged.count, 1)
+        XCTAssertEqual(merged[0].nutrientEvidence, [serverEvidence])
+    }
+
+    func testSearchMergePreservesExplicitLocalEvidenceAheadOfServerAndBundle() {
+        let explicit = NutrientEvidenceObservation(
+            nutrientCode: "VITC", name: "Explicit vitamin C", valuePer100: 60,
+            unit: "mg", observationStatus: .reported, originalValueText: "60",
+            derivationMethod: nil, sourceKey: "apex-curation",
+            sourceReference: "explicit:strawberry"
+        )
+        let local = bundledStrawberry(evidence: [explicit])
+        let server = bundledStrawberry(name: "Exact server strawberry", evidence: [vitaminC, iron])
+
+        XCTAssertEqual(
+            FoodNutrientEvidence.mergeLocalSearchFoods([local], with: [server])[0].nutrientEvidence,
+            [explicit]
+        )
+    }
+
     func testBundledResourceHas111UniqueReviewedTargetsAcrossNineCategories() throws {
         let data = try XCTUnwrap(FoodNutrientEvidence.naturalFoodEvidenceResourceData())
         let resource = try JSONDecoder().decode(NaturalEvidenceEnvelope.self, from: data)
@@ -318,6 +532,24 @@ final class FoodEvidenceEnrichmentTests: XCTestCase {
         XCTAssertEqual(
             FoodNutrientEvidence.nutritionFactSections(enriched.nutrientEvidence ?? []).map(\.kind),
             [.facts, .vitamins, .minerals]
+        )
+    }
+
+    func testDebugFoodMemoryStrawberryUsesTheRealBundledEvidencePath() throws {
+        let strawberry = try XCTUnwrap(
+            APEXDebugFixture.dashboard().foods.first {
+                $0.id == "10000000-0000-4000-8000-000000000046"
+            }
+        )
+        let enriched = FoodNutrientEvidence.overlayBundledNaturalFoodEvidence([strawberry])[0]
+
+        XCTAssertEqual(
+            enriched.nutrientEvidence?.first { $0.nutrientCode == "VITC" }?.valuePer100,
+            58.8
+        )
+        XCTAssertEqual(
+            enriched.nutrientEvidence?.first { $0.nutrientCode == "FE" }?.valuePer100,
+            0.41
         )
     }
 
@@ -423,6 +655,217 @@ final class FoodEvidenceEnrichmentTests: XCTestCase {
             targets[index]["evidence"] = evidence
             root["targets"] = targets
         }
+        XCTAssertEqual(
+            FoodNutrientEvidence.overlayBundledNaturalFoodEvidence(
+                [bundledStrawberry()], resourceData: oversized
+            )[0].nutrientEvidence,
+            []
+        )
+    }
+
+    func testBundledEvidenceValueUsesInclusiveZeroToOneTrillionDomain() throws {
+        for invalidValue in [-1.0, 1_000_000_000_001.0] {
+            let malformed = try mutatedNaturalEvidenceResource { root in
+                var targets = try XCTUnwrap(root["targets"] as? [[String: Any]])
+                let index = try XCTUnwrap(targets.firstIndex(where: {
+                    guard let target = $0["target"] as? [String: Any],
+                          let id = target["id"] as? String
+                    else { return false }
+                    return id == self.foodID
+                }))
+                var evidence = try XCTUnwrap(targets[index]["evidence"] as? [[String: Any]])
+                evidence[0]["value_per_100"] = invalidValue
+                targets[index]["evidence"] = evidence
+                root["targets"] = targets
+            }
+            XCTAssertEqual(
+                FoodNutrientEvidence.overlayBundledNaturalFoodEvidence(
+                    [bundledStrawberry()], resourceData: malformed
+                )[0].nutrientEvidence,
+                [], "invalid value \(invalidValue)"
+            )
+        }
+
+        for boundaryValue in [0.0, 1_000_000_000_000.0] {
+            let valid = try mutatedNaturalEvidenceResource { root in
+                var targets = try XCTUnwrap(root["targets"] as? [[String: Any]])
+                let index = try XCTUnwrap(targets.firstIndex(where: {
+                    guard let target = $0["target"] as? [String: Any],
+                          let id = target["id"] as? String
+                    else { return false }
+                    return id == self.foodID
+                }))
+                var evidence = try XCTUnwrap(targets[index]["evidence"] as? [[String: Any]])
+                evidence[0]["value_per_100"] = boundaryValue
+                targets[index]["evidence"] = evidence
+                root["targets"] = targets
+            }
+            XCTAssertEqual(
+                FoodNutrientEvidence.overlayBundledNaturalFoodEvidence(
+                    [bundledStrawberry()], resourceData: valid
+                )[0].nutrientEvidence?.first?.valuePer100,
+                boundaryValue
+            )
+        }
+    }
+
+    func testMalformedEntryDoesNotDisableOtherValidBundledEntries() throws {
+        let malformed = try mutatedNaturalEvidenceResource { root in
+            var targets = try XCTUnwrap(root["targets"] as? [[String: Any]])
+            let index = try XCTUnwrap(targets.firstIndex(where: {
+                guard let target = $0["target"] as? [String: Any],
+                      let id = target["id"] as? String
+                else { return false }
+                return id != self.foodID
+            }))
+            targets[index]["aliases"] = "malformed entry"
+            root["targets"] = targets
+        }
+
+        let enriched = FoodNutrientEvidence.overlayBundledNaturalFoodEvidence(
+            [bundledStrawberry()], resourceData: malformed
+        )[0]
+
+        XCTAssertEqual(
+            enriched.nutrientEvidence?.first { $0.nutrientCode == "VITC" }?.valuePer100,
+            58.8
+        )
+    }
+
+    func testEveryShippedNutrientUsesCanonicalLabelsInDetailsAndPatterns() throws {
+        let resourceData = try XCTUnwrap(FoodNutrientEvidence.naturalFoodEvidenceResourceData())
+        let resource = try JSONDecoder().decode(NaturalEvidenceEnvelope.self, from: resourceData)
+        let shippedCodes = Set(resource.targets.flatMap { target in
+            target.evidence.map { $0.nutrientCode.uppercased() }
+        })
+        XCTAssertEqual(shippedCodes, Set(shippedNaturalFoodDisplayKeys.keys))
+
+        let hostilePublisherRows = shippedCodes.sorted().enumerated().map { index, code in
+            NutrientEvidenceObservation(
+                nutrientCode: code,
+                name: "Untranslated publisher label \(index)",
+                valuePer100: 1,
+                unit: "mg",
+                observationStatus: .measured,
+                originalValueText: "1",
+                derivationMethod: nil,
+                sourceKey: "fixture-source",
+                sourceReference: "fixture-reference"
+            )
+        }
+        let detailLabels = Dictionary(uniqueKeysWithValues:
+            FoodNutrientEvidence.nutritionFactSections(hostilePublisherRows)
+                .flatMap(\.rows)
+                .map { ($0.observation.nutrientCode, $0.label) }
+        )
+        XCTAssertEqual(detailLabels, shippedNaturalFoodDisplayKeys)
+
+        let ownerID = UUID()
+        let mealID = UUID()
+        let summary = NutrientPatternEngine.summarize(
+            meals: [NutrientPatternMeal(id: mealID, userID: ownerID, localDate: "2026-09-01")],
+            entries: [NutrientPatternEntry(
+                mealID: mealID,
+                userID: ownerID,
+                equivalentAmount: 100,
+                evidence: hostilePublisherRows
+            )],
+            ownerID: ownerID,
+            anchorDate: "2026-09-01",
+            period: .month
+        )
+        XCTAssertEqual(
+            Dictionary(uniqueKeysWithValues: summary.rows.map { ($0.nutrientCode, $0.name) }),
+            shippedNaturalFoodDisplayKeys
+        )
+    }
+
+    func testMalformedEntryMetadataFailsClosedAtNativeRuntimeBoundary() throws {
+        let cases: [(String, (inout [String: Any]) throws -> Void)] = [
+            ("category", { $0["category"] = "   " }),
+            ("donor name", { target in
+                var donor = try XCTUnwrap(target["donor"] as? [String: Any])
+                donor["name"] = ""
+                target["donor"] = donor
+            }),
+            ("target name", { target in
+                var identity = try XCTUnwrap(target["target"] as? [String: Any])
+                identity["name"] = "\n"
+                target["target"] = identity
+            })
+        ]
+
+        for (label, mutation) in cases {
+            let malformed = try mutatedNaturalEvidenceResource { root in
+                var targets = try XCTUnwrap(root["targets"] as? [[String: Any]])
+                let index = try XCTUnwrap(targets.firstIndex(where: {
+                    guard let target = $0["target"] as? [String: Any],
+                          let id = target["id"] as? String
+                    else { return false }
+                    return id == self.foodID
+                }))
+                try mutation(&targets[index])
+                root["targets"] = targets
+            }
+            XCTAssertEqual(
+                FoodNutrientEvidence.overlayBundledNaturalFoodEvidence(
+                    [bundledStrawberry()], resourceData: malformed
+                )[0].nutrientEvidence,
+                [], label
+            )
+        }
+    }
+
+    func testMissingNullableEvidenceValueFailsClosedAtNativeRuntimeBoundary() throws {
+        let malformed = try mutatedNaturalEvidenceResource { root in
+            var targets = try XCTUnwrap(root["targets"] as? [[String: Any]])
+            let index = try XCTUnwrap(targets.firstIndex(where: {
+                guard let target = $0["target"] as? [String: Any],
+                      let id = target["id"] as? String
+                else { return false }
+                return id == self.foodID
+            }))
+            var evidence = try XCTUnwrap(targets[index]["evidence"] as? [[String: Any]])
+            evidence[0].removeValue(forKey: "value_per_100")
+            targets[index]["evidence"] = evidence
+            root["targets"] = targets
+        }
+
+        XCTAssertEqual(
+            FoodNutrientEvidence.overlayBundledNaturalFoodEvidence(
+                [bundledStrawberry()], resourceData: malformed
+            )[0].nutrientEvidence,
+            []
+        )
+    }
+
+    func testResourceWithMoreThan256TargetsIsRejectedBeforeEntryDecoding() throws {
+        let excessive = try mutatedNaturalEvidenceResource { root in
+            var targets = try XCTUnwrap(root["targets"] as? [[String: Any]])
+            let filler = try XCTUnwrap(targets.first(where: {
+                guard let target = $0["target"] as? [String: Any],
+                      let id = target["id"] as? String
+                else { return false }
+                return id != self.foodID
+            }))
+            while targets.count <= 256 { targets.append(filler) }
+            root["targets"] = targets
+        }
+
+        XCTAssertEqual(
+            FoodNutrientEvidence.overlayBundledNaturalFoodEvidence(
+                [bundledStrawberry()], resourceData: excessive
+            )[0].nutrientEvidence,
+            []
+        )
+    }
+
+    func testResourceLargerThanFourMiBIsRejectedBeforeJSONParsing() throws {
+        let oversized = try mutatedNaturalEvidenceResource { root in
+            root["oversized_padding"] = String(repeating: "x", count: 4_194_305)
+        }
+
+        XCTAssertGreaterThan(oversized.count, 4_194_304)
         XCTAssertEqual(
             FoodNutrientEvidence.overlayBundledNaturalFoodEvidence(
                 [bundledStrawberry()], resourceData: oversized

@@ -16,6 +16,10 @@
     "sha256": "sha256:475fed08c1d6910ecbd7b29ac8e06dcbad2838d1a94d8389f849e53806886abe"
   },
   "generator": "tools/food_corpus/build_natural_food_evidence.mjs",
+  "migration": {
+    "path": "supabase/migrations/048_natural_food_micronutrient_evidence.sql",
+    "sha256": "sha256:b8aba1c593d8ad2be9430d668f69ce3ca44feb649db404316561e6c5ed6442a6"
+  },
   "nutrient_coverage": {
     "CA": 111,
     "CARTB": 98,
@@ -42,7 +46,7 @@
     "OMEGA3_DPA": 96,
     "OMEGA3_EPA": 96,
     "OMEGA6": 1,
-    "OMEGA6_AA": 16,
+    "OMEGA6_AA": 15,
     "OMEGA6_GLA": 24,
     "OMEGA6_LA": 104,
     "P": 111,
@@ -66,12 +70,25 @@
     "WATER": 111,
     "ZN": 111
   },
-  "regeneration_command": "node tools/food_corpus/build_natural_food_evidence.mjs --crosswalk docs/food-corpus/natural-food-evidence-crosswalk.json --source usda-sr-legacy=$USDA_SR_LEGACY_DIR --source usda-foundation=$USDA_FOUNDATION_DIR --source dk-frida=$DK_FRIDA_DIR",
+  "regeneration_command": "node tools/food_corpus/build_natural_food_evidence.mjs --reviewed-dir docs/food-corpus/natural-food-evidence-review --crosswalk docs/food-corpus/natural-food-evidence-crosswalk.json --source usda-sr-legacy=$USDA_SR_LEGACY_DIR --source usda-foundation=$USDA_FOUNDATION_DIR --source dk-frida=$DK_FRIDA_DIR",
   "rejected_count": 26,
+  "rejections": {
+    "path": "docs/food-corpus/natural-food-evidence-rejections.json",
+    "sha256": "sha256:33a7aa21b88a025483068c633c5c6caff77c28e76c22ca7241c38c2f0142b8cc"
+  },
   "resource": {
-    "bytes": 1715384,
+    "bytes": 1716035,
     "path": "shared/natural-food-evidence.json",
-    "sha256": "sha256:a306e3f532a877db99b537fbce166a313518054fca3938ba424c7a3537bd0b59"
+    "sha256": "sha256:6de29d97486ed8fccc0407b624bd9002bcb16ff30fd90b169821eeece2b44a50"
+  },
+  "review_inputs": {
+    "directory": "docs/food-corpus/natural-food-evidence-review",
+    "file_sha256": {
+      "animal-crosswalk.tsv": "sha256:23c064f4d6ed10d86b7bd9728a3433b52ba88eea0e0e1bc88efb84585df74eca",
+      "plant-crosswalk.tsv": "sha256:46bd4dd33b38ae24ebef96477eea2bfb735f49a915a37ed3fb6069049b34f46a",
+      "regional-crosswalk.tsv": "sha256:9dd3bc14ec70215ad5d8d49dc928f165cfc8f7c0795ac17ac5d60b8d488a1ef7",
+      "rejections.tsv": "sha256:cd567a57c8c7500821a2522a2f320f34f2da354e659abce16bd1d69c9262a6c8"
+    }
   },
   "schema_version": 1,
   "source_counts": {
@@ -83,15 +100,15 @@
     {
       "artifact": "FCDB_6.1_Dataset.xlsx",
       "artifact_sha256": "sha256:aba52ade9dd75f085954ca5561f001efb58e4b37d412b135622fd34d77f45c09",
-      "attribution": "Frida Food Data, National Food Institute, Technical University of Denmark.",
+      "attribution": "Marija Langwagen, Jette Jakobsen and Anders Poulsen: The Danish Food Composition Database, version 6.1, May 2026, National Food Institute, Technical University of Denmark.",
       "dataset_name": "Frida Food Data 6.1",
       "key": "dk-frida",
       "licence": "CC-BY-4.0",
-      "licence_url": "https://frida.fooddata.dk/",
+      "licence_url": "https://creativecommons.org/licenses/by/4.0/",
       "parser": "frida_v1",
       "publisher": "National Food Institute, Technical University of Denmark",
       "staged_file_sha256": {
-        "nutrients.ndjson": "sha256:c640691297321e597ab8084b3cc24a81f15406a3c3e24ba1f3d1f7240d51d4b9",
+        "nutrients.ndjson": "sha256:3e093d8dc5852d42ab986af2800d5b145f669b21455e1f3ef01d1efb46cee503",
         "records.ndjson": "sha256:20a576fdb4e9cdd3dd74d242f09738990a1d27b14391ee2e647888d57199cc13"
       },
       "version": "6.1"

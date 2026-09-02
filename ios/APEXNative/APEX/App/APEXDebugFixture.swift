@@ -94,7 +94,7 @@ enum APEXDebugFixture {
         ]
         let oatsID = UUID()
         let wheyID = UUID()
-        let berriesID = UUID()
+        let berriesID = UUID(uuidString: "10000000-0000-4000-8000-000000000046")!
         let foods = [
             food(id: oatsID, name: "Swiss rolled oats", brand: "APEX Food Memory", kcal: 370, protein: 13, carbs: 60, fat: 7),
             food(
@@ -103,7 +103,12 @@ enum APEXDebugFixture {
                 fibre: 0, sugar: 4.8, saturatedFat: 0.1,
                 nutritionBasis: "per_100ml"
             ),
-            food(id: berriesID, name: "Strawberries, fresh", brand: nil, kcal: 32, protein: 0.7, carbs: 7.7, fat: 0.3),
+            food(
+                id: berriesID, name: "Strawberries, fresh", brand: nil,
+                kcal: 32, protein: 0.67, carbs: 7.68, fat: 0.3,
+                source: "apex_cache",
+                providerProductID: "apex-curated:swiss-retail-strawberries-fresh-reference"
+            ),
         ]
         let breakfastID = UUID()
         let loggedBreakfast = LoggedMeal(
@@ -236,11 +241,13 @@ enum APEXDebugFixture {
         fibre: Double? = nil,
         sugar: Double? = nil,
         saturatedFat: Double? = nil,
-        nutritionBasis: String = "per_100g"
+        nutritionBasis: String = "per_100g",
+        source: String = "ui_fixture",
+        providerProductID: String? = nil
     ) -> Food {
         Food(
             id: id.uuidString, ownerUserID: nil, name: name, namesI18n: [:], brand: brand,
-            barcode: nil, source: "ui_fixture", providerProductID: nil, externalImageURL: nil,
+            barcode: nil, source: source, providerProductID: providerProductID, externalImageURL: nil,
             packageQuantity: nil, nutritionBasis: nutritionBasis, preparationState: "as_sold",
             kcal100: kcal, protein100: protein, carbs100: carbs, fat100: fat,
             fibre100: fibre, sugar100: sugar, saturatedFat100: saturatedFat, salt100: nil,

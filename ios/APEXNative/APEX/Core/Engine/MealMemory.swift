@@ -250,6 +250,11 @@ enum MealMemory {
         let scopedPreferences = preferences.filter { preference in
             userID == nil || preference.userID == userID
         }
+        let scopedFoods = foods.filter { food in
+            guard let ownerUserID = food.ownerUserID else { return true }
+            guard let userID else { return false }
+            return ownerUserID == userID
+        }
         let preferenceByFoodID = Dictionary(
             scopedPreferences.map { ($0.foodID.uuidString.lowercased(), $0) },
             uniquingKeysWith: { first, _ in first }
@@ -263,7 +268,7 @@ enum MealMemory {
             let usageCount: Int
         }
 
-        let matches = foods.compactMap { food -> Match? in
+        let matches = scopedFoods.compactMap { food -> Match? in
             let preference = preferenceByFoodID[food.id.lowercased()]
             guard preference?.hidden != true else { return nil }
             let fields = ([food.name, food.brand]

@@ -57,7 +57,7 @@ test('strawberry has source-backed Vitamins and Minerals while oats retains Frid
       name: 'Vitamin C, total ascorbic acid', nutrient_code: 'VITC',
       observation_status: 'measured', original_value_text: '58.8',
       source_key: 'usda-sr-legacy', source_reference: 'food_nutrient:1303228',
-      unit: 'MG', value_per_100: 58.8,
+      unit: 'mg', value_per_100: 58.8,
     },
   )
   assert.equal(strawberry.evidence.some((row) => row.nutrient_code === 'FE'), true)
@@ -118,6 +118,42 @@ test('exact target alias receives one cloned whole evidence record before duplic
   const merged = mergeExtendedFoodResults('strawberries', [local], [{ ...local, name: 'Server copy' }])
   assert.equal(merged.length, 1)
   assert.deepEqual(merged[0].nutrient_evidence, entry.evidence)
+})
+
+test('search merge prefers an exact compatible server record over bundled fallback evidence', () => {
+  const local = catalogueFood(strawberryID)
+  const serverEvidence: NutrientEvidenceObservation = {
+    ...explicitEvidence,
+    name: 'Server vitamin C',
+    value_per_100: 61,
+    original_value_text: '61',
+    source_key: 'server-official',
+    source_reference: 'server:strawberry',
+  }
+  const server: FoodRecord = {
+    ...local,
+    name: 'Exact server strawberry',
+    nutrient_evidence: [serverEvidence],
+  }
+
+  const merged = mergeExtendedFoodResults('strawberries', [local], [server])
+
+  assert.equal(merged.length, 1)
+  assert.deepEqual(merged[0].nutrient_evidence, [serverEvidence])
+})
+
+test('search merge preserves explicit local evidence ahead of server and bundled evidence', () => {
+  const local = catalogueFood(strawberryID)
+  local.nutrient_evidence = [explicitEvidence]
+  const server: FoodRecord = {
+    ...local,
+    nutrient_evidence: [{ ...explicitEvidence, source_reference: 'server:strawberry' }],
+  }
+
+  assert.deepEqual(
+    mergeExtendedFoodResults('strawberries', [local], [server])[0].nutrient_evidence,
+    [explicitEvidence],
+  )
 })
 
 test('exact corpus donor alias is independently authorized against its stored donor fingerprint', () => {
@@ -193,5 +229,48 @@ test('malformed or oversized resource evidence fails closed at the runtime bound
   const oversizedEntry = oversized.targets.find((candidate) => candidate.target.id === strawberryID)
   assert.ok(oversizedEntry)
   oversizedEntry.evidence[0].original_value_text = 'x'.repeat(66_000)
+  assert.deepEqual(overlayNaturalFoodEvidence([target], oversized)[0].nutrient_evidence ?? [], [])
+})
+
+test('runtime evidence accepts only values inside the inclusive zero-to-one-trillion domain', () => {
+  const target = catalogueFood(strawberryID)
+  for (const invalidValue of [-1, 1_000_000_000_001]) {
+    const malformed = structuredClone(naturalFoodEvidenceBundle)
+    const entry = malformed.targets.find((candidate) => candidate.target.id === strawberryID)
+    assert.ok(entry)
+    entry.evidence[0].value_per_100 = invalidValue
+    assert.deepEqual(
+      overlayNaturalFoodEvidence([target], malformed)[0].nutrient_evidence ?? [],
+      [],
+    )
+  }
+
+  for (const boundaryValue of [0, 1_000_000_000_000]) {
+    const valid = structuredClone(naturalFoodEvidenceBundle)
+    const entry = valid.targets.find((candidate) => candidate.target.id === strawberryID)
+    assert.ok(entry)
+    entry.evidence[0].value_per_100 = boundaryValue
+    assert.equal(
+      overlayNaturalFoodEvidence([target], valid)[0].nutrient_evidence?.[0].value_per_100,
+      boundaryValue,
+    )
+  }
+})
+
+test('a resource with more than 256 targets is rejected before valid targets are indexed', () => {
+  const target = catalogueFood(strawberryID)
+  const excessive = structuredClone(naturalFoodEvidenceBundle)
+  const filler = structuredClone(excessive.targets.find((entry) => entry.target.id !== strawberryID))
+  assert.ok(filler)
+  while (excessive.targets.length <= 256) excessive.targets.push(structuredClone(filler))
+
+  assert.deepEqual(overlayNaturalFoodEvidence([target], excessive)[0].nutrient_evidence ?? [], [])
+})
+
+test('a resource larger than four MiB is rejected before valid targets are indexed', () => {
+  const target = catalogueFood(strawberryID)
+  const oversized = structuredClone(naturalFoodEvidenceBundle)
+  oversized.sources = [{ key: 'oversized-padding', padding: 'x'.repeat(4_194_305) }]
+
   assert.deepEqual(overlayNaturalFoodEvidence([target], oversized)[0].nutrient_evidence ?? [], [])
 })

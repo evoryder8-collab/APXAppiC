@@ -53,12 +53,21 @@ struct FoodSearchSheet: View {
     @State private var message: String?
     @FocusState private var searchFocused: Bool
 
+    private var localFoods: [Food] {
+        let ownerID = session.profile?.userID
+        let accountVisible = session.data.foods.filter { food in
+            guard let foodOwnerID = food.ownerUserID else { return true }
+            return ownerID != nil && foodOwnerID == ownerID
+        }
+        return FoodNutrientEvidence.overlayBundledNaturalFoodEvidence(accountVisible)
+    }
+
     private var displayedFoods: [Food] {
         if remoteResults.isEmpty == false { return visible(remoteResults) }
         guard !query.isEmpty else {
-            guard let userID = session.profile?.userID else { return ranked(session.data.foods) }
+            guard let userID = session.profile?.userID else { return ranked(localFoods) }
             return MealMemory.recentFoods(
-                foods: session.data.foods,
+                foods: localFoods,
                 preferences: session.data.foodPreferences,
                 meals: session.data.loggedMeals,
                 entries: session.data.loggedFoodEntries,
@@ -67,7 +76,7 @@ struct FoodSearchSheet: View {
         }
         return ranked(MealMemory.searchFoods(
             query: query,
-            foods: session.data.foods,
+            foods: localFoods,
             preferences: session.data.foodPreferences,
             userID: session.profile?.userID
         ))
@@ -186,7 +195,11 @@ struct FoodSearchSheet: View {
 
     private func visible(_ foods: [Food]) -> [Food] {
         let preferences = Dictionary(uniqueKeysWithValues: session.data.foodPreferences.map { ($0.foodID.uuidString.lowercased(), $0) })
-        return foods.filter { preferences[$0.id.lowercased()]?.hidden != true }
+        let ownerID = session.profile?.userID
+        return foods.filter { food in
+            let belongsToAccount = food.ownerUserID == nil || (ownerID != nil && food.ownerUserID == ownerID)
+            return belongsToAccount && preferences[food.id.lowercased()]?.hidden != true
+        }
     }
 
     @MainActor

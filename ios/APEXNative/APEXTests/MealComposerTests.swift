@@ -41,6 +41,55 @@ final class MealComposerTests: XCTestCase {
         XCTAssertGreaterThanOrEqual((430 - cardWidth) / 2, safeAreaInsets.trailing + 16)
     }
 
+    func testAPEXPopoverGeometryRejectsInvalidKeyboardTransitionDimensions() {
+        let invalidSize = APEXPopoverGeometry.containerSize(
+            CGSize(width: .nan, height: -.infinity)
+        )
+
+        XCTAssertEqual(invalidSize, .zero)
+        XCTAssertEqual(
+            APEXPopoverGeometry.maximumHeight(
+                containerHeight: -.infinity,
+                fraction: .nan
+            ),
+            0
+        )
+        XCTAssertEqual(
+            APEXPopoverGeometry.cardHeight(
+                contentHeight: .infinity,
+                maximumHeight: -40
+            ),
+            0
+        )
+    }
+
+    func testAPEXPopoverGeometryClampsValidDimensionsWithoutChangingNormalLayout() {
+        XCTAssertEqual(
+            APEXPopoverGeometry.maximumHeight(
+                containerHeight: 874,
+                fraction: 0.78
+            ),
+            681.72,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            APEXPopoverGeometry.cardHeight(
+                contentHeight: 720,
+                maximumHeight: 681.72
+            ),
+            681.72,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            APEXPopoverGeometry.cardHeight(
+                contentHeight: 440,
+                maximumHeight: 681.72
+            ),
+            440,
+            accuracy: 0.001
+        )
+    }
+
     func testNewMealLogKindNormalizesToDatabaseAcceptedCustomValue() {
         XCTAssertEqual(MealLogKind.normalized(nil), "custom")
         XCTAssertEqual(MealLogKind.normalized("actual"), "custom")

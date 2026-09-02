@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { test } from 'node:test'
 
 const audit = 'ios/APEXNative/Tools/audit-translation-coverage.mjs'
+const auditSource = readFileSync(audit, 'utf8')
 const offeredLanguages = ['en', 'de', 'de-CH', 'it', 'es', 'pt', 'ja', 'ro', 'th']
 
 test('translation coverage reports every offered language against the same source set', () => {
@@ -51,6 +52,12 @@ test('translation coverage excludes storage identifiers, debug fixtures and tran
   assert.doesNotMatch(result.stdout, /\(\^\|\[\^a-z\]\)/)
   assert.doesNotMatch(result.stdout, /<trkpt\s/)
   assert.doesNotMatch(result.stdout, /PortalHomeView\.swift\s+" ,/)
+  assert.doesNotMatch(result.stdout, /FoodHydration\.swift\s+"(?:VITC|FASAT|CHOAVL)"/)
+  assert.doesNotMatch(result.stdout, /FoodHydration\.swift\s+"mg α-TE"/)
+})
+
+test('translation coverage preserves the canonical alpha-tocopherol unit verbatim', () => {
+  assert.match(auditSource, /'mg α-TE'/)
 })
 
 test('the Portuguese table consistently uses the documented pt-PT market vocabulary', () => {

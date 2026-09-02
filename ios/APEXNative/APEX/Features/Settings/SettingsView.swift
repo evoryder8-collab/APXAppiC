@@ -22,6 +22,7 @@ struct SettingsView: View {
     @State private var entitlements = EntitlementStore.shared
     @State private var showPaywall = false
     @State private var showLogout = false
+    @State private var showFoodDataAcknowledgements = false
     @State private var pendingNewbieMode = false
     @State private var confirmRestorePlan = false
     @State private var timeZoneDraft = ""
@@ -45,6 +46,7 @@ struct SettingsView: View {
                 addOnCard
                 membershipCard
                 healthCard
+                legalCard
                 accountCard
             }
             .padding(18)
@@ -63,6 +65,7 @@ struct SettingsView: View {
             Button(language.text(.yesLogout), role: .destructive) { Task { await session.signOut() } }
             Button(language.text(.cancel), role: .cancel) {}
         }
+        .sheet(isPresented: $showFoodDataAcknowledgements, content: FoodDataAcknowledgementsView.init)
     }
 
     /// What this account is entitled to, in plain words, and a way to see the
@@ -586,6 +589,40 @@ struct SettingsView: View {
                 Button(role: .destructive) { showLogout = true } label: {
                     Label(language.text("Log out"), systemImage: "rectangle.portrait.and.arrow.right").frame(maxWidth: .infinity)
                 }.buttonStyle(.borderedProminent).tint(APEXColor.danger)
+            }
+        }
+    }
+
+    private var legalCard: some View {
+        GlassCard(radius: 31, padding: 20) {
+            VStack(alignment: .leading, spacing: 14) {
+                sectionTitle(
+                    "Legal & data",
+                    subtitle: "Licensing, attribution and provenance stay here instead of cluttering individual nutrient rows."
+                )
+                Button {
+                    showFoodDataAcknowledgements = true
+                } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "checkmark.seal.fill")
+                            .foregroundStyle(APEXColor.violet)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(language.text("Food data acknowledgements"))
+                                .font(APEXFont.body(14, weight: .bold))
+                            Text(language.text("See where APEX food data comes from and how it is adapted."))
+                                .font(APEXFont.body(11))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("settings-food-data-acknowledgements")
             }
         }
     }

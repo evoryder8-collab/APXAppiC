@@ -40,6 +40,42 @@ private struct MemorySelection: Decodable, Sendable {
     let unit: String
 }
 
+private enum DeferredFoodSearchFailure: Error {
+    case offline
+}
+
+private actor DeferredFoodSearchProvider {
+    private var started = false
+    private var startedWaiters: [CheckedContinuation<Void, Never>] = []
+    private var response: CheckedContinuation<FoodLookupEnvelope, Error>?
+
+    func search(_ query: String) async throws -> FoodLookupEnvelope {
+        started = true
+        startedWaiters.forEach { $0.resume() }
+        startedWaiters.removeAll()
+        return try await withCheckedThrowingContinuation { continuation in
+            response = continuation
+        }
+    }
+
+    func waitUntilStarted() async {
+        guard started == false else { return }
+        await withCheckedContinuation { continuation in
+            startedWaiters.append(continuation)
+        }
+    }
+
+    func succeed(with envelope: FoodLookupEnvelope) {
+        response?.resume(returning: envelope)
+        response = nil
+    }
+
+    func fail() {
+        response?.resume(throwing: DeferredFoodSearchFailure.offline)
+        response = nil
+    }
+}
+
 final class MealMemoryParityTests: XCTestCase {
     private static let fixture: MemoryFixture = {
         guard let url = Bundle(for: MealMemoryParityTests.self)
@@ -198,7 +234,7 @@ final class MealMemoryParityTests: XCTestCase {
         var localizedFood = food
         localizedFood.namesI18n["de"] = "Haus-Burger"
         localizedFood.namesI18n["de-CH"] = "Haus-Burger Schweiz"
-        let userID = UUID()
+        let userID = try XCTUnwrap(localizedFood.ownerUserID)
         let preference = FoodPreference(
             id: UUID(),
             userID: userID,
@@ -214,29 +250,54 @@ final class MealMemoryParityTests: XCTestCase {
         )
 
         XCTAssertEqual(
-            MealMemory.searchFoods(query: "haus burger", foods: [localizedFood], preferences: [preference]).map(\.id),
+            MealMemory.searchFoods(
+                query: "haus burger",
+                foods: [localizedFood],
+                preferences: [preference],
+                userID: userID
+            ).map(\.id),
             [localizedFood.id],
             "localized names must remain searchable without the provider"
         )
         XCTAssertEqual(localizedFood.localizedName(.german), "Haus-Burger")
         XCTAssertEqual(localizedFood.localizedName(.swissGerman), "Haus-Burger Schweiz")
         XCTAssertEqual(
-            MealMemory.searchFoods(query: "Royal", foods: [localizedFood], preferences: [preference]).map(\.id),
+            MealMemory.searchFoods(
+                query: "Royal",
+                foods: [localizedFood],
+                preferences: [preference],
+                userID: userID
+            ).map(\.id),
             [localizedFood.id],
             "a user's private aliases must remain searchable without the provider"
         )
         XCTAssertEqual(
-            MealMemory.searchFoods(query: "abendessen mein", foods: [localizedFood], preferences: [preference]).map(\.id),
+            MealMemory.searchFoods(
+                query: "abendessen mein",
+                foods: [localizedFood],
+                preferences: [preference],
+                userID: userID
+            ).map(\.id),
             [localizedFood.id],
             "token order and the personal name should not make a saved food disappear"
         )
         XCTAssertEqual(
-            MealMemory.searchFoods(query: "hausburger", foods: [localizedFood], preferences: [preference]).map(\.id),
+            MealMemory.searchFoods(
+                query: "hausburger",
+                foods: [localizedFood],
+                preferences: [preference],
+                userID: userID
+            ).map(\.id),
             [localizedFood.id],
             "joined words must still find a saved food"
         )
         XCTAssertEqual(
-            MealMemory.searchFoods(query: "cheeseburgerrroyal", foods: [localizedFood], preferences: [preference]).map(\.id),
+            MealMemory.searchFoods(
+                query: "cheeseburgerrroyal",
+                foods: [localizedFood],
+                preferences: [preference],
+                userID: userID
+            ).map(\.id),
             [localizedFood.id],
             "a small typo in a joined alias must still find a saved food"
         )
@@ -277,11 +338,14 @@ final class MealMemoryParityTests: XCTestCase {
         extraLeanBeef.namesI18n = ["en": "Beef, mince, raw, extra lean"]
         extraLeanBeef.brand = nil
 
+        let userID = try XCTUnwrap(extraVirgin.ownerUserID)
+
         XCTAssertEqual(
             MealMemory.searchFoods(
                 query: "oil",
                 foods: [oilMargarine, vegetableOil, extraVirgin],
-                preferences: []
+                preferences: [],
+                userID: userID
             ).first?.id,
             extraVirgin.id,
             "extra-virgin olive oil should lead a broad oil query"
@@ -290,7 +354,8 @@ final class MealMemoryParityTests: XCTestCase {
             MealMemory.searchFoods(
                 query: "ext;ra vlrgn",
                 foods: [beefExtract, extraLeanBeef, extraVirgin],
-                preferences: []
+                preferences: [],
+                userID: userID
             ).map(\.id),
             [extraVirgin.id],
             "split punctuation and two-edit misspellings must resolve without weak matches"
@@ -299,7 +364,8 @@ final class MealMemoryParityTests: XCTestCase {
             MealMemory.searchFoods(
                 query: "extra virgin",
                 foods: [extraVirgin, beefExtract, extraLeanBeef],
-                preferences: []
+                preferences: [],
+                userID: userID
             ).map(\.id),
             [extraVirgin.id],
             "every meaningful query token must match"
@@ -308,7 +374,7 @@ final class MealMemoryParityTests: XCTestCase {
 
     func testFoodMemorySearchHonoursHiddenPreference() throws {
         let food = try XCTUnwrap(Self.fixture.foods.first { UUID(uuidString: $0.id) != nil })
-        let userID = UUID()
+        let userID = try XCTUnwrap(food.ownerUserID)
         let preference = FoodPreference(
             id: UUID(), userID: userID,
             foodID: try XCTUnwrap(UUID(uuidString: food.id)),
@@ -317,6 +383,225 @@ final class MealMemoryParityTests: XCTestCase {
             lastUsedAt: nil, hidden: true
         )
 
-        XCTAssertTrue(MealMemory.searchFoods(query: "burger", foods: [food], preferences: [preference]).isEmpty)
+        XCTAssertTrue(
+            MealMemory.searchFoods(
+                query: "burger",
+                foods: [food],
+                preferences: [preference],
+                userID: userID
+            ).isEmpty
+        )
+    }
+
+    func testFoodMemorySearchNeverReturnsAnotherAccountsPrivateFood() throws {
+        let ownerA = UUID()
+        let ownerB = UUID()
+        func ownedCopy(_ food: Food, ownerID: UUID?, name: String) -> Food {
+            Food(
+                id: UUID().uuidString, ownerUserID: ownerID, name: name,
+                namesI18n: [:], brand: food.brand, barcode: food.barcode,
+                source: food.source, providerProductID: food.providerProductID,
+                externalImageURL: food.externalImageURL, packageQuantity: food.packageQuantity,
+                nutritionBasis: food.nutritionBasis, preparationState: food.preparationState,
+                kcal100: food.kcal100, protein100: food.protein100,
+                carbs100: food.carbs100, fat100: food.fat100,
+                fibre100: food.fibre100, sugar100: food.sugar100,
+                saturatedFat100: food.saturatedFat100, salt100: food.salt100,
+                waterML100: food.waterML100, waterBasis: food.waterBasis,
+                waterSourceID: food.waterSourceID, servingAmount: food.servingAmount,
+                servingUnit: food.servingUnit, servingGramsOrML: food.servingGramsOrML,
+                pieceGramsOrML: food.pieceGramsOrML, confidence: food.confidence,
+                nutrientEvidence: food.nutrientEvidence
+            )
+        }
+        let privateA = ownedCopy(
+            try XCTUnwrap(Self.fixture.foods.first),
+            ownerID: ownerA,
+            name: "Boundary berry private A"
+        )
+        let privateB = ownedCopy(
+            try XCTUnwrap(Self.fixture.foods.dropFirst().first),
+            ownerID: ownerB,
+            name: "Boundary berry private B"
+        )
+        let global = ownedCopy(
+            try XCTUnwrap(Self.fixture.foods.dropFirst(2).first),
+            ownerID: nil,
+            name: "Boundary berry global"
+        )
+
+        XCTAssertEqual(
+            MealMemory.searchFoods(
+                query: "boundary berry",
+                foods: [privateA, privateB, global],
+                preferences: [],
+                userID: ownerB
+            ).map(\.id).sorted(),
+            [privateB.id, global.id].sorted()
+        )
+        XCTAssertEqual(
+            MealMemory.searchFoods(
+                query: "boundary berry",
+                foods: [privateA, privateB, global],
+                preferences: [],
+                userID: nil
+            ).map(\.id),
+            [global.id],
+            "an unauthenticated search may only expose global catalogue rows"
+        )
+    }
+
+    @MainActor
+    func testAppSessionFoodSearchPrefersExactServerEvidenceOverBundledFallback() async throws {
+        let ownerID = UUID()
+        let dashboard = APEXDebugFixture.dashboard(userID: ownerID)
+        let localIndex = try XCTUnwrap(dashboard.foods.firstIndex {
+            $0.providerProductID == "apex-curated:swiss-retail-strawberries-fresh-reference"
+        })
+        let serverEvidence = NutrientEvidenceObservation(
+            nutrientCode: "VITC",
+            name: "Server vitamin C",
+            valuePer100: 61,
+            unit: "mg",
+            observationStatus: .reported,
+            originalValueText: "61",
+            derivationMethod: nil,
+            sourceKey: "server-official",
+            sourceReference: "server:strawberry"
+        )
+        var serverFoodDraft = dashboard.foods[localIndex]
+        serverFoodDraft.name = "Exact server strawberry"
+        serverFoodDraft.nutrientEvidence = [serverEvidence]
+        let serverFood = serverFoodDraft
+        let session = AppSession(foodSearchProvider: { _ in
+            FoodLookupEnvelope(
+                state: "available",
+                source: "test",
+                food: nil,
+                results: [serverFood],
+                message: nil
+            )
+        })
+        session.data = dashboard
+
+        let results = try await session.searchFoods(query: "strawberries")
+        let result = try XCTUnwrap(results.first {
+            $0.id == dashboard.foods[localIndex].id
+        })
+
+        XCTAssertEqual(
+            result.nutrientEvidence,
+            [serverEvidence],
+            "an exact compatible server correction must outrank the bundled fallback"
+        )
+    }
+
+    @MainActor
+    func testAppSessionFoodSearchPreservesExplicitLocalEvidenceAheadOfServerAndBundle() async throws {
+        let ownerID = UUID()
+        var dashboard = APEXDebugFixture.dashboard(userID: ownerID)
+        let localIndex = try XCTUnwrap(dashboard.foods.firstIndex {
+            $0.providerProductID == "apex-curated:swiss-retail-strawberries-fresh-reference"
+        })
+        let explicitEvidence = NutrientEvidenceObservation(
+            nutrientCode: "VITC",
+            name: "Explicit vitamin C",
+            valuePer100: 60,
+            unit: "mg",
+            observationStatus: .reported,
+            originalValueText: "60",
+            derivationMethod: nil,
+            sourceKey: "apex-curation",
+            sourceReference: "explicit:strawberry"
+        )
+        let serverEvidence = NutrientEvidenceObservation(
+            nutrientCode: "VITC",
+            name: "Server vitamin C",
+            valuePer100: 61,
+            unit: "mg",
+            observationStatus: .reported,
+            originalValueText: "61",
+            derivationMethod: nil,
+            sourceKey: "server-official",
+            sourceReference: "server:strawberry"
+        )
+        dashboard.foods[localIndex].nutrientEvidence = [explicitEvidence]
+        var serverFoodDraft = dashboard.foods[localIndex]
+        serverFoodDraft.name = "Exact server strawberry"
+        serverFoodDraft.nutrientEvidence = [serverEvidence]
+        let serverFood = serverFoodDraft
+        let session = AppSession(foodSearchProvider: { _ in
+            FoodLookupEnvelope(
+                state: "available",
+                source: "test",
+                food: nil,
+                results: [serverFood],
+                message: nil
+            )
+        })
+        session.data = dashboard
+
+        let results = try await session.searchFoods(query: "strawberries")
+        let result = try XCTUnwrap(results.first {
+            $0.id == dashboard.foods[localIndex].id
+        })
+
+        XCTAssertEqual(
+            result.nutrientEvidence,
+            [explicitEvidence],
+            "authored local evidence must remain ahead of exact server and bundled evidence"
+        )
+    }
+
+    @MainActor
+    func testInFlightRemoteFoodSearchRejectsSuccessAfterTheAccountChanges() async throws {
+        let provider = DeferredFoodSearchProvider()
+        let ownerA = UUID()
+        let ownerB = UUID()
+        let session = AppSession(foodSearchProvider: { query in
+            try await provider.search(query)
+        })
+        session.data = APEXDebugFixture.dashboard(userID: ownerA)
+
+        let search = Task { try await session.searchFoods(query: "strawberries") }
+        await provider.waitUntilStarted()
+        session.data = APEXDebugFixture.dashboard(userID: ownerB)
+        await provider.succeed(with: FoodLookupEnvelope(
+            state: "available",
+            source: "test",
+            food: nil,
+            results: [],
+            message: nil
+        ))
+
+        do {
+            _ = try await search.value
+            XCTFail("a completion captured for account A must never render in account B")
+        } catch is CancellationError {
+            // Expected: the caller quietly discards a stale search result.
+        }
+    }
+
+    @MainActor
+    func testInFlightRemoteFoodSearchRejectsOfflineFallbackAfterTheAccountChanges() async throws {
+        let provider = DeferredFoodSearchProvider()
+        let ownerA = UUID()
+        let ownerB = UUID()
+        let session = AppSession(foodSearchProvider: { query in
+            try await provider.search(query)
+        })
+        session.data = APEXDebugFixture.dashboard(userID: ownerA)
+
+        let search = Task { try await session.searchFoods(query: "strawberries") }
+        await provider.waitUntilStarted()
+        session.data = APEXDebugFixture.dashboard(userID: ownerB)
+        await provider.fail()
+
+        do {
+            _ = try await search.value
+            XCTFail("account A's cached fallback must never render in account B")
+        } catch is CancellationError {
+            // Expected: even an offline fallback is scoped to the captured owner.
+        }
     }
 }

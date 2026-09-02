@@ -4,12 +4,36 @@ enum APEXPopoverGeometry {
     static let minimumGutter: CGFloat = 16
     static let maximumCardWidth: CGFloat = 372
 
+    static func sanitizedLength(_ value: CGFloat) -> CGFloat {
+        guard value.isFinite else { return 0 }
+        return max(0, value)
+    }
+
+    static func containerSize(_ size: CGSize) -> CGSize {
+        CGSize(
+            width: sanitizedLength(size.width),
+            height: sanitizedLength(size.height)
+        )
+    }
+
     static func cardWidth(containerWidth: CGFloat, safeAreaInsets: EdgeInsets) -> CGFloat {
+        let containerWidth = sanitizedLength(containerWidth)
+        let leadingInset = sanitizedLength(safeAreaInsets.leading)
+        let trailingInset = sanitizedLength(safeAreaInsets.trailing)
         let safeWidth = max(
             0,
-            containerWidth - safeAreaInsets.leading - safeAreaInsets.trailing
+            containerWidth - leadingInset - trailingInset
         )
         return max(0, min(maximumCardWidth, safeWidth - minimumGutter * 2))
+    }
+
+    static func maximumHeight(containerHeight: CGFloat, fraction: CGFloat) -> CGFloat {
+        let boundedFraction = min(1, sanitizedLength(fraction))
+        return sanitizedLength(containerHeight) * boundedFraction
+    }
+
+    static func cardHeight(contentHeight: CGFloat, maximumHeight: CGFloat) -> CGFloat {
+        min(sanitizedLength(contentHeight), sanitizedLength(maximumHeight))
     }
 }
 
@@ -45,9 +69,14 @@ struct APEXPopover<PopoverContent: View>: ViewModifier {
         content.overlay {
             if isPresented {
                 GeometryReader { proxy in
+                    let containerSize = APEXPopoverGeometry.containerSize(proxy.size)
                     let cardWidth = APEXPopoverGeometry.cardWidth(
-                        containerWidth: proxy.size.width,
+                        containerWidth: containerSize.width,
                         safeAreaInsets: proxy.safeAreaInsets
+                    )
+                    let maximumHeight = APEXPopoverGeometry.maximumHeight(
+                        containerHeight: containerSize.height,
+                        fraction: maxHeightFraction
                     )
                     ZStack {
                         /* Dim, and dismiss on a tap outside. */
@@ -57,11 +86,11 @@ struct APEXPopover<PopoverContent: View>: ViewModifier {
                             .onTapGesture { dismiss() }
                             .transition(.opacity)
 
-                        card(maxHeight: proxy.size.height * maxHeightFraction)
+                        card(maxHeight: maximumHeight)
                             .frame(width: cardWidth)
                             .transition(.scale(scale: 0.94).combined(with: .opacity))
                     }
-                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .frame(width: containerSize.width, height: containerSize.height)
                 }
                 .zIndex(100)
             }
@@ -87,9 +116,14 @@ struct APEXPopover<PopoverContent: View>: ViewModifier {
                 }
         }
         .scrollBounceBehavior(.basedOnSize)
-        .frame(height: min(contentHeight, maxHeight))
+        .frame(
+            height: APEXPopoverGeometry.cardHeight(
+                contentHeight: contentHeight,
+                maximumHeight: maxHeight
+            )
+        )
         .onPreferenceChange(APEXPopoverContentHeightKey.self) { nextHeight in
-            contentHeight = nextHeight
+            contentHeight = APEXPopoverGeometry.sanitizedLength(nextHeight)
         }
         .background(APEXColor.canvas, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
         .overlay(

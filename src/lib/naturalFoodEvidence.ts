@@ -52,10 +52,22 @@ const fingerprintFields = [
 
 const maximumEvidenceRows = 96
 const maximumEvidenceBytes = 65_536
+const maximumResourceTargets = 256
+const maximumResourceBytes = 4_194_304
 const observationStatuses = new Set([
   'measured', 'calculated', 'estimated', 'reported', 'trace',
   'below_detection', 'not_measured', 'missing',
 ])
+const maximumEvidenceValuePer100 = 1_000_000_000_000
+
+function validEvidenceValue(value: unknown): boolean {
+  return value === null || (
+    typeof value === 'number'
+    && Number.isFinite(value)
+    && value >= 0
+    && value <= maximumEvidenceValuePer100
+  )
+}
 
 function nonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0
@@ -116,7 +128,7 @@ function validEvidenceEntry(entry: NaturalFoodEvidenceEntry): boolean {
     && nonEmptyString(observation?.unit)
     && typeof observation?.original_value_text === 'string'
     && observationStatuses.has(observation?.observation_status)
-    && (observation?.value_per_100 === null || Number.isFinite(observation?.value_per_100))
+    && validEvidenceValue(observation?.value_per_100)
     && observation?.source_key === entry.donor.source_key
     && nonEmptyString(observation?.source_reference)
   ))
@@ -128,7 +140,17 @@ function aliasKey(id: string, providerProductID: string): string {
 
 function buildAliasIndex(bundle: NaturalFoodEvidenceBundle): Map<string, NaturalFoodEvidenceEntry[]> {
   const index = new Map<string, NaturalFoodEvidenceEntry[]>()
-  if (bundle.schema_version !== 1 || !Array.isArray(bundle.targets)) return index
+  if (
+    bundle.schema_version !== 1
+    || !Array.isArray(bundle.targets)
+    || bundle.targets.length > maximumResourceTargets
+  ) return index
+  try {
+    const resource = JSON.stringify(bundle)
+    if (new TextEncoder().encode(resource).byteLength > maximumResourceBytes) return index
+  } catch {
+    return index
+  }
   for (const entry of bundle.targets) {
     if (!validEvidenceEntry(entry)) continue
     for (const alias of entry.aliases) {

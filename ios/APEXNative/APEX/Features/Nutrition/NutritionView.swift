@@ -677,7 +677,7 @@ private struct NutrientPatternsCard: View {
                     .accessibilityValue(language.text(showAllRows ? "Expanded" : "Collapsed"))
                 }
 
-                Text(language.text("Averages use only days with logged food. Coverage shows how many food entries contained detailed evidence; missing values are excluded, never counted as zero."))
+                Text(language.text("Each average uses only days when that nutrient had a reportable value. Coverage counts foods with at least one detailed fact beyond calories and core macros; missing values are excluded, never counted as zero."))
                     .font(APEXFont.body(10, weight: .semibold))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)

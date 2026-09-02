@@ -64,7 +64,129 @@ const usableStatuses = new Set<NutrientObservationStatus>([
   'measured', 'calculated', 'estimated', 'reported',
 ])
 
+/**
+ * Coverage means an immutable food snapshot carries at least one valid fact
+ * beyond calories and the three core macros. Fibre, sugars, fatty-acid
+ * detail, salt, water, vitamins, minerals and other secondary nutrients all
+ * qualify. Trace and below-detection observations qualify as evidence, but
+ * are never converted into numeric intake or zero.
+ */
+const coreNutritionCodes = new Set(['ENERC_KCAL', 'PROT', 'CHOAVL', 'FAT'])
+
 const categoryOrder: NutrientCategory[] = ['vitamins', 'minerals', 'fats', 'carbohydrates', 'other']
+
+/**
+ * Nutrient units cross several historical/provider boundaries, so spelling and
+ * embedded per-100 basis text cannot be trusted as an aggregation identity.
+ * Only dimensionally unambiguous units are accepted. Vitamin-equivalent
+ * semantics remain part of the canonical unit because RE, RAE, alpha-TE and
+ * mass alone are not interchangeable values.
+ */
+export function canonicalNutrientUnit(rawUnit: string): string | null {
+  const unit = rawUnit
+    .normalize('NFKC')
+    .replace(/[μµ]/g, 'µ')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleLowerCase()
+  if (!unit) return null
+
+  const basis = String.raw`(?:\s*(?:\/|per)\s*100\s*(?:g|ml))?`
+  if (new RegExp(String.raw`^(?:kcal|kilocalories?)${basis}$`, 'i').test(unit)) return 'kcal'
+  if (new RegExp(String.raw`^(?:g|grams?)${basis}$`, 'i').test(unit)) return 'g'
+  if (new RegExp(String.raw`^(?:mg|milligrams?)${basis}$`, 'i').test(unit)) return 'mg'
+  if (new RegExp(String.raw`^(?:µg|ug|mcg|micrograms?)${basis}$`, 'i').test(unit)) return 'µg'
+  if (new RegExp(String.raw`^(?:ml|millilit(?:er|re)s?)${basis}$`, 'i').test(unit)) return 'ml'
+  if (new RegExp(String.raw`^i\.?\s*u\.?${basis}$`, 'i').test(unit)) return 'IU'
+
+  const micro = String.raw`(?:µg|ug|mcg|micrograms?)`
+  const equivalentAfterMass = new RegExp(String.raw`^${micro}\s+(re|rae)${basis}$`, 'i').exec(unit)
+  if (equivalentAfterMass) return `µg ${equivalentAfterMass[1].toLocaleUpperCase()}`
+  const equivalentBeforeMass = new RegExp(
+    String.raw`^(re|rae)\s*\(\s*${micro}${basis}\s*\)$`,
+    'i',
+  ).exec(unit)
+  if (equivalentBeforeMass) return `µg ${equivalentBeforeMass[1].toLocaleUpperCase()}`
+
+  const alphaTE = String.raw`(?:α|alpha|alfa)[\s-]*te`
+  if (new RegExp(String.raw`^(?:mg|milligrams?)\s*${alphaTE}${basis}$`, 'i').test(unit)) {
+    return 'mg α-TE'
+  }
+  if (new RegExp(String.raw`^${alphaTE}${basis}$`, 'i').test(unit)) return 'mg α-TE'
+  return null
+}
+
+function canonicalObservation(
+  observation: NutrientEvidenceObservation,
+): NutrientEvidenceObservation | null {
+  const unit = canonicalNutrientUnit(observation.unit)
+  return unit ? { ...observation, unit } : null
+}
+
+/** Stable interface keys for nutrient identifiers from every supported source. */
+export const NUTRIENT_DISPLAY_KEYS: Readonly<Record<string, string>> = Object.freeze({
+  BIOT: 'Biotin (B7)',
+  CA: 'Calcium',
+  CARTB: 'Beta-carotene',
+  CHOAVL: 'Total carbs',
+  CHOLE: 'Cholesterol',
+  CU: 'Copper',
+  ENERC_KCAL: 'Calories',
+  FAMS: 'Monounsaturated fat',
+  FAPU: 'Polyunsaturated fat',
+  FASAT: 'Saturated fat',
+  FAT: 'Total fat',
+  FATRN: 'Trans fat',
+  FE: 'Iron',
+  FIBT: 'Dietary fibre',
+  FOL: 'Folate (B9)',
+  I: 'Iodine',
+  K: 'Potassium',
+  MG: 'Magnesium',
+  MN: 'Manganese',
+  NA: 'Sodium',
+  NACL: 'Salt',
+  NIA: 'Niacin (B3)',
+  OMEGA3: 'Omega-3 fat',
+  OMEGA3_ALA: 'Alpha-linolenic acid (ALA)',
+  OMEGA3_DHA: 'Docosahexaenoic acid (DHA)',
+  OMEGA3_DPA: 'Docosapentaenoic acid (DPA)',
+  OMEGA3_EPA: 'Eicosapentaenoic acid (EPA)',
+  OMEGA6: 'Omega-6 fat',
+  OMEGA6_AA: 'Arachidonic acid (AA)',
+  OMEGA6_GLA: 'Gamma-linolenic acid (GLA)',
+  OMEGA6_LA: 'Linoleic acid (LA)',
+  P: 'Phosphorus',
+  PANTAC: 'Pantothenic acid (B5)',
+  PROT: 'Protein',
+  RIBF: 'Riboflavin (B2)',
+  SALT: 'Salt',
+  SE: 'Selenium',
+  STARCH: 'Starch',
+  SUGAR: 'Total sugars',
+  SUGAR_ADDED: 'Added sugars',
+  THIA: 'Thiamin (B1)',
+  VITA: 'Vitamin A',
+  VITB1: 'Thiamin (B1)',
+  VITB12: 'Vitamin B12',
+  VITB2: 'Riboflavin (B2)',
+  VITB3: 'Niacin (B3)',
+  VITB5: 'Pantothenic acid (B5)',
+  VITB6: 'Vitamin B6',
+  VITB6A: 'Vitamin B6',
+  VITB7: 'Biotin (B7)',
+  VITB9: 'Folate (B9)',
+  VITC: 'Vitamin C',
+  VITD: 'Vitamin D',
+  VITE: 'Vitamin E',
+  VITK: 'Vitamin K',
+  WATER: 'Water',
+  ZN: 'Zinc',
+})
+
+export function nutrientDisplayKey(nutrientCode: string): string {
+  return NUTRIENT_DISPLAY_KEYS[nutrientCode.trim().toLocaleUpperCase()] ?? 'Other nutrient'
+}
 
 function utcDate(localDate: string): Date | null {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(localDate)) return null
@@ -121,12 +243,7 @@ export function nutrientCategory(observation: Pick<NutrientEvidenceObservation, 
 }
 
 function nutritionFactLabel(observation: NutrientEvidenceObservation): string {
-  switch (observation.nutrient_code.toLocaleUpperCase()) {
-    case 'ENERC_KCAL': return 'Calories'
-    case 'FAT': return 'Total fat'
-    case 'CHOAVL': return 'Total carbs'
-    default: return observation.name
-  }
+  return nutrientDisplayKey(observation.nutrient_code)
 }
 
 function nutritionFactDepth(observation: NutrientEvidenceObservation): 0 | 1 {
@@ -158,10 +275,14 @@ function nutritionFactPriority(observation: NutrientEvidenceObservation): number
 }
 
 export function nutritionFactSections(observations: NutrientEvidenceObservation[]): NutritionFactDisplaySection[] {
+  const canonical = observations.flatMap((observation) => {
+    const row = canonicalObservation(observation)
+    return row ? [row] : []
+  })
   const grouped: Array<[NutritionFactSectionKind, NutrientEvidenceObservation[]]> = [
-    ['facts', observations.filter((row) => !['vitamins', 'minerals'].includes(nutrientCategory(row)))],
-    ['vitamins', observations.filter((row) => nutrientCategory(row) === 'vitamins')],
-    ['minerals', observations.filter((row) => nutrientCategory(row) === 'minerals')],
+    ['facts', canonical.filter((row) => !['vitamins', 'minerals'].includes(nutrientCategory(row)))],
+    ['vitamins', canonical.filter((row) => nutrientCategory(row) === 'vitamins')],
+    ['minerals', canonical.filter((row) => nutrientCategory(row) === 'minerals')],
   ]
   return grouped.flatMap(([kind, rows]) => {
     if (!rows.length) return []
@@ -206,8 +327,6 @@ function fallback(
 }
 
 export function foodNutrientEvidence(food: FoodRecord): NutrientEvidenceObservation[] {
-  const rows = [...(food.nutrient_evidence ?? [])]
-  const existing = new Set(rows.map((row) => row.nutrient_code.toLocaleUpperCase()))
   const coarse = [
     fallback('ENERC_KCAL', 'Energy', food.kcal_100, 'kcal', food),
     fallback('PROT', 'Protein', food.protein_100, 'g', food),
@@ -219,9 +338,19 @@ export function foodNutrientEvidence(food: FoodRecord): NutrientEvidenceObservat
     fallback('NACL', 'Salt', food.salt_100, 'g', food),
     fallback('WATER', 'Water', food.water_ml_100, 'ml', food),
   ].filter((row): row is NutrientEvidenceObservation => row !== null)
-  for (const row of coarse) {
-    if (!existing.has(row.nutrient_code)) rows.push(row)
-  }
+  /* The amount card and immutable log use the canonical Food totals. When an
+     exact evidence donor differs slightly, its vitamins and detail facts stay
+     useful, but it must not display a second calorie or macro truth. */
+  const canonicalCodes = new Set(coarse.map((row) => row.nutrient_code.toLocaleUpperCase()))
+  const rows = [
+    ...(food.nutrient_evidence ?? []).filter(
+      (row) => !canonicalCodes.has(row.nutrient_code.toLocaleUpperCase()),
+    ),
+    ...coarse,
+  ].flatMap((observation) => {
+    const row = canonicalObservation(observation)
+    return row ? [row] : []
+  })
   return rows.sort((left, right) => {
     const category = categoryOrder.indexOf(nutrientCategory(left)) - categoryOrder.indexOf(nutrientCategory(right))
     return category || left.name.localeCompare(right.name) || left.unit.localeCompare(right.unit)
@@ -232,6 +361,14 @@ function finiteObservedValue(row: NutrientEvidenceObservation): number | null {
   if (!usableStatuses.has(row.observation_status)) return null
   const value = row.value_per_100
   return value != null && Number.isFinite(value) && value >= 0 ? value : null
+}
+
+function isDetailedEvidence(row: NutrientEvidenceObservation): boolean {
+  if (canonicalNutrientUnit(row.unit) == null) return false
+  if (coreNutritionCodes.has(row.nutrient_code.trim().toLocaleUpperCase())) return false
+  if (usableStatuses.has(row.observation_status)) return finiteObservedValue(row) != null
+  return (row.observation_status === 'trace' || row.observation_status === 'below_detection')
+    && row.value_per_100 == null
 }
 
 function rounded(value: number): number {
@@ -257,19 +394,27 @@ export function summarizeNutrientIntake(input: {
   const observedDays = new Set(eligibleEntries.map((entry) => eligibleMeals.get(entry.meal_id)!)).size
   let evidenceFoodEntries = 0
   const groups = new Map<string, NutrientPatternRow>()
+  const observedDatesByNutrient = new Map<string, Set<string>>()
   for (const entry of eligibleEntries) {
+    const localDate = eligibleMeals.get(entry.meal_id)!
     const usable = (entry.snapshot_nutrient_evidence ?? []).flatMap((row) => {
-      const value = finiteObservedValue(row)
-      return value == null ? [] : [{ row, amount: value * Math.max(0, entry.equivalent_amount) / 100 }]
+      const canonical = canonicalObservation(row)
+      const value = canonical ? finiteObservedValue(canonical) : null
+      return canonical == null || value == null
+        ? []
+        : [{ row: canonical, amount: value * Math.max(0, entry.equivalent_amount) / 100 }]
     })
-    if (usable.length > 0) evidenceFoodEntries += 1
+    if ((entry.snapshot_nutrient_evidence ?? []).some(isDetailedEvidence)) evidenceFoodEntries += 1
     const countedKeys = new Set<string>()
     for (const { row, amount } of usable) {
       const key = `${row.nutrient_code.toLocaleUpperCase()}|${row.unit}`
+      const observedDates = observedDatesByNutrient.get(key) ?? new Set<string>()
+      observedDates.add(localDate)
+      observedDatesByNutrient.set(key, observedDates)
       const previous = groups.get(key)
       groups.set(key, {
         nutrient_code: row.nutrient_code,
-        name: previous?.name ?? row.name,
+        name: previous?.name ?? nutrientDisplayKey(row.nutrient_code),
         unit: row.unit,
         category: nutrientCategory(row),
         total: rounded((previous?.total ?? 0) + amount),
@@ -279,9 +424,12 @@ export function summarizeNutrientIntake(input: {
       countedKeys.add(key)
     }
   }
-  const divisor = Math.max(1, observedDays)
   const rows = [...groups.values()]
-    .map((row) => ({ ...row, averagePerObservedDay: rounded(row.total / divisor) }))
+    .map((row) => {
+      const key = `${row.nutrient_code.toLocaleUpperCase()}|${row.unit}`
+      const divisor = Math.max(1, observedDatesByNutrient.get(key)?.size ?? 0)
+      return { ...row, averagePerObservedDay: rounded(row.total / divisor) }
+    })
     .sort((left, right) => {
       const category = categoryOrder.indexOf(left.category) - categoryOrder.indexOf(right.category)
       return category || right.averagePerObservedDay - left.averagePerObservedDay || left.name.localeCompare(right.name)

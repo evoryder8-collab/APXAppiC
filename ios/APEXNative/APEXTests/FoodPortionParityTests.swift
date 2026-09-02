@@ -299,6 +299,69 @@ final class NutrientEvidenceTests: XCTestCase {
         XCTAssertFalse(summary.rows.contains { $0.nutrientCode == "VITA" })
     }
 
+    func testEachNutrientAverageExcludesDaysWithoutAReportableValueForThatNutrient() {
+        let mealA = UUID()
+        let mealB = UUID()
+        let summary = NutrientPatternEngine.summarize(
+            meals: [
+                .init(id: mealA, userID: owner, localDate: "2026-08-30"),
+                .init(id: mealB, userID: owner, localDate: "2026-08-31")
+            ],
+            entries: [
+                .init(mealID: mealA, userID: owner, equivalentAmount: 100, evidence: [
+                    evidence("VITC", "Vitamin C", 100, "mg"),
+                    evidence("FE", "Iron", 10, "mg")
+                ]),
+                .init(mealID: mealB, userID: owner, equivalentAmount: 100, evidence: [
+                    evidence("VITC", "Vitamin C", 50, "mg")
+                ])
+            ],
+            ownerID: owner,
+            anchorDate: "2026-08-31",
+            period: .week
+        )
+
+        XCTAssertEqual(
+            summary.rows.first { $0.nutrientCode == "VITC" }?.averagePerObservedDay ?? -1,
+            75,
+            accuracy: 0.000_001
+        )
+        XCTAssertEqual(
+            summary.rows.first { $0.nutrientCode == "FE" }?.averagePerObservedDay ?? -1,
+            10,
+            accuracy: 0.000_001
+        )
+    }
+
+    func testDetailedFoodCoverageExcludesCoreMacroOnlySnapshots() {
+        let mealID = UUID()
+        let core = [
+            evidence("ENERC_KCAL", "Energy", 100, "kcal"),
+            evidence("PROT", "Protein", 5, "g"),
+            evidence("CHOAVL", "Carbohydrate", 12, "g"),
+            evidence("FAT", "Fat", 3, "g")
+        ]
+        let summary = NutrientPatternEngine.summarize(
+            meals: [.init(id: mealID, userID: owner, localDate: "2026-08-31")],
+            entries: [
+                .init(mealID: mealID, userID: owner, equivalentAmount: 100, evidence: core),
+                .init(mealID: mealID, userID: owner, equivalentAmount: 100, evidence: core + [
+                    evidence("FIBT", "Dietary fibre", 3, "g")
+                ]),
+                .init(mealID: mealID, userID: owner, equivalentAmount: 100, evidence: core + [
+                    evidence("VITA", "Vitamin A", nil, "µg", .trace)
+                ])
+            ],
+            ownerID: owner,
+            anchorDate: "2026-08-31",
+            period: .day
+        )
+
+        XCTAssertEqual(summary.totalFoodEntries, 3)
+        XCTAssertEqual(summary.evidenceFoodEntries, 2)
+        XCTAssertEqual(summary.coverage, 2.0 / 3.0, accuracy: 0.000_001)
+    }
+
     func testWindowUsesLocalDatesAndNeverMergesUnits() {
         XCTAssertEqual(
             NutrientPatternEngine.window(anchorDate: "2026-09-01", period: .week),

@@ -55,7 +55,12 @@ test('food search uses the account-safe APEX catalog before the public provider'
   assert.ok(edge.indexOf("authClient.rpc('search_food_catalog'") < edge.indexOf("world.openfoodfacts.org"))
 })
 
-test('native Food Memory keeps local results when the provider is unavailable', () => {
-  assert.match(nativeSession, /MealMemory\.searchFoods\([\s\S]*?query: query,[\s\S]*?foods: data\.foods,[\s\S]*?preferences: data\.foodPreferences/)
-  assert.match(nativeSession, /catch \{\s*return local\s*\}/s)
+test('native Food Memory keeps an account-scoped local result when the provider is unavailable', () => {
+  assert.match(nativeSession, /let ownerID = verifiedPersistenceOwnerID\(\)[\s\S]*?let foods = data\.foods[\s\S]*?let preferences = data\.foodPreferences/)
+  assert.match(nativeSession, /MealMemory\.searchFoods\([\s\S]*?query: query,[\s\S]*?foods: foods,[\s\S]*?preferences: preferences,[\s\S]*?userID: ownerID/)
+  assert.match(
+    nativeSession,
+    /catch \{[\s\S]*?foodSearchOperationIsCurrent\(ownerID: ownerID, token: accountToken\)[\s\S]*?return FoodNutrientEvidence\.overlayBundledNaturalFoodEvidence\(local\)\s*\}/,
+  )
+  assert.match(nativeSession, /remote = try await foodSearchProvider\(query\)[\s\S]*?guard foodSearchOperationIsCurrent\(ownerID: ownerID, token: accountToken\)/)
 })

@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
-    "test": "node --test --test-force-exit --test-isolation=none tests/*.test.ts",
+    "test": "node --test --test-force-exit --test-isolation=none tests/*.test.ts tools/food_corpus/tests/natural_food_evidence.test.mjs",
+    "test:natural-food-evidence": "node --test tools/food_corpus/tests/natural_food_evidence.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

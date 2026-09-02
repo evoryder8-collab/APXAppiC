@@ -184,9 +184,7 @@
     }
   ],
   "review_sources": [
-    "plant-crosswalk-notes.md",
-    "animal-crosswalk-notes.md",
-    "regional-crosswalk-notes.md"
+    "rejections.tsv"
   ],
   "schema_version": 1
 }

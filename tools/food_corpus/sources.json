@@ -97,8 +97,8 @@
     "version": "6.1",
     "path": "denmark/FCDB_6.1_Dataset.xlsx",
     "licence": "CC-BY-4.0",
-    "licence_url": "https://frida.fooddata.dk/",
-    "attribution": "Frida Food Data, National Food Institute, Technical University of Denmark.",
+    "licence_url": "https://creativecommons.org/licenses/by/4.0/",
+    "attribution": "Marija Langwagen, Jette Jakobsen and Anders Poulsen: The Danish Food Composition Database, version 6.1, May 2026, National Food Institute, Technical University of Denmark.",
     "checksum": "sha256:aba52ade9dd75f085954ca5561f001efb58e4b37d412b135622fd34d77f45c09",
     "parser": "frida_v1",
     "status": "approved"

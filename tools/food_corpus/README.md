@@ -45,3 +45,26 @@ Production keeps the searchable record/name/macro projection in Postgres and the
 Compact mode writes a deterministic `evidence/nutrients.ndjson.gz` archive with a zero gzip timestamp. Its object path, SHA-256 checksum, media type, and preserved observation count are recorded in both the transfer manifest and the source metadata. Upload that exact archive to the manifest's `object_path`; the bucket must remain private. The generated SQL deliberately omits row-wise `food_corpus_nutrients` inserts, but still validates record, name, and search counts before activating the source batch.
 
 Keep staging, transfer payloads, archives, and any temporary HTTPS server outside the repository. Verify the archive checksum before upload, execute registration and load scripts in lexical order, run `999-activate.sql` last, and retire the temporary transfer endpoint immediately afterward.
+
+## Reviewed natural-food evidence
+
+The human-reviewed approval TSVs, review notes, and rejection decisions are committed under `docs/food-corpus/natural-food-evidence-review/`. They are generator inputs. The normalized crosswalk, rejection report, provenance manifest, and shared evidence resource beside them are generated artifacts.
+
+Run the focused integrity suite from a clean checkout with only committed fixtures and review inputs:
+
+```sh
+npm run test:natural-food-evidence
+```
+
+Regenerate from the committed review inputs plus externally staged, checksum-verified publisher data:
+
+```sh
+node tools/food_corpus/build_natural_food_evidence.mjs \
+  --reviewed-dir docs/food-corpus/natural-food-evidence-review \
+  --crosswalk docs/food-corpus/natural-food-evidence-crosswalk.json \
+  --source usda-sr-legacy=$USDA_SR_LEGACY_DIR \
+  --source usda-foundation=$USDA_FOUNDATION_DIR \
+  --source dk-frida=$DK_FRIDA_DIR
+```
+
+The generator pairs each staged manifest's artifact filename with the approved registry path and checksum, preserves the reviewed macro delta when choosing Foundation energy methods, and derives the JSON rejection report from `rejections.tsv`.

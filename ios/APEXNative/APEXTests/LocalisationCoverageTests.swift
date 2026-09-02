@@ -38,6 +38,71 @@ final class LocalisationCoverageTests: XCTestCase {
         }
     }
 
+    func testEveryOfferedLanguageHasFoodDataAcknowledgementCopy() throws {
+        let keys: Set<String> = [
+            "Food data acknowledgements",
+            "Legal & data",
+            "Licensing, attribution and provenance stay here instead of cluttering individual nutrient rows.",
+            "See where APEX food data comes from and how it is adapted.",
+            "APEX uses adapted data from:",
+            "Marija Langwagen, Jette Jakobsen and Anders Poulsen: The Danish Food Composition Database, version 6.1, May 2026, National Food Institute, Technical University of Denmark.",
+            "Source dataset",
+            "DTU disclaimer",
+            "APEX extracted, normalized and mapped selected source records to reviewed APEX food entries. These changes are by APEX; DTU does not endorse APEX.",
+            "DTU does not guarantee that the database is error-free or suitable for a particular purpose. Check the current package label when exact product values matter.",
+        ]
+
+        for language in languages {
+            let translations = try XCTUnwrap(table(language), "Missing table for \(language)")
+            let missing = keys.subtracting(translations.keys)
+            XCTAssertTrue(missing.isEmpty, "\(language) is missing food-data acknowledgement copy: \(missing.sorted())")
+            let blank = keys.filter {
+                translations[$0]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false
+            }
+            XCTAssertTrue(blank.isEmpty, "\(language) has blank food-data acknowledgement copy: \(blank.sorted())")
+        }
+    }
+
+    func testEveryCanonicalNutrientDisplayKeyIsAuthoredInEveryOfferedLanguage() throws {
+        let keys: Set<String> = [
+            "Calories", "Total fat", "Saturated fat", "Trans fat",
+            "Monounsaturated fat", "Polyunsaturated fat", "Cholesterol", "Sodium",
+            "Salt", "Total carbs", "Dietary fibre", "Total sugars", "Starch", "Protein",
+            "Water", "Omega-3 fat", "Alpha-linolenic acid (ALA)",
+            "Docosahexaenoic acid (DHA)", "Docosapentaenoic acid (DPA)",
+            "Eicosapentaenoic acid (EPA)", "Omega-6 fat", "Arachidonic acid (AA)",
+            "Gamma-linolenic acid (GLA)", "Linoleic acid (LA)", "Vitamin A",
+            "Beta-carotene", "Vitamin D", "Vitamin E", "Vitamin K", "Vitamin C",
+            "Thiamin (B1)", "Riboflavin (B2)", "Niacin (B3)",
+            "Pantothenic acid (B5)", "Vitamin B6", "Biotin (B7)", "Folate (B9)",
+            "Vitamin B12", "Calcium", "Iron", "Magnesium", "Phosphorus", "Potassium",
+            "Zinc", "Copper", "Manganese", "Selenium", "Iodine"
+        ]
+
+        for language in languages {
+            let translations = try XCTUnwrap(table(language), "Missing table for \(language)")
+            let missing = keys.subtracting(translations.keys)
+            XCTAssertTrue(
+                missing.isEmpty,
+                "\(language) is missing canonical nutrient labels: \(missing.sorted())"
+            )
+            let blank = keys.filter {
+                translations[$0]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false
+            }
+            XCTAssertTrue(blank.isEmpty, "\(language) has blank nutrient labels: \(blank.sorted())")
+        }
+    }
+
+    @MainActor
+    func testFoodDataAcknowledgementLinksUseThePublishedDatasetLicenceAndDisclaimer() {
+        let source = FoodDataAcknowledgementsView.sourceURL.absoluteString
+        let licence = FoodDataAcknowledgementsView.licenceURL.absoluteString
+        let disclaimer = FoodDataAcknowledgementsView.disclaimerURL.absoluteString
+        XCTAssertEqual(source, "https://doi.org/10.11583/DTU.32312844")
+        XCTAssertEqual(licence, "https://creativecommons.org/licenses/by/4.0/")
+        XCTAssertEqual(disclaimer, "https://fcdb.fooddata.dk/disclaimer")
+    }
+
     func testTablesAreNotMissingKeysTheOthersHave() {
         var keysByLanguage: [String: Set<String>] = [:]
         for language in completeLanguages {

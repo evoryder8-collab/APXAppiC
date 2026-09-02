@@ -189,7 +189,7 @@ function NutrientPatternsBoard({
       )}
 
       <p className="mt-4 text-[9px] leading-relaxed font-semibold text-ink-faint">
-        {tx('Averages use only days with logged food. Coverage shows how many food entries contained detailed evidence; missing values are excluded, never counted as zero.')}
+        {tx('Each average uses only days when that nutrient had a reportable value. Coverage counts foods with at least one detailed fact beyond calories and core macros; missing values are excluded, never counted as zero.')}
       </p>
       <p className="mt-1 text-[9px] leading-relaxed font-semibold text-ink-faint">
         {tx('Bars compare your recorded pattern, not a health target. Food-database coverage and personal needs vary.')}

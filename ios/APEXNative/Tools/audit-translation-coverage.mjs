@@ -23,7 +23,11 @@ const ROOT = new URL('../APEX', import.meta.url).pathname
 
 const ALLOWED = new Set([
   'APEX', 'Orbit', 'Europe/Zurich', 'kcal', 'km', 'kg', 'g', 'ml', 'CHF',
+  /* Canonical scientific unit; translating it would change its meaning. */
+  'mg α-TE',
   'HealthKit', 'Apple', 'Localizable', 'lproj',
+  /* Published licence identifier, displayed verbatim rather than translated. */
+  'CC BY 4.0',
   /* Protocol and export syntax, never rendered as interface copy. */
   'Access-Control-Allow-Origin',
   /* Names of people, which are not translated in any language. */
@@ -93,6 +97,9 @@ function strip(source) {
     .replace(/String\(format:\s*"(?:[^"\\\n]|\\.)*"/g, ' ')
     /* Country-code and other private lookup sets are storage, not labels. */
     .replace(/private\s+static\s+let\s+\w+\s*:\s*Set<String>\s*=\s*\[[\s\S]*?\]\s*/g, ' ')
+    /* Nutrient identifiers are protocol keys. Their paired display values are
+       still audited through every locale table, where they are real UI copy. */
+    .replace(/private\s+static\s+let\s+displayKeys\s*:\s*\[String:\s*String\]\s*=\s*\[[\s\S]*?\n\s*\]\s*/g, ' ')
     .replace(/#"(?:[^"\\\n]|\\.)*"#/g, ' ')
     /* Scripts injected into the figure's web view are code, not copy. */
     .replace(/"[^"\n]*(?:document\.|window\.|getElementById|style\.)[^"\n]*"/g, ' ')

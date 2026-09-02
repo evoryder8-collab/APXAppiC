@@ -1,0 +1,27 @@
+target_id	target_name	category	reason_code	reason
+10000000-0000-4000-8000-000000000002	White rice, dry	grain_starch	ambiguous_identity	Multiple grain-length, parboiling, and enrichment states pass the macro gate; the target does not distinguish them.
+10000000-0000-4000-8000-000000000003	White rice, cooked	grain_starch	ambiguous_identity	Multiple grain-length and enrichment states pass every gate.
+10000000-0000-4000-8000-000000000004	Bulgur, dry	grain_starch	fingerprint_mismatch	The exact-name official donor exceeds the carbohydrate gate.
+10000000-0000-4000-8000-000000000015	Chicken breast, boiled	meat_poultry	preparation_mismatch	The adjacent official profile is stewed rather than boiled.
+10000000-0000-4000-8000-000000000016	Chicken breast, air fryer, no added oil	meat_poultry	preparation_mismatch	No exact air-fryer donor exists; roasted macros cannot authorize a preparation transfer.
+10000000-0000-4000-8000-000000000026	Organic whole-grain rolled oats	grain_starch	identity_mismatch	The macro-compatible record does not establish organic identity.
+10000000-0000-4000-8000-000000000061	Black sesame seeds	nut_seed	identity_mismatch	A generic sesame record does not establish the black variety.
+10000000-0000-4000-8000-000000000065	Cherry tomatoes, fresh	vegetable_leaf	identity_mismatch	Grape-tomato and generic red-tomato records are not exact cherry-tomato donors.
+10000000-0000-4000-8000-000000000067	Salmon, hot-smoked	fish_shellfish	preparation_mismatch	The generic smoked donor does not establish hot versus cold smoking.
+20000000-0000-4000-8000-000000000022	Tuna, drained	fish_shellfish	identity_mismatch	The compatible donor specifies light tuna without salt; the target omits both qualifiers.
+20000000-0000-4000-8000-000000000026	Basmati rice, dry	grain_starch	no_exact_official_donor	No exact unbranded variety record was reviewed.
+20000000-0000-4000-8000-000000000027	Jasmine rice, dry	grain_starch	no_exact_official_donor	No exact unbranded variety record was reviewed.
+20000000-0000-4000-8000-000000000028	Brown rice, dry	grain_starch	ambiguous_identity	Long- and medium-grain official records both pass; the target does not distinguish them.
+20000000-0000-4000-8000-000000000031	Wholegrain pasta, dry	grain_starch	fingerprint_mismatch	The exact official record exceeds protein, carbohydrate, and fat gates.
+20000000-0000-4000-8000-000000000054	Omelette	egg	composite_excluded	Composite preparations are outside the one-whole-food donor boundary.
+20000000-0000-4000-8000-000000000056	Scrambled egg	egg	composite_excluded	Composite preparations are outside the one-whole-food donor boundary.
+20000000-0000-4000-8000-000000000066	Salmon fillet, raw	fish_shellfish	species_mismatch	The compatible donor is explicitly farmed Atlantic salmon while the target is species-generic.
+20000000-0000-4000-8000-000000000179	Scallops, raw	fish_shellfish	species_mismatch	The Foundation candidate is frozen and wild-caught, while the SR mixed-species row fails the macro gate.
+20000000-0000-4000-8000-000000000184	Lobster, raw	fish_shellfish	species_mismatch	The macro-compatible donor specifies northern lobster; the target is generic.
+20000000-0000-4000-8000-000000000233	Beef sirloin, raw	meat_poultry	cut_mismatch	Compatible donors narrow the target to top-sirloin cap with trim and grade qualifiers.
+20000000-0000-4000-8000-000000000238	Beef sirloin, grilled	meat_poultry	cut_mismatch	The official donor narrows the target to a qualified top-sirloin subcut.
+20000000-0000-4000-8000-000000000255	Lamb leg, raw	meat_poultry	cut_mismatch	Several shank-half, whole-leg, and regional donors pass; the target does not distinguish them.
+20000000-0000-4000-8000-000000000262	Lamb leg, roasted	meat_poultry	cut_mismatch	Several incompatible leg/cut identities remain plausible.
+20000000-0000-4000-8000-000000000412	Sweet corn kernels, raw	vegetable_leaf	ambiguous_identity	White and yellow corn donors both pass; the target omits colour.
+20000000-0000-4000-8000-000000000413	Sweet corn kernels, boiled	vegetable_leaf	ambiguous_identity	White and yellow cooked donors both pass.
+20000000-0000-4000-8000-000000000470	White potato with skin, boiled	vegetable_leaf	preparation_mismatch	The compatible record describes flesh cooked in skin, not consumed skin.

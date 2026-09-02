@@ -1426,12 +1426,12 @@ export function mergeExtendedFoodResults(
   providerResults: FoodRecord[],
   alternateQueries: string[] = [],
 ): FoodRecord[] {
-  const bundledLocalResults = overlayNaturalFoodEvidence(localResults)
+  const serverEnrichedLocalResults = enrichLocalFoodsWithNutrientEvidence(localResults, providerResults)
+  const bundledLocalResults = overlayNaturalFoodEvidence(serverEnrichedLocalResults)
   const bundledProviderResults = overlayNaturalFoodEvidence(providerResults)
-  const enrichedLocalResults = enrichLocalFoodsWithNutrientEvidence(bundledLocalResults, bundledProviderResults)
-  const seen = new Set(enrichedLocalResults.map(foodIdentity))
+  const seen = new Set(bundledLocalResults.map(foodIdentity))
   const queries = [...new Set([query, ...alternateQueries].map(normalizeFoodSearch).filter(Boolean))]
-  if (!queries.length) return enrichedLocalResults
+  if (!queries.length) return bundledLocalResults
   const candidates = bundledProviderResults
     .filter((food) => {
       const identity = foodIdentity(food)
@@ -1455,7 +1455,7 @@ export function mergeExtendedFoodResults(
     .filter(({ score }) => Number.isFinite(score))
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .map(({ food }) => food)
-  return [...enrichedLocalResults, ...provider]
+  return [...bundledLocalResults, ...provider]
 }
 
 const nutrientEvidenceFingerprint = [

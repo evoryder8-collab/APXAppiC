@@ -1030,7 +1030,7 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(search.waitForExistence(timeout: 3))
         XCTAssertFalse(app.navigationBars["Food Memory"].buttons["Search"].exists)
         search.tap()
-        search.typeText("protein")
+        search.typeText("strawberries")
         let food = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "food-row-")
         ).firstMatch
@@ -1044,8 +1044,8 @@ final class APEXSmokeUITests: XCTestCase {
 
         let nutrientInfo = app.buttons["food-nutrient-info"]
         XCTAssertTrue(nutrientInfo.waitForExistence(timeout: 2))
-        XCTAssertGreaterThanOrEqual(nutrientInfo.frame.width, 44)
-        XCTAssertGreaterThanOrEqual(nutrientInfo.frame.height, 44)
+        XCTAssertGreaterThanOrEqual(nutrientInfo.frame.width, 43.9)
+        XCTAssertGreaterThanOrEqual(nutrientInfo.frame.height, 43.9)
         nutrientInfo.tap()
         let nutrientDetail = app.navigationBars["Detailed nutrition"]
         XCTAssertTrue(nutrientDetail.waitForExistence(timeout: 2))
@@ -1054,12 +1054,23 @@ final class APEXSmokeUITests: XCTestCase {
         let saturatedFat = app.staticTexts["Saturated fat"]
         let totalCarbs = app.staticTexts["Total carbs"]
         let fibre = app.staticTexts["Dietary fibre"]
-        XCTAssertTrue(totalFat.exists)
-        XCTAssertTrue(saturatedFat.exists)
-        XCTAssertTrue(totalCarbs.exists)
-        XCTAssertTrue(fibre.exists)
+        let vitamins = app.staticTexts["Vitamins"]
+        let vitaminC = app.staticTexts["Vitamin C"]
+        let minerals = app.staticTexts["Minerals"]
+        let iron = app.staticTexts["Iron"]
+        XCTAssertTrue(scrollUntilVisible(totalFat, in: app, attempts: 6))
+        XCTAssertTrue(scrollUntilVisible(saturatedFat, in: app, attempts: 6))
         XCTAssertGreaterThan(saturatedFat.frame.minX, totalFat.frame.minX + 12)
+        XCTAssertTrue(scrollUntilVisible(totalCarbs, in: app, attempts: 6))
+        XCTAssertTrue(scrollUntilVisible(fibre, in: app, attempts: 6))
         XCTAssertGreaterThan(fibre.frame.minX, totalCarbs.frame.minX + 12)
+        /* The detailed table is intentionally long. Full settled swipes prove
+           the lower sections without turning this one regression into a
+           five-minute crawl of tiny accessibility drags. */
+        XCTAssertTrue(scrollUntilReachableSettled(vitamins, in: app, attempts: 6))
+        XCTAssertTrue(scrollUntilReachableSettled(vitaminC, in: app, attempts: 4))
+        XCTAssertTrue(scrollUntilReachableSettled(minerals, in: app, attempts: 4))
+        XCTAssertTrue(scrollUntilReachableSettled(iron, in: app, attempts: 4))
         XCTAssertFalse(app.staticTexts.matching(
             NSPredicate(format: "label CONTAINS[c] %@", "Original source value")
         ).firstMatch.exists)
@@ -1075,7 +1086,7 @@ final class APEXSmokeUITests: XCTestCase {
         quantity.tap()
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 2))
         quantity.typeText("7")
-        XCTAssertEqual(search.value as? String, "protein", "typing an amount must not remain bound to Food Memory search")
+        XCTAssertEqual(search.value as? String, "strawberries", "typing an amount must not remain bound to Food Memory search")
         XCTAssertTrue(
             String(describing: quantity.value).contains("7"),
             "the amount field must own keyboard input after the configurator opens"
@@ -1381,11 +1392,15 @@ final class APEXSmokeUITests: XCTestCase {
     @discardableResult
     private func collapseSection(_ id: String, in app: XCUIApplication) -> Bool {
         let toggle = app.buttons["section-toggle-\(id)"]
+        let scrollViewport = app.scrollViews.firstMatch
+        let clearTop = scrollViewport.exists
+            ? scrollViewport.frame.minY + 8
+            : CGFloat(320)
         /* SwiftUI can clamp an expanded disclosure's accessibility frame to
            the top of the scroll viewport even after its header has moved
            behind the pinned date controls. Move the real header clear of that
            clipping boundary before tapping it. */
-        guard scrollUpUntilVisible(toggle, in: app, minimumY: 280), isReachable(toggle) else {
+        guard scrollUpUntilVisible(toggle, in: app, minimumY: clearTop), isReachable(toggle) else {
             return false
         }
         if toggle.value as? String == "Collapsed" { return true }

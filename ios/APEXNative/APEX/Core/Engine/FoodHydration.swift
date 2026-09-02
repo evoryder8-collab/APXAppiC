@@ -327,19 +327,85 @@ struct NutritionFactDisplaySection: Equatable, Hashable, Sendable {
 
 enum FoodNutrientEvidence {
     private static let categoryOrder = NutrientCategory.allCases
+    private static let maximumNaturalEvidenceRows = 96
+    private static let maximumNaturalEvidenceBytes = 65_536
+    private static let maximumNaturalEvidenceTargets = 256
+    private static let maximumNaturalEvidenceResourceBytes = 4_194_304
 
-    private struct NaturalEvidenceBundle: Decodable {
-        let schemaVersion: Int
-        let targets: [NaturalEvidenceEntry]
+    /// Canonicalizes only dimensionally explicit units. Vitamin-equivalent
+    /// semantics remain attached because RE, RAE, alpha-TE and plain mass are
+    /// not interchangeable values. Opaque publisher units fail closed.
+    static func canonicalUnit(_ rawUnit: String) -> String? {
+        let unit = rawUnit
+            .precomposedStringWithCompatibilityMapping
+            .replacingOccurrences(of: "μ", with: "µ")
+            .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        guard unit.isEmpty == false else { return nil }
+        let basis = #"(?:\s*(?:/|per)\s*100\s*(?:g|ml))?"#
+        if unitMatches(unit, #"^(?:kcal|kilocalories?)"# + basis + "$") { return "kcal" }
+        if unitMatches(unit, #"^(?:g|grams?)"# + basis + "$") { return "g" }
+        if unitMatches(unit, #"^(?:mg|milligrams?)"# + basis + "$") { return "mg" }
+        if unitMatches(unit, #"^(?:µg|ug|mcg|micrograms?)"# + basis + "$") { return "µg" }
+        if unitMatches(unit, #"^(?:ml|millilit(?:er|re)s?)"# + basis + "$") { return "ml" }
+        if unitMatches(unit, #"^i\.?\s*u\.?"# + basis + "$") { return "IU" }
 
-        enum CodingKeys: String, CodingKey {
-            case targets
-            case schemaVersion = "schema_version"
+        let micro = #"(?:µg|ug|mcg|micrograms?)"#
+        if let match = unitCapture(unit, "^" + micro + #"\s+(re|rae)"# + basis + "$") {
+            return "µg \(match.uppercased())"
         }
+        if let match = unitCapture(
+            unit,
+            #"^(re|rae)\s*\(\s*"# + micro + basis + #"\s*\)$"#
+        ) {
+            return "µg \(match.uppercased())"
+        }
+
+        let alphaTE = #"(?:α|alpha|alfa)[\s-]*te"#
+        if unitMatches(unit, #"^(?:mg|milligrams?)\s*"# + alphaTE + basis + "$")
+            || unitMatches(unit, "^" + alphaTE + basis + "$") {
+            return "mg α-TE"
+        }
+        return nil
+    }
+
+    static func canonicalized(
+        _ observation: NutrientEvidenceObservation
+    ) -> NutrientEvidenceObservation? {
+        guard let unit = canonicalUnit(observation.unit) else { return nil }
+        return NutrientEvidenceObservation(
+            nutrientCode: observation.nutrientCode,
+            name: observation.name,
+            valuePer100: observation.valuePer100,
+            unit: unit,
+            observationStatus: observation.observationStatus,
+            originalValueText: observation.originalValueText,
+            derivationMethod: observation.derivationMethod,
+            sourceKey: observation.sourceKey,
+            sourceReference: observation.sourceReference
+        )
+    }
+
+    private static func unitMatches(_ value: String, _ pattern: String) -> Bool {
+        value.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil
+    }
+
+    private static func unitCapture(_ value: String, _ pattern: String) -> String? {
+        guard let expression = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive]),
+              let match = expression.firstMatch(
+                in: value,
+                range: NSRange(value.startIndex..., in: value)
+              ),
+              match.numberOfRanges > 1,
+              let range = Range(match.range(at: 1), in: value)
+        else { return nil }
+        return String(value[range])
     }
 
     private struct NaturalEvidenceEntry: Decodable {
         let aliases: [NaturalEvidenceAlias]
+        let category: String
         let donor: NaturalEvidenceDonor
         let evidence: [NutrientEvidenceObservation]
         let target: NaturalEvidenceIdentity
@@ -347,11 +413,12 @@ enum FoodNutrientEvidence {
 
     private struct NaturalEvidenceDonor: Decodable {
         let id: String
+        let name: String
         let sourceKey: String
         let sourceRecordID: String
 
         enum CodingKeys: String, CodingKey {
-            case id
+            case id, name
             case sourceKey = "source_key"
             case sourceRecordID = "source_record_id"
         }
@@ -359,10 +426,11 @@ enum FoodNutrientEvidence {
 
     private struct NaturalEvidenceIdentity: Decodable {
         let id: String
+        let name: String
         let providerProductID: String
 
         enum CodingKeys: String, CodingKey {
-            case id
+            case id, name
             case providerProductID = "provider_product_id"
         }
     }
@@ -428,6 +496,73 @@ enum FoodNutrientEvidence {
         case water = "WATER"
     }
 
+    /// Stable localization keys for nutrient identifiers. Dataset-specific
+    /// English descriptions remain evidence metadata, never interface copy.
+    private static let displayKeys: [String: String] = [
+        "BIOT": "Biotin (B7)",
+        "CA": "Calcium",
+        "CARTB": "Beta-carotene",
+        "CHOAVL": "Total carbs",
+        "CHOLE": "Cholesterol",
+        "CU": "Copper",
+        "ENERC_KCAL": "Calories",
+        "FAMS": "Monounsaturated fat",
+        "FAPU": "Polyunsaturated fat",
+        "FASAT": "Saturated fat",
+        "FAT": "Total fat",
+        "FATRN": "Trans fat",
+        "FE": "Iron",
+        "FIBT": "Dietary fibre",
+        "FOL": "Folate (B9)",
+        "I": "Iodine",
+        "K": "Potassium",
+        "MG": "Magnesium",
+        "MN": "Manganese",
+        "NA": "Sodium",
+        "NACL": "Salt",
+        "NIA": "Niacin (B3)",
+        "OMEGA3": "Omega-3 fat",
+        "OMEGA3_ALA": "Alpha-linolenic acid (ALA)",
+        "OMEGA3_DHA": "Docosahexaenoic acid (DHA)",
+        "OMEGA3_DPA": "Docosapentaenoic acid (DPA)",
+        "OMEGA3_EPA": "Eicosapentaenoic acid (EPA)",
+        "OMEGA6": "Omega-6 fat",
+        "OMEGA6_AA": "Arachidonic acid (AA)",
+        "OMEGA6_GLA": "Gamma-linolenic acid (GLA)",
+        "OMEGA6_LA": "Linoleic acid (LA)",
+        "P": "Phosphorus",
+        "PANTAC": "Pantothenic acid (B5)",
+        "PROT": "Protein",
+        "RIBF": "Riboflavin (B2)",
+        "SALT": "Salt",
+        "SE": "Selenium",
+        "STARCH": "Starch",
+        "SUGAR": "Total sugars",
+        "SUGAR_ADDED": "Added sugars",
+        "THIA": "Thiamin (B1)",
+        "VITA": "Vitamin A",
+        "VITB1": "Thiamin (B1)",
+        "VITB12": "Vitamin B12",
+        "VITB2": "Riboflavin (B2)",
+        "VITB3": "Niacin (B3)",
+        "VITB5": "Pantothenic acid (B5)",
+        "VITB6": "Vitamin B6",
+        "VITB6A": "Vitamin B6",
+        "VITB7": "Biotin (B7)",
+        "VITB9": "Folate (B9)",
+        "VITC": "Vitamin C",
+        "VITD": "Vitamin D",
+        "VITE": "Vitamin E",
+        "VITK": "Vitamin K",
+        "WATER": "Water",
+        "ZN": "Zinc"
+    ]
+
+    static func displayKey(for nutrientCode: String) -> String {
+        displayKeys[nutrientCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()]
+            ?? "Other nutrient"
+    }
+
     static func category(_ observation: NutrientEvidenceObservation) -> NutrientCategory {
         let code = observation.nutrientCode.uppercased()
         let name = observation.name.lowercased()
@@ -453,13 +588,14 @@ enum FoodNutrientEvidence {
     static func nutritionFactSections(
         _ observations: [NutrientEvidenceObservation]
     ) -> [NutritionFactDisplaySection] {
+        let canonical = observations.compactMap(canonicalized)
         let groups: [(NutritionFactSectionKind, [NutrientEvidenceObservation])] = [
-            (.facts, observations.filter {
+            (.facts, canonical.filter {
                 let category = category($0)
                 return category != .vitamins && category != .minerals
             }),
-            (.vitamins, observations.filter { category($0) == .vitamins }),
-            (.minerals, observations.filter { category($0) == .minerals })
+            (.vitamins, canonical.filter { category($0) == .vitamins }),
+            (.minerals, canonical.filter { category($0) == .minerals })
         ]
         return groups.compactMap { kind, observations in
             guard !observations.isEmpty else { return nil }
@@ -485,12 +621,7 @@ enum FoodNutrientEvidence {
     }
 
     private static func nutritionFactLabel(_ observation: NutrientEvidenceObservation) -> String {
-        switch observation.nutrientCode.uppercased() {
-        case Code.energy.rawValue: "Calories"
-        case Code.fat.rawValue: "Total fat"
-        case Code.carbohydrate.rawValue: "Total carbs"
-        default: observation.name
-        }
+        displayKey(for: observation.nutrientCode)
     }
 
     private static func nutritionFactDepth(_ observation: NutrientEvidenceObservation) -> Int {
@@ -536,8 +667,6 @@ enum FoodNutrientEvidence {
     }
 
     static func observations(for food: Food) -> [NutrientEvidenceObservation] {
-        var rows = food.nutrientEvidence ?? []
-        var existing = Set(rows.map { $0.nutrientCode.uppercased() })
         let status: NutrientObservationStatus = food.source == "open_food_facts"
             || food.confidence == "provider_verified" ? .reported : .estimated
         let facts: [(String, String, Double?, String)] = [
@@ -551,9 +680,9 @@ enum FoodNutrientEvidence {
             (Code.salt.rawValue, "Salt", food.salt100, "g"),
             (Code.water.rawValue, "Water", food.waterML100, "ml")
         ]
-        for (code, name, value, unit) in facts {
-            guard let value, value.isFinite, value >= 0, existing.insert(code).inserted else { continue }
-            rows.append(NutrientEvidenceObservation(
+        let canonicalFacts = facts.compactMap { code, name, value, unit -> NutrientEvidenceObservation? in
+            guard let value, value.isFinite, value >= 0 else { return nil }
+            return NutrientEvidenceObservation(
                 nutrientCode: code,
                 name: name,
                 valuePer100: value,
@@ -563,8 +692,16 @@ enum FoodNutrientEvidence {
                 derivationMethod: nil,
                 sourceKey: food.source,
                 sourceReference: food.providerProductID
-            ))
+            )
         }
+        /* The amount card and immutable log use the canonical Food totals.
+           Exact donor evidence may add micronutrients and detail facts, but it
+           must never surface a second calorie or macro truth. */
+        let canonicalCodes = Set(canonicalFacts.map { $0.nutrientCode.uppercased() })
+        var rows = (food.nutrientEvidence ?? []).filter {
+            canonicalCodes.contains($0.nutrientCode.uppercased()) == false
+        }.compactMap(canonicalized)
+        rows.append(contentsOf: canonicalFacts)
         return rows.sorted { left, right in
             let leftCategory = categoryOrder.firstIndex(of: category(left)) ?? categoryOrder.count
             let rightCategory = categoryOrder.firstIndex(of: category(right)) ?? categoryOrder.count
@@ -624,32 +761,53 @@ enum FoodNutrientEvidence {
     private static func naturalEvidenceIndex(
         from data: Data
     ) -> [String: [NaturalEvidenceCandidate]]? {
-        guard let resource = try? JSONDecoder().decode(NaturalEvidenceBundle.self, from: data),
-              resource.schemaVersion == 1,
+        guard data.count <= maximumNaturalEvidenceResourceBytes,
               let rawObject = try? JSONSerialization.jsonObject(with: data),
               let object = rawObject as? [String: Any],
-              let rawTargets = object["targets"] as? [[String: Any]],
-              rawTargets.count == resource.targets.count
+              object["schema_version"] as? Int == 1,
+              let rawTargets = object["targets"] as? [Any],
+              rawTargets.count <= maximumNaturalEvidenceTargets
         else { return nil }
 
+        let decoder = JSONDecoder()
         var candidatesByIdentity: [String: [NaturalEvidenceCandidate]] = [:]
-        for (entry, rawTarget) in zip(resource.targets, rawTargets) {
+        for rawValue in rawTargets {
+            guard let rawTarget = rawValue as? [String: Any],
+                  let rawEvidence = rawTarget["evidence"] as? [Any],
+                  rawEvidence.isEmpty == false,
+                  rawEvidence.count <= maximumNaturalEvidenceRows,
+                  rawEvidence.allSatisfy({ rawObservation in
+                      guard let rawObservation = rawObservation as? [String: Any] else { return false }
+                      return rawObservation.keys.contains("value_per_100")
+                  }),
+                  let rawEvidenceData = try? JSONSerialization.data(withJSONObject: rawEvidence),
+                  rawEvidenceData.count <= maximumNaturalEvidenceBytes,
+                  let rawEntryData = try? JSONSerialization.data(withJSONObject: rawTarget),
+                  let entry = try? decoder.decode(NaturalEvidenceEntry.self, from: rawEntryData)
+            else { continue }
             let donorProviderID = [
                 "corpus", entry.donor.sourceKey, entry.donor.sourceRecordID
             ].joined(separator: ":")
-            guard let rawEvidence = rawTarget["evidence"] as? [Any],
-                  let rawEvidenceData = try? JSONSerialization.data(withJSONObject: rawEvidence),
-                  entry.evidence.isEmpty == false,
-                  entry.evidence.count <= 96,
-                  rawEvidenceData.count <= 65_536,
+            guard entry.evidence.isEmpty == false,
+                  entry.evidence.count <= maximumNaturalEvidenceRows,
+                  entry.category.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+                  entry.donor.id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+                  entry.donor.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+                  entry.donor.sourceKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+                  entry.donor.sourceRecordID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+                  entry.target.id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+                  entry.target.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+                  entry.target.providerProductID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
                   entry.evidence.allSatisfy({
                       guard $0.sourceKey == entry.donor.sourceKey,
                             let reference = $0.sourceReference
                       else { return false }
                       return $0.nutrientCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
                           && $0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-                          && $0.unit.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
-                          && ($0.valuePer100?.isFinite ?? true)
+                          && canonicalUnit($0.unit) != nil
+                          && ($0.valuePer100.map {
+                              $0.isFinite && (0...1_000_000_000_000).contains($0)
+                          } ?? true)
                           && reference.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
                   }),
                   entry.aliases.count == 2,
@@ -728,11 +886,11 @@ enum FoodNutrientEvidence {
     /// Keeps the local read model canonical while removing a matching server
     /// duplicate only after its compatible evidence has been coalesced.
     static func mergeLocalSearchFoods(_ localFoods: [Food], with serverFoods: [Food]) -> [Food] {
-        let bundledLocalFoods = overlayBundledNaturalFoodEvidence(localFoods)
+        let serverEnrichedLocalFoods = enrichLocalFoods(localFoods, with: serverFoods)
+        let bundledLocalFoods = overlayBundledNaturalFoodEvidence(serverEnrichedLocalFoods)
         let bundledServerFoods = overlayBundledNaturalFoodEvidence(serverFoods)
-        let enrichedLocalFoods = enrichLocalFoods(bundledLocalFoods, with: bundledServerFoods)
-        var seen = Set(enrichedLocalFoods.map { $0.providerProductID ?? $0.barcode ?? $0.id.lowercased() })
-        return enrichedLocalFoods + bundledServerFoods.filter { food in
+        var seen = Set(bundledLocalFoods.map { $0.providerProductID ?? $0.barcode ?? $0.id.lowercased() })
+        return bundledLocalFoods + bundledServerFoods.filter { food in
             seen.insert(food.providerProductID ?? food.barcode ?? food.id.lowercased()).inserted
         }
     }
@@ -817,6 +975,14 @@ struct NutrientPatternSummary: Equatable, Sendable {
 }
 
 enum NutrientPatternEngine {
+    /// Coverage requires at least one valid immutable fact beyond calories
+    /// and the three core macros. Fibre, sugars, fat detail, salt, water,
+    /// vitamins, minerals and other secondary nutrients qualify. Trace and
+    /// below-detection observations are evidence, but never numeric intake.
+    private static let coreNutritionCodes: Set<String> = [
+        "ENERC_KCAL", "PROT", "CHOAVL", "FAT"
+    ]
+
     private struct MutableRow {
         var nutrientCode: String
         var name: String
@@ -824,6 +990,7 @@ enum NutrientPatternEngine {
         var category: NutrientCategory
         var total: Double
         var observedFoodEntries: Int
+        var observedDates: Set<String>
     }
 
     private static var calendar: Calendar {
@@ -881,36 +1048,40 @@ enum NutrientPatternEngine {
         var evidenceFoodEntries = 0
         var groups: [String: MutableRow] = [:]
         for entry in eligibleEntries {
+            let localDate = eligibleMeals[entry.mealID]!
             let usable = entry.evidence.compactMap { observation -> (NutrientEvidenceObservation, Double)? in
-                guard observation.observationStatus == .measured
-                        || observation.observationStatus == .calculated
-                        || observation.observationStatus == .estimated
-                        || observation.observationStatus == .reported,
-                      let value = observation.valuePer100,
+                guard let canonical = FoodNutrientEvidence.canonicalized(observation),
+                      canonical.observationStatus == .measured
+                        || canonical.observationStatus == .calculated
+                        || canonical.observationStatus == .estimated
+                        || canonical.observationStatus == .reported,
+                      let value = canonical.valuePer100,
                       value.isFinite,
                       value >= 0 else { return nil }
-                return (observation, value * max(0, entry.equivalentAmount) / 100)
+                return (canonical, value * max(0, entry.equivalentAmount) / 100)
             }
-            if usable.isEmpty == false { evidenceFoodEntries += 1 }
+            if entry.evidence.contains(where: isDetailedEvidence) { evidenceFoodEntries += 1 }
             var countedKeys = Set<String>()
             for (observation, amount) in usable {
                 let key = "\(observation.nutrientCode.uppercased())|\(observation.unit)"
                 var row = groups[key] ?? MutableRow(
                     nutrientCode: observation.nutrientCode,
-                    name: observation.name,
+                    name: FoodNutrientEvidence.displayKey(for: observation.nutrientCode),
                     unit: observation.unit,
                     category: FoodNutrientEvidence.category(observation),
                     total: 0,
-                    observedFoodEntries: 0
+                    observedFoodEntries: 0,
+                    observedDates: []
                 )
                 row.total += amount
                 if countedKeys.insert(key).inserted { row.observedFoodEntries += 1 }
+                row.observedDates.insert(localDate)
                 groups[key] = row
             }
         }
-        let divisor = Double(max(1, observedDays))
         let rows = groups.values.map { row in
-            NutrientPatternRow(
+            let divisor = Double(max(1, row.observedDates.count))
+            return NutrientPatternRow(
                 nutrientCode: row.nutrientCode,
                 name: row.name,
                 unit: row.unit,
@@ -941,5 +1112,20 @@ enum NutrientPatternEngine {
 
     private static func rounded(_ value: Double) -> Double {
         (value * 1_000_000).rounded() / 1_000_000
+    }
+
+    private static func isDetailedEvidence(_ observation: NutrientEvidenceObservation) -> Bool {
+        guard FoodNutrientEvidence.canonicalUnit(observation.unit) != nil else { return false }
+        let code = observation.nutrientCode.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        guard coreNutritionCodes.contains(code) == false else { return false }
+        switch observation.observationStatus {
+        case .measured, .calculated, .estimated, .reported:
+            guard let value = observation.valuePer100 else { return false }
+            return value.isFinite && value >= 0
+        case .trace, .belowDetection:
+            return observation.valuePer100 == nil
+        case .notMeasured, .missing:
+            return false
+        }
     }
 }

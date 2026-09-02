@@ -941,6 +941,59 @@ export function Settings() {
           </p>
         </GlassCard>
 
+        <GlassCard accent={emerald} className="p-5">
+          <h2 className="font-display text-lg font-bold text-ink">{t('Legal & data')}</h2>
+          <p className={`${sub} mt-1`}>{t('See where APEX food data comes from and how it is adapted.')}</p>
+
+          <details
+            data-food-data-acknowledgement
+            className="group mt-4 overflow-hidden rounded-3xl border border-emerald-100/90 bg-white/55"
+          >
+            <summary className="flex min-h-14 cursor-pointer list-none items-center gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-emerald-100 font-mono text-sm font-black text-emerald-800" aria-hidden="true">i</span>
+              <span className="min-w-0 flex-1 text-sm font-black text-ink">{t('Food data acknowledgements')}</span>
+              <span className="shrink-0 text-lg font-bold text-emerald-700 transition-transform group-open:rotate-180" aria-hidden="true">⌄</span>
+            </summary>
+
+            <div className="border-t border-emerald-100/80 px-4 pb-4 pt-4">
+              <p className="font-mono text-[9px] font-black uppercase tracking-[0.14em] text-emerald-800">{t('APEX uses adapted data from:')}</p>
+              <p lang="en" className="mt-2 text-[12px] font-semibold leading-relaxed text-ink">
+                {t('Marija Langwagen, Jette Jakobsen and Anders Poulsen: The Danish Food Composition Database, version 6.1, May 2026, National Food Institute, Technical University of Denmark.')}
+              </p>
+              <p className="mt-3 text-[11px] font-medium leading-relaxed text-ink-soft">
+                {t('APEX extracted, normalized and mapped selected source records to reviewed APEX food entries. These changes are by APEX; DTU does not endorse APEX.')}
+              </p>
+
+              <div className="mt-4 grid gap-2 sm:grid-cols-3">
+                <a
+                  href="https://doi.org/10.11583/DTU.32312844"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-2xl border border-emerald-100 bg-white/80 px-3 py-2.5 text-center text-[10px] font-black text-emerald-800 transition hover:border-emerald-300"
+                >
+                  {t('Dataset DOI')} ↗
+                </a>
+                <a
+                  href="https://creativecommons.org/licenses/by/4.0/"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-2xl border border-emerald-100 bg-white/80 px-3 py-2.5 text-center text-[10px] font-black text-emerald-800 transition hover:border-emerald-300"
+                >
+                  CC BY 4.0 ↗
+                </a>
+                <a
+                  href="https://fcdb.fooddata.dk/disclaimer"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="rounded-2xl border border-emerald-100 bg-white/80 px-3 py-2.5 text-center text-[10px] font-black text-emerald-800 transition hover:border-emerald-300"
+                >
+                  {t('DTU disclaimer')} ↗
+                </a>
+              </div>
+            </div>
+          </details>
+        </GlassCard>
+
         <GlassCard accent={violet} className="p-5">
           <h2 className="font-display text-lg font-bold text-ink">Account</h2>
           {isLocalMode ? (

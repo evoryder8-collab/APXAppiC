@@ -1219,6 +1219,15 @@ private struct MealFoodPicker: View {
     @State private var configuring: Food?
     @State private var burstCounts: [String: Int] = [:]
 
+    private var accountFoods: [Food] {
+        let ownerID = session.profile?.userID
+        let visible = session.data.foods.filter { food in
+            guard let foodOwnerID = food.ownerUserID else { return true }
+            return ownerID != nil && foodOwnerID == ownerID
+        }
+        return FoodNutrientEvidence.overlayBundledNaturalFoodEvidence(visible)
+    }
+
     private var memoryMode: MealMemory.Mode {
         MealMemory.normalizeMode(session.data.settings?.addons["meal_memory_mode"])
     }
@@ -1237,7 +1246,7 @@ private struct MealFoodPicker: View {
             ),
             meals: session.data.loggedMeals,
             entries: session.data.loggedFoodEntries,
-            foods: session.data.foods,
+            foods: accountFoods,
             presets: session.data.mealPresets,
             foodLimit: 12
         )
@@ -1246,14 +1255,18 @@ private struct MealFoodPicker: View {
     private func displayedFoods(_ history: MealMemory.Recommendations) -> [Food] {
         let prefs = Dictionary(uniqueKeysWithValues: session.data.foodPreferences.map { ($0.foodID.uuidString.lowercased(), $0) })
         func visible(_ foods: [Food]) -> [Food] {
-            foods.filter { prefs[$0.id.lowercased()]?.hidden != true }
+            let ownerID = session.profile?.userID
+            return foods.filter { food in
+                let belongsToAccount = food.ownerUserID == nil || (ownerID != nil && food.ownerUserID == ownerID)
+                return belongsToAccount && prefs[food.id.lowercased()]?.hidden != true
+            }
         }
         if remoteResults.isEmpty == false { return visible(remoteResults) }
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty == false {
             return visible(MealMemory.searchFoods(
                 query: trimmed,
-                foods: session.data.foods,
+                foods: accountFoods,
                 preferences: session.data.foodPreferences,
                 userID: session.profile?.userID
             ))
@@ -1263,7 +1276,7 @@ private struct MealFoodPicker: View {
            history is not diluted by generally-used foods. */
         let backfill = memoryMode == .weekly && ranked.isEmpty == false
             ? []
-            : visible(session.data.foods).filter { food in
+            : visible(accountFoods).filter { food in
                 let preference = prefs[food.id.lowercased()]
                 return preference?.favourite == true || (preference?.usageCount ?? 0) > 0
             }.sorted { lhs, rhs in
@@ -1278,7 +1291,7 @@ private struct MealFoodPicker: View {
         /* A brand-new account has no history to rank, so the catalogue stays
            browsable instead of showing an empty list before the first search. */
         if memory.isEmpty {
-            return visible(session.data.foods)
+            return visible(accountFoods)
                 .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         }
         return memory

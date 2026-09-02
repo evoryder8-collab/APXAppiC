@@ -4,12 +4,14 @@ import { createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { readFile, writeFile } from 'node:fs/promises'
 import { createInterface } from 'node:readline'
-import { dirname, relative, resolve } from 'node:path'
+import { basename, dirname, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import process from 'node:process'
 
 const MAX_EVIDENCE_ROWS = 96
 const MAX_EVIDENCE_BYTES = 65_536
+const MAX_EVIDENCE_VALUE_PER_100 = 1_000_000_000_000
+const REVIEWED_DELTA_TOLERANCE = 0.0005 + Number.EPSILON
 const FINGERPRINT_FIELDS = [
   ['kcal_100', 5, 0.03],
   ['protein_100', 0.5, 0.05],
@@ -55,7 +57,7 @@ const NUTRIENT_PROJECTION = [
   { code: 'OMEGA6', candidates: { 'dk-frida': ['250'] } },
   { code: 'OMEGA6_LA', candidates: USDA(['1316', '1269']) },
   { code: 'OMEGA6_GLA', candidates: USDA(['1321']) },
-  { code: 'OMEGA6_AA', candidates: USDA(['1406']) },
+  { code: 'OMEGA6_AA', candidates: { 'usda-sr-legacy': ['1406'] } },
   { code: 'CHOLE', candidates: { ...USDA(['1253']), 'dk-frida': ['115'] } },
   { code: 'NA', candidates: { ...USDA(['1093']), 'dk-frida': ['201'] } },
   { code: 'NACL', candidates: { 'dk-frida': ['327'] } },
@@ -86,8 +88,49 @@ const NUTRIENT_PROJECTION = [
   { code: 'I', candidates: { ...USDA(['1100']), 'dk-frida': ['163'] } },
 ]
 
+export function canonicalNutrientCodeForSource(sourceKey, sourceNutrientCode) {
+  const sourceCode = String(sourceNutrientCode)
+  for (const projection of NUTRIENT_PROJECTION) {
+    if (projection.candidates[sourceKey]?.includes(sourceCode)) return projection.code
+  }
+  return sourceCode
+}
+
 function isFiniteNumber(value) {
   return typeof value === 'number' && Number.isFinite(value)
+}
+
+export function canonicalizeEvidenceUnit(unit, {
+  canonicalCode = '', sourceKey = '', sourceNutrientCode = '',
+} = {}) {
+  const trimmed = unit.trim()
+  const normalized = trimmed.replaceAll('μ', 'µ').replace(/\s+/g, ' ')
+  const code = canonicalCode.toUpperCase()
+  const sourceCode = String(sourceNutrientCode)
+
+  // Frida publishes these equivalent-based values per 100 g. The numeric
+  // values already use the stated magnitude, so only the UI unit/basis syntax
+  // is canonicalized; no conversion is performed.
+  if (sourceKey === 'dk-frida' && code === 'VITA' && /^RE\s*\(\s*µg\s*\/\s*100\s*g\s*\)$/i.test(normalized)) {
+    return 'µg RE'
+  }
+  if (sourceKey === 'dk-frida' && code === 'VITE' && /^(?:alfa|alpha|α)-?TE$/i.test(normalized)) {
+    return 'mg α-TE'
+  }
+
+  const withoutBasis = normalized.replace(/\s*(?:\/\s*100\s*g|per\s+100\s*g)\s*$/i, '').trim()
+  switch (withoutBasis.toLowerCase()) {
+    case 'g': return 'g'
+    case 'mg': return 'mg'
+    case 'ug':
+    case 'µg':
+      return code === 'VITA' && USDA_SOURCES.includes(sourceKey) && sourceCode === '1106' ? 'µg RAE' : 'µg'
+    case 'kcal': return 'kcal'
+    case 'iu':
+      if (code === 'VITA' || code === 'VITD') return 'IU'
+      break
+  }
+  throw new Error(`Unsupported evidence unit ${trimmed} for ${sourceKey}:${sourceCode}:${code}`)
 }
 
 function canonicalObject(value) {
@@ -100,6 +143,182 @@ function canonicalObject(value) {
 
 export function stableJSONStringify(value) {
   return `${JSON.stringify(canonicalObject(value), null, 2)}\n`
+}
+
+function deploymentTarget(entry) {
+  const alias = entry?.aliases?.find((candidate) => candidate?.kind === 'target')
+  if (
+    !alias
+    || typeof alias.id !== 'string'
+    || typeof alias.provider_product_id !== 'string'
+    || typeof alias.nutrition_basis !== 'string'
+    || typeof alias.preparation_state !== 'string'
+  ) {
+    throw new Error('Natural-food deployment entry lacks one complete target alias')
+  }
+  assertFiniteFingerprint(alias.fingerprint, `${alias.id} deployment target`)
+  if (!Array.isArray(entry.evidence) || entry.evidence.length === 0) {
+    throw new Error(`Natural-food deployment entry ${alias.id} has no evidence`)
+  }
+  validateEvidenceBounds(entry.evidence)
+  return {
+    carbs_100: alias.fingerprint.carbs_100,
+    evidence: entry.evidence,
+    fat_100: alias.fingerprint.fat_100,
+    kcal_100: alias.fingerprint.kcal_100,
+    nutrition_basis: alias.nutrition_basis,
+    preparation_state: alias.preparation_state,
+    protein_100: alias.fingerprint.protein_100,
+    provider_product_id: alias.provider_product_id,
+    target_id: alias.id,
+  }
+}
+
+export function renderNaturalFoodEvidenceMigration(bundle) {
+  if (bundle?.schema_version !== 1 || !Array.isArray(bundle.targets) || bundle.targets.length === 0) {
+    throw new Error('Natural-food deployment bundle must have schema_version 1 and at least one target')
+  }
+  const payload = bundle.targets.map(deploymentTarget).toSorted((left, right) => (
+    left.target_id.localeCompare(right.target_id)
+    || left.provider_product_id.localeCompare(right.provider_product_id)
+  ))
+  const identities = new Set(payload.map((target) => `${target.target_id}\u0000${target.provider_product_id}`))
+  const targetIDs = new Set(payload.map((target) => target.target_id))
+  const providerIDs = new Set(payload.map((target) => target.provider_product_id))
+  if (identities.size !== payload.length || targetIDs.size !== payload.length || providerIDs.size !== payload.length) {
+    throw new Error('Natural-food deployment bundle contains duplicate target or provider identity')
+  }
+  const payloadText = stableJSONStringify(payload).trimEnd()
+  const payloadDelimiter = '$apex_natural_food_payload$'
+  if (payloadText.includes(payloadDelimiter)) throw new Error('Natural-food deployment payload contains the SQL delimiter')
+
+  return `-- Generated by tools/food_corpus/build_natural_food_evidence.mjs.
+-- Reviewed natural-food evidence only: never edit this payload by hand.
+-- Adds evidence to unchanged, global, unbranded curated rows and deliberately
+-- preserves macros, ownership, timestamps, and every historical meal snapshot.
+
+do $apex_natural_food_migration$
+declare
+  v_payload constant jsonb := ${payloadDelimiter}${payloadText}${payloadDelimiter}::jsonb;
+  v_expected_count constant integer := ${payload.length};
+  v_payload_count integer;
+  v_distinct_target_count integer;
+  v_distinct_provider_count integer;
+  v_updated_count integer;
+  v_timestamp_change_count integer;
+begin
+  if jsonb_typeof(v_payload) <> 'array' then
+    raise exception 'Natural-food evidence payload is not an array';
+  end if;
+
+  select
+    count(*),
+    count(distinct payload.target_id),
+    count(distinct payload.provider_product_id)
+  into v_payload_count, v_distinct_target_count, v_distinct_provider_count
+  from jsonb_to_recordset(v_payload) as payload(
+    target_id uuid,
+    provider_product_id text,
+    nutrition_basis text,
+    preparation_state text,
+    kcal_100 numeric,
+    protein_100 numeric,
+    carbs_100 numeric,
+    fat_100 numeric,
+    evidence jsonb
+  );
+
+  if v_payload_count <> v_expected_count
+     or v_distinct_target_count <> v_expected_count
+     or v_distinct_provider_count <> v_expected_count then
+    raise exception 'Natural-food evidence payload identity assertion failed';
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_to_recordset(v_payload) as payload(
+      target_id uuid,
+      provider_product_id text,
+      nutrition_basis text,
+      preparation_state text,
+      kcal_100 numeric,
+      protein_100 numeric,
+      carbs_100 numeric,
+      fat_100 numeric,
+      evidence jsonb
+    )
+    where payload.target_id is null
+       or nullif(payload.provider_product_id, '') is null
+       or payload.nutrition_basis not in ('per_100g', 'per_100ml')
+       or nullif(payload.preparation_state, '') is null
+       or payload.kcal_100 is null
+       or payload.protein_100 is null
+       or payload.carbs_100 is null
+       or payload.fat_100 is null
+       or jsonb_typeof(payload.evidence) <> 'array'
+       or jsonb_array_length(payload.evidence) = 0
+       or not public.apex_valid_nutrient_evidence(payload.evidence)
+  ) then
+    raise exception 'Natural-food evidence payload validation failed';
+  end if;
+
+  with payload as (
+    select *
+    from jsonb_to_recordset(v_payload) as reviewed(
+      target_id uuid,
+      provider_product_id text,
+      nutrition_basis text,
+      preparation_state text,
+      kcal_100 numeric,
+      protein_100 numeric,
+      carbs_100 numeric,
+      fat_100 numeric,
+      evidence jsonb
+    )
+  ), eligible as materialized (
+    select
+      food.id,
+      food.updated_at as original_updated_at,
+      payload.evidence
+    from public.foods food
+    join payload on payload.target_id = food.id
+                and payload.provider_product_id = food.provider_product_id
+    where food.owner_user_id is null
+      and food.source::text = 'apex_cache'
+      and food.brand is null
+      and food.barcode is null
+      and food.nutrition_basis::text = payload.nutrition_basis
+      and food.preparation_state::text = payload.preparation_state
+      and food.kcal_100 is not distinct from payload.kcal_100
+      and food.protein_100 is not distinct from payload.protein_100
+      and food.carbs_100 is not distinct from payload.carbs_100
+      and food.fat_100 is not distinct from payload.fat_100
+      and food.nutrient_evidence = '[]'::jsonb
+  ), updated as (
+    update public.foods food
+    set nutrient_evidence = eligible.evidence,
+        updated_at = food.updated_at
+    from eligible
+    where food.id = eligible.id
+      and food.nutrient_evidence = '[]'::jsonb
+    returning food.id, food.updated_at
+  )
+  select
+    count(*),
+    count(*) filter (where updated.updated_at is distinct from eligible.original_updated_at)
+  into v_updated_count, v_timestamp_change_count
+  from updated
+  join eligible using (id);
+
+  if v_timestamp_change_count <> 0 then
+    raise exception 'Natural-food evidence migration changed updated_at';
+  end if;
+
+  raise notice 'Natural-food evidence rows enriched: % of % reviewed targets',
+    v_updated_count, v_expected_count;
+end
+$apex_natural_food_migration$;
+`
 }
 
 function fingerprintFromFood(food) {
@@ -132,7 +351,7 @@ export function runtimeFingerprintMatches(reviewed, candidate) {
   })
 }
 
-function deterministicRow(rows, candidateCodes, canonicalCode, sourceKey, targetFingerprint) {
+function deterministicRow(rows, candidateCodes, canonicalCode, sourceKey, targetFingerprint, reviewedMacroDelta) {
   const candidates = rows.filter((row) => candidateCodes.includes(String(row.source_nutrient_code)))
   if (candidates.length === 0) return null
 
@@ -143,8 +362,17 @@ function deterministicRow(rows, candidateCodes, canonicalCode, sourceKey, target
       candidateCodes.indexOf(String(left.source_nutrient_code)) - candidateCodes.indexOf(String(right.source_nutrient_code))
       || String(left.source_reference ?? '').localeCompare(String(right.source_reference ?? ''))
     ))[0]
-    return numeric.toSorted((left, right) => (
-      Math.abs(left.value - targetEnergy) - Math.abs(right.value - targetEnergy)
+    const reviewedEnergyDelta = reviewedMacroDelta?.kcal_100
+    if (!isFiniteNumber(reviewedEnergyDelta)) {
+      throw new Error('Foundation energy canonicalization requires a finite reviewed kcal delta')
+    }
+    const reviewedEnergy = targetEnergy + reviewedEnergyDelta
+    const matchingReview = numeric.filter((row) => Math.abs(row.value - reviewedEnergy) <= REVIEWED_DELTA_TOLERANCE)
+    if (matchingReview.length === 0) {
+      throw new Error(`No Foundation energy observation preserves reviewed macro delta ${reviewedEnergyDelta}`)
+    }
+    return matchingReview.toSorted((left, right) => (
+      Math.abs(left.value - reviewedEnergy) - Math.abs(right.value - reviewedEnergy)
       || candidateCodes.indexOf(String(left.source_nutrient_code)) - candidateCodes.indexOf(String(right.source_nutrient_code))
       || String(left.source_reference ?? '').localeCompare(String(right.source_reference ?? ''))
     ))[0]
@@ -166,8 +394,12 @@ function evidenceRow(row, canonicalCode, sourceKey, sourceRecordId) {
   if (!VALID_STATUSES.has(row.observation_status)) {
     throw new Error(`Unsupported observation status ${String(row.observation_status)} for ${sourceKey}:${sourceRecordId}`)
   }
-  if (row.value !== null && !isFiniteNumber(row.value)) {
-    throw new Error(`Non-finite nutrient value for ${sourceKey}:${sourceRecordId}:${row.source_nutrient_code}`)
+  if (row.value !== null && (
+    !isFiniteNumber(row.value)
+    || row.value < 0
+    || row.value > MAX_EVIDENCE_VALUE_PER_100
+  )) {
+    throw new Error(`Nutrient value outside 0...1e12 for ${sourceKey}:${sourceRecordId}:${row.source_nutrient_code}`)
   }
   if (typeof row.original_nutrient_name !== 'string' || !row.original_nutrient_name.trim()) {
     throw new Error(`Missing official nutrient name for ${sourceKey}:${sourceRecordId}:${row.source_nutrient_code}`)
@@ -181,11 +413,19 @@ function evidenceRow(row, canonicalCode, sourceKey, sourceRecordId) {
   const sourceReference = typeof row.source_reference === 'string' && row.source_reference.trim()
     ? row.source_reference
     : `corpus:${sourceKey}:${sourceRecordId}:nutrient:${row.source_nutrient_code}`
+  const resolvedCanonicalCode = canonicalNutrientCodeForSource(sourceKey, row.source_nutrient_code)
+  if (resolvedCanonicalCode !== canonicalCode) {
+    throw new Error(`Nutrient projection drift for ${sourceKey}:${row.source_nutrient_code}`)
+  }
   return {
-    nutrient_code: canonicalCode,
+    nutrient_code: resolvedCanonicalCode,
     name: row.original_nutrient_name,
     value_per_100: row.value,
-    unit: row.unit,
+    unit: canonicalizeEvidenceUnit(row.unit, {
+      canonicalCode: resolvedCanonicalCode,
+      sourceKey,
+      sourceNutrientCode: row.source_nutrient_code,
+    }),
     observation_status: row.observation_status,
     original_value_text: row.original_value_text,
     derivation_method: row.derivation_method ?? null,
@@ -194,13 +434,13 @@ function evidenceRow(row, canonicalCode, sourceKey, sourceRecordId) {
   }
 }
 
-export function canonicalizeNutrientEvidence(rows, { sourceKey, sourceRecordId, targetFingerprint }) {
+export function canonicalizeNutrientEvidence(rows, { sourceKey, sourceRecordId, targetFingerprint, reviewedMacroDelta }) {
   assertFiniteFingerprint(targetFingerprint, 'Reviewed target')
   const evidence = []
   for (const projection of NUTRIENT_PROJECTION) {
     const candidates = projection.candidates[sourceKey]
     if (!candidates) continue
-    const row = deterministicRow(rows, candidates, projection.code, sourceKey, targetFingerprint)
+    const row = deterministicRow(rows, candidates, projection.code, sourceKey, targetFingerprint, reviewedMacroDelta)
     if (row) evidence.push(evidenceRow(row, projection.code, sourceKey, sourceRecordId))
   }
   validateEvidenceBounds(evidence)
@@ -210,6 +450,16 @@ export function canonicalizeNutrientEvidence(rows, { sourceKey, sourceRecordId, 
 export function validateEvidenceBounds(evidence) {
   if (evidence.length > MAX_EVIDENCE_ROWS) {
     throw new Error(`Evidence array exceeds the 96-row cap (${evidence.length})`)
+  }
+  for (const observation of evidence) {
+    const value = observation?.value_per_100
+    if (value !== null && (
+      !isFiniteNumber(value)
+      || value < 0
+      || value > MAX_EVIDENCE_VALUE_PER_100
+    )) {
+      throw new Error('Evidence value_per_100 must be null or inside the inclusive 0...1e12 domain')
+    }
   }
   const bytes = Buffer.byteLength(JSON.stringify(evidence), 'utf8')
   if (bytes > MAX_EVIDENCE_BYTES) {
@@ -239,6 +489,19 @@ function requireEqual(actual, expected, label) {
   if (actual !== expected) throw new Error(`${label} mismatch: expected ${String(expected)}, received ${String(actual)}`)
 }
 
+function requireReviewedMacroDelta(target, donor, reviewed, label) {
+  if (!reviewed || typeof reviewed !== 'object') {
+    throw new Error(`${label} lacks a reviewed macro delta`)
+  }
+  for (const [field] of FINGERPRINT_FIELDS) {
+    const expected = reviewed[field]
+    const actual = donor[field] - target[field]
+    if (!isFiniteNumber(expected) || Math.abs(actual - expected) > REVIEWED_DELTA_TOLERANCE) {
+      throw new Error(`${label} reviewed macro delta mismatch for ${field}: expected ${String(expected)}, received ${actual}`)
+    }
+  }
+}
+
 function normalizedReviewedName(value) {
   return String(value).normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US')
 }
@@ -263,6 +526,10 @@ async function verifyStagedSource(sourceKey, directory, sourceRegistry) {
   requireEqual(manifest.state, 'validated', `${sourceKey} staged state`)
   requireEqual(manifest.checksum_verified, true, `${sourceKey} checksum verification`)
   requireEqual(manifest.source?.key, sourceKey, `${sourceKey} source key`)
+  if (typeof registered.path !== 'string' || !registered.path.trim()) {
+    throw new Error(`${sourceKey} registry path is missing`)
+  }
+  requireEqual(manifest.artifact, basename(registered.path), `${sourceKey} artifact`)
   for (const field of ['status', 'version', 'checksum', 'parser', 'dataset_name', 'publisher']) {
     requireEqual(manifest.source?.[field], registered[field], `${sourceKey} ${field}`)
   }
@@ -406,8 +673,10 @@ export async function buildNaturalFoodEvidence({ crosswalk, catalogue, sourceDir
       sourceKey: approval.donor_source_key,
       sourceRecordId: String(approval.donor_source_record_id),
       targetFingerprint,
+      reviewedMacroDelta: approval.reviewed_macro_delta,
     })
     const donorFingerprint = fingerprintFromEvidence(evidence, `${donor.id} donor`)
+    requireReviewedMacroDelta(targetFingerprint, donorFingerprint, approval.reviewed_macro_delta, `${approval.target_id} / ${donor.id}`)
     if (!fingerprintMatches(targetFingerprint, donorFingerprint)) {
       throw new Error(`Reviewed donor ${donor.id} no longer passes the target macro fingerprint for ${approval.target_id}`)
     }
@@ -611,46 +880,42 @@ export async function normalizeReviewedCrosswalk(reviewDirectory) {
   }
 }
 
-const REVIEWED_REJECTIONS = [
-  ['10000000-0000-4000-8000-000000000002', 'White rice, dry', 'grain_starch', 'ambiguous_identity', 'Multiple grain-length, parboiling, and enrichment states pass the macro gate; the target does not distinguish them.'],
-  ['10000000-0000-4000-8000-000000000003', 'White rice, cooked', 'grain_starch', 'ambiguous_identity', 'Multiple grain-length and enrichment states pass every gate.'],
-  ['20000000-0000-4000-8000-000000000028', 'Brown rice, dry', 'grain_starch', 'ambiguous_identity', 'Long- and medium-grain official records both pass; the target does not distinguish them.'],
-  ['20000000-0000-4000-8000-000000000412', 'Sweet corn kernels, raw', 'vegetable_leaf', 'ambiguous_identity', 'White and yellow corn donors both pass; the target omits colour.'],
-  ['20000000-0000-4000-8000-000000000413', 'Sweet corn kernels, boiled', 'vegetable_leaf', 'ambiguous_identity', 'White and yellow cooked donors both pass.'],
-  ['10000000-0000-4000-8000-000000000026', 'Organic whole-grain rolled oats', 'grain_starch', 'identity_mismatch', 'The macro-compatible record does not establish organic identity.'],
-  ['10000000-0000-4000-8000-000000000004', 'Bulgur, dry', 'grain_starch', 'fingerprint_mismatch', 'The exact-name official donor exceeds the carbohydrate gate.'],
-  ['20000000-0000-4000-8000-000000000026', 'Basmati rice, dry', 'grain_starch', 'no_exact_official_donor', 'No exact unbranded variety record was reviewed.'],
-  ['20000000-0000-4000-8000-000000000027', 'Jasmine rice, dry', 'grain_starch', 'no_exact_official_donor', 'No exact unbranded variety record was reviewed.'],
-  ['20000000-0000-4000-8000-000000000031', 'Wholegrain pasta, dry', 'grain_starch', 'fingerprint_mismatch', 'The exact official record exceeds protein, carbohydrate, and fat gates.'],
-  ['10000000-0000-4000-8000-000000000061', 'Black sesame seeds', 'nut_seed', 'identity_mismatch', 'A generic sesame record does not establish the black variety.'],
-  ['10000000-0000-4000-8000-000000000065', 'Cherry tomatoes, fresh', 'vegetable_leaf', 'identity_mismatch', 'Grape-tomato and generic red-tomato records are not exact cherry-tomato donors.'],
-  ['20000000-0000-4000-8000-000000000470', 'White potato with skin, boiled', 'vegetable_leaf', 'preparation_mismatch', 'The compatible record describes flesh cooked in skin, not consumed skin.'],
-  ['20000000-0000-4000-8000-000000000066', 'Salmon fillet, raw', 'fish_shellfish', 'species_mismatch', 'The compatible donor is explicitly farmed Atlantic salmon while the target is species-generic.'],
-  ['20000000-0000-4000-8000-000000000233', 'Beef sirloin, raw', 'meat_poultry', 'cut_mismatch', 'Compatible donors narrow the target to top-sirloin cap with trim and grade qualifiers.'],
-  ['20000000-0000-4000-8000-000000000238', 'Beef sirloin, grilled', 'meat_poultry', 'cut_mismatch', 'The official donor narrows the target to a qualified top-sirloin subcut.'],
-  ['20000000-0000-4000-8000-000000000255', 'Lamb leg, raw', 'meat_poultry', 'cut_mismatch', 'Several shank-half, whole-leg, and regional donors pass; the target does not distinguish them.'],
-  ['20000000-0000-4000-8000-000000000262', 'Lamb leg, roasted', 'meat_poultry', 'cut_mismatch', 'Several incompatible leg/cut identities remain plausible.'],
-  ['20000000-0000-4000-8000-000000000022', 'Tuna, drained', 'fish_shellfish', 'identity_mismatch', 'The compatible donor specifies light tuna without salt; the target omits both qualifiers.'],
-  ['20000000-0000-4000-8000-000000000179', 'Scallops, raw', 'fish_shellfish', 'species_mismatch', 'The Foundation candidate is frozen and wild-caught, while the SR mixed-species row fails the macro gate.'],
-  ['20000000-0000-4000-8000-000000000184', 'Lobster, raw', 'fish_shellfish', 'species_mismatch', 'The macro-compatible donor specifies northern lobster; the target is generic.'],
-  ['10000000-0000-4000-8000-000000000016', 'Chicken breast, air fryer, no added oil', 'meat_poultry', 'preparation_mismatch', 'No exact air-fryer donor exists; roasted macros cannot authorize a preparation transfer.'],
-  ['10000000-0000-4000-8000-000000000015', 'Chicken breast, boiled', 'meat_poultry', 'preparation_mismatch', 'The adjacent official profile is stewed rather than boiled.'],
-  ['10000000-0000-4000-8000-000000000067', 'Salmon, hot-smoked', 'fish_shellfish', 'preparation_mismatch', 'The generic smoked donor does not establish hot versus cold smoking.'],
-  ['20000000-0000-4000-8000-000000000054', 'Omelette', 'egg', 'composite_excluded', 'Composite preparations are outside the one-whole-food donor boundary.'],
-  ['20000000-0000-4000-8000-000000000056', 'Scrambled egg', 'egg', 'composite_excluded', 'Composite preparations are outside the one-whole-food donor boundary.'],
-]
+const REVIEW_CATEGORIES = new Set([
+  'egg', 'fish_shellfish', 'fruit', 'grain_starch', 'legume',
+  'meat_poultry', 'nut_seed', 'plain_dairy', 'vegetable_leaf',
+])
+const REJECTION_REASON_CODES = new Set([
+  'ambiguous_identity', 'composite_excluded', 'cut_mismatch', 'fingerprint_mismatch',
+  'identity_mismatch', 'no_exact_official_donor', 'preparation_mismatch', 'species_mismatch',
+])
 
-export function reviewedRejectionReport() {
+export async function reviewedRejectionReport(reviewDirectory) {
+  const filename = 'rejections.tsv'
+  const rows = parseTSV(await readFile(resolve(reviewDirectory, filename), 'utf8'), filename)
+  const rejections = []
+  const targetIDs = new Set()
+  for (const row of rows) {
+    for (const field of ['target_id', 'target_name', 'category', 'reason_code', 'reason']) {
+      if (typeof row[field] !== 'string' || !row[field].trim()) {
+        throw new Error(`${filename} has an empty ${field}`)
+      }
+    }
+    if (targetIDs.has(row.target_id)) throw new Error(`${filename} has duplicate target ${row.target_id}`)
+    if (!REVIEW_CATEGORIES.has(row.category)) throw new Error(`${filename} has unknown category ${row.category}`)
+    if (!REJECTION_REASON_CODES.has(row.reason_code)) throw new Error(`${filename} has unknown reason code ${row.reason_code}`)
+    targetIDs.add(row.target_id)
+    rejections.push({
+      target_id: row.target_id,
+      target_name: row.target_name,
+      category: row.category,
+      reason_code: row.reason_code,
+      reason: row.reason,
+    })
+  }
   return {
     schema_version: 1,
-    review_sources: [
-      'plant-crosswalk-notes.md',
-      'animal-crosswalk-notes.md',
-      'regional-crosswalk-notes.md',
-    ],
-    rejections: REVIEWED_REJECTIONS.map(([target_id, target_name, category, reason_code, reason]) => ({
-      target_id, target_name, category, reason_code, reason,
-    })).toSorted((left, right) => left.target_id.localeCompare(right.target_id)),
+    review_sources: [filename],
+    rejections: rejections.toSorted((left, right) => left.target_id.localeCompare(right.target_id)),
   }
 }
 
@@ -683,17 +948,18 @@ async function runCLI() {
   const options = parseArguments(process.argv.slice(2))
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
   const crosswalkPath = resolve(options.crosswalk ?? resolve(root, 'docs/food-corpus/natural-food-evidence-crosswalk.json'))
+  const reviewDirectory = resolve(options.reviewed_dir ?? resolve(root, 'docs/food-corpus/natural-food-evidence-review'))
   const registryPath = resolve(options.registry ?? resolve(root, 'tools/food_corpus/sources.json'))
   const cataloguePath = resolve(options.catalogue ?? resolve(root, 'src/data/foodSeeds.ts'))
   const resourcePath = resolve(options.resource_out ?? resolve(root, 'shared/natural-food-evidence.json'))
   const manifestPath = resolve(options.manifest_out ?? resolve(root, 'docs/food-corpus/natural-food-evidence-manifest.json'))
   const rejectionPath = resolve(options.rejections_out ?? resolve(root, 'docs/food-corpus/natural-food-evidence-rejections.json'))
-  const crosswalk = options.reviewed_dir
-    ? await normalizeReviewedCrosswalk(resolve(options.reviewed_dir))
-    : JSON.parse(await readFile(crosswalkPath, 'utf8'))
-  if (options.reviewed_dir) await writeGeneratedFile(crosswalkPath, crosswalk)
-  const rejectionReport = reviewedRejectionReport()
-  await writeGeneratedFile(rejectionPath, rejectionReport)
+  const migrationPath = resolve(options.migration_out ?? resolve(root, 'supabase/migrations/048_natural_food_micronutrient_evidence.sql'))
+  const crosswalk = await normalizeReviewedCrosswalk(reviewDirectory)
+  await writeGeneratedFile(crosswalkPath, crosswalk)
+  const rejectionReport = await reviewedRejectionReport(reviewDirectory)
+  const rejectionText = stableJSONStringify(rejectionReport)
+  await writeFile(rejectionPath, rejectionText)
   const sourceRegistry = JSON.parse(await readFile(registryPath, 'utf8'))
   const catalogueModule = await import(pathToFileURL(cataloguePath).href)
   if (!Array.isArray(catalogueModule.COMMON_FOODS)) throw new Error(`${cataloguePath} does not export COMMON_FOODS`)
@@ -705,11 +971,25 @@ async function runCLI() {
   })
   const resourceText = stableJSONStringify(result.bundle)
   await writeFile(resourcePath, resourceText)
+  const migrationText = renderNaturalFoodEvidenceMigration(result.bundle)
+  await writeFile(migrationPath, migrationText)
   const resourceSHA256 = `sha256:${createHash('sha256').update(resourceText).digest('hex')}`
+  const migrationSHA256 = `sha256:${createHash('sha256').update(migrationText).digest('hex')}`
   const crosswalkSHA256 = await hashFile(crosswalkPath)
+  const rejectionSHA256 = `sha256:${createHash('sha256').update(rejectionText).digest('hex')}`
+  const reviewInputFiles = [
+    'animal-crosswalk.tsv', 'plant-crosswalk.tsv', 'regional-crosswalk.tsv', 'rejections.tsv',
+  ]
+  const reviewInputChecksums = Object.fromEntries(await Promise.all(reviewInputFiles.map(async (filename) => (
+    [filename, await hashFile(resolve(reviewDirectory, filename))]
+  ))))
   const manifest = {
     schema_version: 1,
     generator: 'tools/food_corpus/build_natural_food_evidence.mjs',
+    migration: {
+      path: relative(root, migrationPath),
+      sha256: migrationSHA256,
+    },
     crosswalk: {
       path: relative(root, crosswalkPath),
       sha256: crosswalkSHA256,
@@ -719,6 +999,14 @@ async function runCLI() {
       path: relative(root, resourcePath),
       sha256: resourceSHA256,
     },
+    rejections: {
+      path: relative(root, rejectionPath),
+      sha256: rejectionSHA256,
+    },
+    review_inputs: {
+      directory: relative(root, reviewDirectory),
+      file_sha256: reviewInputChecksums,
+    },
     source_provenance: result.bundle.sources,
     approved_count: result.summary.approved_count,
     rejected_count: rejectionReport.rejections.length,
@@ -727,6 +1015,7 @@ async function runCLI() {
     source_counts: result.summary.source_counts,
     regeneration_command: [
       'node tools/food_corpus/build_natural_food_evidence.mjs',
+      '--reviewed-dir docs/food-corpus/natural-food-evidence-review',
       '--crosswalk docs/food-corpus/natural-food-evidence-crosswalk.json',
       '--source usda-sr-legacy=$USDA_SR_LEGACY_DIR',
       '--source usda-foundation=$USDA_FOUNDATION_DIR',
@@ -737,6 +1026,8 @@ async function runCLI() {
   process.stdout.write(`${JSON.stringify({
     approved_count: result.summary.approved_count,
     manifest: relative(root, manifestPath),
+    migration: relative(root, migrationPath),
+    migration_sha256: migrationSHA256,
     resource: relative(root, resourcePath),
     resource_bytes: manifest.resource.bytes,
     resource_sha256: resourceSHA256,

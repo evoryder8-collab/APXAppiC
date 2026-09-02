@@ -16,6 +16,8 @@ struct AccountGenerationGate: Sendable {
 
 private struct SyncAccountBoundaryError: Error, Sendable {}
 
+typealias FoodSearchProvider = @Sendable (String) async throws -> FoodLookupEnvelope
+
 @MainActor
 @Observable
 final class AppSession {
@@ -45,6 +47,7 @@ final class AppSession {
     var navigationPath: [PortalDestination] = []
 
     private let service = SupabaseService.shared
+    @ObservationIgnored private let foodSearchProvider: FoodSearchProvider
     private let offlineStore = OfflineStore.shared
     private let defaults = UserDefaults.standard
     @ObservationIgnored private let hydrationConnectivity = HydrationPhoneConnectivity()
@@ -56,7 +59,12 @@ final class AppSession {
     @ObservationIgnored private var accountGeneration = AccountGenerationGate()
     @ObservationIgnored private var lastShadowObservationSignature: String?
 
-    init() {
+    init(
+        foodSearchProvider: @escaping FoodSearchProvider = { query in
+            try await SupabaseService.shared.searchFoods(query: query)
+        }
+    ) {
+        self.foodSearchProvider = foodSearchProvider
         hydrationConnectivity.mutationHandler = { [weak self] mutation in
             await self?.handleHydrationMutation(mutation)
         }
@@ -87,6 +95,10 @@ final class AppSession {
     }
 
     private func hydrationOperationIsCurrent(ownerID: UUID, token: UInt64) -> Bool {
+        accountGeneration.accepts(token) && verifiedPersistenceOwnerID() == ownerID
+    }
+
+    private func foodSearchOperationIsCurrent(ownerID: UUID?, token: UInt64) -> Bool {
         accountGeneration.accepts(token) && verifiedPersistenceOwnerID() == ownerID
     }
 
@@ -2529,27 +2541,35 @@ final class AppSession {
     }
 
     func searchFoods(query: String) async throws -> [Food] {
-        let local = FoodNutrientEvidence.overlayBundledNaturalFoodEvidence(
-            MealMemory.searchFoods(
-                query: query,
-                foods: data.foods,
-                preferences: data.foodPreferences,
-                userID: profile?.userID
-            )
+        let ownerID = verifiedPersistenceOwnerID()
+        let accountToken = accountGeneration.token
+        let foods = data.foods
+        let preferences = data.foodPreferences
+        let local = MealMemory.searchFoods(
+            query: query,
+            foods: foods,
+            preferences: preferences,
+            userID: ownerID
         )
         let remote: FoodLookupEnvelope
         do {
-            remote = try await service.searchFoods(query: query)
+            remote = try await foodSearchProvider(query)
         } catch {
-            return local
+            guard foodSearchOperationIsCurrent(ownerID: ownerID, token: accountToken) else {
+                throw CancellationError()
+            }
+            return FoodNutrientEvidence.overlayBundledNaturalFoodEvidence(local)
+        }
+        guard foodSearchOperationIsCurrent(ownerID: ownerID, token: accountToken) else {
+            throw CancellationError()
         }
         let resolved = (remote.results ?? []).map(FoodHydration.resolved)
         let combined = FoodNutrientEvidence.mergeLocalSearchFoods(local, with: resolved)
         return MealMemory.searchFoods(
             query: query,
             foods: combined,
-            preferences: data.foodPreferences,
-            userID: profile?.userID
+            preferences: preferences,
+            userID: ownerID
         )
     }
 

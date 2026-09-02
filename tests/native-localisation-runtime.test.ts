@@ -46,5 +46,6 @@ test('native popover keeps one stateful content subtree while capping its height
   assert.doesNotMatch(apexPopover, /ViewThatFits\(/)
   assert.match(apexPopover, /@State private var contentHeight: CGFloat = 0/)
   assert.match(apexPopover, /ScrollView\s*\{[\s\S]{0,240}popover\(\)\s*\.padding\(15\)/)
-  assert.match(apexPopover, /\.frame\(height: min\(contentHeight, maxHeight\)\)/)
+  assert.match(apexPopover, /APEXPopoverGeometry\.cardHeight\([\s\S]{0,140}contentHeight: contentHeight,[\s\S]{0,140}maximumHeight: maxHeight/)
+  assert.match(apexPopover, /contentHeight = APEXPopoverGeometry\.sanitizedLength\(nextHeight\)/)
 })
