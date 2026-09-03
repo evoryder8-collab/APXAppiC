@@ -470,6 +470,61 @@ final class WorkoutReceiptTests: XCTestCase {
         XCTAssertEqual(input.importedActivities[0].kind, .endurance)
     }
 
+    func testFitnessBrainInputRejectsForeignCachedRows() throws {
+        var data = APEXDebugFixture.dashboard()
+        let ownerID = try XCTUnwrap(data.profile?.userID)
+        let foreignOwnerID = UUID()
+        let foreignDayID = UUID()
+        let foreignSessionID = UUID()
+        let baseline = try XCTUnwrap(FitnessBrainService.engineInput(from: data))
+
+        data.programDays.append(ProgramDay(
+            id: foreignDayID, userID: foreignOwnerID, programID: UUID(),
+            weekday: 3, name: "Foreign upper", dayType: "upper",
+            estimatedMinutes: 90, warmupNote: "", sortOrder: 999
+        ))
+        data.exercises.append(Exercise(
+            id: UUID(), userID: foreignOwnerID, programDayID: foreignDayID,
+            name: "Foreign press", sets: 1, repMin: 20, repMax: 20,
+            repUnit: "reps", perSide: false, restSeconds: 60,
+            tempoUp: 1, tempoDown: 1, tempoPause: 0, tempoNote: "",
+            notes: "", incrementKG: 1, isLite: false, optional: false,
+            sortOrder: 0
+        ))
+        data.workoutSessions.append(workout(
+            id: foreignSessionID,
+            userID: foreignOwnerID,
+            date: "2026-08-29",
+            dayID: foreignDayID,
+            completedAt: "2026-08-29T09:30:00.000Z"
+        ))
+        data.workoutLogs.append(WorkoutLog(
+            id: UUID(), userID: foreignOwnerID, sessionID: foreignSessionID,
+            exerciseID: nil, exerciseName: "Foreign press", setNumber: 1,
+            weightKG: 300, reps: 20, rir: 0, skipped: false,
+            overrideFlag: true, createdAt: "2026-08-29T08:10:00.000Z"
+        ))
+        data.dailyLogs.append(DailyLog(
+            id: UUID(), userID: foreignOwnerID, date: "2026-08-29",
+            kcal: 9_000, proteinG: 600, fatG: 400, carbsG: 800,
+            waterL: 8, estimatedTDEE: 9_000, computedPAL: 4,
+            activityMode: "precise", weightKG: 130
+        ))
+        data.healthMetrics.append(HealthMetric(
+            id: UUID(), userID: foreignOwnerID, date: "2026-08-29",
+            weightKG: 130, vo2Max: 75, restingHeartRate: 35
+        ))
+
+        let scoped = try XCTUnwrap(FitnessBrainService.engineInput(from: data))
+        XCTAssertEqual(scoped.profile.userID, ownerID.uuidString.lowercased())
+        XCTAssertEqual(scoped.programDays.count, baseline.programDays.count)
+        XCTAssertEqual(scoped.exercises.count, baseline.exercises.count)
+        XCTAssertEqual(scoped.workoutSessions.count, baseline.workoutSessions.count)
+        XCTAssertEqual(scoped.workoutLogs.count, baseline.workoutLogs.count)
+        XCTAssertEqual(scoped.dailyLogs.count, baseline.dailyLogs.count)
+        XCTAssertEqual(scoped.healthMetrics.count, baseline.healthMetrics.count)
+    }
+
     func testCollapsedDeleteTrayRequiresANegativeSwipeOffsetAndNeverReplacesExpandedContent() {
         XCTAssertFalse(WorkoutReceipt.collapsedDeleteTrayVisible(isExpanded: false, revealOffset: 0))
         XCTAssertFalse(WorkoutReceipt.collapsedDeleteTrayVisible(isExpanded: false, revealOffset: 18))

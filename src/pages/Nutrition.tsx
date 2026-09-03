@@ -11,7 +11,7 @@ import {
   SectionHeader,
   Toggle,
 } from '../components/ui'
-import { computeTargets, buildTargetMealPlan, ACTIVITY_MULTIPLIERS, goalPresetForPlan, goalPresetsForPlan, nutritionPlanContext, type TargetMeal } from '../lib/nutrition'
+import { activityLevelLabel, computeTargets, buildTargetMealPlan, ACTIVITY_MULTIPLIERS, goalPresetForPlan, goalPresetsForPlan, nutritionPlanContext, type TargetMeal } from '../lib/nutrition'
 import { dailyLogId } from '../lib/ids'
 import type { ActivityLevel, DailyLog, ProgramSlug } from '../lib/types'
 import { ensurePermission } from '../lib/notify'
@@ -20,12 +20,14 @@ import { TodaysActivities } from '../components/TodaysActivities'
 import { FloatingActiveDate } from '../components/FloatingActiveDate'
 import {
   activityCatalogMap,
+  activityLogsForOwnerDate,
   activityLogFromBlock,
   blockFromActivityLog,
   blockSummary,
   calibrateActivityK,
   estimateActivityDay,
   PAL_LABELS,
+  resolveActivityAdjustedTargets,
   resolveDailyBurnedEnergy,
   type ActivityBlock,
   type ActivityPreset,
@@ -54,6 +56,8 @@ import { loadActiveDate, rememberActiveDate } from '../lib/activeDate'
 import { planForDate } from '../lib/plan'
 import { activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
 import { NutritionGoalPresetPicker } from '../components/nutrition/NutritionGoalPresetPicker'
+import { NutritionTargetStatus } from '../components/nutrition/NutritionTargetStatus'
+import { publishableNutritionPrescription } from '../lib/nutritionTargetPresentation'
 import { SupplementStackEditor } from '../components/supplements/SupplementStackEditor'
 import {
   summarizeNutrientIntake,
@@ -228,8 +232,8 @@ export function Nutrition() {
   }), [foodStore.entries, foodStore.meals, nutrientPatternPeriod, profile?.user_id, selectedLogDate])
   const catalog = useMemo(() => activityCatalogMap(data.activity_types), [data.activity_types])
   const selectedActivityLogs = useMemo(
-    () => data.activity_logs.filter((log) => log.date === selectedLogDate),
-    [data.activity_logs, selectedLogDate],
+    () => activityLogsForOwnerDate(data.activity_logs, profile?.user_id, selectedLogDate),
+    [data.activity_logs, profile?.user_id, selectedLogDate],
   )
   const selectedWearableActivity = useMemo(
     () => (data.settings?.addons.watch_activity_history ?? [])
@@ -273,8 +277,10 @@ export function Nutrition() {
     ) : null),
     [profile, activityBlocks, catalog, planNutritionContext, selectedWearableActivity?.active_calories],
   )
-  const preciseMode = activityBlocks.length > 0
   const usesWholeDayProtocol = Boolean(profile && personalTargetFor(profile))
+  const preciseMode = quickTargets?.isPublishable === true
+    && activityEstimate?.hasMeaningfulActivity === true
+    && !usesWholeDayProtocol
   const hydrationPlannedExerciseMinutes = useMemo(() => {
     const activeDays = activeTrainingProgramDays(data)
     const hasPrescription = (slug: ProgramSlug): boolean => {
@@ -321,16 +327,10 @@ export function Nutrition() {
     today,
   ])
   const targets = useMemo(() => {
-    const resolved = !quickTargets || !activityEstimate || !preciseMode || usesWholeDayProtocol ? quickTargets : {
-      ...quickTargets,
-      tdee: activityEstimate.tdee,
-      kcal: activityEstimate.targetKcal,
-      protein_g: activityEstimate.proteinG,
-      fat_g: activityEstimate.fatG,
-      carbs_g: activityEstimate.carbsG,
-    }
+    const resolved = resolveActivityAdjustedTargets(quickTargets, activityEstimate, usesWholeDayProtocol)
     return resolved && hydrationTarget ? { ...resolved, water_l: hydrationTarget.targetML / 1_000 } : resolved
-  }, [activityEstimate, hydrationTarget, preciseMode, quickTargets, usesWholeDayProtocol])
+  }, [activityEstimate, hydrationTarget, quickTargets, usesWholeDayProtocol])
+  const nutritionPrescription = targets ? publishableNutritionPrescription(targets) : null
   const [showBmrInfo, setShowBmrInfo] = useState(false)
   const [waterDraft, setWaterDraft] = useState('0')
   const [plannedComposer, setPlannedComposer] = useState<{
@@ -400,7 +400,7 @@ export function Nutrition() {
 
   const activeDayLabel = preciseMode && activityEstimate && !usesWholeDayProtocol
     ? PAL_LABELS[activityEstimate.level]
-    : profile ? ACTIVITY_MULTIPLIERS[profile.activity_level].label : 'Adaptive'
+    : profile ? activityLevelLabel(profile.activity_level, targets?.isPublishable ? 'Adaptive' : 'Target unavailable') : 'Adaptive'
   const mealPlan = useMemo(
     () => (targets ? buildTargetMealPlan(data.meals, targets, activeDayLabel) : []),
     [activeDayLabel, data.meals, targets],
@@ -903,7 +903,7 @@ export function Nutrition() {
       undefined,
       selectedWearableActivity?.active_calories,
     )
-    const mode = nextBlocks.length > 0 ? 'precise' : 'quick'
+    const mode = nextEstimate.hasMeaningfulActivity ? 'precise' : 'quick'
     const estimatedTdee = mode === 'precise' ? nextEstimate.tdee : quickTargets.tdee
     const existingDay = data.daily_logs.find((log) => log.date === selectedLogDate)
     upsert('daily_logs', {
@@ -911,7 +911,9 @@ export function Nutrition() {
       ...existingDay,
       activity_mode: mode,
       estimated_tdee: estimatedTdee,
-      computed_pal: Math.round((estimatedTdee / nextEstimate.bmr) * 100) / 100,
+      computed_pal: nextEstimate.bmr > 0
+        ? Math.round((estimatedTdee / nextEstimate.bmr) * 100) / 100
+        : null,
     })
   }
 
@@ -1026,7 +1028,7 @@ export function Nutrition() {
           date={selectedLogDate}
           planning={selectedIsFuture}
           dateLabel={selectedLogDate === today ? 'Today' : null}
-          target={{ kcal: targets.kcal, protein_g: targets.protein_g, carbs_g: targets.carbs_g, fat_g: targets.fat_g }}
+          target={nutritionPrescription}
           consumed={consumed}
           burnedKcal={burnedKcal}
           activityLevel={activityLevel}
@@ -1046,7 +1048,7 @@ export function Nutrition() {
 
         <details className="glass group rounded-3xl p-3 sm:p-4">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-1 text-left">
-            <div><p className="font-display text-sm font-bold text-ink">Activity & nutrition targets</p><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{targets.kcal} kcal · {activeDayLabel} · {activeNutritionGoalPreset.label}</p></div>
+            <div><p className="font-display text-sm font-bold text-ink">Activity & nutrition targets</p><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{nutritionPrescription ? `${nutritionPrescription.kcal} kcal · ${activeDayLabel} · ${activeNutritionGoalPreset.label}` : tx('Target unavailable')}</p></div>
             <span className="grid h-8 w-8 place-items-center rounded-full bg-white/65 text-lg text-ink-soft transition group-open:rotate-45">+</span>
           </summary>
           <div className="mt-4 space-y-4 border-t border-ink/7 pt-4">
@@ -1056,7 +1058,7 @@ export function Nutrition() {
           activityTypes={data.activity_types}
           blocks={activityBlocks}
           estimate={activityEstimate}
-          quickTdee={quickTargets.tdee}
+          quickTdee={targets.isPublishable ? quickTargets.tdee : null}
           quickLevel={profile.activity_level}
           frequentPresets={frequentPresets}
           yesterdayBlocks={yesterdayBlocks}
@@ -1073,28 +1075,34 @@ export function Nutrition() {
             </AccentChip>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div>
-              <p className="text-[11px] font-semibold tracking-wide text-ink-soft uppercase">Calories</p>
-              <p className={`${num} text-3xl`} style={{ color: amber.deep }}>
-                {targets.kcal}
-              </p>
+          {nutritionPrescription && (
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div>
+                <p className="text-[11px] font-semibold tracking-wide text-ink-soft uppercase">Calories</p>
+                <p className={`${num} text-3xl`} style={{ color: amber.deep }}>
+                  {nutritionPrescription.kcal}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold tracking-wide text-ink-soft uppercase">Protein</p>
+                <p className={`${num} text-3xl`}>{nutritionPrescription.protein_g}g</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold tracking-wide text-ink-soft uppercase">Fat</p>
+                <p className={`${num} text-3xl`}>{nutritionPrescription.fat_g}g</p>
+              </div>
+              <div>
+                <p className="text-[11px] font-semibold tracking-wide text-ink-soft uppercase">Carbs</p>
+                <p className={`${num} text-3xl`}>{nutritionPrescription.carbs_g}g</p>
+              </div>
             </div>
-            <div>
-              <p className="text-[11px] font-semibold tracking-wide text-ink-soft uppercase">Protein</p>
-              <p className={`${num} text-3xl`}>{targets.protein_g}g</p>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold tracking-wide text-ink-soft uppercase">Fat</p>
-              <p className={`${num} text-3xl`}>{targets.fat_g}g</p>
-            </div>
-            <div>
-              <p className="text-[11px] font-semibold tracking-wide text-ink-soft uppercase">Carbs</p>
-              <p className={`${num} text-3xl`}>{targets.carbs_g}g</p>
-            </div>
+          )}
+
+          <div className="mt-4">
+            <NutritionTargetStatus targets={targets} translate={tx} />
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-ink/8 pt-4 text-sm">
+          {targets.isPublishable && <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-ink/8 pt-4 text-sm">
             <p className="font-medium text-ink-soft">
               BMR Mifflin-St Jeor: <span className={num}>{targets.bmrMifflin}</span>
             </p>
@@ -1119,11 +1127,8 @@ export function Nutrition() {
             <p className="font-medium text-ink-soft">
               TDEE: <span className={num}>{targets.tdee}</span>
             </p>
-            {targets.bmrSource === 'custom' && (
-              <span className="rounded-full bg-violet-500/10 px-2.5 py-1 text-[10px] font-bold text-violet-800">{tx(`Measured BMR active · ${targets.activeBmr} kcal`)}</span>
-            )}
-          </div>
-          {showBmrInfo && targets.bmrKatch != null && (
+          </div>}
+          {targets.isPublishable && showBmrInfo && targets.bmrKatch != null && (
             <motion.p
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -1218,6 +1223,7 @@ export function Nutrition() {
                 selected={profile.goal}
                 onSelect={(goal) => setProfile({ goal })}
                 translate={tx}
+                disabled={!targets.isPublishable}
               />
             </div>
           </div>

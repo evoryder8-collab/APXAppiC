@@ -32,7 +32,7 @@ test('personal protocol seed installs exact defaults, empty meal canvas and evid
       fat: constantine.profile?.target_fat_g,
       carbs: constantine.profile?.target_carbs_g,
     },
-    { kcal: 2450, protein: 150, fat: 75, carbs: 294 },
+    { kcal: 2450, protein: 150, fat: 75, carbs: 293 },
   )
   assert.deepEqual(
     {

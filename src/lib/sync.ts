@@ -75,10 +75,14 @@ export function normalizeSyncRecord<T extends object>(table: string, row: T): T 
     return next as T
   }
   if (table === 'profile') {
-    /* Measured BMR is persisted in settings.addons, an existing JSONB field.
-       Keep the derived runtime property off profile writes so this release is
-       compatible with databases that have not added a profile column. */
-    const { custom_bmr: _customBmr, ...databaseRow } = row as Record<string, unknown>
+    /* Resting-energy evidence is persisted in settings.addons, an existing
+       JSONB field. Keep both derived runtime properties off profile writes so
+       this remains compatible with databases without profile columns. */
+    const {
+      custom_bmr: _customBmr,
+      custom_bmr_source: _customBmrSource,
+      ...databaseRow
+    } = row as Record<string, unknown>
     return databaseRow as T
   }
   return row

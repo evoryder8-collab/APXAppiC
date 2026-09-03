@@ -860,7 +860,7 @@ struct TrainingInductionPanel: View {
 
     private var goalOptions: [PlanBuilderOption] {
         [
-            PlanBuilderOption(id: "general", title: "General fitness", subtitle: "Build a balanced, repeatable training rhythm", icon: "sparkles", color: APEXColor.violet, accessibilityID: "induction-return-goal-general"),
+            PlanBuilderOption(id: "rebuild", title: "General fitness", subtitle: "Build a balanced, repeatable training rhythm", icon: "sparkles", color: APEXColor.violet, accessibilityID: "induction-return-goal-rebuild"),
             PlanBuilderOption(id: "muscle", title: "Build muscle", subtitle: "Prioritize progressive resistance work", icon: "figure.strengthtraining.traditional", color: APEXColor.teal, accessibilityID: "induction-return-goal-muscle"),
             PlanBuilderOption(id: "fat_loss", title: "Lose fat", subtitle: "Pair resistance work with sustainable activity", icon: "flame.fill", color: APEXColor.amberDeep, accessibilityID: "induction-return-goal-fat_loss"),
             PlanBuilderOption(id: "strength", title: "Get stronger", subtitle: "Keep load progression prominent and measurable", icon: "bolt.fill", color: APEXColor.green, accessibilityID: "induction-return-goal-strength"),

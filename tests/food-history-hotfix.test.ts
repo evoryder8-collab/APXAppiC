@@ -24,7 +24,7 @@ test('Transition and Main phase receipts are scoped to today instead of all-time
 test('saving an existing meal after removing every item deletes it and closes on both clients', () => {
   assert.match(webComposer, /if \(replaceMealId && items\.length === 0\)[\s\S]*?await store\.deleteMeal\(replaceMealId\)[\s\S]*?onClose\(\)/)
   assert.match(webComposer, /items\.length > 0 \|\| Boolean\(replaceMealId\)/)
-  assert.match(nativeComposer, /if draft\.items\.isEmpty, let existingMeal = request\.existingMeal[\s\S]*?await session\.deleteLoggedMeal\(existingMeal\)[\s\S]*?dismiss\(\)/)
+  assert.match(nativeComposer, /if draft\.items\.isEmpty, let existingMeal = request\.existingMeal[\s\S]*?await session\.deleteLoggedMeal\(existingMeal,\s*operation:\s*operation\)[\s\S]*?dismiss\(\)/)
   assert.match(nativeComposer, /\.disabled\(isSaving \|\| \(draft\.items\.isEmpty && request\.existingMeal == nil\)\)/)
 })
 

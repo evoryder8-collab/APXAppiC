@@ -32,7 +32,7 @@ final class APEXSmokeUITests: XCTestCase {
         app.buttons["induction-baseline-keyboard-next"].tap()
         app.buttons["induction-next"].tap()
 
-        app.buttons["induction-choice-general"].tap()
+        app.buttons["induction-choice-rebuild"].tap()
         app.buttons["induction-next"].tap()
         app.buttons["induction-choice-mixed_day"].tap()
         app.buttons["induction-choice-six_to_twelve_months"].tap()

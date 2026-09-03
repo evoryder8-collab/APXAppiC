@@ -29,7 +29,7 @@ interface TodaysActivitiesProps {
   activityTypes: ActivityType[]
   blocks: ActivityBlock[]
   estimate: ActivityEstimate
-  quickTdee: number
+  quickTdee: number | null
   quickLevel: ActivityLevel
   frequentPresets: ActivityPreset[]
   yesterdayBlocks: ActivityBlock[]
@@ -333,7 +333,12 @@ export function TodaysActivities({
   )
   const precise = blocks.length > 0
   const recommendationOnly = profile.persona === 'constantine' || profile.persona === 'june'
-  const displayTdee = recommendationOnly ? quickTdee : precise ? estimate.tdee : quickTdee
+  const candidateTdee = recommendationOnly ? quickTdee : precise ? estimate.tdee : quickTdee
+  const displayTdee = quickTdee == null
+    ? null
+    : candidateTdee != null && Number.isFinite(candidateTdee) && candidateTdee > 0
+      ? candidateTdee
+      : quickTdee
   const displayLevel = recommendationOnly ? quickLevel : precise ? estimate.level : quickLevel
   const recommendedLevel = precise ? estimate.level : quickLevel
   const tone = PAL_TONES[displayLevel]
@@ -409,19 +414,21 @@ export function TodaysActivities({
             </div>
             <div className="shrink-0 text-right">
               <motion.p
-                key={displayTdee}
+                key={displayTdee ?? 'unavailable'}
                 initial={{ opacity: 0.45, y: 6 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="font-mono text-[30px] leading-none font-bold tracking-[-0.07em]"
                 style={{ color: tone.deep }}
               >
-                {displayTdee.toLocaleString()}
+                {displayTdee == null ? t('Target unavailable') : displayTdee.toLocaleString()}
               </motion.p>
               <p className="mt-1 font-mono text-[8px] font-bold tracking-[0.17em] text-ink-faint uppercase">estimated TDEE</p>
               <p className="mt-1 font-mono text-[10px] font-semibold" style={{ color: tone.deep }}>
-                {recommendationOnly
-                  ? t('selected whole-day target')
-                  : precise ? `+${estimate.adjustedBlockKcal} ${t('activity')}` : t('one-tap estimate')}
+                {displayTdee == null
+                  ? t('Target unavailable')
+                  : recommendationOnly
+                    ? t('selected whole-day target')
+                    : precise ? `+${estimate.adjustedBlockKcal} ${t('activity')}` : t('one-tap estimate')}
               </p>
             </div>
           </div>
@@ -542,7 +549,7 @@ export function TodaysActivities({
           <div className="mt-4 grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2 rounded-2xl border border-ink/5 bg-white/38 px-3 py-2.5 text-center">
             <div>
               <p className="font-mono text-[8px] font-bold tracking-wider text-ink-faint uppercase">{recommendationOnly ? t('Selected') : 'Floor'}</p>
-              <p className="font-mono text-sm font-bold text-ink">{recommendationOnly ? t(PAL_LABELS[quickLevel]) : estimate.floorKcal}</p>
+              <p className="font-mono text-sm font-bold text-ink">{recommendationOnly ? t(PAL_LABELS[quickLevel]) : displayTdee == null ? t('Target unavailable') : estimate.floorKcal}</p>
             </div>
             <span className="font-mono text-sm text-ink-faint">{recommendationOnly ? '→' : '+'}</span>
             <div>
@@ -552,7 +559,7 @@ export function TodaysActivities({
             <span className="font-mono text-sm text-ink-faint">{recommendationOnly ? '→' : '='}</span>
             <div>
               <p className="font-mono text-[8px] font-bold tracking-wider text-ink-faint uppercase">{recommendationOnly ? t('Suggested') : 'Today'}</p>
-              <p className="font-mono text-sm font-bold" style={{ color: tone.deep }}>{recommendationOnly ? t(PAL_LABELS[recommendedLevel]) : displayTdee}</p>
+              <p className="font-mono text-sm font-bold" style={{ color: tone.deep }}>{recommendationOnly ? t(PAL_LABELS[recommendedLevel]) : displayTdee ?? t('Target unavailable')}</p>
             </div>
           </div>
 
@@ -568,7 +575,7 @@ export function TodaysActivities({
                   : precise ? `Computes to PAL ${estimate.pal.toFixed(2)}` : 'Current one-tap selection'}
               </p>
               <p className="mt-0.5 truncate text-[13px] font-bold text-ink">
-                {t(PAL_LABELS[recommendationOnly ? recommendedLevel : displayLevel]).toUpperCase()} <span className="font-medium text-ink-soft">· {recommendationOnly ? t('suggestion') : `${displayTdee.toLocaleString()} kcal day`}</span>
+                {t(PAL_LABELS[recommendationOnly ? recommendedLevel : displayLevel]).toUpperCase()} <span className="font-medium text-ink-soft">· {recommendationOnly ? t('suggestion') : displayTdee == null ? t('Target unavailable') : `${displayTdee.toLocaleString()} kcal day`}</span>
               </p>
             </div>
             {recommendationOnly && precise && recommendedLevel !== quickLevel && onUseRecommendedLevel ? (
@@ -585,12 +592,6 @@ export function TodaysActivities({
           {profile.calibration_history.length > 0 && Math.abs(profile.calibration_k - 1) >= 0.005 && (
             <p className="mt-2 rounded-xl bg-white/42 px-3 py-2 text-[10px] leading-relaxed font-medium text-ink-soft">
               Your engine runs about {Math.round(Math.abs(profile.calibration_k - 1) * 100)}% {profile.calibration_k >= 1 ? 'hotter' : 'cooler'} than the textbook estimate. Calibrated from your recent logged intake and morning weight.
-            </p>
-          )}
-
-          {precise && !recommendationOnly && estimate.safetyClamped && (
-            <p className="mt-2 rounded-xl bg-amber-50/70 px-3 py-2 text-[10px] leading-relaxed font-medium text-amber-800">
-              Your goal adjustment reached the recovery floor, so APEX held calories at BMR × 1.05 instead of cutting lower.
             </p>
           )}
 

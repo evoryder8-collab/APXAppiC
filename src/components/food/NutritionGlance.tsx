@@ -22,7 +22,7 @@ export function NutritionGlance({
   onRingClick,
   onMacroClick,
 }: {
-  target: MealTotals
+  target: MealTotals | null
   consumed: MealTotals
   burnedKcal: number
   activityLevel: ActivityLevel
@@ -42,12 +42,13 @@ export function NutritionGlance({
     ro: { sedentary: 'Sedentar', light: 'Ușor activ', moderate: 'Moderat', very: 'Foarte activ', extra: 'Extrem' },
     th: { sedentary: 'น้อย', light: 'เบา', moderate: 'ปานกลาง', very: 'มาก', extra: 'มากเป็นพิเศษ' },
   }
-  const balance = resolveNutritionCalorieBalance(target.kcal, consumed.kcal)
-  const calorieProgress = target.kcal > 0 ? Math.min(1, consumed.kcal / target.kcal) : 0
+  const balance = target ? resolveNutritionCalorieBalance(target.kcal, consumed.kcal) : null
+  const isOverTarget = balance?.isOverTarget === true
+  const calorieProgress = target ? Math.min(1, consumed.kcal / target.kcal) : 0
   const metrics = [
-    ['Protein', 'protein_g', consumed.protein_g, target.protein_g, '#ec4899'],
-    ['Carbs', 'carbs_g', consumed.carbs_g, target.carbs_g, '#38bdf8'],
-    ['Fat', 'fat_g', consumed.fat_g, target.fat_g, '#a78bfa'],
+    ['Protein', 'protein_g', consumed.protein_g, target?.protein_g ?? null, '#ec4899'],
+    ['Carbs', 'carbs_g', consumed.carbs_g, target?.carbs_g ?? null, '#38bdf8'],
+    ['Fat', 'fat_g', consumed.fat_g, target?.fat_g ?? null, '#a78bfa'],
   ] as const
 
   return (
@@ -87,19 +88,19 @@ export function NutritionGlance({
           onClick={onRingClick}
           disabled={!onRingClick}
           whileTap={onRingClick ? { scale: 0.96 } : undefined}
-          aria-label={onRingClick ? t('Change calorie goal and activity level') : undefined}
+          aria-label={onRingClick ? t(target ? 'Change calorie goal and activity level' : 'Target unavailable') : undefined}
           className="relative mx-auto aspect-square w-full min-w-0 max-w-40 rounded-full text-center disabled:cursor-default"
         >
           <motion.div
             className="absolute -inset-3 rounded-full blur-xl"
-            style={{ background: balance.isOverTarget ? 'rgba(239,68,68,.30)' : 'radial-gradient(circle, rgba(251,191,36,.35), rgba(56,189,248,.12) 58%, transparent 72%)' }}
+            style={{ background: isOverTarget ? 'rgba(239,68,68,.30)' : 'radial-gradient(circle, rgba(251,191,36,.35), rgba(56,189,248,.12) 58%, transparent 72%)' }}
             animate={reduceMotion ? undefined : { opacity: [0.42, 0.86, 0.48], scale: [0.94, 1.06, 0.97] }}
             transition={{ duration: 3.4, repeat: Infinity, ease: 'easeInOut' }}
             aria-hidden
           />
           <div
             className="absolute inset-0 rounded-full p-[9px] shadow-[0_18px_45px_-22px_rgba(245,158,11,.72)]"
-            style={{ background: `conic-gradient(from -90deg, ${balance.isOverTarget ? '#f97316' : '#fb923c'} 0deg, ${balance.isOverTarget ? '#ef4444' : '#fbbf24'} ${calorieProgress * 270}deg, ${balance.isOverTarget ? '#fb7185' : '#22d3ee'} ${calorieProgress * 360}deg, rgba(26,26,34,.075) 0deg)` }}
+            style={{ background: `conic-gradient(from -90deg, ${isOverTarget ? '#f97316' : '#fb923c'} 0deg, ${isOverTarget ? '#ef4444' : '#fbbf24'} ${calorieProgress * 270}deg, ${isOverTarget ? '#fb7185' : '#22d3ee'} ${calorieProgress * 360}deg, rgba(26,26,34,.075) 0deg)` }}
           >
             <div className="relative grid h-full w-full place-items-center overflow-hidden rounded-full border border-white/85 bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,.98),rgba(255,251,235,.93)_48%,rgba(236,254,255,.88))] shadow-[inset_0_2px_10px_rgba(255,255,255,.95),inset_0_-10px_24px_rgba(245,158,11,.08)]">
               <motion.div
@@ -110,9 +111,15 @@ export function NutritionGlance({
                 aria-hidden
               />
               <motion.div className="relative min-w-0 max-w-full px-1" animate={reduceMotion ? undefined : { scale: [1, 1.025, 1] }} transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}>
-                <p className={`text-[10px] font-semibold ${balance.isOverTarget ? 'text-red-600' : 'text-ink-soft'}`}>{t(balance.label)}</p>
-                <p className={`whitespace-nowrap font-mono text-[clamp(1.35rem,7vw,1.875rem)] leading-tight font-bold tracking-[-0.06em] tabular-nums ${balance.isOverTarget ? 'text-red-600' : 'text-ink'}`}>{balance.amount}</p>
-                <p className="whitespace-nowrap font-mono text-[clamp(7px,2vw,9px)] font-semibold tracking-[-0.035em] text-ink-faint">{t('of')} {Math.round(target.kcal)} kcal</p>
+                {target && balance ? (
+                  <>
+                    <p className={`text-[10px] font-semibold ${isOverTarget ? 'text-red-600' : 'text-ink-soft'}`}>{t(balance.label)}</p>
+                    <p className={`whitespace-nowrap font-mono text-[clamp(1.35rem,7vw,1.875rem)] leading-tight font-bold tracking-[-0.06em] tabular-nums ${isOverTarget ? 'text-red-600' : 'text-ink'}`}>{balance.amount}</p>
+                    <p className="whitespace-nowrap font-mono text-[clamp(7px,2vw,9px)] font-semibold tracking-[-0.035em] text-ink-faint">{t('of')} {Math.round(target.kcal)} kcal</p>
+                  </>
+                ) : (
+                  <p className="px-2 text-[10px] leading-tight font-black text-rose-700">{t('Target unavailable')}</p>
+                )}
               </motion.div>
             </div>
           </div>
@@ -123,14 +130,14 @@ export function NutritionGlance({
 
       <div className="relative mt-5 grid grid-cols-3 gap-2">
         {metrics.map(([label, macro, value, goal, color]) => {
-          const progress = goal > 0 ? Math.min(1, value / goal) : 0
+          const progress = goal != null && goal > 0 ? Math.min(1, value / goal) : 0
           const className = "min-w-0 rounded-2xl border border-white/80 bg-white/72 px-2.5 py-3 text-left shadow-[0_8px_22px_-18px_rgba(15,23,42,.55)] sm:px-3"
           const content = <>
             <div className="min-w-0">
               <span className="block min-h-5 break-words text-[9px] leading-[1.05rem] font-bold text-ink sm:text-[10px]">{t(label)}</span>
-              <span className="mt-0.5 block whitespace-nowrap font-mono text-[clamp(8px,2.25vw,10px)] font-bold tracking-[-0.04em] text-ink-faint sm:tracking-normal">{Math.round(value)}/{Math.round(goal)}g</span>
+              <span className="mt-0.5 block whitespace-nowrap font-mono text-[clamp(8px,2.25vw,10px)] font-bold tracking-[-0.04em] text-ink-faint sm:tracking-normal">{Math.round(value)}{goal == null ? 'g' : `/${Math.round(goal)}g`}</span>
             </div>
-            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink/8"><motion.div initial={{ width: 0 }} animate={{ width: `${progress * 100}%` }} className="h-full rounded-full" style={{ background: color }} /></div>
+            {goal != null && <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink/8"><motion.div initial={{ width: 0 }} animate={{ width: `${progress * 100}%` }} className="h-full rounded-full" style={{ background: color }} /></div>}
           </>
           return (
             onMacroClick

@@ -68,16 +68,21 @@ enum FitnessBrainService {
             bodyFatSource: profile.bodyFatSource?.rawValue
         )
 
+        let ownerID = profile.userID
         let programDays = data.programDays.compactMap { day -> FBProgramDayRef? in
-            guard let type = FBDayType(rawValue: day.dayType) else { return nil }
+            guard day.userID == ownerID,
+                  let type = FBDayType(rawValue: day.dayType)
+            else { return nil }
             return FBProgramDayRef(id: day.id.uuidString.lowercased(), dayType: type)
         }
-        let exercises = data.exercises.map {
+        let exercises = data.exercises.filter { $0.userID == ownerID }.map {
             FBExerciseRef(
                 id: $0.id.uuidString.lowercased(),
                 programDayID: $0.programDayID.uuidString.lowercased())
         }
-        let sessions = data.workoutSessions.map {
+        let ownedSessions = data.workoutSessions.filter { $0.userID == ownerID }
+        let ownedSessionIDs = Set(ownedSessions.map(\.id))
+        let sessions = ownedSessions.map {
             FBWorkoutSession(
                 id: $0.id.uuidString.lowercased(),
                 date: $0.date,
@@ -87,7 +92,9 @@ enum FitnessBrainService {
                 completed: $0.completed,
                 qualityScore: $0.qualityScore)
         }
-        let logs = data.workoutLogs.map {
+        let logs = data.workoutLogs
+            .filter { $0.userID == ownerID && ownedSessionIDs.contains($0.sessionID) }
+            .map {
             FBWorkoutLog(
                 id: $0.id.uuidString.lowercased(),
                 sessionID: $0.sessionID.uuidString.lowercased(),
@@ -97,14 +104,14 @@ enum FitnessBrainService {
                 skipped: $0.skipped,
                 overrideFlag: $0.overrideFlag)
         }
-        let dailyLogs = data.dailyLogs.map {
+        let dailyLogs = data.dailyLogs.filter { $0.userID == ownerID }.map {
             FBDailyLog(
                 date: $0.date,
                 kcal: $0.kcal.map(Double.init),
                 proteinG: $0.proteinG.map(Double.init),
                 waterL: $0.waterL)
         }
-        let metrics = data.healthMetrics.map {
+        let metrics = data.healthMetrics.filter { $0.userID == ownerID }.map {
             FBHealthMetric(date: $0.date, vo2max: $0.vo2Max, restingHR: $0.restingHeartRate)
         }
         let apexSessionIdentities = data.workoutSessions.compactMap {
@@ -128,6 +135,7 @@ enum FitnessBrainService {
                 date: activity.date, kind: kind, durationMin: Double(activity.durationMinutes))
         }
 
+        let nutritionPlanContext = NutritionGoalPolicy.context(from: data.settings)
         return FBEngineInput(
             profile: fbProfile,
             programDays: programDays,
@@ -142,7 +150,9 @@ enum FitnessBrainService {
                 ownerID: profile.userID
             ),
             recoveryHistory: recoveryHistory(from: data.settings?.addons),
-            mealRhythmHistory: mealRhythmHistory(from: data.settings?.addons)
+            mealRhythmHistory: mealRhythmHistory(from: data.settings?.addons),
+            trainingGoal: nutritionPlanContext?.trainingGoal,
+            planWeeks: nutritionPlanContext?.planWeeks
         )
     }
 

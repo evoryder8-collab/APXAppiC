@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { UI_TRANSLATIONS } from '../src/lib/translations.ts'
+import * as baselineCalibration from '../src/lib/baselineCalibration.ts'
 
 import {
   baselineCalibrationQuestions,
@@ -80,6 +81,19 @@ test('recent external results are validated and never promoted beyond user evide
   }), { status: 'rejected', reason: 'invalid_unit_or_range' })
 })
 
+test('recent-result dates fail closed when empty, malformed, or impossible', () => {
+  const measuredAt = (baselineCalibration as typeof baselineCalibration & {
+    calibrationResultMeasuredAt?: (date: string) => string | null
+  }).calibrationResultMeasuredAt
+  assert.equal(typeof measuredAt, 'function')
+  if (!measuredAt) return
+
+  assert.equal(measuredAt(''), null)
+  assert.equal(measuredAt('not-a-date'), null)
+  assert.equal(measuredAt('2026-02-30'), null)
+  assert.equal(measuredAt('2026-09-03'), '2026-09-03T12:00:00.000Z')
+})
+
 test('calibration presents one direct question with question-specific answers', () => {
   assert.equal(baselineCalibrationQuestions.length, 12)
   assert.deepEqual(
@@ -127,6 +141,18 @@ test('a DEXA report can save body fat and its printed resting-energy estimate to
   ])
   assert.ok(result.evidence.every((item) => item.confidence === 'low'))
   assert.ok(result.evidence.every((item) => item.metadata.declared_source === 'DEXA report · clinic copy'))
+  assert.deepEqual(result.persistence, {
+    owner_id: fixture.user_id,
+    profile_patch: {
+      body_fat_pct: 18.4,
+      body_fat_source: 'dexa',
+      body_fat_measured_at: fixture.measured_at,
+    },
+    settings_addons_patch: {
+      custom_bmr: 1683,
+      custom_bmr_source: 'dexa_report_estimate',
+    },
+  })
   assert.deepEqual(buildDxaCalibrationEvidence({
     user_id: fixture.user_id,
     body_fat_percentage: null,
@@ -135,6 +161,49 @@ test('a DEXA report can save body fat and its printed resting-energy estimate to
     measured_at: fixture.measured_at,
     imported_at: fixture.imported_at,
   }), { status: 'rejected', reason: 'missing_value' })
+})
+
+test('a DEXA report value outside the target-safe resting-energy range remains evidence only', () => {
+  const result = buildDxaCalibrationEvidence({
+    user_id: fixture.user_id,
+    body_fat_percentage: null,
+    resting_metabolic_rate: 700,
+    declared_source: 'DEXA report',
+    measured_at: fixture.measured_at,
+    imported_at: fixture.imported_at,
+  })
+
+  assert.equal(result.status, 'accepted')
+  if (result.status !== 'accepted') return
+  assert.deepEqual(result.evidence.map((item) => item.value), [700])
+  assert.deepEqual(result.persistence, {
+    owner_id: fixture.user_id,
+    profile_patch: null,
+    settings_addons_patch: null,
+  })
+})
+
+test('a DEXA report keeps stronger indirect-calorimetry resting energy authoritative', () => {
+  const result = buildDxaCalibrationEvidence({
+    user_id: fixture.user_id,
+    body_fat_percentage: 18.4,
+    resting_metabolic_rate: 1_600,
+    declared_source: 'DEXA report',
+    measured_at: fixture.measured_at,
+    imported_at: fixture.imported_at,
+    existing_custom_bmr: 1_720,
+    existing_custom_bmr_source: 'indirect_calorimetry',
+  })
+
+  assert.equal(result.status, 'accepted')
+  if (result.status !== 'accepted') return
+  assert.deepEqual(result.evidence.map((item) => item.value), [18.4, 1_600])
+  assert.deepEqual(result.persistence.profile_patch, {
+    body_fat_pct: 18.4,
+    body_fat_source: 'dexa',
+    body_fat_measured_at: fixture.measured_at,
+  })
+  assert.equal(result.persistence.settings_addons_patch, null)
 })
 
 test('resume drafts are account scoped and cleared only for their owner', () => {

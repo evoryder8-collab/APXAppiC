@@ -13,9 +13,18 @@ struct NutritionView: View {
 
     private var dayKey: String { selectedDate.apexDateKey }
     private var dayActivities: [ActivityLog] {
-        session.data.activityLogs
-            .filter { $0.date == dayKey }
+        guard let ownerID = session.profile?.userID else { return [] }
+        return session.data.activityLogs
+            .filter { $0.userID == ownerID && $0.date == dayKey }
             .sorted { $0.createdAt < $1.createdAt }
+    }
+    private var dayWearableActiveCalories: Int? {
+        guard let profile = session.profile else { return nil }
+        return WearableActivityRecord.activeCalories(
+            on: dayKey,
+            settings: session.data.settings,
+            ownerID: profile.userID
+        )
     }
     private var targets: NutritionTargets? {
         guard let profile = session.profile else { return nil }
@@ -25,11 +34,7 @@ struct NutritionView: View {
             catalog: session.data.activityTypes,
             planContext: NutritionGoalPolicy.context(from: session.data.settings),
             settings: session.data.settings,
-            wearableActiveCalories: WearableActivityRecord.activeCalories(
-                on: dayKey,
-                settings: session.data.settings,
-                ownerID: profile.userID
-            )
+            wearableActiveCalories: dayWearableActiveCalories
         )
     }
 
@@ -107,12 +112,14 @@ struct NutritionView: View {
                         CollapsibleSection(
                             id: "activities",
                             title: language.text("Activity & nutrition targets"),
-                            subtitle: language.format(
-                                "%d kcal · %@ · %@",
-                                targets.targetCalories,
-                                language.text(targets.level.title),
-                                language.text(goalLabel)
-                            )
+                            subtitle: targets.isPublishable
+                                ? language.format(
+                                    "%d kcal · %@ · %@",
+                                    targets.targetCalories,
+                                    language.text(targets.level.title),
+                                    language.text(goalLabel)
+                                )
+                                : language.text("This target needs review before use.")
                         ) {
                             VStack(spacing: 18) {
                                 TodaysActivitiesPanel(
@@ -122,7 +129,13 @@ struct NutritionView: View {
                                     onAdd: { showAddActivity = true },
                                     onGuide: { showActivityGuide = true }
                                 )
-                                DailyTargetsCard(targets: targets, precise: !dayActivities.isEmpty)
+                                DailyTargetsCard(
+                                    targets: targets,
+                                    precise: EnergyEngine.hasMeaningfulActivity(
+                                        wearableActiveCalories: dayWearableActiveCalories,
+                                        logs: dayActivities
+                                    )
+                                )
                             }
                         }
 
@@ -239,6 +252,13 @@ private struct TodaysActivitiesPanel: View {
         )
     }
 
+    private var hasMeaningfulActivity: Bool {
+        EnergyEngine.hasMeaningfulActivity(
+            wearableActiveCalories: resolvedActivity.activeCalories,
+            logs: logs
+        )
+    }
+
     private var catalog: [String: ActivityType] {
         Dictionary(uniqueKeysWithValues: session.data.activityTypes.map { ($0.id, $0) })
     }
@@ -250,9 +270,9 @@ private struct TodaysActivitiesPanel: View {
                     VStack(alignment: .leading, spacing: 5) {
                         Text(language.text("Today's Activities"))
                             .font(APEXFont.display(25))
-                        Text(language.text(logs.isEmpty ? "Quick mode" : "Precise mode · computed from your day"))
+                        Text(language.text(hasMeaningfulActivity ? "Precise mode · computed from your day" : "Quick mode"))
                             .font(APEXFont.body(13, weight: .semibold))
-                            .foregroundStyle(logs.isEmpty ? APEXColor.secondaryInk : APEXColor.amberDeep)
+                            .foregroundStyle(hasMeaningfulActivity ? APEXColor.amberDeep : APEXColor.secondaryInk)
                     }
                     Spacer()
                     Button(action: onGuide) {
@@ -262,7 +282,7 @@ private struct TodaysActivitiesPanel: View {
                     .buttonStyle(.plain)
                 }
 
-                if let targets {
+                if let targets, targets.isPublishable {
                     HStack(alignment: .firstTextBaseline) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("\(resolvedActivity.activeCalories)")
@@ -423,8 +443,13 @@ private struct TodaysActivitiesPanel: View {
     }
 
     private var yesterdayLogs: [ActivityLog] {
-        guard let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: date) else { return [] }
-        return session.data.activityLogs.filter { $0.date == yesterday.apexDateKey }
+        guard
+            let ownerID = session.profile?.userID,
+            let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: date)
+        else { return [] }
+        return session.data.activityLogs.filter {
+            $0.userID == ownerID && $0.date == yesterday.apexDateKey
+        }
     }
 
     private var frequentTypes: [ActivityType] {
@@ -474,25 +499,50 @@ private struct DailyTargetsCard: View {
                         .background(APEXColor.amber.opacity(0.1), in: Capsule())
                 }
 
-                Grid(horizontalSpacing: 25, verticalSpacing: 20) {
-                    GridRow {
-                        targetMetric("CALORIES", "\(targets.targetCalories)", APEXColor.amberDeep)
-                        targetMetric("PROTEIN", language.format("%d g", targets.proteinG), APEXColor.ink)
+                if targets.isPublishable {
+                    Grid(horizontalSpacing: 25, verticalSpacing: 20) {
+                        GridRow {
+                            targetMetric("CALORIES", "\(targets.targetCalories)", APEXColor.amberDeep)
+                            targetMetric("PROTEIN", language.format("%d g", targets.proteinG), APEXColor.ink)
+                        }
+                        GridRow {
+                            targetMetric("FAT", language.format("%d g", targets.fatG), APEXColor.ink)
+                            targetMetric("CARBS", language.format("%d g", targets.carbsG), APEXColor.ink)
+                        }
                     }
-                    GridRow {
-                        targetMetric("FAT", language.format("%d g", targets.fatG), APEXColor.ink)
-                        targetMetric("CARBS", language.format("%d g", targets.carbsG), APEXColor.ink)
+
+                    Divider().opacity(0.55)
+
+                    HStack(spacing: 18) {
+                        Text(language.format("BMR: %d", targets.bmr))
+                        Text(language.format("TDEE: %d", targets.tdee))
                     }
+                    .font(APEXFont.body(13, weight: .medium))
+                    .foregroundStyle(APEXColor.secondaryInk)
+
+                    Label(language.text(restingEnergyLabel), systemImage: "function")
+                        .font(APEXFont.body(12, weight: .semibold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+
+                    Label(language.text(targetProvenanceLabel), systemImage: "checkmark.seal")
+                        .font(APEXFont.body(12, weight: .semibold))
+                        .foregroundStyle(APEXColor.secondaryInk)
                 }
 
-                Divider().opacity(0.55)
-
-                HStack(spacing: 18) {
-                    Text(language.format("BMR: %d", targets.bmr))
-                    Text(language.format("TDEE: %d", targets.tdee))
+                if targets.requiresReview {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label(language.text("This target needs review before use."), systemImage: "exclamationmark.triangle.fill")
+                            .font(APEXFont.body(13, weight: .bold))
+                        ForEach(reviewMessages, id: \.self) { message in
+                            Text("• \(language.text(message))")
+                                .font(APEXFont.body(12, weight: .medium))
+                        }
+                    }
+                    .foregroundStyle(APEXColor.amberDeep)
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(APEXColor.amber.opacity(0.12), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
-                .font(APEXFont.body(13, weight: .medium))
-                .foregroundStyle(APEXColor.secondaryInk)
 
                 if !precise {
                     VStack(alignment: .leading, spacing: 10) {
@@ -523,7 +573,7 @@ private struct DailyTargetsCard: View {
                         }
                     }
                 } else {
-                    Label(language.text("Activity levels are computed from today's blocks"), systemImage: "sparkles")
+                    Label(language.text("Activity energy is tracked separately and never raises your food target automatically."), systemImage: "shield.lefthalf.filled")
                         .font(APEXFont.body(12, weight: .semibold))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
@@ -547,12 +597,40 @@ private struct DailyTargetsCard: View {
                         }
                     }
                 )
+                .disabled(!targets.isPublishable)
+                .opacity(targets.isPublishable ? 1 : 0.55)
 
-                if targets.safetyFloorApplied {
-                    Label(language.text("Target held above the recovery safety floor"), systemImage: "shield.lefthalf.filled")
-                        .font(APEXFont.body(12, weight: .semibold))
-                        .foregroundStyle(APEXColor.green)
-                }
+            }
+        }
+    }
+
+    private var restingEnergyLabel: String {
+        switch targets.restingEnergyProvenance {
+        case .indirectCalorimetry: "Indirect calorimetry measurement"
+        case .legacyUserEntered: "Saved resting-energy value · source not verified"
+        case .bodyCompositionEstimate: "Body-composition estimate"
+        case .mifflinEstimate: "Mifflin–St Jeor estimate"
+        }
+    }
+
+    private var targetProvenanceLabel: String {
+        switch targets.targetProvenance {
+        case .authoredProtocol: "Bespoke target authored for this account"
+        case .calculatedEstimate: "Calculated from your profile and plan"
+        }
+    }
+
+    private var reviewMessages: [String] {
+        targets.reviewReasons.sorted { $0.rawValue < $1.rawValue }.map { reason in
+            switch reason {
+            case .macroEnergyConflict: "The macro floors do not fit this calorie target."
+            case .underNineteen: "This account is outside autonomous adult calorie guidance."
+            case .invalidBirthdate: "The birthdate must be corrected before calorie guidance."
+            case .implausibleDemographics: "Profile details are incomplete or outside the supported adult range."
+            case .implausibleBMR: "The saved resting-energy value is outside the supported range."
+            case .lowCalorieTarget: "This calorie target is unusually low and should be reviewed."
+            case .dexaEstimatedBMRStored: "A DEXA-estimated BMR is saved as context; APEX used the calculated resting-energy formula instead."
+            case .legacyBMRNeedsReview: "Confirm that this earlier resting-energy value came from indirect calorimetry, or clear it to use the calculated formula."
             }
         }
     }
@@ -972,7 +1050,7 @@ private struct DailyLogCard: View {
                     .foregroundStyle(APEXColor.secondaryInk)
                     .lineSpacing(3)
 
-                if preciseLogs.isEmpty == false {
+                if preciseLogs.isEmpty == false, targets.isPublishable {
                     VStack(alignment: .leading, spacing: 11) {
                         HStack {
                             VStack(alignment: .leading, spacing: 3) {
@@ -1064,7 +1142,13 @@ private struct DailyLogCard: View {
     }
 
     private var preciseLogs: [ActivityLog] {
-        session.data.activityLogs.filter { $0.date == date.apexDateKey }
+        guard let ownerID = session.profile?.userID else { return [] }
+        return session.data.activityLogs.filter {
+            $0.userID == ownerID
+                && $0.date == date.apexDateKey
+                && $0.computedKcal.isFinite
+                && $0.computedKcal > 0
+        }
     }
 
     private var allReconciled: Bool {
@@ -1216,6 +1300,9 @@ private struct BodyAssessmentCard: View {
 
     private var assessment: String {
         guard let profile = session.profile else { return "" }
+        guard targets.isPublishable else {
+            return language.text("This target needs review before use.")
+        }
         let log = session.data.dailyLogs.first { $0.date == date.apexDateKey }
         let protein = log?.proteinG ?? 0
         let water = log?.waterL ?? 0

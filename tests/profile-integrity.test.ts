@@ -80,7 +80,7 @@ test('only an exact matching bespoke policy resolves an authored protocol', () =
       profile_kind: 'bespoke',
       bespoke_protocol_id: 'constantine-v8.5',
     })),
-    { kcal: 2_450, tdee: 2_550, proteinG: 150, fatG: 75, carbsG: 294 },
+    { kcal: 2_450, tdee: 2_550, proteinG: 150, fatG: 75, carbsG: 293 },
   )
 
   assert.equal(

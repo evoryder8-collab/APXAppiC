@@ -123,7 +123,7 @@ test('native submission stores activity and evidence through the guarded ledger'
   ), 'utf8')
   assert.match(session, /submission\.profileActivityLevel/)
   assert.match(session, /persistInductionEvidence\(submission/)
-  assert.match(session, /recordFitnessEvidence\(evidence\)/)
+  assert.match(session, /recordFitnessEvidence\(evidence,\s*operation:\s*operation\)/)
   assert.match(service, /case activityLevel = "activity_level"/)
 })
 

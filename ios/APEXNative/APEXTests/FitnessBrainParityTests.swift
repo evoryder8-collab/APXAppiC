@@ -142,6 +142,99 @@ final class FitnessBrainParityTests: XCTestCase {
         }
     }
 
+    func testAvatarNutritionThresholdUsesTheVisiblePlansCanonicalContext() {
+        let profile = FBProfile(
+            userID: UUID().uuidString,
+            persona: .iulian,
+            sex: "male",
+            weightKG: 70,
+            bodyFatPct: nil,
+            customBMR: 1_683,
+            heightCM: 175,
+            birthdate: "1990-01-01",
+            activityLevel: .moderate,
+            goal: .maintain,
+            baselineDate: "2026-01-01"
+        )
+
+        let target = FitnessBrainTargets.computeTargets(
+            profile,
+            asOf: "2026-09-02",
+            trainingGoal: "fat_loss",
+            planWeeks: 12
+        )
+
+        XCTAssertEqual(target.tdee, 2_609)
+        XCTAssertEqual(target.kcal, 2_296)
+    }
+
+    func testAvatarTargetsFailClosedForInvalidGenericDemographics() {
+        let profile = FBProfile(
+            userID: UUID().uuidString,
+            persona: .iulian,
+            sex: "unspecified",
+            weightKG: 70,
+            bodyFatPct: nil,
+            customBMR: nil,
+            heightCM: 175,
+            birthdate: "not-a-date",
+            activityLevel: .moderate,
+            goal: .maintain,
+            baselineDate: "2026-01-01"
+        )
+
+        let target = FitnessBrainTargets.computeTargets(profile, asOf: "2026-09-02")
+
+        XCTAssertFalse(target.isPublishable)
+        XCTAssertEqual(target.tdee, 0)
+        XCTAssertEqual(target.kcal, 0)
+        XCTAssertEqual(target.proteinG, 0)
+        XCTAssertEqual(target.fatG, 0)
+        XCTAssertEqual(target.carbsG, 0)
+    }
+
+    func testMalformedBespokeReferenceDataCannotExposeNonFiniteTargets() {
+        let profile = FBProfile(
+            userID: "9a0fffbc-bb02-40ac-834a-d4e339b32574",
+            persona: .constantine,
+            sex: "male",
+            weightKG: .nan,
+            bodyFatPct: 22.5,
+            customBMR: nil,
+            heightCM: 177,
+            birthdate: "malformed",
+            activityLevel: .moderate,
+            goal: .recomp,
+            baselineDate: "2026-01-01",
+            profileKind: "bespoke",
+            bespokeProtocolID: "constantine-v8.5",
+            bodyFatSource: "dexa"
+        )
+
+        let target = FitnessBrainTargets.computeTargets(profile, asOf: "2026-09-02")
+
+        XCTAssertEqual(target.kcal, 2_450)
+        XCTAssertEqual(target.tdee, 2_550)
+        XCTAssertEqual(target.proteinG, 150)
+        XCTAssertEqual(target.fatG, 75)
+        XCTAssertEqual(target.carbsG, 293)
+        XCTAssertTrue(target.bmrMifflin.isFinite)
+        XCTAssertNil(target.bmrKatch)
+        XCTAssertTrue(target.isPublishable)
+
+        let malformedOptionalReference = FBTargets(
+            bmrMifflin: 1_600,
+            bmrKatch: .nan,
+            tdee: 2_400,
+            kcal: 2_200,
+            proteinG: 150,
+            fatG: 70,
+            carbsG: 242,
+            waterL: 2.75
+        )
+        XCTAssertFalse(malformedOptionalReference.isPublishable)
+    }
+
     /* Date math must agree with date-fns for the ranges the engine replays */
     func testDateArithmetic() {
         XCTAssertEqual(FBDate.daysBetween("2026-06-01", "2026-08-10"), 70)

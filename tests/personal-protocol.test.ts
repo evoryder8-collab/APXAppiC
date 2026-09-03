@@ -3,7 +3,6 @@ import assert from 'node:assert/strict'
 import {
   PERSONAL_CALORIE_PROTOCOLS,
   assessRecovery,
-  carbohydrateGrams,
   normalizeRecoveryHistory,
   normalizeWatchActivityHistory,
   personalTargetFor,
@@ -38,6 +37,11 @@ const expected = {
     },
     protein: { recomp: 150, maintain: 150, bulk: 150 },
     fat: { recomp: 75, maintain: 80, bulk: 85 },
+    carbs: {
+      recomp: [256, 281, 293, 343, 406],
+      maintain: [270, 295, 307, 357, 420],
+      bulk: [296, 321, 333, 383, 446],
+    },
   },
   june: {
     calories: {
@@ -47,10 +51,15 @@ const expected = {
     },
     protein: { recomp: 85, maintain: 85, bulk: 85 },
     fat: { recomp: 90, maintain: 92, bulk: 95 },
+    carbs: {
+      recomp: [262, 262, 262, 300, 350],
+      maintain: [258, 270, 283, 320, 370],
+      bulk: [276, 288, 301, 338, 388],
+    },
   },
 } as const
 
-test('all 30 personalized goal and activity combinations use the exact tables and carbohydrate formula', () => {
+test('all 30 bespoke goal and activity combinations match the native energy-safe macro table', () => {
   for (const persona of ['constantine', 'june'] as const) {
     for (const goal of goals) {
       for (const [index, activity_level] of levels.entries()) {
@@ -61,16 +70,17 @@ test('all 30 personalized goal and activity combinations use the exact tables an
         const fat = expected[persona].fat[goal]
         assert.deepEqual(
           { kcal: result.kcal, protein: result.proteinG, fat: result.fatG, carbs: result.carbsG },
-          { kcal, protein, fat, carbs: carbohydrateGrams(kcal, protein, fat) },
+          { kcal, protein, fat, carbs: expected[persona].carbs[goal][index] },
           `${persona} ${goal} ${activity_level}`,
         )
+        assert.ok(result.proteinG * 4 + result.fatG * 9 + result.carbsG * 4 <= result.kcal)
         assert.equal(result.tdee, expected[persona].calories.maintain[index])
       }
     }
   }
   assert.deepEqual(
     personalTargetFor({ persona: 'constantine', goal: 'recomp', activity_level: 'moderate', ...protectedPolicy.constantine }),
-    { kcal: 2450, tdee: 2550, proteinG: 150, fatG: 75, carbsG: 294 },
+    { kcal: 2450, tdee: 2550, proteinG: 150, fatG: 75, carbsG: 293 },
   )
   assert.deepEqual(
     personalTargetFor({ persona: 'june', goal: 'bulk', activity_level: 'moderate', ...protectedPolicy.june }),

@@ -1,6 +1,6 @@
 {
  "generated_note": "Do not edit by hand. Regenerate with generate-parity-fixtures.mts",
- "generated_on": "2026-08-30",
+ "generated_on": "2026-09-02",
  "scenarios": [
   {
    "name": "baseline_decay",
@@ -45,7 +45,7 @@
      "training_induction": null,
      "training_protocol": {
       "version": 85,
-      "start_date": "2026-08-30"
+      "start_date": "2026-09-02"
      },
      "comparison_export_mode": "detailed",
      "weight_unit": "kg",
@@ -768,13 +768,19 @@
      "bmrMifflin": 1651,
      "bmrKatch": null,
      "tdee": 2604,
-     "kcal": 2318,
+     "kcal": 2344,
      "protein_g": 149,
-     "fat_g": 64,
-     "carbs_g": 287,
+     "fat_g": 65,
+     "carbs_g": 290,
      "water_l": 2.75,
      "bmrSource": "custom",
-     "activeBmr": 1680
+     "activeBmr": 1680,
+     "targetProvenance": "legacy_user_entered",
+     "reviewState": "review_recommended",
+     "reviewReasons": [
+      "legacy_bmr_needs_review"
+     ],
+     "isPublishable": true
     },
     "snapshot_count": 71,
     "first_snapshot": {
@@ -994,7 +1000,7 @@
      "training_induction": null,
      "training_protocol": {
       "version": 85,
-      "start_date": "2026-08-30"
+      "start_date": "2026-09-02"
      },
      "comparison_export_mode": "detailed",
      "weight_unit": "kg",
@@ -1897,7 +1903,7 @@
       "id": "88888888-0000-4000-8000-000000000002",
       "user_id": "99999999-0000-4000-8000-000000000001",
       "date": "2026-06-02",
-      "kcal": 2318,
+      "kcal": 2344,
       "protein_g": 149,
       "fat_g": null,
       "carbs_g": null,
@@ -1911,7 +1917,7 @@
       "id": "88888888-0000-4000-8000-000000000004",
       "user_id": "99999999-0000-4000-8000-000000000001",
       "date": "2026-06-03",
-      "kcal": 1623,
+      "kcal": 1641,
       "protein_g": 80,
       "fat_g": null,
       "carbs_g": null,
@@ -1944,13 +1950,19 @@
      "bmrMifflin": 1651,
      "bmrKatch": null,
      "tdee": 2604,
-     "kcal": 2318,
+     "kcal": 2344,
      "protein_g": 149,
-     "fat_g": 64,
-     "carbs_g": 287,
+     "fat_g": 65,
+     "carbs_g": 290,
      "water_l": 2.75,
      "bmrSource": "custom",
-     "activeBmr": 1680
+     "activeBmr": 1680,
+     "targetProvenance": "legacy_user_entered",
+     "reviewState": "review_recommended",
+     "reviewReasons": [
+      "legacy_bmr_needs_review"
+     ],
+     "isPublishable": true
     },
     "snapshot_count": 71,
     "first_snapshot": {
@@ -2196,7 +2208,7 @@
      "training_induction": null,
      "training_protocol": {
       "version": 85,
-      "start_date": "2026-08-30"
+      "start_date": "2026-09-02"
      },
      "comparison_export_mode": "detailed",
      "weight_unit": "kg",
@@ -3293,13 +3305,19 @@
      "bmrMifflin": 1651,
      "bmrKatch": null,
      "tdee": 2604,
-     "kcal": 2318,
+     "kcal": 2344,
      "protein_g": 149,
-     "fat_g": 64,
-     "carbs_g": 287,
+     "fat_g": 65,
+     "carbs_g": 290,
      "water_l": 2.75,
      "bmrSource": "custom",
-     "activeBmr": 1680
+     "activeBmr": 1680,
+     "targetProvenance": "legacy_user_entered",
+     "reviewState": "review_recommended",
+     "reviewReasons": [
+      "legacy_bmr_needs_review"
+     ],
+     "isPublishable": true
     },
     "snapshot_count": 71,
     "first_snapshot": {
@@ -3585,7 +3603,7 @@
      "training_induction": null,
      "training_protocol": {
       "version": 84,
-      "start_date": "2026-08-30"
+      "start_date": "2026-09-02"
      },
      "comparison_export_mode": "detailed",
      "weight_unit": "kg",
@@ -4086,13 +4104,17 @@
      "bmrMifflin": 990,
      "bmrKatch": null,
      "tdee": 1535,
-     "kcal": 1642,
+     "kcal": 1612,
      "protein_g": 74,
-     "fat_g": 51,
-     "carbs_g": 222,
+     "fat_g": 50,
+     "carbs_g": 216,
      "water_l": 2.75,
      "bmrSource": "mifflin",
-     "activeBmr": 990
+     "activeBmr": 990,
+     "targetProvenance": "calculated",
+     "reviewState": "ready",
+     "reviewReasons": [],
+     "isPublishable": true
     },
     "snapshot_count": 31,
     "first_snapshot": {
@@ -4619,13 +4641,17 @@
      "bmrMifflin": 1585,
      "bmrKatch": null,
      "tdee": 2734,
-     "kcal": 2433,
+     "kcal": 2461,
      "protein_g": 172,
      "fat_g": 68,
-     "carbs_g": 283,
+     "carbs_g": 290,
      "water_l": 2.75,
      "bmrSource": "mifflin",
-     "activeBmr": 1585
+     "activeBmr": 1585,
+     "targetProvenance": "calculated",
+     "reviewState": "ready",
+     "reviewReasons": [],
+     "isPublishable": true
     },
     "snapshot_count": 31,
     "first_snapshot": {

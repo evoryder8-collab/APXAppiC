@@ -32,6 +32,29 @@ final class AdaptiveMealPlanEngineTests: XCTestCase {
         XCTAssertTrue(low.first?.portionNote.contains("oats") == true)
     }
 
+    func testBlockedTargetNeverAllocatesMealPortions() {
+        let blocked = NutritionTargets(
+            bmr: 1_600,
+            tdee: 1_920,
+            targetCalories: 1_500,
+            proteinG: 0,
+            fatG: 0,
+            carbsG: 0,
+            pal: 1.2,
+            level: .sedentary,
+            reviewReasons: [.macroEnergyConflict]
+        )
+
+        XCTAssertFalse(blocked.isPublishable)
+        XCTAssertTrue(
+            AdaptiveMealPlanEngine.build(
+                meals: meals,
+                targets: blocked,
+                dayLabel: "Review"
+            ).isEmpty
+        )
+    }
+
     private var meals: [Meal] {
         let user = UUID()
         return [
@@ -45,7 +68,7 @@ final class AdaptiveMealPlanEngineTests: XCTestCase {
         NutritionTargets(
             bmr: 1_600, tdee: 2_200, targetCalories: calories,
             proteinG: protein, fatG: fat, carbsG: carbs,
-            pal: 1.5, level: .moderate, safetyFloorApplied: false
+            pal: 1.5, level: .moderate
         )
     }
 }

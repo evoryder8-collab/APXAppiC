@@ -6529,6 +6529,26 @@ final class AppSession {
             try requireCurrentAccountOperation(operation)
             try await recordFitnessEvidence(item, operation: operation)
         }
+
+        if ProfileIntegrityPolicy.isBodyFatEnergyEligible(
+            value: bodyFatPercentage,
+            source: .dexa
+        ) {
+            try await updateProfile({ profile in
+                profile.bodyFatPercent = bodyFatPercentage
+                profile.bodyFatSource = .dexa
+                profile.bodyFatMeasuredAt = measuredAt.ISO8601Format()
+            }, operation: operation)
+        }
+
+        if let validatedRMR = RestingEnergyPolicy.validated(restingMetabolicRate) {
+            try await updateSettings({ settings in
+                RestingEnergyPolicy.storeDEXAReportEstimate(
+                    validatedRMR,
+                    in: &settings.addons
+                )
+            }, operation: operation)
+        }
         try requireCurrentAccountOperation(operation)
         return evidence
     }
@@ -6837,7 +6857,8 @@ final class AppSession {
         let cutoff = Calendar.current.date(byAdding: .day, value: -13, to: .now)?.apexDateKey ?? today
         let samples = data.dailyLogs
             .filter {
-                $0.date >= cutoff && $0.date <= today
+                $0.userID == operation.ownerID
+                    && $0.date >= cutoff && $0.date <= today
                     && $0.kcal != nil && $0.weightKG != nil && $0.estimatedTDEE != nil
             }
             .sorted { $0.date < $1.date }

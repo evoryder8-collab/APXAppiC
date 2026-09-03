@@ -477,6 +477,16 @@ final class BaselineCalibrationTests: XCTestCase {
             )
         }
 
+        let dexaMutation = try body(
+            "func saveManualDEXACalibrationResult(",
+            before: "func connectHealthForBaselineCalibration("
+        )
+        XCTAssertTrue(dexaMutation.contains("updateProfile"))
+        XCTAssertTrue(dexaMutation.contains("bodyFatSource = .dexa"))
+        XCTAssertTrue(dexaMutation.contains("bodyFatMeasuredAt"))
+        XCTAssertTrue(dexaMutation.contains("updateSettings"))
+        XCTAssertTrue(dexaMutation.contains("RestingEnergyPolicy.storeDEXAReportEstimate"))
+
         XCTAssertGreaterThanOrEqual(
             sheetSource.components(
                 separatedBy: "guard let operation = session.accountOperationLease() else { return }"

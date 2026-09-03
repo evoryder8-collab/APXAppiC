@@ -1,4 +1,3 @@
-import { differenceInYears } from 'date-fns'
 import type {
   ActivityLevel,
   Goal,
@@ -10,23 +9,75 @@ import type {
 } from './types'
 import { personalTargetFor } from './personalProtocol.ts'
 import { bodyFatIsEnergyEligible } from './profilePolicy.ts'
+import { SUPABASE_ENUMS } from './supabaseEnums.ts'
+
+const TRAINING_GOAL_ALIASES: Record<string, TrainingGoal> = {
+  rebuild: 'rebuild',
+  general: 'rebuild',
+  muscle: 'muscle',
+  hypertrophy: 'muscle',
+  fat_loss: 'fat_loss',
+  strength: 'strength',
+  endurance: 'endurance',
+}
+
+const TRAINING_PLAN_WEEKS = new Set<number>([4, 8, 12, 26])
+
+export function canonicalTrainingGoal(value: unknown): TrainingGoal {
+  if (typeof value !== 'string') return 'rebuild'
+  const normalized = value.trim().toLowerCase()
+  return Object.hasOwn(TRAINING_GOAL_ALIASES, normalized)
+    ? TRAINING_GOAL_ALIASES[normalized]
+    : 'rebuild'
+}
+
+export function canonicalTrainingPlanWeeks(value: unknown): TrainingPlanWeeks {
+  const numeric = typeof value === 'number' ? value : Number(value)
+  return TRAINING_PLAN_WEEKS.has(numeric) ? numeric as TrainingPlanWeeks : 12
+}
+
+function parsedBirthdate(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const date = new Date(Date.UTC(year, month - 1, day))
+  return date.getUTCFullYear() === year
+    && date.getUTCMonth() === month - 1
+    && date.getUTCDate() === day
+    ? date
+    : null
+}
+
+function validAgeFrom(birthdate: string, at: Date = new Date()): number | null {
+  const birth = parsedBirthdate(birthdate)
+  if (!birth || !Number.isFinite(at.getTime()) || birth.getTime() > at.getTime()) return null
+  let age = at.getUTCFullYear() - birth.getUTCFullYear()
+  const month = at.getUTCMonth() - birth.getUTCMonth()
+  if (month < 0 || (month === 0 && at.getUTCDate() < birth.getUTCDate())) age -= 1
+  return age
+}
 
 export function ageFrom(birthdate: string, at: Date = new Date()): number {
-  return differenceInYears(at, new Date(birthdate + 'T00:00:00'))
+  return validAgeFrom(birthdate, at) ?? 0
 }
 
 /* Mifflin-St Jeor: weight/height/age based */
-export function bmrMifflin(p: Profile): number {
-  const age = ageFrom(p.birthdate)
+export function bmrMifflin(p: Profile, at: Date = new Date()): number {
+  const age = validAgeFrom(p.birthdate, at)
+  if (age == null || !Number.isFinite(p.weight_kg) || !Number.isFinite(p.height_cm)) return 0
   const base = 10 * p.weight_kg + 6.25 * p.height_cm - 5 * age
-  return Math.round(base + (p.sex === 'male' ? 5 : -161))
+  const estimate = base + (p.sex === 'male' ? 5 : -161)
+  return Number.isFinite(estimate) ? Math.round(estimate) : 0
 }
 
 /* Katch-McArdle: lean-mass based, more accurate when body fat % is known */
 export function bmrKatch(p: Profile): number | null {
-  if (!bodyFatIsEnergyEligible(p)) return null
+  if (!bodyFatIsEnergyEligible(p) || !Number.isFinite(p.weight_kg)) return null
   const lean = p.weight_kg * (1 - p.body_fat_pct! / 100)
-  return Math.round(370 + 21.6 * lean)
+  const estimate = 370 + 21.6 * lean
+  return Number.isFinite(estimate) ? Math.round(estimate) : null
 }
 
 export const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, { label: string; factor: number }> = {
@@ -38,9 +89,88 @@ export const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, { label: string; factor
 }
 
 export const GOALS: Record<Goal, { label: string; factor: number }> = {
-  recomp: { label: 'Lean recomp', factor: 0.89 },
+  recomp: { label: 'Lean recomp', factor: 0.90 },
   maintain: { label: 'Maintain', factor: 1 },
-  bulk: { label: 'Lean bulk', factor: 1.07 },
+  bulk: { label: 'Lean bulk', factor: 1.05 },
+}
+
+const ACTIVITY_LEVEL_VALUES = new Set<string>(SUPABASE_ENUMS.activity_level)
+const GOAL_VALUES = new Set<string>(SUPABASE_ENUMS.goal)
+
+function finitePositive(value: number): boolean {
+  return Number.isFinite(value) && value > 0
+}
+
+function targetSafeRestingEnergy(value: unknown): value is number {
+  return typeof value === 'number'
+    && Number.isFinite(value)
+    && value >= 800
+    && value <= 4_000
+}
+
+export function isSupportedActivityLevel(value: unknown): value is ActivityLevel {
+  return typeof value === 'string'
+    && ACTIVITY_LEVEL_VALUES.has(value)
+    && finitePositive(ACTIVITY_MULTIPLIERS[value as ActivityLevel].factor)
+}
+
+export function activityLevelLabel(value: unknown, fallback = 'Adaptive'): string {
+  return isSupportedActivityLevel(value) ? ACTIVITY_MULTIPLIERS[value].label : fallback
+}
+
+export function isSupportedNutritionGoal(value: unknown): value is Goal {
+  return typeof value === 'string'
+    && GOAL_VALUES.has(value)
+    && finitePositive(GOALS[value as Goal].factor)
+}
+
+export type MeasuredRestingEnergySubmission =
+  | {
+      status: 'accepted'
+      next: {
+        custom_bmr: number
+        custom_bmr_source: 'indirect_calorimetry'
+      }
+    }
+  | {
+      status: 'rejected'
+      reason: 'out_of_range' | 'source_required'
+      message: string
+      current: {
+        custom_bmr: number | null
+        custom_bmr_source: string | null
+      }
+    }
+
+export function validateMeasuredRestingEnergySubmission(input: {
+  current: { custom_bmr: number | null; custom_bmr_source: string | null }
+  draft: string
+  selected_source: string
+}): MeasuredRestingEnergySubmission {
+  const parsed = Number(input.draft.trim().replace(',', '.'))
+  if (!input.draft.trim() || !Number.isFinite(parsed) || parsed < 800 || parsed > 4_000) {
+    return {
+      status: 'rejected',
+      reason: 'out_of_range',
+      message: 'Enter a resting-energy value from 800 to 4000 kcal/day.',
+      current: input.current,
+    }
+  }
+  if (input.selected_source !== 'indirect_calorimetry') {
+    return {
+      status: 'rejected',
+      reason: 'source_required',
+      message: 'Choose indirect calorimetry only when that test measured this value.',
+      current: input.current,
+    }
+  }
+  return {
+    status: 'accepted',
+    next: {
+      custom_bmr: Math.round(parsed),
+      custom_bmr_source: 'indirect_calorimetry',
+    },
+  }
 }
 
 export interface NutritionPlanContext {
@@ -57,12 +187,22 @@ export interface NutritionGoalPreset {
 }
 
 export function nutritionPlanContext(
-  induction: Pick<TrainingInductionProfile, 'goal' | 'plan_weeks'> | null | undefined,
+  induction: Pick<TrainingInductionProfile, 'goal' | 'plan_weeks'> | {
+    goal?: unknown
+    plan_weeks?: unknown
+  } | null | undefined,
 ): NutritionPlanContext | undefined {
   if (!induction) return undefined
   return {
-    trainingGoal: induction.goal,
-    planWeeks: induction.plan_weeks ?? 12,
+    trainingGoal: canonicalTrainingGoal(induction.goal),
+    planWeeks: canonicalTrainingPlanWeeks(induction.plan_weeks),
+  }
+}
+
+function canonicalPlanContext(context: NutritionPlanContext): NutritionPlanContext {
+  return {
+    trainingGoal: canonicalTrainingGoal(context.trainingGoal),
+    planWeeks: canonicalTrainingPlanWeeks(context.planWeeks),
   }
 }
 
@@ -85,13 +225,14 @@ function preset(
 export function goalPresetsForPlan(context?: NutritionPlanContext): NutritionGoalPreset[] {
   if (!context) {
     return [
-      preset('recomp', 'Lean recomp', 0.89, 'A moderate deficit with extra protein support.', 'Review recovery, hunger, and weight trend after two weeks.'),
+      preset('recomp', 'Lean recomp', 0.90, 'A moderate deficit with extra protein support.', 'Review recovery, hunger, and weight trend after two weeks.'),
       preset('maintain', 'Maintain', 1, 'Match estimated daily expenditure without targeting weight change.', 'Wearable estimates are a starting point, not a metabolic measurement.'),
-      preset('bulk', 'Lean bulk', 1.07, 'A controlled surplus to support training progression.', 'Reduce the surplus if weight rises faster than intended.'),
+      preset('bulk', 'Lean bulk', 1.05, 'A controlled surplus to support training progression.', 'Reduce the surplus if weight rises faster than intended.'),
     ]
   }
 
-  switch (context.trainingGoal) {
+  const canonical = canonicalPlanContext(context)
+  switch (canonical.trainingGoal) {
   case 'muscle':
     return [
       preset('recomp', 'Lean recomp', 0.95, 'Build skill and preserve muscle while trimming slowly.', 'Choose Maintain if training performance or recovery declines.'),
@@ -102,8 +243,8 @@ export function goalPresetsForPlan(context?: NutritionPlanContext): NutritionGoa
     const acceleratedFactor: Record<TrainingPlanWeeks, number> = { 4: 0.80, 8: 0.82, 12: 0.84, 26: 0.86 }
     const steadyFactor: Record<TrainingPlanWeeks, number> = { 4: 0.86, 8: 0.87, 12: 0.88, 26: 0.89 }
     return [
-      preset('recomp', 'Accelerated cut', acceleratedFactor[context.planWeeks], 'The largest bounded deficit for this plan horizon.', 'Not the default. Stop and reassess if recovery, sleep, or performance falls.'),
-      preset('maintain', 'Steady cut', steadyFactor[context.planWeeks], 'A repeatable deficit balanced against training and lean-mass retention.', 'Best default; use measured trends instead of cutting harder too soon.'),
+      preset('recomp', 'Accelerated cut', acceleratedFactor[canonical.planWeeks], 'The largest bounded deficit for this plan horizon.', 'Not the default. Stop and reassess if recovery, sleep, or performance falls.'),
+      preset('maintain', 'Steady cut', steadyFactor[canonical.planWeeks], 'A repeatable deficit balanced against training and lean-mass retention.', 'Best default; use measured trends instead of cutting harder too soon.'),
       preset('bulk', 'Gentle cut', 0.93, 'A smaller deficit with more room for training and appetite control.', 'Loss is intentionally slower and depends on consistent weeks.'),
     ]
   }
@@ -129,12 +270,31 @@ export function goalPresetsForPlan(context?: NutritionPlanContext): NutritionGoa
 }
 
 export function goalPresetForPlan(goal: Goal, context?: NutritionPlanContext): NutritionGoalPreset {
-  return goalPresetsForPlan(context).find((candidate) => candidate.goal === goal)!
+  const presets = goalPresetsForPlan(context)
+  return presets.find((candidate) => candidate.goal === goal)
+    ?? presets.find((candidate) => candidate.goal === 'maintain')
+    ?? goalPresetsForPlan()[1]
 }
 
-export function recommendedGoalForTrainingGoal(trainingGoal: TrainingGoal): Goal {
-  return trainingGoal === 'muscle' ? 'bulk' : 'maintain'
+export function recommendedGoalForTrainingGoal(trainingGoal: TrainingGoal | unknown): Goal {
+  return canonicalTrainingGoal(trainingGoal) === 'muscle' ? 'bulk' : 'maintain'
 }
+
+export type TargetProvenance =
+  | 'calculated'
+  | 'measured_indirect_calorimetry'
+  | 'legacy_user_entered'
+  | 'bespoke_authored'
+
+export type TargetReviewState = 'ready' | 'review_recommended' | 'blocked'
+export type TargetReviewReason =
+  | 'invalid_birthdate'
+  | 'age_below_19'
+  | 'implausible_demographics'
+  | 'implausible_bmr'
+  | 'dexa_estimated_bmr_ignored'
+  | 'legacy_bmr_needs_review'
+  | 'macro_infeasible'
 
 export interface Targets {
   bmrMifflin: number
@@ -147,6 +307,10 @@ export interface Targets {
   water_l: number
   bmrSource: 'custom' | 'katch' | 'mifflin'
   activeBmr: number
+  targetProvenance: TargetProvenance
+  reviewState: TargetReviewState
+  reviewReasons: TargetReviewReason[]
+  isPublishable: boolean
 }
 
 export interface TargetMeal extends Meal {
@@ -205,7 +369,9 @@ export function computeMacroTargets(
   const fatFromEnergy = targetKcal * fatEnergyShare / 9
   const fatFloor = weightKg * FAT_FLOOR_G_PER_KG[goal]
   const fatG = Math.round(Math.max(fatFloor, fatFromEnergy))
-  const carbsG = Math.max(0, Math.round((targetKcal - proteinG * 4 - fatG * 9) / 4))
+  /* Whole-gram carbohydrate is rounded down so displayed macros never claim
+     more energy than the prescription they accompany. */
+  const carbsG = Math.max(0, Math.floor((targetKcal - proteinG * 4 - fatG * 9) / 4))
   return {
     protein_g: proteinG,
     fat_g: fatG,
@@ -216,14 +382,121 @@ export function computeMacroTargets(
 }
 
 /* TDEE builds on Katch-McArdle when a credible body-fat value is available. */
-export function computeTargets(p: Profile, planContext?: NutritionPlanContext): Targets {
+export interface TargetComputationOptions {
+  asOf?: Date
+}
+
+function finiteOrZero(value: number): number {
+  return Number.isFinite(value) ? value : 0
+}
+
+function blockedTargets(
+  bmrMifflinValue: number,
+  bmrKatchValue: number | null,
+  reasons: TargetReviewReason[],
+  kcal = 0,
+  tdee = 0,
+  activeBmr = 0,
+  bmrSource: Targets['bmrSource'] = 'mifflin',
+  provenance: TargetProvenance = 'calculated',
+): Targets {
+  return {
+    bmrMifflin: finiteOrZero(bmrMifflinValue),
+    bmrKatch: bmrKatchValue != null && Number.isFinite(bmrKatchValue) ? bmrKatchValue : null,
+    tdee: finiteOrZero(tdee),
+    kcal: finiteOrZero(kcal),
+    protein_g: 0,
+    fat_g: 0,
+    carbs_g: 0,
+    water_l: 2.75,
+    bmrSource,
+    activeBmr: finiteOrZero(activeBmr),
+    targetProvenance: provenance,
+    reviewState: 'blocked',
+    reviewReasons: reasons,
+    isPublishable: false,
+  }
+}
+
+function standardInputReasons(p: Profile, at: Date): TargetReviewReason[] {
+  const age = validAgeFrom(p.birthdate, at)
+  if (age == null) return ['invalid_birthdate']
+  if (age < 19) return ['age_below_19']
+  if (
+    age > 100
+    || !Number.isFinite(p.weight_kg) || p.weight_kg < 30 || p.weight_kg > 300
+    || !Number.isFinite(p.height_cm) || p.height_cm < 120 || p.height_cm > 230
+    || (p.sex !== 'male' && p.sex !== 'female')
+    || !isSupportedActivityLevel(p.activity_level)
+    || !isSupportedNutritionGoal(p.goal)
+  ) return ['implausible_demographics']
+  return []
+}
+
+/* TDEE builds on Katch-McArdle when a credible body-fat value is available. */
+export function computeTargets(
+  p: Profile,
+  planContext?: NutritionPlanContext,
+  options: TargetComputationOptions = {},
+): Targets {
+  const at = options.asOf ?? new Date()
   const katch = bmrKatch(p)
-  const mifflin = bmrMifflin(p)
+  const mifflin = bmrMifflin(p, at)
   const hasBodyFat = bodyFatIsEnergyEligible(p)
-  const hasCustomBmr = p.custom_bmr != null && Number.isFinite(p.custom_bmr) && p.custom_bmr >= 800 && p.custom_bmr <= 4000
-  const activeBmr = hasCustomBmr ? Math.round(p.custom_bmr!) : hasBodyFat && katch != null ? katch : mifflin
-  const personal = personalTargetFor(p)
+  const personal = isSupportedNutritionGoal(p.goal) && isSupportedActivityLevel(p.activity_level)
+    ? personalTargetFor(p)
+    : null
   if (personal) {
+    const personalHasCustomBmrInput = p.custom_bmr != null
+    const personalCustomBmrIsTargetSafe = targetSafeRestingEnergy(p.custom_bmr)
+    const personalDexaEstimate = personalCustomBmrIsTargetSafe
+      && p.custom_bmr_source === 'dexa_report_estimate'
+    const personalCustomBmr = personalCustomBmrIsTargetSafe && !personalDexaEstimate
+    const personalHasKatchCandidate = hasBodyFat && katch != null
+    const personalHasKatchReference = personalHasKatchCandidate && targetSafeRestingEnergy(katch)
+    const personalHasMifflinReference = targetSafeRestingEnergy(mifflin)
+    const personalActiveBmr = personalCustomBmr
+      ? Math.round(p.custom_bmr!)
+      : personalHasKatchReference
+        ? katch
+        : personalHasMifflinReference ? mifflin : 0
+    const reviewReasons = standardInputReasons(p, at)
+    const addReviewReason = (reason: TargetReviewReason) => {
+      if (!reviewReasons.includes(reason)) reviewReasons.push(reason)
+    }
+    if (
+      !Number.isFinite(p.weight_kg) || p.weight_kg < 30 || p.weight_kg > 300
+      || !Number.isFinite(p.height_cm) || p.height_cm < 120 || p.height_cm > 230
+      || (p.sex !== 'male' && p.sex !== 'female')
+    ) {
+      addReviewReason('implausible_demographics')
+    }
+    if (personalHasCustomBmrInput && !personalCustomBmrIsTargetSafe) {
+      addReviewReason('implausible_bmr')
+    } else if (personalDexaEstimate) {
+      addReviewReason('dexa_estimated_bmr_ignored')
+    } else if (personalCustomBmr && p.custom_bmr_source !== 'indirect_calorimetry') {
+      addReviewReason('legacy_bmr_needs_review')
+    }
+    if (
+      (personalHasKatchCandidate && !personalHasKatchReference)
+      || (!personalCustomBmr && !personalHasKatchReference && !personalHasMifflinReference)
+    ) {
+      addReviewReason('implausible_bmr')
+    }
+    const authoredTargetIsPublishable = [
+      personal.tdee,
+      personal.kcal,
+      personal.proteinG,
+      personal.fatG,
+      personal.carbsG,
+    ].every(Number.isFinite)
+      && personal.tdee > 0
+      && personal.kcal > 0
+      && personal.proteinG > 0
+      && personal.fatG > 0
+      && personal.carbsG >= 0
+      && personal.proteinG * 4 + personal.fatG * 9 + personal.carbsG * 4 <= personal.kcal
     return {
       bmrMifflin: mifflin,
       bmrKatch: katch,
@@ -233,14 +506,79 @@ export function computeTargets(p: Profile, planContext?: NutritionPlanContext): 
       fat_g: personal.fatG,
       carbs_g: personal.carbsG,
       water_l: p.persona === 'june' ? 2.2 : 2.75,
-      bmrSource: hasCustomBmr ? 'custom' : hasBodyFat ? 'katch' : 'mifflin',
-      activeBmr,
+      bmrSource: personalCustomBmr ? 'custom' : personalHasKatchReference ? 'katch' : 'mifflin',
+      activeBmr: personalActiveBmr,
+      targetProvenance: 'bespoke_authored',
+      reviewState: authoredTargetIsPublishable
+        ? reviewReasons.length > 0 ? 'review_recommended' : 'ready'
+        : 'blocked',
+      reviewReasons,
+      isPublishable: authoredTargetIsPublishable,
     }
   }
+
+  const inputReasons = standardInputReasons(p, at)
+  if (inputReasons.length > 0) return blockedTargets(mifflin, katch, inputReasons)
+
+  const hasCustomInput = p.custom_bmr != null
+  const customBmrIsPlausible = hasCustomInput
+    && Number.isFinite(p.custom_bmr)
+    && p.custom_bmr! >= 800
+    && p.custom_bmr! <= 4000
+  if (hasCustomInput && !customBmrIsPlausible) {
+    return blockedTargets(mifflin, katch, ['implausible_bmr'])
+  }
+
+  const ignoresDexaEstimate = customBmrIsPlausible && p.custom_bmr_source === 'dexa_report_estimate'
+  const usesCustomBmr = customBmrIsPlausible && !ignoresDexaEstimate
+  const activeBmr = usesCustomBmr
+    ? Math.round(p.custom_bmr!)
+    : hasBodyFat && katch != null
+      ? katch
+      : mifflin
+  if (!Number.isFinite(activeBmr) || activeBmr < 800 || activeBmr > 4000) {
+    return blockedTargets(mifflin, katch, ['implausible_bmr'])
+  }
+
+  const bmrSource: Targets['bmrSource'] = usesCustomBmr ? 'custom' : hasBodyFat ? 'katch' : 'mifflin'
+  const targetProvenance: TargetProvenance = usesCustomBmr
+    ? p.custom_bmr_source === 'indirect_calorimetry'
+      ? 'measured_indirect_calorimetry'
+      : 'legacy_user_entered'
+    : 'calculated'
+  const reviewReasons: TargetReviewReason[] = ignoresDexaEstimate
+    ? ['dexa_estimated_bmr_ignored']
+    : usesCustomBmr && p.custom_bmr_source !== 'indirect_calorimetry'
+      ? ['legacy_bmr_needs_review']
+      : []
+
   const tdee = Math.round(activeBmr * ACTIVITY_MULTIPLIERS[p.activity_level].factor)
-  const formulaTarget = Math.max(activeBmr * 1.05, tdee * goalPresetForPlan(p.goal, planContext).factor)
+  const selectedFactor = goalPresetForPlan(p.goal, planContext).factor
+  const formulaTarget = tdee * selectedFactor
   const kcal = Math.round(formulaTarget)
   const macros = computeMacroTargets(p.weight_kg, p.activity_level, p.goal, kcal)
+  const macroKcal = macros.protein_g * 4 + macros.fat_g * 9 + macros.carbs_g * 4
+  const isPublishable = finitePositive(tdee)
+    && finitePositive(selectedFactor)
+    && finitePositive(kcal)
+    && finitePositive(macros.protein_g)
+    && finitePositive(macros.fat_g)
+    && Number.isFinite(macros.carbs_g)
+    && macros.carbs_g >= 0
+    && Number.isFinite(macroKcal)
+    && macroKcal <= kcal
+  if (!isPublishable) {
+    return blockedTargets(
+      mifflin,
+      katch,
+      [...reviewReasons, 'macro_infeasible'],
+      kcal,
+      tdee,
+      activeBmr,
+      bmrSource,
+      targetProvenance,
+    )
+  }
   return {
     bmrMifflin: mifflin,
     bmrKatch: katch,
@@ -250,8 +588,12 @@ export function computeTargets(p: Profile, planContext?: NutritionPlanContext): 
     fat_g: macros.fat_g,
     carbs_g: macros.carbs_g,
     water_l: 2.75,
-    bmrSource: hasCustomBmr ? 'custom' : hasBodyFat ? 'katch' : 'mifflin',
+    bmrSource,
     activeBmr,
+    targetProvenance,
+    reviewState: reviewReasons.length > 0 ? 'review_recommended' : 'ready',
+    reviewReasons,
+    isPublishable,
   }
 }
 
@@ -340,7 +682,7 @@ function portionNote(meal: Meal, scales: PortionScales, dayLabel: string): strin
    remainders, so every meal card adds back up to the exact targets shown at
    the top even after rounding. */
 export function buildTargetMealPlan(meals: Meal[], targets: Targets, dayLabel = 'Adaptive'): TargetMeal[] {
-  if (meals.length === 0) return []
+  if (meals.length === 0 || !targets.isPublishable) return []
   const referenceKcal = meals.reduce((sum, meal) => sum + meal.kcal, 0) || targets.kcal
   const referenceProtein = meals.reduce((sum, meal) => sum + meal.protein_g, 0) || targets.protein_g
   const referenceFat = meals.reduce((sum, meal) => sum + meal.fat_g, 0) || targets.fat_g

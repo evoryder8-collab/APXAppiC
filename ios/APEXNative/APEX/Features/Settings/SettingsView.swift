@@ -27,6 +27,8 @@ struct SettingsView: View {
     @State private var confirmRestorePlan = false
     @State private var timeZoneDraft = ""
     @State private var measuredBMRDraft = ""
+    @State private var measuredBMRStatus = ""
+    @State private var measuredBMRStatusIsError = false
 
     private var settings: UserSettings? { session.data.settings }
     private var profile: Profile? { session.profile }
@@ -60,6 +62,8 @@ struct SettingsView: View {
             measuredBMRDraft = profile
                 .flatMap { RestingEnergyPolicy.resolved(profile: $0, settings: settings) }
                 .map { String(Int($0.rounded())) } ?? ""
+            measuredBMRStatus = ""
+            measuredBMRStatusIsError = false
         }
         .confirmationDialog(language.text(.logoutWarning), isPresented: $showLogout, titleVisibility: .visible) {
             Button(language.text(.yesLogout), role: .destructive) { Task { await session.signOut() } }
@@ -429,9 +433,25 @@ struct SettingsView: View {
                             .padding(13).background(.white.opacity(0.65), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
                         Text("kcal").font(APEXFont.mono(11))
                         Button(language.text("Save")) {
-                            if let value = Double(measuredBMRDraft), RestingEnergyPolicy.validRange.contains(value) { setAddon("custom_bmr", .number(value)) }
-                            else { setAddon("custom_bmr", .null) }
+                            saveMeasuredBMR()
                         }.buttonStyle(.borderedProminent).tint(APEXColor.violet)
+                        if hasStoredRestingEnergy {
+                            Button(language.text("Clear"), role: .destructive) {
+                                clearMeasuredBMR()
+                            }
+                            .buttonStyle(.bordered)
+                        }
+                    }
+                    if measuredBMRStatus.isEmpty == false {
+                        Label(
+                            language.text(measuredBMRStatus),
+                            systemImage: measuredBMRStatusIsError
+                                ? "exclamationmark.triangle.fill"
+                                : "checkmark.circle.fill"
+                        )
+                            .font(APEXFont.body(11, weight: .semibold))
+                            .foregroundStyle(measuredBMRStatusIsError ? Color.red : APEXColor.green)
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                     }
                 }
                 profileTextRow("Birthdate", value: profile?.birthdate ?? "") { next in
@@ -732,6 +752,61 @@ struct SettingsView: View {
     }
     private func setAddon(_ key: String, _ value: JSONValue) {
         mutateSettings { $0.addons[key] = value }
+    }
+
+    private var hasStoredRestingEnergy: Bool {
+        guard let profile else { return false }
+        return RestingEnergyPolicy.resolved(profile: profile, settings: settings) != nil
+    }
+
+    private func saveMeasuredBMR() {
+        guard let value = Double(measuredBMRDraft),
+              RestingEnergyPolicy.validRange.contains(value) else {
+            measuredBMRStatus = "Enter a resting-energy value from 800 to 4000 kcal/day."
+            measuredBMRStatusIsError = true
+            return
+        }
+        guard let operation = session.accountOperationLease() else { return }
+        Task {
+            do {
+                try await session.updateSettings({ settings in
+                    settings.addons["custom_bmr"] = .number(value.rounded())
+                    settings.addons["custom_bmr_source"] = .string(
+                        RestingEnergyProvenance.indirectCalorimetry.rawValue
+                    )
+                }, operation: operation)
+                guard session.accountOperationIsCurrent(operation) else { return }
+                measuredBMRDraft = String(Int(value.rounded()))
+                measuredBMRStatus = "Saved as indirect calorimetry"
+                measuredBMRStatusIsError = false
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func clearMeasuredBMR() {
+        guard let operation = session.accountOperationLease() else { return }
+        Task {
+            do {
+                try await session.updateSettings({ settings in
+                    settings.addons["custom_bmr"] = .null
+                    settings.addons["custom_bmr_source"] = .null
+                }, operation: operation)
+                guard session.accountOperationIsCurrent(operation) else { return }
+                measuredBMRDraft = ""
+                measuredBMRStatus = "Returned to calculated resting energy"
+                measuredBMRStatusIsError = false
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
+        }
     }
     private func adjustGuardian(_ delta: Double) {
         mutateSettings {

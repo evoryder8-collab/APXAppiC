@@ -53,7 +53,7 @@ export const PERSONAL_CALORIE_PROTOCOLS: Partial<Record<PersonaSlug, PersonalCal
 }
 
 export function carbohydrateGrams(kcal: number, proteinG: number, fatG: number): number {
-  return Math.max(0, Math.round((kcal - proteinG * 4 - fatG * 9) / 4))
+  return Math.max(0, Math.floor((kcal - proteinG * 4 - fatG * 9) / 4))
 }
 
 export function personalTargetFor(
@@ -67,17 +67,39 @@ export function personalTargetFor(
       : null
   const protocol = persona ? PERSONAL_CALORIE_PROTOCOLS[persona] : null
   if (!protocol) return null
-  const kcal = protocol.calories[profile.goal][profile.activity_level]
+  if (
+    !Object.hasOwn(protocol.calories, profile.goal)
+    || !Object.hasOwn(protocol.protein, profile.goal)
+    || !Object.hasOwn(protocol.fat, profile.goal)
+  ) return null
+  const goalCalories = protocol.calories[profile.goal]
+  const maintenanceCalories = protocol.calories.maintain
+  if (
+    !Object.hasOwn(goalCalories, profile.activity_level)
+    || !Object.hasOwn(maintenanceCalories, profile.activity_level)
+  ) return null
+  const kcal = goalCalories[profile.activity_level]
+  const tdee = maintenanceCalories[profile.activity_level]
   const proteinG = protocol.protein[profile.goal]
   const fatG = protocol.fat[profile.goal]
+  const carbsG = carbohydrateGrams(kcal, proteinG, fatG)
+  if (
+    ![kcal, tdee, proteinG, fatG, carbsG].every(Number.isFinite)
+    || kcal <= 0
+    || tdee <= 0
+    || proteinG <= 0
+    || fatG <= 0
+    || carbsG < 0
+    || proteinG * 4 + fatG * 9 + carbsG * 4 > kcal
+  ) return null
   return {
     kcal,
     /* Maintenance is the closest useful TDEE estimate. Goal calories are
        displayed separately, so a surplus or deficit is never mislabeled. */
-    tdee: protocol.calories.maintain[profile.activity_level],
+    tdee,
     proteinG,
     fatG,
-    carbsG: carbohydrateGrams(kcal, proteinG, fatG),
+    carbsG,
   }
 }
 

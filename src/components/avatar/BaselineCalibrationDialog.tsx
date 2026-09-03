@@ -5,6 +5,7 @@ import {
   baselineCalibrationQuestions,
   buildDxaCalibrationEvidence,
   buildManualCalibrationEvidence,
+  calibrationResultMeasuredAt,
   clearBaselineCalibrationDraft,
   emptyBaselineCalibrationAnswers,
   evaluateBaselineCalibration,
@@ -163,30 +164,49 @@ export function BaselineCalibrationDialog({ profile, onClose }: { profile: Profi
     }
   }
 
-  const measuredAt = () => new Date(`${resultDate}T12:00:00.000Z`).toISOString()
-
   const saveDxaResult = () => {
     const bodyFat = parseOptionalNumber(dxaBodyFat)
     const restingEnergy = parseOptionalNumber(dxaRestingEnergy)
-    if (bodyFat === undefined || restingEnergy === undefined) {
+    const measuredAt = calibrationResultMeasuredAt(resultDate)
+    if (bodyFat === undefined || restingEnergy === undefined || measuredAt == null) {
       setSaveState('failed')
       return
     }
     setSaveState('saving')
-    const result = buildDxaCalibrationEvidence({
-      user_id: profile.user_id,
-      body_fat_percentage: bodyFat,
-      resting_metabolic_rate: restingEnergy,
-      declared_source: resultSource,
-      measured_at: measuredAt(),
-      imported_at: new Date().toISOString(),
-    })
-    if (result.status === 'rejected') {
-      setSaveState('failed')
-      return
-    }
     try {
+      const result = buildDxaCalibrationEvidence({
+        user_id: profile.user_id,
+        body_fat_percentage: bodyFat,
+        resting_metabolic_rate: restingEnergy,
+        declared_source: resultSource,
+        measured_at: measuredAt,
+        imported_at: new Date().toISOString(),
+        existing_custom_bmr: profile.custom_bmr ?? null,
+        existing_custom_bmr_source: profile.custom_bmr_source ?? null,
+      })
+      if (result.status === 'rejected') throw new Error(result.reason)
+      const activeProfile = store.data.profile
+      const activeSettings = store.data.settings
+      if (
+        !activeProfile
+        || activeProfile.user_id !== result.persistence.owner_id
+        || (result.persistence.settings_addons_patch != null
+          && (!activeSettings || activeSettings.user_id !== result.persistence.owner_id))
+      ) {
+        throw new Error('dexa_calibration_account_mismatch')
+      }
       result.evidence.forEach(store.recordFitnessEvidence)
+      if (result.persistence.profile_patch) {
+        store.setProfile(result.persistence.profile_patch)
+      }
+      if (result.persistence.settings_addons_patch && activeSettings) {
+        store.setSettings({
+          addons: {
+            ...activeSettings.addons,
+            ...result.persistence.settings_addons_patch,
+          },
+        })
+      }
       setSavedResults([
         ...(bodyFat == null ? [] : [`${t('Body fat')} · ${bodyFat}%`]),
         ...(restingEnergy == null ? [] : [`${t('Resting energy (BMR/RMR)')} · ${restingEnergy} ${t('kcal/day')}`]),
@@ -200,22 +220,23 @@ export function BaselineCalibrationDialog({ profile, onClose }: { profile: Profi
 
   const saveOtherResult = () => {
     const value = Number(resultValue.replace(',', '.'))
-    if (!Number.isFinite(value)) return
-    setSaveState('saving')
-    const result = buildManualCalibrationEvidence({
-      user_id: profile.user_id,
-      metric: metric.metric,
-      value,
-      unit: metric.unit,
-      declared_source: resultSource,
-      measured_at: measuredAt(),
-      imported_at: new Date().toISOString(),
-    })
-    if (result.status === 'rejected') {
+    const measuredAt = calibrationResultMeasuredAt(resultDate)
+    if (!Number.isFinite(value) || measuredAt == null) {
       setSaveState('failed')
       return
     }
+    setSaveState('saving')
     try {
+      const result = buildManualCalibrationEvidence({
+        user_id: profile.user_id,
+        metric: metric.metric,
+        value,
+        unit: metric.unit,
+        declared_source: resultSource,
+        measured_at: measuredAt,
+        imported_at: new Date().toISOString(),
+      })
+      if (result.status === 'rejected') throw new Error(result.reason)
       store.recordFitnessEvidence(result.evidence)
       setSavedResults([`${t(metric.title)} · ${value} ${t(metric.unitLabel)}`])
       setSaveState('saved')
@@ -235,11 +256,15 @@ export function BaselineCalibrationDialog({ profile, onClose }: { profile: Profi
     setResultRoute('chooser')
   }
 
-  const dxaReady = resultSource.trim().length > 0
+  const resultDateIsValid = calibrationResultMeasuredAt(resultDate) != null
+  const dxaReady = resultDateIsValid
+    && resultSource.trim().length > 0
     && parseOptionalNumber(dxaBodyFat) !== undefined
     && parseOptionalNumber(dxaRestingEnergy) !== undefined
     && (dxaBodyFat.trim().length > 0 || dxaRestingEnergy.trim().length > 0)
-  const otherReady = Number.isFinite(Number(resultValue.replace(',', '.'))) && resultSource.trim().length > 0
+  const otherReady = resultDateIsValid
+    && Number.isFinite(Number(resultValue.replace(',', '.')))
+    && resultSource.trim().length > 0
 
   return (
     <div

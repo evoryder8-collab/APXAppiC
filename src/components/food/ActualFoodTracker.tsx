@@ -58,7 +58,7 @@ export function ActualFoodTracker({
   date: string
   planning: boolean
   dateLabel: string | null
-  target: MealTotals
+  target: MealTotals | null
   consumed: MealTotals
   burnedKcal: number
   activityLevel: ActivityLevel

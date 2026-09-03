@@ -17,7 +17,7 @@ enum AdaptiveMealPlanEngine {
         targets: NutritionTargets,
         dayLabel: String
     ) -> [AdaptiveMeal] {
-        guard !meals.isEmpty else { return [] }
+        guard !meals.isEmpty, targets.isPublishable else { return [] }
         let ordered = meals.sorted { $0.sortOrder < $1.sortOrder }
         let referenceProtein = max(1, ordered.reduce(0) { $0 + $1.proteinG })
         let referenceFat = max(1, ordered.reduce(0) { $0 + $1.fatG })

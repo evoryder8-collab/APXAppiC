@@ -3,7 +3,7 @@ import { AccentChip, GlassCard, GradientButton, SectionHeader, Stepper, Toggle }
 import { ACCENTS } from '../lib/theme'
 import { useStore } from '../store/AppStore'
 import { isLocalMode } from '../lib/supabase'
-import { ageFrom, computeTargets, nutritionPlanContext } from '../lib/nutrition'
+import { ageFrom, computeTargets, nutritionPlanContext, validateMeasuredRestingEnergySubmission } from '../lib/nutrition'
 import { ensurePermission } from '../lib/notify'
 import { buildImportRows, parseHealthFile, type ImportResult } from '../lib/healthImport'
 import { clearEntryGrant, clearSelectedPersona } from '../lib/persona'
@@ -12,6 +12,7 @@ import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { canRestoreOriginalTrainingProgramme, isTrainingInductionEligible, restoreTrainingPlanAddons } from '../lib/trainingInduction'
 import { mealBlockLabel, normalizeMealBlockSettings, type CustomMealBlock, type CustomMealBlockId, type MealBlock, type MealBlockKind } from '../lib/mealBlocks'
 import { MEAL_DAYLINE_DENSITY_OPTIONS, MEAL_TIMELINE_SNAP_OPTIONS, detectedTimeZone, normalizeMealDaylineDensity, normalizeMealTimelineSnap, searchTimeZoneOptions, timeZoneFromSettings, validTimeZone, zonedClock } from '../lib/mealTiming'
+import { NutritionTargetStatus } from '../components/nutrition/NutritionTargetStatus'
 
 const violet = ACCENTS.violet
 const emerald = ACCENTS.emerald
@@ -66,12 +67,18 @@ export function Settings() {
   const restorableStarterAddons = restoreTrainingPlanAddons(data)
   const [birth, setBirth] = useState(profile?.birthdate ?? '1992-07-25')
   const [customBmrDraft, setCustomBmrDraft] = useState(profile?.custom_bmr == null ? '' : String(profile.custom_bmr))
+  const [customBmrSourceDraft, setCustomBmrSourceDraft] = useState(
+    profile?.custom_bmr_source === 'indirect_calorimetry' ? 'indirect_calorimetry' : '',
+  )
+  const [customBmrValidationMessage, setCustomBmrValidationMessage] = useState<string | null>(null)
   const resolvedTimeZone = timeZoneFromSettings(settings)
   const [timeZoneDraft, setTimeZoneDraft] = useState(resolvedTimeZone)
   const [timeZoneSearchOpen, setTimeZoneSearchOpen] = useState(false)
   useEffect(() => {
     setCustomBmrDraft(profile?.custom_bmr == null ? '' : String(profile.custom_bmr))
-  }, [profile?.custom_bmr])
+    setCustomBmrSourceDraft(profile?.custom_bmr_source === 'indirect_calorimetry' ? 'indirect_calorimetry' : '')
+    setCustomBmrValidationMessage(null)
+  }, [profile?.custom_bmr, profile?.custom_bmr_source, profile?.user_id])
   useEffect(() => setTimeZoneDraft(resolvedTimeZone), [resolvedTimeZone])
   if (!profile || !settings) return null
   const targets = computeTargets(profile, nutritionPlanContext(settings.addons.training_induction ?? settings.addons.training_induction_baseline))
@@ -222,10 +229,27 @@ export function Settings() {
         }
 
   const commitCustomBmr = (): void => {
-    const parsed = customBmrDraft.trim() === '' ? null : Number(customBmrDraft)
-    const next = parsed == null || !Number.isFinite(parsed) ? null : Math.min(4000, Math.max(800, Math.round(parsed)))
-    setCustomBmrDraft(next == null ? '' : String(next))
-    setSettings({ addons: { ...settings.addons, custom_bmr: next } })
+    const result = validateMeasuredRestingEnergySubmission({
+      current: {
+        custom_bmr: profile.custom_bmr ?? null,
+        custom_bmr_source: profile.custom_bmr_source ?? null,
+      },
+      draft: customBmrDraft,
+      selected_source: customBmrSourceDraft,
+    })
+    if (result.status === 'rejected') {
+      setCustomBmrValidationMessage(result.message)
+      return
+    }
+    setCustomBmrDraft(String(result.next.custom_bmr))
+    setCustomBmrValidationMessage(null)
+    setSettings({
+      addons: {
+        ...settings.addons,
+        ...result.next,
+      },
+    })
+    toast(t('Result saved'), 'ok')
   }
 
   const commitTimeZone = (): void => {
@@ -696,12 +720,11 @@ export function Settings() {
               )}
             </div>
             <div className={`${row} items-start`}>
-              <div className="max-w-[58%]">
+              <div className="w-full">
                 <p className={label}>Measured BMR (optional)</p>
                 <p className={sub}>Use resting energy measured by indirect calorimetry. DEXA body-fat data already informs the estimate. Clear it to return to the calculated formula.</p>
-              </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <span className="glass flex items-center rounded-xl px-3 py-2">
+                <div className="mt-3 grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)_auto_auto] sm:items-center">
+                  <span className="glass flex min-h-11 items-center rounded-xl px-3 py-2">
                   <input
                     type="number"
                     inputMode="numeric"
@@ -710,33 +733,68 @@ export function Settings() {
                     step="1"
                     value={customBmrDraft}
                     placeholder={String(targets.bmrKatch ?? targets.bmrMifflin)}
-                    onChange={(event) => setCustomBmrDraft(event.target.value)}
-                    onBlur={commitCustomBmr}
-                    onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
-                    className="w-20 bg-transparent text-right font-mono text-base font-bold text-ink outline-none"
+                    onChange={(event) => {
+                      setCustomBmrDraft(event.target.value)
+                      setCustomBmrValidationMessage(null)
+                    }}
+                    onKeyDown={(event) => event.key === 'Enter' && commitCustomBmr()}
+                    className="min-w-0 flex-1 bg-transparent text-right font-mono text-base font-bold text-ink outline-none"
                     aria-label="Custom BMR"
+                    aria-invalid={customBmrValidationMessage != null}
+                    aria-describedby="custom-bmr-validation"
                   />
                   <span className="ml-1 text-xs font-semibold text-ink-soft">kcal</span>
-                </span>
+                  </span>
+                  <select
+                    value={customBmrSourceDraft}
+                    onChange={(event) => {
+                      setCustomBmrSourceDraft(event.target.value)
+                      setCustomBmrValidationMessage(null)
+                    }}
+                    className="min-h-11 min-w-0 rounded-xl border border-ink/10 bg-white/75 px-3 text-xs font-bold text-ink"
+                    aria-label={t('Source')}
+                  >
+                    <option value="">{t('Source')}</option>
+                    <option value="indirect_calorimetry">{t('Measured by indirect calorimetry')}</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={commitCustomBmr}
+                    className="min-h-11 rounded-xl bg-violet px-3 text-xs font-bold text-white"
+                  >
+                    {t('Save')}
+                  </button>
                 {profile.custom_bmr != null && (
                   <button
                     type="button"
                     onClick={() => {
                       setCustomBmrDraft('')
-                      setSettings({ addons: { ...settings.addons, custom_bmr: null } })
+                      setCustomBmrSourceDraft('')
+                      setCustomBmrValidationMessage(null)
+                      setSettings({
+                        addons: {
+                          ...settings.addons,
+                          custom_bmr: null,
+                          custom_bmr_source: null,
+                        },
+                      })
                     }}
                     className="rounded-xl border border-violet-200/70 bg-white/70 px-2.5 py-2 text-[10px] font-bold text-violet-800"
                   >
-                    Clear
+                    {t('Clear')}
                   </button>
+                )}
+                </div>
+                {customBmrValidationMessage && (
+                  <p id="custom-bmr-validation" className="mt-2 text-xs font-bold text-crimson" role="alert">
+                    {t(customBmrValidationMessage)}
+                  </p>
                 )}
               </div>
             </div>
-            {targets.bmrSource === 'custom' && (
-              <div className="-mt-1 rounded-2xl border border-violet-300/20 bg-violet-500/8 px-3 py-2 text-[11px] font-semibold text-violet-800">
-                {`${translateInterfaceText('Measured BMR active', language)} · ${targets.activeBmr} kcal`}
-              </div>
-            )}
+            <div className="py-3">
+              <NutritionTargetStatus targets={targets} translate={t} />
+            </div>
             <div className={row}>
               <span className={label}>Height</span>
               <Stepper accent={violet} value={profile.height_cm} step={1} unit="cm" onChange={(v) => setProfile({ height_cm: v })} />

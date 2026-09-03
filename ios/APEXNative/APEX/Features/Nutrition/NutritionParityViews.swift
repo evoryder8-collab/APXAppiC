@@ -68,10 +68,19 @@ struct NutritionGlanceCard: View {
     }
 
     private var resolvedActivity: WearableActivityEngine.Resolution {
-        WearableActivityEngine.resolve(
-            persona: session.profile?.persona ?? .constantine,
+        let profile = session.profile
+        let logs: [ActivityLog]
+        if let ownerID = profile?.userID {
+            logs = session.data.activityLogs.filter {
+                $0.userID == ownerID && $0.date == date.apexDateKey
+            }
+        } else {
+            logs = []
+        }
+        return WearableActivityEngine.resolve(
+            persona: profile?.persona ?? .constantine,
             wearable: wearableActivity,
-            logs: session.data.activityLogs.filter { $0.date == date.apexDateKey }
+            logs: logs
         )
     }
 
@@ -114,105 +123,120 @@ struct NutritionGlanceCard: View {
                        the page already carries the date and stays there however
                        far down you scroll. */
                     Spacer(minLength: 4)
-                    if let completion {
+                    if let completion, targets.isPublishable {
                         CompletionRing(value: completion)
                             .scaleEffect(0.68)
                             .frame(width: 47, height: 47)
                     }
                 }
 
-                /* Three columns around a 164pt ring only fit while the text is
-                   small. At accessibility sizes the outer numbers ran into the
-                   ring and their labels were cut off, so the row becomes a
-                   column and each figure gets the full width. */
-                let layout = dynamicTypeSize.isAccessibilitySize
-                    ? AnyLayout(VStackLayout(spacing: 18))
-                    : AnyLayout(HStackLayout(spacing: 15))
-                layout {
-                    VStack(spacing: 3) {
-                        /* Four-digit intakes wrapped mid-number, dropping the
-                           last digit onto its own line. The column is narrow by
-                           design, so the figure scales instead of wrapping. */
-                        Text("\(Int(totals.kcal.rounded()))")
-                            .font(APEXFont.display(32))
-                            .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
-                            .contentTransition(.numericText())
-                        Text(language.text("Eaten").uppercased(with: language.language.locale))
-                            .font(APEXFont.mono(8))
-                            .foregroundStyle(APEXColor.secondaryInk)
-                    }
-                    .frame(maxWidth: .infinity)
-
-                    Button(action: onEditTargets) {
-                        ZStack {
-                            Circle()
-                                .stroke(
-                                    calorieBalance.isOverTarget ? Color.red.opacity(0.13) : APEXColor.ink.opacity(0.07),
-                                    lineWidth: 15
-                                )
-                            Circle()
-                                .trim(from: 0, to: max(calorieProgress, 0.012))
-                                .stroke(
-                                    AngularGradient(
-                                        colors: calorieBalance.isOverTarget
-                                            ? [Color.orange, Color.red, Color.orange]
-                                            : [APEXColor.amber, APEXColor.cyan, APEXColor.amber],
-                                        center: .center
-                                    ),
-                                    style: StrokeStyle(lineWidth: 15, lineCap: .round)
-                                )
-                                .rotationEffect(.degrees(-90))
-                                .animation(.snappy, value: calorieProgress)
-                            VStack(spacing: 2) {
-                                Text(language.text(calorieBalance.label))
-                                    .font(APEXFont.body(10, weight: .semibold))
-                                    .foregroundStyle(calorieBalance.isOverTarget ? Color.red : APEXColor.secondaryInk)
-                                Text("\(calorieBalance.amount)")
-                                    .font(APEXFont.display(34))
-                                    .lineLimit(1)
-                                    .fixedSize(horizontal: true, vertical: false)
-                                    .foregroundStyle(calorieBalance.isOverTarget ? Color.red : APEXColor.ink)
-                                    .contentTransition(.numericText())
-                                Text(language.format("of %d kcal", targets.targetCalories))
-                                    .font(APEXFont.mono(8))
-                                    .foregroundStyle(APEXColor.secondaryInk)
-                            }
+                if targets.isPublishable {
+                    /* Three columns around a 164pt ring only fit while the text is
+                       small. At accessibility sizes the outer numbers ran into the
+                       ring and their labels were cut off, so the row becomes a
+                       column and each figure gets the full width. */
+                    let layout = dynamicTypeSize.isAccessibilitySize
+                        ? AnyLayout(VStackLayout(spacing: 18))
+                        : AnyLayout(HStackLayout(spacing: 15))
+                    layout {
+                        VStack(spacing: 3) {
+                            /* Four-digit intakes wrapped mid-number, dropping the
+                               last digit onto its own line. The column is narrow by
+                               design, so the figure scales instead of wrapping. */
+                            Text("\(Int(totals.kcal.rounded()))")
+                                .font(APEXFont.display(32))
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                                .contentTransition(.numericText())
+                            Text(language.text("Eaten").uppercased(with: language.language.locale))
+                                .font(APEXFont.mono(8))
+                                .foregroundStyle(APEXColor.secondaryInk)
                         }
-                        .frame(width: 164, height: 164)
-                        .contentShape(Circle())
-                    }
-                    .buttonStyle(.plain)
+                        .frame(maxWidth: .infinity)
 
-                    VStack(spacing: 3) {
-                        Text("\(resolvedBurnedCalories)")
-                            .font(APEXFont.display(29))
-                            .lineLimit(1)
-                            .fixedSize(horizontal: true, vertical: false)
-                            .contentTransition(.numericText())
-                        Text(language.shortText("Burned").uppercased(with: language.language.locale))
-                            .font(APEXFont.mono(8))
-                            .foregroundStyle(APEXColor.secondaryInk)
-                        Text(language.shortText(resolvedActivity.level.title).uppercased(with: language.language.locale))
-                            .font(APEXFont.mono(7, weight: .bold))
-                            .foregroundStyle(APEXColor.amberDeep)
-                            .lineLimit(1)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
+                        Button(action: onEditTargets) {
+                            ZStack {
+                                Circle()
+                                    .stroke(
+                                        calorieBalance.isOverTarget ? Color.red.opacity(0.13) : APEXColor.ink.opacity(0.07),
+                                        lineWidth: 15
+                                    )
+                                Circle()
+                                    .trim(from: 0, to: max(calorieProgress, 0.012))
+                                    .stroke(
+                                        AngularGradient(
+                                            colors: calorieBalance.isOverTarget
+                                                ? [Color.orange, Color.red, Color.orange]
+                                                : [APEXColor.amber, APEXColor.cyan, APEXColor.amber],
+                                            center: .center
+                                        ),
+                                        style: StrokeStyle(lineWidth: 15, lineCap: .round)
+                                    )
+                                    .rotationEffect(.degrees(-90))
+                                    .animation(.snappy, value: calorieProgress)
+                                VStack(spacing: 2) {
+                                    Text(language.text(calorieBalance.label))
+                                        .font(APEXFont.body(10, weight: .semibold))
+                                        .foregroundStyle(calorieBalance.isOverTarget ? Color.red : APEXColor.secondaryInk)
+                                    Text("\(calorieBalance.amount)")
+                                        .font(APEXFont.display(34))
+                                        .lineLimit(1)
+                                        .fixedSize(horizontal: true, vertical: false)
+                                        .foregroundStyle(calorieBalance.isOverTarget ? Color.red : APEXColor.ink)
+                                        .contentTransition(.numericText())
+                                    Text(language.format("of %d kcal", targets.targetCalories))
+                                        .font(APEXFont.mono(8))
+                                        .foregroundStyle(APEXColor.secondaryInk)
+                                }
+                            }
+                            .frame(width: 164, height: 164)
+                            .contentShape(Circle())
+                        }
+                        .buttonStyle(.plain)
 
-                HStack(spacing: 9) {
-                    GlanceMacroCard(
-                        title: "Protein", value: totals.proteinG,
-                        target: Double(targets.proteinG), color: Color(red: 0.87, green: 0.22, blue: 0.52)
+                        VStack(spacing: 3) {
+                            Text("\(resolvedBurnedCalories)")
+                                .font(APEXFont.display(29))
+                                .lineLimit(1)
+                                .fixedSize(horizontal: true, vertical: false)
+                                .contentTransition(.numericText())
+                            Text(language.shortText("Burned").uppercased(with: language.language.locale))
+                                .font(APEXFont.mono(8))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                            Text(language.shortText(resolvedActivity.level.title).uppercased(with: language.language.locale))
+                                .font(APEXFont.mono(7, weight: .bold))
+                                .foregroundStyle(APEXColor.amberDeep)
+                                .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+
+                    HStack(spacing: 9) {
+                        GlanceMacroCard(
+                            title: "Protein", value: totals.proteinG,
+                            target: Double(targets.proteinG), color: Color(red: 0.87, green: 0.22, blue: 0.52)
+                        )
+                        GlanceMacroCard(
+                            title: "Carbs", value: totals.carbsG,
+                            target: Double(targets.carbsG), color: APEXColor.cyan
+                        )
+                        GlanceMacroCard(
+                            title: "Fat", value: totals.fatG,
+                            target: Double(targets.fatG), color: APEXColor.violet
+                        )
+                    }
+                } else {
+                    Label(
+                        language.text("This target needs review before use."),
+                        systemImage: "exclamationmark.triangle.fill"
                     )
-                    GlanceMacroCard(
-                        title: "Carbs", value: totals.carbsG,
-                        target: Double(targets.carbsG), color: APEXColor.cyan
-                    )
-                    GlanceMacroCard(
-                        title: "Fat", value: totals.fatG,
-                        target: Double(targets.fatG), color: APEXColor.violet
+                    .font(APEXFont.body(14, weight: .bold))
+                    .foregroundStyle(APEXColor.amberDeep)
+                    .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(
+                        APEXColor.amber.opacity(0.12),
+                        in: RoundedRectangle(cornerRadius: 18, style: .continuous)
                     )
                 }
             }
@@ -370,7 +394,10 @@ struct NutritionTargetSheet: View {
     var onClose: () -> Void = {}
 
     private var logs: [ActivityLog] {
-        session.data.activityLogs.filter { $0.date == date.apexDateKey }
+        guard let ownerID = session.profile?.userID else { return [] }
+        return session.data.activityLogs.filter {
+            $0.userID == ownerID && $0.date == date.apexDateKey
+        }
     }
 
     private var targets: NutritionTargets? {
@@ -406,7 +433,7 @@ struct NutritionTargetSheet: View {
            screen that has to be dismissed. */
         VStack(alignment: .leading, spacing: 12) {
                     APEXPopoverHeader(title: language.text("Daily calorie target"), onClose: onClose)
-                    if let targets {
+                    if let targets, targets.isPublishable {
                         HStack(alignment: .firstTextBaseline) {
                             Text("\(targets.targetCalories)")
                                 .font(APEXFont.display(32))
@@ -422,6 +449,13 @@ struct NutritionTargetSheet: View {
                             .font(APEXFont.mono(10))
                             .foregroundStyle(APEXColor.secondaryInk)
                         }
+                    } else if targets != nil {
+                        Label(
+                            language.text("This target needs review before use."),
+                            systemImage: "exclamationmark.triangle.fill"
+                        )
+                        .font(APEXFont.body(13, weight: .bold))
+                        .foregroundStyle(APEXColor.amberDeep)
                     }
 
                     targetGroup(title: "GOAL") {
@@ -482,7 +516,7 @@ struct NutritionTargetSheet: View {
                         }
                     }
 
-                    if let targets {
+                    if let targets, targets.isPublishable {
                         HStack(spacing: 12) {
                             targetFooterMetric("PROTEIN", targets.proteinG, "g")
                             targetFooterMetric("CARBS", targets.carbsG, "g")

@@ -15,6 +15,11 @@ import type {
 export type ActivityLevel = (typeof SUPABASE_ENUMS.activity_level)[number]
 export type Goal = (typeof SUPABASE_ENUMS.goal)[number]
 
+export type CustomBmrSource =
+  | 'indirect_calorimetry'
+  | 'dexa_report_estimate'
+  | 'legacy_user_entered'
+
 export interface CalibrationHistoryEntry {
   applied_at: string
   previous_k: number
@@ -36,9 +41,10 @@ export interface Profile {
   body_fat_pct: number | null
   body_fat_source?: BodyFatSource | null
   body_fat_measured_at?: string | null
-  /* Optional measured resting metabolism from a recent DEXA/metabolic test.
-     When present it becomes the energy engine's BMR source. */
+  /* Optional resting-energy input. Only indirect calorimetry is treated as a
+     measured value; a DEXA report estimate remains contextual evidence. */
   custom_bmr?: number | null
+  custom_bmr_source?: CustomBmrSource | null
   height_cm: number
   birthdate: string // ISO date
   activity_level: ActivityLevel
@@ -378,9 +384,10 @@ export interface Settings {
     endurance3: boolean
     uiMode?: 'simple' | 'advanced'
     fitness_plan_intro_seen?: boolean
-    /* Stored inside the existing JSON settings record so measured BMR works
-       immediately on every deployed database without a blocking schema step. */
+    /* Stored inside the existing JSON settings record so resting-energy
+       evidence works without a blocking profile-table migration. */
     custom_bmr?: number | null
+    custom_bmr_source?: CustomBmrSource | null
     /* Weekly subjective joint/load-tolerance check-ins. Keeping these in the
        existing per-user JSON record makes the feature deploy-safe while still
        syncing privately across devices. */

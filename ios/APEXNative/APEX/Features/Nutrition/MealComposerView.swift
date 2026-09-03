@@ -366,10 +366,19 @@ struct MealComposerView: View {
                     }
                 }
 
-                HStack(spacing: 9) {
-                    macroCard("Protein", value: draft.totals.proteinG, target: mealTargets.protein)
-                    macroCard("Carbs", value: draft.totals.carbsG, target: mealTargets.carbs)
-                    macroCard("Fat", value: draft.totals.fatG, target: mealTargets.fat)
+                if let mealTargets {
+                    HStack(spacing: 9) {
+                        macroCard("Protein", value: draft.totals.proteinG, target: mealTargets.protein)
+                        macroCard("Carbs", value: draft.totals.carbsG, target: mealTargets.carbs)
+                        macroCard("Fat", value: draft.totals.fatG, target: mealTargets.fat)
+                    }
+                } else {
+                    Label(
+                        language.text("This target needs review before use."),
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    .font(APEXFont.body(12, weight: .bold))
+                    .foregroundStyle(APEXColor.amberDeep)
                 }
             }
         }
@@ -792,9 +801,11 @@ struct MealComposerView: View {
         draft.items.filter { selectedItemIDs.contains($0.id) }
     }
 
-    private var mealTargets: (protein: Double, carbs: Double, fat: Double) {
-        guard let profile = session.profile else { return (0, 0, 0) }
-        let logs = session.data.activityLogs.filter { $0.date == request.date.apexDateKey }
+    private var mealTargets: (protein: Double, carbs: Double, fat: Double)? {
+        guard let profile = session.profile else { return nil }
+        let logs = session.data.activityLogs.filter {
+            $0.userID == profile.userID && $0.date == request.date.apexDateKey
+        }
         let targets = EnergyEngine.targets(
             profile: profile,
             logs: logs,
@@ -807,6 +818,7 @@ struct MealComposerView: View {
                 ownerID: profile.userID
             )
         )
+        guard targets.isPublishable else { return nil }
         let share: Double
         switch draft.mealSlot {
         case "breakfast": share = 0.25

@@ -486,6 +486,10 @@ final class EntitlementTests: XCTestCase {
 
         XCTAssertTrue(calibration.contains("operation: AccountOperationLease"))
         XCTAssertTrue(calibration.contains("profile.userID == operation.ownerID"))
+        XCTAssertTrue(
+            calibration.contains("$0.userID == operation.ownerID"),
+            "weekly calibration must never sample another account's cached daily rows"
+        )
         XCTAssertGreaterThanOrEqual(
             calibration.components(separatedBy: "requireCurrentAccountOperation(operation)").count - 1,
             3

@@ -7,6 +7,7 @@ interface NutritionGoalPresetPickerProps {
   selected: Goal
   onSelect: (goal: Goal) => void
   translate?: (value: string) => string
+  disabled?: boolean
 }
 
 export function NutritionGoalPresetPicker({
@@ -14,6 +15,7 @@ export function NutritionGoalPresetPicker({
   selected,
   onSelect,
   translate = (value) => value,
+  disabled = false,
 }: NutritionGoalPresetPickerProps) {
   const [explainedGoal, setExplainedGoal] = useState<Goal | null>(null)
   const explained = presets.find((preset) => preset.goal === explainedGoal)
@@ -28,8 +30,11 @@ export function NutritionGoalPresetPicker({
               <button
                 type="button"
                 aria-pressed={active}
-                onClick={() => onSelect(preset.goal)}
-                className="min-h-14 w-full rounded-2xl px-2 pb-2 pt-5 text-center text-[10px] font-black leading-tight sm:px-3 sm:text-xs"
+                disabled={disabled}
+                onClick={() => {
+                  if (!disabled) onSelect(preset.goal)
+                }}
+                className="min-h-14 w-full rounded-2xl px-2 pb-2 pt-5 text-center text-[10px] font-black leading-tight disabled:cursor-not-allowed disabled:opacity-45 sm:px-3 sm:text-xs"
               >
                 {translate(preset.label)}
               </button>

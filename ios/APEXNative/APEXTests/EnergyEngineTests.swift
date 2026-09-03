@@ -95,6 +95,8 @@ final class EnergyEngineTests: XCTestCase {
             weight: 70,
             level: .sedentary,
             goal: .maintain,
+            bodyFatPercent: nil,
+            bodyFatSource: nil,
             customBMR: 1_683
         )
         let settings = UserSettings(
@@ -112,9 +114,42 @@ final class EnergyEngineTests: XCTestCase {
             catalog: [],
             settings: settings
         )
+        var formulaOnlyProfile = storedProfile
+        formulaOnlyProfile.customBMR = nil
+        let formulaBMR = EnergyEngine.bmr(for: formulaOnlyProfile)
 
-        XCTAssertEqual(result.bmr, 1_580)
-        XCTAssertEqual(result.tdee, 1_896)
+        XCTAssertEqual(result.bmr, Int(formulaBMR.rounded()))
+        XCTAssertEqual(
+            result.tdee,
+            Int((formulaBMR * formulaOnlyProfile.activityLevel.multiplier).rounded())
+        )
+        XCTAssertNotEqual(result.bmr, 1_683)
+        XCTAssertEqual(result.restingEnergyProvenance, .mifflinEstimate)
+        XCTAssertFalse(result.requiresReview)
+        XCTAssertFalse(result.reviewReasons.contains(.legacyBMRNeedsReview))
+    }
+
+    func testDEXAEstimateCannotReplaceValidIndirectCalorimetry() {
+        var measured: [String: JSONValue] = [
+            "custom_bmr": .number(1_720),
+            "custom_bmr_source": .string("indirect_calorimetry"),
+        ]
+
+        RestingEnergyPolicy.storeDEXAReportEstimate(1_600, in: &measured)
+
+        XCTAssertEqual(measured["custom_bmr"]?.numberValue, 1_720)
+        XCTAssertEqual(
+            measured["custom_bmr_source"]?.stringValue,
+            RestingEnergyProvenance.indirectCalorimetry.rawValue
+        )
+
+        var empty: [String: JSONValue] = [:]
+        RestingEnergyPolicy.storeDEXAReportEstimate(1_600, in: &empty)
+        XCTAssertEqual(empty["custom_bmr"]?.numberValue, 1_600)
+        XCTAssertEqual(
+            empty["custom_bmr_source"]?.stringValue,
+            RestingEnergyPolicy.dexaReportEstimateSource
+        )
     }
 
     func testSettingsMeasuredRestingEnergyNeverCrossesAccountBoundary() {
@@ -214,10 +249,10 @@ final class EnergyEngineTests: XCTestCase {
         XCTAssertEqual(object["goal"] as? String, Goal.maintain.rawValue)
     }
 
-    func testLiteralMeasuredBMRAndObservedTDEEResolveEveryCurrentGoalFactor() {
+    func testLiteralMeasuredBMRAndObservedTDEEResolveEveryAuditedGoalFactor() {
         XCTAssertEqual(
             EnergyEngine.targetCalories(bmr: 1_683, tdee: 1_870, goal: Goal.recomp),
-            1_767
+            1_683
         )
         XCTAssertEqual(
             EnergyEngine.targetCalories(bmr: 1_683, tdee: 1_870, goal: Goal.maintain),
@@ -225,7 +260,7 @@ final class EnergyEngineTests: XCTestCase {
         )
         XCTAssertEqual(
             EnergyEngine.targetCalories(bmr: 1_683, tdee: 1_870, goal: Goal.bulk),
-            2_001
+            1_964
         )
     }
 
@@ -252,7 +287,7 @@ final class EnergyEngineTests: XCTestCase {
         XCTAssertEqual(result.tdee, 2_550)
         XCTAssertEqual(result.proteinG, 150)
         XCTAssertEqual(result.fatG, 75)
-        XCTAssertEqual(result.carbsG, 294)
+        XCTAssertEqual(result.carbsG, 293)
     }
 
     func testJuneBespokeModerateBulkRemainsFixedWhenActivityLogsExist() {
@@ -351,7 +386,6 @@ final class EnergyEngineTests: XCTestCase {
                     XCTAssertEqual(result.tdee, fixture.maintain[levelIndex])
                     XCTAssertEqual(result.proteinG, fixture.protein[goal])
                     XCTAssertEqual(result.fatG, fixture.fat[goal])
-                    XCTAssertFalse(result.safetyFloorApplied)
                 }
             }
         }
@@ -431,7 +465,10 @@ final class EnergyEngineTests: XCTestCase {
         )
 
         XCTAssertEqual(result.tdee, 2_920)
-        XCTAssertEqual(result.targetCalories, 2_920)
+        XCTAssertEqual(result.targetCalories, 2_609)
+        XCTAssertEqual(result.proteinG, 133)
+        XCTAssertEqual(result.fatG, 80)
+        XCTAssertEqual(result.carbsG, 339)
     }
 
     func testZeroWearableValueCannotEraseValidActivityLogs() {
@@ -451,7 +488,10 @@ final class EnergyEngineTests: XCTestCase {
         )
 
         XCTAssertEqual(result.tdee, 2_620)
-        XCTAssertEqual(result.targetCalories, 2_620)
+        XCTAssertEqual(result.targetCalories, 2_609)
+        XCTAssertEqual(result.proteinG, 133)
+        XCTAssertEqual(result.fatG, 80)
+        XCTAssertEqual(result.carbsG, 339)
     }
 
     func testWearableBurnDoesNotActAsQuickModeCalorieEatBack() {
@@ -473,7 +513,11 @@ final class EnergyEngineTests: XCTestCase {
             wearableActiveCalories: 900
         )
 
-        XCTAssertEqual(withWearable, withoutWearable)
+        XCTAssertEqual(withWearable.targetCalories, withoutWearable.targetCalories)
+        XCTAssertEqual(withWearable.proteinG, withoutWearable.proteinG)
+        XCTAssertEqual(withWearable.fatG, withoutWearable.fatG)
+        XCTAssertEqual(withWearable.carbsG, withoutWearable.carbsG)
+        XCTAssertGreaterThan(withWearable.tdee, withoutWearable.tdee)
         XCTAssertEqual(withWearable.targetCalories, 2_609)
     }
 
@@ -605,7 +649,7 @@ final class EnergyEngineTests: XCTestCase {
 
         for target in [recomp, maintain, bulk] {
             let macroCalories = target.proteinG * 4 + target.fatG * 9 + target.carbsG * 4
-            XCTAssertLessThanOrEqual(abs(macroCalories - target.targetCalories), 2)
+            XCTAssertLessThanOrEqual(abs(macroCalories - target.targetCalories), 3)
         }
     }
 
@@ -629,6 +673,370 @@ final class EnergyEngineTests: XCTestCase {
         }
     }
 
+    func testGoalContextTrimsWhitespaceBeforeNormalization() {
+        XCTAssertEqual(NutritionGoalPolicy.normalizedTrainingGoal(" muscle \n"), "muscle")
+        XCTAssertEqual(NutritionGoalPolicy.normalizedTrainingGoal(" FAT_LOSS "), "fat_loss")
+        XCTAssertEqual(NutritionGoalPolicy.normalizedTrainingGoal(" general\t"), "rebuild")
+    }
+
+    func testGenericLeanRecompMaintainAndLeanBulkUseBoundedEvidenceBasedSeeds() {
+        let bmr = 1_683.0
+        let tdee = 1_870.0
+
+        XCTAssertEqual(
+            EnergyEngine.targetCalories(bmr: bmr, tdee: tdee, goal: .recomp),
+            1_683
+        )
+        XCTAssertEqual(
+            EnergyEngine.targetCalories(bmr: bmr, tdee: tdee, goal: .maintain),
+            1_870
+        )
+        XCTAssertEqual(
+            EnergyEngine.targetCalories(bmr: bmr, tdee: tdee, goal: .bulk),
+            1_964
+        )
+    }
+
+    func testMacroAllocationNeverPublishesMoreEnergyThanTheCalorieTarget() {
+        let result = EnergyEngine.targets(
+            profile: profile(
+                weight: 160,
+                level: .sedentary,
+                goal: .maintain,
+                bodyFatPercent: nil,
+                bodyFatSource: nil,
+                customBMR: 800,
+                heightCM: 165
+            ),
+            logs: [],
+            catalog: []
+        )
+
+        XCTAssertEqual(result.proteinG, 0)
+        XCTAssertEqual(result.fatG, 0)
+        XCTAssertEqual(result.carbsG, 0)
+        XCTAssertTrue(result.requiresReview)
+        XCTAssertTrue(result.reviewReasons.contains(.macroEnergyConflict))
+        XCTAssertFalse(result.isPublishable)
+    }
+
+    func testRestingEnergyAndTargetProvenanceStayExplicit() {
+        let ownerID = UUID()
+        let base = profile(
+            userID: ownerID,
+            weight: 70,
+            level: .moderate,
+            goal: .maintain,
+            bodyFatPercent: nil,
+            bodyFatSource: nil,
+            customBMR: nil
+        )
+        let measuredSettings = UserSettings(
+            userID: ownerID,
+            voiceOn: true,
+            ticksOn: true,
+            notificationsOn: true,
+            guardianFactor: 0.96,
+            addons: [
+                "custom_bmr": .number(1_683),
+                "custom_bmr_source": .string("indirect_calorimetry"),
+            ]
+        )
+
+        let measured = EnergyEngine.targets(
+            profile: base,
+            logs: [],
+            catalog: [],
+            settings: measuredSettings
+        )
+        XCTAssertEqual(measured.restingEnergyProvenance, .indirectCalorimetry)
+        XCTAssertEqual(measured.targetProvenance, .calculatedEstimate)
+
+        let dexaReportSettings = UserSettings(
+            userID: ownerID,
+            voiceOn: true,
+            ticksOn: true,
+            notificationsOn: true,
+            guardianFactor: 0.96,
+            addons: [
+                "custom_bmr": .number(1_683),
+                "custom_bmr_source": .string("dexa_report_estimate"),
+            ]
+        )
+        let dexaReport = EnergyEngine.targets(
+            profile: base,
+            logs: [],
+            catalog: [],
+            settings: dexaReportSettings
+        )
+        XCTAssertNotEqual(dexaReport.bmr, 1_683)
+        XCTAssertEqual(dexaReport.restingEnergyProvenance, .mifflinEstimate)
+        XCTAssertTrue(dexaReport.reviewReasons.contains(.dexaEstimatedBMRStored))
+
+        var legacy = base
+        legacy.customBMR = 1_683
+        let legacyResult = EnergyEngine.targets(profile: legacy, logs: [], catalog: [])
+        XCTAssertEqual(legacyResult.restingEnergyProvenance, .legacyUserEntered)
+        XCTAssertTrue(legacyResult.reviewReasons.contains(.legacyBMRNeedsReview))
+
+        let bodyComposition = EnergyEngine.targets(
+            profile: profile(weight: 70, bodyFatPercent: 20, bodyFatSource: .dexa),
+            logs: [],
+            catalog: []
+        )
+        XCTAssertEqual(bodyComposition.restingEnergyProvenance, .bodyCompositionEstimate)
+
+        let equation = EnergyEngine.targets(profile: base, logs: [], catalog: [])
+        XCTAssertEqual(equation.restingEnergyProvenance, .mifflinEstimate)
+    }
+
+    func testUnderNineteenProfileIsFlaggedForProfessionalReview() {
+        let result = EnergyEngine.targets(
+            profile: profile(
+                weight: 65,
+                level: .moderate,
+                goal: .recomp,
+                bodyFatPercent: nil,
+                bodyFatSource: nil,
+                heightCM: 172,
+                birthdate: "2010-01-01"
+            ),
+            logs: [],
+            catalog: []
+        )
+
+        XCTAssertTrue(result.requiresReview)
+        XCTAssertTrue(result.reviewReasons.contains(.underNineteen))
+        XCTAssertFalse(result.isPublishable)
+        XCTAssertEqual(result.targetCalories, 0)
+        XCTAssertEqual(result.proteinG, 0)
+        XCTAssertEqual(result.fatG, 0)
+        XCTAssertEqual(result.carbsG, 0)
+    }
+
+    func testImpossibleAndFutureBirthdatesFailAsInvalidRatherThanProducingTargets() {
+        for birthdate in ["1990-02-31", "2030-01-01"] {
+            let result = EnergyEngine.targets(
+                profile: profile(
+                    weight: 70,
+                    level: .moderate,
+                    goal: .maintain,
+                    bodyFatPercent: nil,
+                    bodyFatSource: nil,
+                    birthdate: birthdate
+                ),
+                logs: [],
+                catalog: []
+            )
+
+            XCTAssertFalse(result.isPublishable, birthdate)
+            XCTAssertTrue(result.reviewReasons.contains(.invalidBirthdate), birthdate)
+            XCTAssertEqual(result.targetCalories, 0, birthdate)
+        }
+    }
+
+    func testImplausibleGenericDemographicsFailClosed() {
+        let result = EnergyEngine.targets(
+            profile: profile(
+                weight: 70,
+                level: .moderate,
+                goal: .maintain,
+                sex: "unspecified",
+                bodyFatPercent: nil,
+                bodyFatSource: nil
+            ),
+            logs: [],
+            catalog: []
+        )
+
+        XCTAssertFalse(result.isPublishable)
+        XCTAssertTrue(result.reviewReasons.contains(.implausibleDemographics))
+        XCTAssertEqual(result.targetCalories, 0)
+        XCTAssertEqual(result.proteinG, 0)
+        XCTAssertEqual(result.fatG, 0)
+        XCTAssertEqual(result.carbsG, 0)
+    }
+
+    func testNonFiniteGenericInputsFailClosedWithoutIntegerConversionTrap() {
+        let invalidWeight = EnergyEngine.targets(
+            profile: profile(
+                weight: .nan,
+                level: .moderate,
+                goal: .maintain,
+                bodyFatPercent: nil,
+                bodyFatSource: nil
+            ),
+            logs: [],
+            catalog: []
+        )
+        let invalidRestingEnergy = EnergyEngine.targets(
+            profile: profile(
+                weight: 70,
+                level: .moderate,
+                goal: .maintain,
+                bodyFatPercent: nil,
+                bodyFatSource: nil,
+                customBMR: .infinity
+            ),
+            logs: [],
+            catalog: []
+        )
+
+        XCTAssertFalse(invalidWeight.isPublishable)
+        XCTAssertTrue(invalidWeight.reviewReasons.contains(.implausibleDemographics))
+        XCTAssertEqual(invalidWeight.targetCalories, 0)
+        XCTAssertFalse(invalidRestingEnergy.isPublishable)
+        XCTAssertTrue(invalidRestingEnergy.reviewReasons.contains(.implausibleBMR))
+        XCTAssertGreaterThan(invalidRestingEnergy.bmr, 0)
+        XCTAssertEqual(invalidRestingEnergy.targetCalories, 0)
+    }
+
+    func testFormulaRestingEnergyOutsideSupportedRangeFailsClosed() {
+        let low = EnergyEngine.targets(
+            profile: profile(
+                weight: 30,
+                level: .sedentary,
+                goal: .recomp,
+                sex: "female",
+                bodyFatPercent: nil,
+                bodyFatSource: nil,
+                heightCM: 120,
+                birthdate: "1950-01-01"
+            ),
+            logs: [],
+            catalog: []
+        )
+        let high = EnergyEngine.targets(
+            profile: profile(
+                weight: 300,
+                level: .sedentary,
+                goal: .maintain,
+                bodyFatPercent: nil,
+                bodyFatSource: nil,
+                heightCM: 230,
+                birthdate: "2000-01-01"
+            ),
+            logs: [],
+            catalog: []
+        )
+
+        for result in [low, high] {
+            XCTAssertFalse(result.isPublishable)
+            XCTAssertTrue(result.reviewReasons.contains(.implausibleBMR))
+            XCTAssertEqual(result.targetCalories, 0)
+            XCTAssertEqual(result.proteinG, 0)
+            XCTAssertEqual(result.fatG, 0)
+            XCTAssertEqual(result.carbsG, 0)
+        }
+        XCTAssertEqual(
+            EnergyEngine.targetCalories(bmr: 799, tdee: 1_200, goal: .maintain),
+            0
+        )
+        XCTAssertEqual(
+            EnergyEngine.targetCalories(bmr: 4_001, tdee: 4_800, goal: .maintain),
+            0
+        )
+    }
+
+    func testMalformedBespokeReferenceDataKeepsAuthoredTargetsFiniteAndReviewable() {
+        let result = EnergyEngine.targets(
+            profile: profile(
+                userID: UUID(uuidString: "9a0fffbc-bb02-40ac-834a-d4e339b32574")!,
+                weight: .nan,
+                level: .moderate,
+                goal: .recomp,
+                persona: .constantine,
+                profileKind: .bespoke,
+                protocolID: .constantineV85,
+                bodyFatPercent: 22.5,
+                bodyFatSource: .dexa,
+                heightCM: 177,
+                birthdate: "malformed"
+            ),
+            logs: [],
+            catalog: []
+        )
+
+        XCTAssertEqual(result.targetCalories, 2_450)
+        XCTAssertEqual(result.tdee, 2_550)
+        XCTAssertEqual(result.proteinG, 150)
+        XCTAssertEqual(result.fatG, 75)
+        XCTAssertEqual(result.carbsG, 293)
+        XCTAssertEqual(result.bmr, 0)
+        XCTAssertTrue(result.requiresReview)
+        XCTAssertTrue(result.reviewReasons.contains(.invalidBirthdate))
+        XCTAssertTrue(result.reviewReasons.contains(.implausibleDemographics))
+        XCTAssertTrue(result.isPublishable)
+        XCTAssertTrue(result.pal.isFinite)
+
+        let lowReference = EnergyEngine.targets(
+            profile: profile(
+                userID: UUID(uuidString: "9a0fffbc-bb02-40ac-834a-d4e339b32574")!,
+                weight: 30,
+                level: .moderate,
+                goal: .recomp,
+                persona: .constantine,
+                profileKind: .bespoke,
+                protocolID: .constantineV85,
+                sex: "male",
+                bodyFatPercent: nil,
+                bodyFatSource: nil,
+                heightCM: 120,
+                birthdate: "1950-01-01"
+            ),
+            logs: [],
+            catalog: []
+        )
+        let oversizedReference = EnergyEngine.targets(
+            profile: profile(
+                userID: UUID(uuidString: "9a0fffbc-bb02-40ac-834a-d4e339b32574")!,
+                weight: 1e300,
+                level: .moderate,
+                goal: .recomp,
+                persona: .constantine,
+                profileKind: .bespoke,
+                protocolID: .constantineV85,
+                bodyFatPercent: nil,
+                bodyFatSource: nil
+            ),
+            logs: [],
+            catalog: []
+        )
+
+        for unsafeReference in [lowReference, oversizedReference] {
+            XCTAssertEqual(unsafeReference.targetCalories, 2_450)
+            XCTAssertEqual(unsafeReference.proteinG, 150)
+            XCTAssertEqual(unsafeReference.fatG, 75)
+            XCTAssertEqual(unsafeReference.carbsG, 293)
+            XCTAssertEqual(unsafeReference.bmr, 0)
+            XCTAssertTrue(unsafeReference.reviewReasons.contains(.implausibleBMR))
+            XCTAssertTrue(unsafeReference.requiresReview)
+            XCTAssertTrue(unsafeReference.isPublishable)
+            XCTAssertTrue(unsafeReference.pal.isFinite)
+        }
+    }
+
+    func testZeroEnergyLogDoesNotSwitchTheTargetIntoPreciseMode() {
+        let athlete = profile(
+            weight: 70,
+            level: .moderate,
+            goal: .maintain,
+            bodyFatPercent: nil,
+            bodyFatSource: nil,
+            customBMR: 1_683
+        )
+        let quick = EnergyEngine.targets(profile: athlete, logs: [], catalog: [])
+        let incomplete = EnergyEngine.targets(
+            profile: athlete,
+            logs: [log(typeID: "incomplete", kcal: 0)],
+            catalog: []
+        )
+
+        XCTAssertEqual(incomplete.tdee, quick.tdee)
+        XCTAssertEqual(incomplete.targetCalories, quick.targetCalories)
+        XCTAssertEqual(incomplete.level, quick.level)
+    }
+
     func testShortFatLossPlanStaysBoundedAndFeedsTheEnergyEngine() {
         let fourWeek = NutritionGoalPolicy.presets(
             context: .init(trainingGoal: "fat_loss", planWeeks: 4)
@@ -650,7 +1058,7 @@ final class EnergyEngineTests: XCTestCase {
         let factor = NutritionGoalPolicy.presets(context: context)[1].factor
         XCTAssertEqual(
             result.targetCalories,
-            Int(max(Double(result.bmr) * 1.05, Double(result.tdee) * factor).rounded())
+            Int((Double(result.tdee) * factor).rounded())
         )
         XCTAssertEqual(NutritionGoalPolicy.recommendedGoal(for: "fat_loss"), .maintain)
         XCTAssertEqual(NutritionGoalPolicy.recommendedGoal(for: "muscle"), .bulk)
@@ -661,19 +1069,19 @@ final class EnergyEngineTests: XCTestCase {
             EnergyEngine.macroTargets(
                 weightKG: 70, level: .moderate, goal: .recomp, targetCalories: 2_200
             ),
-            .init(proteinG: 147, fatG: 61, carbsG: 266)
+            .init(proteinG: 147, fatG: 61, carbsG: 265)
         )
         XCTAssertEqual(
             EnergyEngine.macroTargets(
                 weightKG: 70, level: .moderate, goal: .maintain, targetCalories: 2_400
             ),
-            .init(proteinG: 133, fatG: 73, carbsG: 303)
+            .init(proteinG: 133, fatG: 73, carbsG: 302)
         )
         XCTAssertEqual(
             EnergyEngine.macroTargets(
                 weightKG: 70, level: .moderate, goal: .bulk, targetCalories: 2_600
             ),
-            .init(proteinG: 126, fatG: 81, carbsG: 342)
+            .init(proteinG: 126, fatG: 81, carbsG: 341)
         )
     }
 
@@ -707,6 +1115,129 @@ final class EnergyEngineTests: XCTestCase {
         XCTAssertEqual(at70, 196, accuracy: 0.001)
         XCTAssertEqual(at58, 162.4, accuracy: 0.001)
         XCTAssertNotEqual(at70, at58)
+    }
+
+    func testUserFacingActivityTargetsFilterLogsByOwnerAndDate() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let boundaries: [(path: String, start: String, end: String)] = [
+            (
+                "APEX/Features/Nutrition/NutritionView.swift",
+                "private var dayActivities: [ActivityLog]",
+                "private var dayWearableActiveCalories"
+            ),
+            (
+                "APEX/Features/Nutrition/NutritionView.swift",
+                "private var yesterdayLogs: [ActivityLog]",
+                "private var frequentTypes"
+            ),
+            (
+                "APEX/Features/Nutrition/NutritionView.swift",
+                "private var preciseLogs: [ActivityLog]",
+                "private var allReconciled"
+            ),
+            (
+                "APEX/Features/Nutrition/NutritionParityViews.swift",
+                "private var resolvedActivity: WearableActivityEngine.Resolution",
+                "private var resolvedBurnedCalories"
+            ),
+            (
+                "APEX/Features/Nutrition/NutritionParityViews.swift",
+                "struct NutritionTargetSheet: View",
+                "private var targets: NutritionTargets?"
+            ),
+            (
+                "APEX/Features/Nutrition/MealComposerView.swift",
+                "private var mealTargets: (protein: Double, carbs: Double, fat: Double)",
+                "private func macroCard"
+            ),
+            (
+                "APEX/Features/Portal/SimpleHomeView.swift",
+                "private var activities: [ActivityLog]",
+                "private var targets: NutritionTargets?"
+            ),
+        ]
+
+        for boundary in boundaries {
+            let source = try String(contentsOf: nativeRoot.appending(path: boundary.path))
+            let lower = try XCTUnwrap(
+                source.range(of: boundary.start),
+                "Missing activity-target boundary \(boundary.start) in \(boundary.path)"
+            )
+            let upper = try XCTUnwrap(
+                source.range(of: boundary.end, range: lower.upperBound..<source.endIndex),
+                "Missing activity-target boundary end \(boundary.end) in \(boundary.path)"
+            )
+            let compact = source[lower.lowerBound..<upper.lowerBound].filter { !$0.isWhitespace }
+
+            XCTAssertTrue(
+                compact.contains("$0.userID=="),
+                "\(boundary.path) \(boundary.start) must reject another account's activity logs"
+            )
+            XCTAssertTrue(
+                compact.contains("$0.date=="),
+                "\(boundary.path) \(boundary.start) must reject activity logs from another date"
+            )
+        }
+    }
+
+    func testBlockedTargetsNeverReachNumericNativePrescriptionViews() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let paritySource = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Nutrition/NutritionParityViews.swift")
+        )
+        let sheetStart = try XCTUnwrap(paritySource.range(of: "struct NutritionTargetSheet: View"))
+        let sheetEnd = try XCTUnwrap(
+            paritySource.range(
+                of: "struct NutritionGoalPresetPicker: View",
+                range: sheetStart.upperBound..<paritySource.endIndex
+            )
+        )
+        let sheet = paritySource[sheetStart.lowerBound..<sheetEnd.lowerBound]
+        let compactSheet = sheet.filter { !$0.isWhitespace }
+        let publishableSheetBranches = compactSheet
+            .components(separatedBy: "iflettargets,targets.isPublishable{")
+            .count - 1
+
+        XCTAssertEqual(
+            publishableSheetBranches,
+            2,
+            "The target-sheet calorie header and macro/TDEE footer must both require a publishable target"
+        )
+        XCTAssertTrue(
+            sheet.contains("This target needs review before use."),
+            "A blocked target sheet must explain the review state instead of displaying zeroes"
+        )
+
+        let composerSource = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Nutrition/MealComposerView.swift")
+        )
+        let targetStart = try XCTUnwrap(composerSource.range(of: "private var mealTargets:"))
+        let targetEnd = try XCTUnwrap(
+            composerSource.range(
+                of: "private func macroCard",
+                range: targetStart.upperBound..<composerSource.endIndex
+            )
+        )
+        let targetResolver = composerSource[targetStart.lowerBound..<targetEnd.lowerBound]
+            .filter { !$0.isWhitespace }
+        let compactComposer = composerSource.filter { !$0.isWhitespace }
+
+        XCTAssertTrue(
+            targetResolver.contains("guardtargets.isPublishableelse{returnnil}"),
+            "Meal macro prescriptions must be absent when EnergyEngine blocks the target"
+        )
+        XCTAssertTrue(
+            compactComposer.contains("ifletmealTargets{"),
+            "Meal target cards must render only when a publishable prescription exists"
+        )
+        XCTAssertTrue(
+            composerSource.contains("This target needs review before use."),
+            "The composer must explain a blocked target instead of displaying 0 g goals"
+        )
     }
 
     private func profile(

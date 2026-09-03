@@ -298,6 +298,7 @@ test('measured BMR remains compatible with the existing profile schema', () => {
     user_id: 'user-id',
     weight_kg: 78,
     custom_bmr: 1840,
+    custom_bmr_source: 'indirect_calorimetry',
   })
 
   assert.deepEqual(profile, {

@@ -52,7 +52,7 @@ export function seedProfile(userId: string): Profile {
     target_kcal: 2450,
     target_protein_g: 150,
     target_fat_g: 75,
-    target_carbs_g: 294,
+    target_carbs_g: 293,
     training_time: '19:00',
     baseline_date: today(),
     profile_note: 'Lean recomp with gradual waist and body-fat reduction while preserving or increasing strength and muscle.',

@@ -244,7 +244,7 @@ function upgradeV5PersonalProtocol(
         target_kcal: 2450,
         target_protein_g: 150,
         target_fat_g: 75,
-        target_carbs_g: 294,
+        target_carbs_g: 293,
         profile_note: seeded.profile.profile_note,
       }
     : {

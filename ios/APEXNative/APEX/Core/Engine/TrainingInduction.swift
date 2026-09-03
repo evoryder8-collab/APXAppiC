@@ -21,6 +21,28 @@ enum TrainingInduction {
     static let currentTermsVersion = "2026-08-27"
     static let currentPrivacyVersion = "2026-08-27"
     static let supportedPlanWeeks = [4, 8, 12, 26]
+    static let canonicalTrainingGoals = ["rebuild", "muscle", "fat_loss", "strength", "endurance"]
+
+    static func canonicalTrainingGoal(_ rawValue: String?) -> String {
+        switch rawValue?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "muscle", "hypertrophy": "muscle"
+        case "fat_loss": "fat_loss"
+        case "strength": "strength"
+        case "endurance": "endurance"
+        case "rebuild", "general": "rebuild"
+        default: "rebuild"
+        }
+    }
+
+    static func canonicalPlanWeeks(_ rawValue: Int?) -> Int {
+        guard let rawValue, supportedPlanWeeks.contains(rawValue) else { return 12 }
+        return rawValue
+    }
+
+    static func canonicalPersistedPlanWeeks(_ rawValue: Double?) -> Int {
+        guard let rawValue, rawValue.isFinite else { return 12 }
+        return supportedPlanWeeks.first(where: { Double($0) == rawValue }) ?? 12
+    }
 
     struct BodyBaseline: Equatable, Sendable {
         let sex: String
@@ -35,7 +57,7 @@ enum TrainingInduction {
                   let date = ISO8601DateFormatter.apexDateOnly.date(from: birthdate)
             else { return false }
             let age = Calendar.current.dateComponents([.year], from: date, to: .now).year ?? 0
-            return (13...100).contains(age)
+            return (19...100).contains(age)
         }
     }
 
@@ -63,7 +85,7 @@ enum TrainingInduction {
         var sessionsPerWeek = 3
         var planWeeks = 12
         var availableMinutes = 0
-        var goal: String = "general"
+        var goal: String = "rebuild"
         var baselineAnswers = OnboardingBaselineAnswers.unanswered
         var bodyBaseline: BodyBaseline?
         var dataConsent: DataConsent?
@@ -82,7 +104,7 @@ enum TrainingInduction {
         var hasMandatoryFacts: Bool {
             bodyBaseline?.isValid == true &&
                 dataConsent?.isCurrent == true &&
-                ["general", "muscle", "fat_loss", "strength", "endurance"].contains(goal)
+                TrainingInduction.canonicalTrainingGoals.contains(goal)
         }
     }
 
@@ -128,10 +150,7 @@ enum TrainingInduction {
         if let sessions = induction["sessions_per_week"]?.numberValue.map(Int.init) {
             restored.sessionsPerWeek = min(7, max(2, sessions))
         }
-        if let weeks = induction["plan_weeks"]?.numberValue.map(Int.init),
-           supportedPlanWeeks.contains(weeks) {
-            restored.planWeeks = weeks
-        }
+        restored.planWeeks = canonicalPersistedPlanWeeks(induction["plan_weeks"]?.numberValue)
         if let minutes = induction["available_minutes"]?.numberValue.map(Int.init),
            (15...180).contains(minutes) {
             restored.availableMinutes = minutes
@@ -146,13 +165,7 @@ enum TrainingInduction {
                 mobility: movement["mobility"]?.stringValue ?? ""
             )
         }
-        switch induction["goal"]?.stringValue {
-        case "rebuild": restored.goal = "general"
-        case "hypertrophy": restored.goal = "muscle"
-        case "general", "muscle", "fat_loss", "strength", "endurance":
-            restored.goal = induction["goal"]?.stringValue ?? restored.goal
-        default: break
-        }
+        restored.goal = canonicalTrainingGoal(induction["goal"]?.stringValue)
         return restored
     }
 
@@ -320,8 +333,8 @@ enum TrainingInduction {
                 updated.addons["newbie_mode"] = .bool(false)
                 updated.addons[TrainingInduction.skippedMarkerKey] = .bool(true)
                 updated.addons[TrainingInduction.baselineMarkerKey] = .object([
-                    "goal": .string(input.goal),
-                    "plan_weeks": .number(Double(input.planWeeks)),
+                    "goal": .string(TrainingInduction.canonicalTrainingGoal(input.goal)),
+                    "plan_weeks": .number(Double(TrainingInduction.canonicalPlanWeeks(input.planWeeks))),
                 ])
             case .skipped:
                 var generatedDayIDs = TrainingInduction.pendingDayIDs(settings)
@@ -957,7 +970,11 @@ enum TrainingInduction {
     /// Which of the three persisted energy slots is the safe default for a new
     /// training plan. The slot's visible meaning is resolved from the plan.
     static func goalColumn(for trainingGoal: String) -> String {
-        NutritionGoalPolicy.recommendedGoal(for: trainingGoal).rawValue
+        recommendedNutritionGoal(for: trainingGoal).rawValue
+    }
+
+    static func recommendedNutritionGoal(for trainingGoal: String) -> Goal {
+        canonicalTrainingGoal(trainingGoal) == "muscle" ? .bulk : .maintain
     }
 
     // MARK: - Equipment
@@ -1281,7 +1298,8 @@ enum TrainingInduction {
     ) -> GeneratedPlan {
         let assessment = assess(input)
         let count = assessment.sessionsPerWeek
-        let planWeeks = supportedPlanWeeks.contains(input.planWeeks) ? input.planWeeks : 12
+        let planWeeks = canonicalPlanWeeks(input.planWeeks)
+        let trainingGoal = canonicalTrainingGoal(input.goal)
         let transitionWeeks = min(12, planWeeks)
         let mainStart = APEXDateMath.adding(days: transitionWeeks * 7, to: input.startDate)
         let endDate = APEXDateMath.adding(days: planWeeks * 7, to: input.startDate)
@@ -1433,7 +1451,7 @@ enum TrainingInduction {
             "chronic_lower_back_pain": .bool(input.chronicLowerBackPain),
             "acute_symptoms": .bool(input.acuteSymptoms),
             "sessions_per_week": .number(Double(count)),
-            "goal": .string(input.goal),
+            "goal": .string(trainingGoal),
             "caution": .string(assessment.caution),
             "weekly_load_strategy": .string(
                 count >= 7 ? "distributed_with_recovery" : (count >= 6 ? "distributed" : "standard")
@@ -1543,9 +1561,11 @@ enum TrainingInduction {
             customTargetML: customHydrationTargetML,
             plannedExerciseMinutes: plannedExerciseMinutes
         )
-        let duration = input.planWeeks == 26 ? "6-month" : "\(input.planWeeks)-week"
+        let planWeeks = canonicalPlanWeeks(input.planWeeks)
+        let trainingGoal = canonicalTrainingGoal(input.goal)
+        let duration = planWeeks == 26 ? "6-month" : "\(planWeeks)-week"
         let goal: String
-        switch input.goal {
+        switch trainingGoal {
         case "muscle": goal = "muscle-building"
         case "fat_loss": goal = "fat-loss"
         case "strength": goal = "strength"
@@ -1568,7 +1588,7 @@ enum TrainingInduction {
             ? "Your answers require clinical clearance before loaded training. Start only when the clinician managing your recovery approves it."
             : "Training effort is normal. Stop for sharp pain, chest pressure, fainting, or sudden breathlessness."
         let energyPresets = NutritionGoalPolicy.presets(
-            context: NutritionPlanContext(trainingGoal: input.goal, planWeeks: input.planWeeks)
+            context: NutritionPlanContext(trainingGoal: trainingGoal, planWeeks: planWeeks)
         )
 
         return PlanBriefing(
@@ -1588,7 +1608,7 @@ enum TrainingInduction {
                     evidenceLabel: "Your answers · APEX plan engine",
                     evidenceURL: nil,
                     energyPresets: energyPresets,
-                    recommendedGoal: NutritionGoalPolicy.recommendedGoal(for: input.goal)
+                    recommendedGoal: recommendedNutritionGoal(for: trainingGoal)
                 ),
                 PlanBriefingSlide(
                     kind: .safety,

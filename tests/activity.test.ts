@@ -22,6 +22,7 @@ const baseProfile = {
   sex: 'male' as const,
   body_fat_pct: 20,
   body_fat_source: 'dexa' as const,
+  activity_level: 'moderate' as const,
   goal: 'recomp' as const,
   calibration_k: 1,
 }
@@ -50,21 +51,26 @@ test('activity catalogue leads with broadly useful groups before specialist work
   )
 })
 
-test('zero-block day starts at the 1.2 floor, maps sedentary, applies recomp, and respects safety floor', () => {
+test('zero-block day reports sedentary observed burn while retaining the habitual prescription', () => {
   const estimate = estimateActivityDay(baseProfile, [])
   const bmr = activityBmr(baseProfile)
   assert.equal(estimate.floorKcal, Math.round(bmr * 1.2))
   assert.equal(estimate.tdee, estimate.floorKcal)
   assert.equal(estimate.level, 'sedentary')
-  assert.equal(estimate.targetKcal, Math.round(Math.max(bmr * 1.05, bmr * 1.2 * 0.89)))
-  assert.ok(estimate.targetKcal >= estimate.safetyFloorKcal)
+  assert.equal(estimate.targetKcal, Math.round(bmr * 1.55 * 0.90))
+})
+
+test('activity target policy does not invent a BMR multiplier floor', () => {
+  const estimate = estimateActivityDay(baseProfile, [], ACTIVITY_BY_ID, 0.5)
+  const bmr = activityBmr(baseProfile)
+  assert.equal(estimate.targetKcal, Math.round(bmr * 1.55 * 0.5))
 })
 
 test('Quick Mode uses the selected multiplier before applying the goal factor', () => {
   const targets = computeTargets({ ...baseProfile, activity_level: 'sedentary' })
   const bmr = activityBmr(baseProfile)
   assert.equal(targets.tdee, Math.round(bmr * 1.2))
-  assert.equal(targets.kcal, Math.round(Math.max(bmr * 1.05, targets.tdee * 0.89)))
+  assert.equal(targets.kcal, Math.round(targets.tdee * 0.90))
 })
 
 test('a measured BMR becomes the authoritative source for TDEE and targets', () => {
@@ -73,6 +79,7 @@ test('a measured BMR becomes the authoritative source for TDEE and targets', () 
     activity_level: 'moderate',
     goal: 'maintain',
     custom_bmr: 1840,
+    custom_bmr_source: 'indirect_calorimetry',
   })
 
   assert.equal(targets.bmrSource, 'custom')
@@ -124,17 +131,17 @@ test('precise target math replaces block burn with whole-day wearable burn once'
   assert.equal(wearableResolved.tdee, wearableResolved.floorKcal + 900)
 })
 
-test('precise macros use the same rounded calorie target as native', () => {
+test('observed wearable energy does not replace habitual target or macro context', () => {
   const estimate = estimateActivityDay({
     ...baseProfile,
     custom_bmr: 1200,
     goal: 'recomp',
   }, [], ACTIVITY_BY_ID, undefined, 100)
 
-  assert.equal(estimate.targetKcal, 1371)
-  assert.equal(estimate.proteinG, 126)
+  assert.equal(estimate.targetKcal, 1674)
+  assert.equal(estimate.proteinG, 147)
   assert.equal(estimate.fatG, 49)
-  assert.equal(estimate.carbsG, 107)
+  assert.equal(estimate.carbsG, 161)
 })
 
 test('championship prefill reaches extra active without manual blocks', () => {
@@ -172,6 +179,12 @@ test('goal changes recalculate protein, fat, carbohydrate and calories together'
     fat_g: estimate.fatG,
     carbs_g: estimate.carbsG,
     water_l: 2.75,
+    bmrSource: 'custom',
+    activeBmr: estimate.bmr,
+    targetProvenance: 'calculated',
+    reviewState: 'ready',
+    reviewReasons: [],
+    isPublishable: true,
   })
   const recompMeals = buildTargetMealPlan(meals, asTargets(recomp), 'Sedentary')
   const bulkMeals = buildTargetMealPlan(meals, asTargets(bulk), 'Very active')

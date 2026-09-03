@@ -44,6 +44,8 @@ test('critical app surfaces have complete Romanian and Thai copy', () => {
     'Create your own workout',
     'Voice coach',
     'Measured BMR (optional)',
+    'Enter a resting-energy value from 800 to 4000 kcal/day.',
+    'Choose indirect calorimetry only when that test measured this value.',
     'protein / 100 g',
     'Built naturally. Refined intelligently.',
     'Your next run, already reasoned through',

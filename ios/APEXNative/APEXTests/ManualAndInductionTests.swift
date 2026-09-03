@@ -498,6 +498,161 @@ final class TrainingInductionTests: XCTestCase {
         return value
     }
 
+    func testDefaultAndRestoredTrainingGoalsUseCanonicalPersistedVocabulary() {
+        XCTAssertEqual(input().goal, "rebuild")
+
+        let cases: [(stored: String, expected: String)] = [
+            ("rebuild", "rebuild"),
+            ("general", "rebuild"),
+            ("hypertrophy", "muscle"),
+            ("muscle", "muscle"),
+            ("fat_loss", "fat_loss"),
+            ("strength", "strength"),
+            ("endurance", "endurance"),
+            ("unexpected_goal", "rebuild"),
+        ]
+
+        for item in cases {
+            let restored = TrainingInduction.input(
+                from: ["goal": .string(item.stored)],
+                fallbackStartDate: "2026-01-05"
+            )
+            XCTAssertEqual(restored.goal, item.expected, item.stored)
+        }
+    }
+
+    func testRestoredPlanLengthDefaultsToTwelveWhenMissingOrInvalid() {
+        for stored in [nil, 0, 4.5, 5, 52] as [Double?] {
+            var metadata: [String: JSONValue] = [:]
+            if let stored {
+                metadata["plan_weeks"] = .number(stored)
+            }
+            let restored = TrainingInduction.input(
+                from: metadata,
+                fallbackStartDate: "2026-01-05"
+            )
+            XCTAssertEqual(restored.planWeeks, 12, String(describing: stored))
+        }
+
+        for stored in TrainingInduction.supportedPlanWeeks {
+            let restored = TrainingInduction.input(
+                from: ["plan_weeks": .number(Double(stored))],
+                fallbackStartDate: "2026-01-05"
+            )
+            XCTAssertEqual(restored.planWeeks, stored)
+        }
+    }
+
+    func testGeneratedAndBaselineOnlyMetadataCanonicalizeGoalAndPlanLength() throws {
+        let answers = input {
+            $0.goal = "general"
+            $0.planWeeks = 5
+        }
+
+        let plan = TrainingInduction.generate(userID: user, input: answers)
+        XCTAssertEqual(plan.induction["goal"], .string("rebuild"))
+        XCTAssertEqual(plan.induction["plan_weeks"], .number(12))
+
+        let settings = try XCTUnwrap(APEXDebugFixture.dashboard(userID: user).settings)
+        let baselineOnly = TrainingInduction.Submission.baselineOnly(answers)
+            .applyingAccountMetadata(to: settings, plan: nil)
+        let marker = try XCTUnwrap(
+            baselineOnly.addons[TrainingInduction.baselineMarkerKey]?.objectValue
+        )
+        XCTAssertEqual(marker["goal"], .string("rebuild"))
+        XCTAssertEqual(marker["plan_weeks"], .number(12))
+    }
+
+    func testEveryCanonicalTrainingGoalBuildsDeterministicNutritionContext() {
+        let expectations: [(goal: String, recommended: Goal)] = [
+            ("rebuild", .maintain),
+            ("muscle", .bulk),
+            ("fat_loss", .maintain),
+            ("strength", .maintain),
+            ("endurance", .maintain),
+        ]
+
+        for item in expectations {
+            let briefing = TrainingInduction.planBriefing(
+                input: input { $0.goal = item.goal },
+                caution: "standard",
+                sex: "male",
+                weightKG: 80,
+                plannedExerciseMinutes: 45,
+                hydrationMode: .automatic,
+                customHydrationTargetML: nil,
+                displayUnit: "liters"
+            )
+            XCTAssertEqual(briefing.slides.first?.energyPresets.count, 3, item.goal)
+            XCTAssertEqual(briefing.slides.first?.recommendedGoal, item.recommended, item.goal)
+        }
+    }
+
+    func testBodyBaselineFailsClosedBeforeAgeNineteen() throws {
+        let calendar = Calendar(identifier: .gregorian)
+        let formatter = ISO8601DateFormatter.apexDateOnly
+        let underNineteen = try XCTUnwrap(calendar.date(byAdding: .year, value: -18, to: .now))
+        let nineteen = try XCTUnwrap(calendar.date(byAdding: .year, value: -19, to: .now))
+
+        let underageBaseline = TrainingInduction.BodyBaseline(
+            sex: "female",
+            weightKG: 64,
+            heightCM: 169,
+            birthdate: formatter.string(from: underNineteen)
+        )
+        XCTAssertFalse(underageBaseline.isValid)
+
+        let consent = TrainingInduction.DataConsent(
+            termsVersion: TrainingInduction.currentTermsVersion,
+            privacyVersion: TrainingInduction.currentPrivacyVersion,
+            acceptedAt: ISO8601DateFormatter().string(from: .now)
+        )
+        let underageInput = input {
+            $0.bodyBaseline = underageBaseline
+            $0.dataConsent = consent
+        }
+        XCTAssertFalse(underageInput.hasMandatoryFacts)
+
+        let adultBaseline = TrainingInduction.BodyBaseline(
+            sex: "male",
+            weightKG: 80,
+            heightCM: 180,
+            birthdate: formatter.string(from: nineteen)
+        )
+        XCTAssertTrue(adultBaseline.isValid)
+        let canonicalGoalInput = input {
+            $0.bodyBaseline = adultBaseline
+            $0.dataConsent = consent
+        }
+        XCTAssertTrue(canonicalGoalInput.hasMandatoryFacts)
+
+        let legacyGoalInput = input {
+            $0.bodyBaseline = adultBaseline
+            $0.dataConsent = consent
+            $0.goal = "general"
+        }
+        XCTAssertFalse(
+            legacyGoalInput.hasMandatoryFacts,
+            "a legacy alias must be normalized at ingress instead of passing the onboarding boundary"
+        )
+    }
+
+    func testNativeGoalSelectorsDisplayGeneralFitnessButPersistRebuild() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        for path in [
+            "APEX/Features/Onboarding/InductionView.swift",
+            "APEX/Features/Training/TrainingInductionPanel.swift",
+        ] {
+            let source = try String(contentsOf: nativeRoot.appending(path: path))
+            XCTAssertTrue(source.contains("rebuild"), path)
+            XCTAssertTrue(source.contains("General fitness"), path)
+            XCTAssertFalse(source.contains("id: \"general\""), path)
+            XCTAssertFalse(source.contains("(\"general\", \"General fitness\")"), path)
+        }
+    }
+
     func testSkippingSubmitsNoQuestionnaireAnswersAndBuildsNoPlan() throws {
         let submission = TrainingInduction.Submission.skipped
 
@@ -869,7 +1024,7 @@ final class TrainingInductionTests: XCTestCase {
 
         XCTAssertEqual(restored.inactivity, "under_three_months")
         XCTAssertEqual(restored.painAreas, ["knee", "shoulder"])
-        XCTAssertEqual(restored.goal, "general")
+        XCTAssertEqual(restored.goal, "rebuild")
         XCTAssertEqual(restored.venue, "outdoors")
         XCTAssertEqual(restored.sessionsPerWeek, 5)
     }
@@ -883,7 +1038,7 @@ final class TrainingInductionTests: XCTestCase {
         )
 
         for requiredControl in [
-            "induction-return-goal-general", "induction-return-goal-muscle",
+            "induction-return-goal-rebuild", "induction-return-goal-muscle",
             "induction-return-goal-fat_loss", "induction-return-goal-strength",
             "induction-return-goal-endurance", "induction-return-venue-home",
             "induction-return-venue-gym", "induction-return-venue-outdoors",

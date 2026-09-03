@@ -61,7 +61,12 @@ struct SimpleHomeView: View {
     }
     private var profile: Profile? { session.profile }
     private var meals: [Meal] { session.data.meals.sorted { $0.sortOrder < $1.sortOrder } }
-    private var activities: [ActivityLog] { session.data.activityLogs.filter { $0.date == today } }
+    private var activities: [ActivityLog] {
+        guard let ownerID = profile?.userID else { return [] }
+        return session.data.activityLogs.filter {
+            $0.userID == ownerID && $0.date == today
+        }
+    }
     private var targets: NutritionTargets? {
         guard let profile else { return nil }
         return EnergyEngine.targets(

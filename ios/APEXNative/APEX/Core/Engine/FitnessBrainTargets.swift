@@ -11,7 +11,7 @@ public enum FitnessBrainTargets {
         .sedentary: 1.2, .light: 1.375, .moderate: 1.55, .very: 1.725, .extra: 1.9,
     ]
 
-    static let goalFactor: [FBGoal: Double] = [.recomp: 0.89, .maintain: 1, .bulk: 1.07]
+    static let goalFactor: [FBGoal: Double] = [.recomp: 0.90, .maintain: 1, .bulk: 1.05]
 
     static let proteinGPerKG: [FBActivityLevel: Double] = [
         .sedentary: 1.6, .light: 1.75, .moderate: 1.9, .very: 2, .extra: 2.1,
@@ -59,47 +59,68 @@ public enum FitnessBrainTargets {
     }
 
     public static func ageFrom(birthdate: String, asOf: String) -> Int {
-        let b = FBDate.parse(birthdate)
-        let a = FBDate.parse(asOf)
+        guard let age = validAgeFrom(birthdate: birthdate, asOf: asOf) else { return 0 }
+        return age
+    }
+
+    public static func validAgeFrom(birthdate: String, asOf: String) -> Int? {
+        guard let b = FBDate.validDate(birthdate),
+              let a = FBDate.validDate(asOf),
+              b <= a else { return nil }
         var years = a.year - b.year
         if (a.month, a.day) < (b.month, b.day) { years -= 1 }
         return years
     }
 
     public static func bmrMifflin(_ p: FBProfile, asOf: String) -> Double {
-        let age = Double(ageFrom(birthdate: p.birthdate, asOf: asOf))
+        guard let resolvedAge = validAgeFrom(birthdate: p.birthdate, asOf: asOf),
+              p.weightKG.isFinite,
+              p.heightCM.isFinite,
+              ["male", "female"].contains(p.sex) else { return 0 }
+        let age = Double(resolvedAge)
         let base = 10 * p.weightKG + 6.25 * p.heightCM - 5 * age
-        return jsRound(base + (p.sex == "male" ? 5 : -161))
+        let estimate = base + (p.sex == "male" ? 5 : -161)
+        return estimate.isFinite ? jsRound(estimate) : 0
     }
 
     public static func bmrKatch(_ p: FBProfile) -> Double? {
         guard ProfileIntegrityPolicy.isBodyFatEnergyEligible(
             value: p.bodyFatPct,
             source: p.bodyFatSource.flatMap(ProfileIntegrityPolicy.BodyFatSource.init(rawValue:))
-        ), let bodyFatPct = p.bodyFatPct else { return nil }
+        ), let bodyFatPct = p.bodyFatPct,
+           p.weightKG.isFinite else { return nil }
         let lean = p.weightKG * (1 - bodyFatPct / 100)
-        return jsRound(370 + 21.6 * lean)
+        let estimate = 370 + 21.6 * lean
+        return estimate.isFinite ? jsRound(estimate) : nil
     }
 
     static func carbohydrateGrams(kcal: Double, proteinG: Double, fatG: Double) -> Double {
-        max(0, jsRound((kcal - proteinG * 4 - fatG * 9) / 4))
+        max(0, ((kcal - proteinG * 4 - fatG * 9) / 4).rounded(.down))
     }
 
-    public static func computeTargets(_ p: FBProfile, asOf: String) -> FBTargets {
+    public static func computeTargets(
+        _ p: FBProfile,
+        asOf: String,
+        trainingGoal: String? = nil,
+        planWeeks: Int? = nil
+    ) -> FBTargets {
         let katch = bmrKatch(p)
         let mifflin = bmrMifflin(p, asOf: asOf)
-        let hasCustomBMR = p.customBMR.map { $0 >= 800 && $0 <= 4000 } ?? false
-        let activeBMR = hasCustomBMR ? jsRound(p.customBMR!) : katch ?? mifflin
+        let hasCustomBMR = p.customBMR.map {
+            $0.isFinite && $0 >= 800 && $0 <= 4_000
+        } ?? false
+        let activeBMR = hasCustomBMR ? jsRound(p.customBMR ?? 0) : katch ?? mifflin
 
         if let persona = authorizedPersonalPersona(p),
-           let proto = personalProtocols[persona] {
-            let kcal = proto.calories[p.goal]![p.activityLevel]!
-            let proteinG = proto.protein[p.goal]!
-            let fatG = proto.fat[p.goal]!
+           let proto = personalProtocols[persona],
+           let kcal = proto.calories[p.goal]?[p.activityLevel],
+           let proteinG = proto.protein[p.goal],
+           let fatG = proto.fat[p.goal],
+           let tdee = proto.calories[.maintain]?[p.activityLevel] {
             return FBTargets(
                 bmrMifflin: mifflin,
                 bmrKatch: katch,
-                tdee: proto.calories[.maintain]![p.activityLevel]!,
+                tdee: tdee,
                 kcal: kcal,
                 proteinG: proteinG,
                 fatG: fatG,
@@ -108,17 +129,69 @@ public enum FitnessBrainTargets {
             )
         }
 
-        let tdee = jsRound(activeBMR * activityFactor[p.activityLevel]!)
-        let kcal = jsRound(max(activeBMR * 1.05, tdee * goalFactor[p.goal]!))
-        let proteinPerKG = min(2.4, max(1.6, proteinGPerKG[p.activityLevel]! + goalProteinAdjustment[p.goal]!))
+        guard standardProfileIsValid(p, asOf: asOf),
+              p.customBMR == nil || hasCustomBMR,
+              activeBMR.isFinite,
+              (800...4_000).contains(activeBMR) else {
+            return blockedTargets(mifflin: mifflin, katch: katch)
+        }
+
+        let activityFactorValue = activityFactor[p.activityLevel] ?? 1.2
+        let tdee = jsRound(activeBMR * activityFactorValue)
+        let planContext = trainingGoal.map {
+            NutritionPlanContext(
+                trainingGoal: NutritionGoalPolicy.normalizedTrainingGoal($0),
+                planWeeks: NutritionGoalPolicy.normalizedPlanWeeks(planWeeks)
+            )
+        }
+        let goal = Goal(rawValue: p.goal.rawValue) ?? .maintain
+        let factor = NutritionGoalPolicy.preset(for: goal, context: planContext).factor
+        let kcal = jsRound(tdee * factor)
+        let proteinPerKG = min(
+            2.4,
+            max(
+                1.6,
+                (proteinGPerKG[p.activityLevel] ?? 1.6)
+                    + (goalProteinAdjustment[p.goal] ?? 0)
+            )
+        )
         let proteinG = jsRound(p.weightKG * proteinPerKG)
-        let fatFromEnergy = kcal * fatEnergyShare[p.goal]! / 9
-        let fatFloor = p.weightKG * fatFloorGPerKG[p.goal]!
+        let fatFromEnergy = kcal * (fatEnergyShare[p.goal] ?? 0.275) / 9
+        let fatFloor = p.weightKG * (fatFloorGPerKG[p.goal] ?? 0.8)
         let fatG = jsRound(max(fatFloor, fatFromEnergy))
-        let carbsG = max(0, jsRound((kcal - proteinG * 4 - fatG * 9) / 4))
+        let requestedMacroEnergy = proteinG * 4 + fatG * 9
+        if requestedMacroEnergy > kcal {
+            return blockedTargets(mifflin: mifflin, katch: katch)
+        }
+        let carbsG = max(0, ((kcal - proteinG * 4 - fatG * 9) / 4).rounded(.down))
         return FBTargets(
             bmrMifflin: mifflin, bmrKatch: katch, tdee: tdee, kcal: kcal,
             proteinG: proteinG, fatG: fatG, carbsG: carbsG, waterL: 2.75
+        )
+    }
+
+    private static func standardProfileIsValid(_ profile: FBProfile, asOf: String) -> Bool {
+        guard let age = validAgeFrom(birthdate: profile.birthdate, asOf: asOf) else {
+            return false
+        }
+        return (19...100).contains(age)
+            && profile.weightKG.isFinite
+            && (30...300).contains(profile.weightKG)
+            && profile.heightCM.isFinite
+            && (120...230).contains(profile.heightCM)
+            && ["male", "female"].contains(profile.sex)
+    }
+
+    private static func blockedTargets(mifflin: Double, katch: Double?) -> FBTargets {
+        FBTargets(
+            bmrMifflin: mifflin.isFinite ? max(0, mifflin) : 0,
+            bmrKatch: katch?.isFinite == true ? katch : nil,
+            tdee: 0,
+            kcal: 0,
+            proteinG: 0,
+            fatG: 0,
+            carbsG: 0,
+            waterL: 2.75
         )
     }
 
@@ -159,6 +232,23 @@ public enum FBDate {
         let parts = iso.split(separator: "-").compactMap { Int($0) }
         guard parts.count == 3 else { return YMD(year: 1970, month: 1, day: 1) }
         return YMD(year: parts[0], month: parts[1], day: parts[2])
+    }
+
+    public static func validDate(_ iso: String) -> YMD? {
+        let components = iso.split(separator: "-", omittingEmptySubsequences: false)
+        guard components.count == 3,
+              components[0].count == 4,
+              components[1].count == 2,
+              components[2].count == 2,
+              let year = Int(components[0]),
+              let month = Int(components[1]),
+              let day = Int(components[2]),
+              (1...12).contains(month) else { return nil }
+        let leap = year.isMultiple(of: 400)
+            || (year.isMultiple(of: 4) && !year.isMultiple(of: 100))
+        let days = [31, leap ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+        guard (1...days[month - 1]).contains(day) else { return nil }
+        return YMD(year: year, month: month, day: day)
     }
 
     /* Howard Hinnant's days-from-civil algorithm */

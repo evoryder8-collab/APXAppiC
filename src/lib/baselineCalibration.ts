@@ -203,6 +203,21 @@ function validBoundary(userID: string, measuredAt: string, importedAt: string): 
   return Number.isFinite(Date.parse(measuredAt)) && Number.isFinite(Date.parse(importedAt))
 }
 
+export function calibrationResultMeasuredAt(rawDate: string): string | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(rawDate)
+  if (!match) return null
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const date = new Date(Date.UTC(year, month - 1, day, 12))
+  if (
+    date.getUTCFullYear() !== year
+    || date.getUTCMonth() !== month - 1
+    || date.getUTCDate() !== day
+  ) return null
+  return date.toISOString()
+}
+
 export function evaluateBaselineCalibration(input: {
   user_id: string
   measured_at: string
@@ -325,7 +340,22 @@ export function buildManualCalibrationEvidence(input: {
 }
 
 export type DxaCalibrationEvidenceResult =
-  | { status: 'accepted'; evidence: NormalizedFitnessEvidence[] }
+  | {
+      status: 'accepted'
+      evidence: NormalizedFitnessEvidence[]
+      persistence: {
+        owner_id: string
+        profile_patch: {
+          body_fat_pct: number
+          body_fat_source: 'dexa'
+          body_fat_measured_at: string
+        } | null
+        settings_addons_patch: {
+          custom_bmr: number
+          custom_bmr_source: 'dexa_report_estimate'
+        } | null
+      }
+    }
   | { status: 'rejected'; reason: string }
 
 export function buildDxaCalibrationEvidence(input: {
@@ -335,6 +365,8 @@ export function buildDxaCalibrationEvidence(input: {
   declared_source: string
   measured_at: string
   imported_at: string
+  existing_custom_bmr?: number | null
+  existing_custom_bmr_source?: string | null
 }): DxaCalibrationEvidenceResult {
   const requested = [
     input.body_fat_percentage == null ? null : {
@@ -364,7 +396,38 @@ export function buildDxaCalibrationEvidence(input: {
     if (result.status === 'rejected') return result
     evidence.push(result.evidence)
   }
-  return { status: 'accepted', evidence }
+  const normalizedBodyFat = evidence.find((item) => item.metric === 'body_fat_percentage')?.value
+  const reportedRestingEnergy = evidence.find((item) => item.metric === 'resting_metabolic_rate')?.value
+  const targetSafeRestingEnergy = reportedRestingEnergy != null
+    && reportedRestingEnergy >= 800
+    && reportedRestingEnergy <= 4_000
+    ? Math.round(reportedRestingEnergy)
+    : null
+  const hasStrongerMeasuredRestingEnergy = input.existing_custom_bmr_source === 'indirect_calorimetry'
+    && input.existing_custom_bmr != null
+    && Number.isFinite(input.existing_custom_bmr)
+    && input.existing_custom_bmr >= 800
+    && input.existing_custom_bmr <= 4_000
+  return {
+    status: 'accepted',
+    evidence,
+    persistence: {
+      owner_id: evidence[0]?.user_id ?? input.user_id.trim(),
+      profile_patch: normalizedBodyFat == null
+        ? null
+        : {
+            body_fat_pct: normalizedBodyFat,
+            body_fat_source: 'dexa',
+            body_fat_measured_at: input.measured_at,
+          },
+      settings_addons_patch: targetSafeRestingEnergy == null || hasStrongerMeasuredRestingEnergy
+        ? null
+        : {
+            custom_bmr: targetSafeRestingEnergy,
+            custom_bmr_source: 'dexa_report_estimate',
+          },
+    },
+  }
 }
 
 export function baselineCalibrationAuthority(_profileKind: 'standard' | 'bespoke' | string) {

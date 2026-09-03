@@ -236,7 +236,12 @@ public enum FitnessBrainEngine {
 
         var dayTypeByID: [String: FBDayType] = [:]
         for d in input.programDays { dayTypeByID[d.id] = d.dayType }
-        let targets = FitnessBrainTargets.computeTargets(profile, asOf: throughDate)
+        let targets = FitnessBrainTargets.computeTargets(
+            profile,
+            asOf: throughDate,
+            trainingGoal: input.trainingGoal,
+            planWeeks: input.planWeeks
+        )
 
         var activity: [String: DayActivity] = [:]
         func day(_ date: String) -> DayActivity {
@@ -414,8 +419,11 @@ public enum FitnessBrainEngine {
             }
 
             if let a {
-                let proteinHit = (a.protein ?? -1) >= targets.proteinG * 0.95
-                let deepDeficit = a.kcal != nil && a.kcal! < targets.kcal * 0.85
+                let proteinHit = targets.isPublishable
+                    && (a.protein ?? -1) >= targets.proteinG * 0.95
+                let deepDeficit = targets.isPublishable
+                    && a.kcal != nil
+                    && a.kcal! < targets.kcal * 0.85
                 let hydrated = (a.waterL ?? -1) >= 2.5
                 let hasStrengthSession = a.types.contains {
                     !$0.recovery && (upperTypes.contains($0.type) || lowerTypes.contains($0.type))
@@ -521,7 +529,8 @@ public enum FitnessBrainEngine {
                     s.health += 1.2 * streakMult * headroom(s.health)
                     healthFed = true
                 }
-                if let kcal = a.kcal, let protein = a.protein,
+                if targets.isPublishable,
+                   let kcal = a.kcal, let protein = a.protein,
                    abs(kcal - targets.kcal) <= targets.kcal * 0.1,
                    protein >= targets.proteinG * 0.95 {
                     s.health += 1.4 * streakMult * headroom(s.health)

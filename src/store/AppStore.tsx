@@ -18,7 +18,7 @@ import {
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { createSessionBoundSupabase, isLocalMode, supabase } from '../lib/supabase'
 import { clearAllLocal, loadCache, loadQueue, saveCache, saveQueue, type SyncOp } from '../lib/local'
-import type { AppData, DailyLog, FitnessEvidenceRecord, RpgSnapshot, Settings } from '../lib/types'
+import type { AppData, CustomBmrSource, DailyLog, FitnessEvidenceRecord, RpgSnapshot, Settings } from '../lib/types'
 import type { NormalizedFitnessEvidence } from '../lib/fitnessEvidence'
 import type { HydrationPreferences } from '../lib/hydrationLedger'
 import { inferredHydrationTargetMode } from '../lib/hydration'
@@ -153,6 +153,14 @@ const Ctx = createContext<StoreValue | null>(null)
 
 const LOCAL_USER = '00000000-0000-4000-8000-000000000001'
 
+function normalizeCustomBmrSource(value: unknown): CustomBmrSource | null {
+  return value === 'indirect_calorimetry'
+    || value === 'dexa_report_estimate'
+    || value === 'legacy_user_entered'
+    ? value
+    : null
+}
+
 function normalizeDailyLog(log: DailyLog): DailyLog {
   return normalizeDailyLogIntegers({
     ...log,
@@ -210,6 +218,12 @@ function normalizeAppData(value: AppData): AppData {
     : null
   const settingsHasCustomBmr = Boolean(settings?.addons && Object.prototype.hasOwnProperty.call(settings.addons, 'custom_bmr'))
   const storedCustomBmr = settingsHasCustomBmr ? settings!.addons.custom_bmr : value.profile?.custom_bmr
+  const settingsHasCustomBmrSource = Boolean(
+    settings?.addons && Object.prototype.hasOwnProperty.call(settings.addons, 'custom_bmr_source'),
+  )
+  const storedCustomBmrSource = settingsHasCustomBmrSource
+    ? settings!.addons.custom_bmr_source
+    : value.profile?.custom_bmr_source
   const policy = value.profile ? resolveProfilePolicy(value.profile) : null
   const storedBodyFat = value.profile?.body_fat_pct == null
     ? null
@@ -226,6 +240,7 @@ function normalizeAppData(value: AppData): AppData {
         body_fat_source: storedBodyFatSource,
         body_fat_measured_at: value.profile.body_fat_measured_at ?? null,
         custom_bmr: storedCustomBmr == null ? null : Number(storedCustomBmr),
+        custom_bmr_source: storedCustomBmr == null ? null : normalizeCustomBmrSource(storedCustomBmrSource),
         calibration_k: Number(value.profile.calibration_k ?? 1),
         seed_version: Number(value.profile.seed_version ?? 0),
         calibration_history: Array.isArray(value.profile.calibration_history)
@@ -594,8 +609,18 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       mutationRevision.current += 1
       const settings = { ...cur.settings, ...patch }
       const hasCustomBmr = Boolean(patch.addons && Object.prototype.hasOwnProperty.call(patch.addons, 'custom_bmr'))
-      const profile = hasCustomBmr && cur.profile
-        ? { ...cur.profile, custom_bmr: patch.addons?.custom_bmr ?? null, updated_at: new Date().toISOString() }
+      const hasCustomBmrSource = Boolean(
+        patch.addons && Object.prototype.hasOwnProperty.call(patch.addons, 'custom_bmr_source'),
+      )
+      const profile = (hasCustomBmr || hasCustomBmrSource) && cur.profile
+        ? {
+            ...cur.profile,
+            custom_bmr: hasCustomBmr ? patch.addons?.custom_bmr ?? null : cur.profile.custom_bmr,
+            custom_bmr_source: hasCustomBmrSource
+              ? normalizeCustomBmrSource(patch.addons?.custom_bmr_source)
+              : cur.profile.custom_bmr_source,
+            updated_at: new Date().toISOString(),
+          }
         : cur.profile
       persist({ ...cur, settings, profile })
       enqueue({ table: 'settings', type: 'upsert', payload: settings, sync_group: options?.syncGroup })
@@ -724,6 +749,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             target_fat_g: cachedProfile.target_fat_g ?? null,
             target_carbs_g: cachedProfile.target_carbs_g ?? null,
             custom_bmr: cachedProfile.custom_bmr == null ? null : Number(cachedProfile.custom_bmr),
+            custom_bmr_source: cachedProfile.custom_bmr == null
+              ? null
+              : normalizeCustomBmrSource(cachedProfile.custom_bmr_source),
             profile_note: cachedProfile.profile_note ?? '',
             seed_version: Number(cachedProfile.seed_version ?? 0),
             calibration_k: Number(cachedProfile.calibration_k ?? 1),
@@ -947,7 +975,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const profile = data.profile
     if (!profile) return
     const date = zonedClock(new Date(), timeZoneFromSettings(data.settings)).date
-    const context = eventContextFor(date, data.events)
+    const context = eventContextFor(
+      date,
+      data.events.filter((event) => event.user_id === profile.user_id),
+    )
     if (!context?.isDuring || context.event.type !== 'filming_championship') return
     const catalog = activityCatalogMap(data.activity_types)
     let index = 0
@@ -955,7 +986,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       activityLogId(date, profile.user_id, `event:${context.event.id}:${index++}`),
     )
     for (const block of blocks) {
-      if (!data.activity_logs.some((log) => log.id === block.id)) {
+      if (!data.activity_logs.some(
+        (log) => log.user_id === profile.user_id && log.id === block.id,
+      )) {
         upsert('activity_logs', activityLogFromBlock(block, profile, date, catalog))
       }
     }
@@ -966,7 +999,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     if (!profile) return
     const date = zonedClock(new Date(), timeZoneFromSettings(data.settings)).date
     const catalog = activityCatalogMap(data.activity_types)
-    const activityLogs = data.activity_logs.filter((log) => log.date === date)
+    const activityLogs = data.activity_logs.filter(
+      (log) => log.user_id === profile.user_id && log.date === date,
+    )
     const blocks = activityLogs.map((log) => blockFromActivityLog(log, catalog))
     const wearableActiveCalories = (data.settings?.addons.watch_activity_history ?? [])
       .filter((record) => record.date === date)
@@ -974,14 +1009,18 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const estimate = estimateActivityDay(profile, blocks, catalog, undefined, wearableActiveCalories)
     const quickTargets = computeTargets(profile, nutritionPlanContext(data.settings?.addons.training_induction ?? data.settings?.addons.training_induction_baseline))
     const usesWholeDayProtocol = Boolean(personalTargetFor(profile))
-    const mode = blocks.length > 0 && !usesWholeDayProtocol ? 'precise' : 'quick'
+    const mode = estimate.hasMeaningfulActivity && !usesWholeDayProtocol ? 'precise' : 'quick'
     const estimatedTdee = mode === 'precise' ? estimate.tdee : quickTargets.tdee
-    const computedPal = Math.round((estimatedTdee / estimate.bmr) * 100) / 100
-    const existing = data.daily_logs.find((log) => log.date === date)
+    const computedPal = estimate.bmr > 0
+      ? Math.round((estimatedTdee / estimate.bmr) * 100) / 100
+      : null
+    const existing = data.daily_logs.find(
+      (log) => log.user_id === profile.user_id && log.date === date,
+    )
     if (
       existing?.activity_mode === mode &&
       existing.estimated_tdee === estimatedTdee &&
-      Number(existing.computed_pal ?? 0) === computedPal
+      (existing.computed_pal ?? null) === computedPal
     ) return
     upsert('daily_logs', {
       id: existing?.id ?? dailyLogId(date, profile.user_id),
@@ -1018,6 +1057,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             const profile = {
               ...incoming,
               custom_bmr: cur.settings?.addons.custom_bmr ?? cur.profile?.custom_bmr ?? null,
+              custom_bmr_source: normalizeCustomBmrSource(
+                cur.settings?.addons.custom_bmr_source ?? cur.profile?.custom_bmr_source,
+              ),
             }
             if (cur.profile && recordsEqual(cur.profile, profile)) return
             persistSilent({ ...cur, profile })
@@ -1031,8 +1073,15 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             if (hasPendingSyncForRecord(loadQueue(session.user.id), table, settings.user_id)) return
             if (cur.settings && recordsEqual(cur.settings, settings)) return
             const hasCustomBmr = Object.prototype.hasOwnProperty.call(settings.addons ?? {}, 'custom_bmr')
-            const profile = hasCustomBmr && cur.profile
-              ? { ...cur.profile, custom_bmr: settings.addons.custom_bmr ?? null }
+            const hasCustomBmrSource = Object.prototype.hasOwnProperty.call(settings.addons ?? {}, 'custom_bmr_source')
+            const profile = (hasCustomBmr || hasCustomBmrSource) && cur.profile
+              ? {
+                  ...cur.profile,
+                  custom_bmr: hasCustomBmr ? settings.addons.custom_bmr ?? null : cur.profile.custom_bmr,
+                  custom_bmr_source: hasCustomBmrSource
+                    ? normalizeCustomBmrSource(settings.addons.custom_bmr_source)
+                    : cur.profile.custom_bmr_source,
+                }
               : cur.profile
             persistSilent({ ...cur, settings, profile })
           }

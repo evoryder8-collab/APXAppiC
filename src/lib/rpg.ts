@@ -285,9 +285,27 @@ const UPPER_TYPES: DayType[] = ['push', 'pull', 'upper']
 const LOWER_TYPES: DayType[] = ['legs_a', 'legs_b']
 const FLEX_TYPES: DayType[] = ['mobility', 'fix']
 
+function hasScorableNutritionTargets(targets: ReturnType<typeof computeTargets>): boolean {
+  return targets.isPublishable
+    && targets.reviewState !== 'blocked'
+    && Number.isFinite(targets.kcal)
+    && targets.kcal > 0
+    && Number.isFinite(targets.protein_g)
+    && targets.protein_g > 0
+}
+
 export function computeEngine(data: AppData, throughDate: string): EngineResult {
   const profile = data.profile
   if (!profile) return { snapshots: [], synergies: [] }
+  const ownerID = profile.user_id
+  const programDays = data.program_days.filter((row) => row.user_id === ownerID)
+  const exercises = data.exercises.filter((row) => row.user_id === ownerID)
+  const workoutSessions = data.workout_sessions.filter((row) => row.user_id === ownerID)
+  const ownedSessionIDs = new Set(workoutSessions.map((row) => row.id))
+  const workoutLogs = data.workout_logs.filter(
+    (row) => row.user_id === ownerID && ownedSessionIDs.has(row.session_id),
+  )
+  const healthMetrics = data.health_metrics.filter((row) => row.user_id === ownerID)
   const importedActivities = signalBearingImportedActivitiesForOwner(data)
   const start = profile.baseline_date
   const total = differenceInCalendarDays(
@@ -296,8 +314,9 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
   )
   if (total < 0) return { snapshots: [], synergies: [] }
 
-  const dayTypeById = new Map(data.program_days.map((d) => [d.id, d.day_type]))
+  const dayTypeById = new Map(programDays.map((d) => [d.id, d.day_type]))
   const targets = computeTargets(profile, nutritionPlanContext(data.settings?.addons.training_induction ?? data.settings?.addons.training_induction_baseline))
+  const canScoreNutrition = hasScorableNutritionTargets(targets)
 
   /* Pre-index activity by date */
   const activity = new Map<string, DayActivity>()
@@ -316,8 +335,8 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
     return a
   }
 
-  const sessionById = new Map(data.workout_sessions.map((s) => [s.id, s]))
-  for (const s of data.workout_sessions) {
+  const sessionById = new Map(workoutSessions.map((s) => [s.id, s]))
+  for (const s of workoutSessions) {
     if (!s.completed) continue
     const type = dayTypeById.get(s.program_day_id)
     if (!type) continue
@@ -328,7 +347,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
       recovery: s.is_event_recovery,
     })
   }
-  for (const log of data.workout_logs) {
+  for (const log of workoutLogs) {
     const session = sessionById.get(log.session_id)
     if (!session?.completed || log.skipped || !isConditioningFocusT25(log.exercise_name)) continue
     const day = getDay(session.date)
@@ -341,14 +360,14 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
       })
     }
   }
-  for (const log of data.workout_logs) {
+  for (const log of workoutLogs) {
     const s = sessionById.get(log.session_id)
     if (!s) continue
     if (log.override_flag) getDay(s.date).overrides += 1
   }
   /* Progressive overload events: top weight for an exercise rises vs previous session */
   const byExercise = new Map<string, Array<{ date: string; w: number }>>()
-  for (const log of data.workout_logs) {
+  for (const log of workoutLogs) {
     if (!log.exercise_id || log.skipped || log.weight_kg == null) continue
     const s = sessionById.get(log.session_id)
     if (!s) continue
@@ -356,7 +375,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
     arr.push({ date: s.date, w: log.weight_kg })
     byExercise.set(log.exercise_id, arr)
   }
-  const exerciseDayById = new Map(data.exercises.map((e) => [e.id, e.program_day_id]))
+  const exerciseDayById = new Map(exercises.map((e) => [e.id, e.program_day_id]))
   for (const [exId, arr] of byExercise) {
     const byDate = new Map<string, number>()
     for (const { date, w } of arr) byDate.set(date, Math.max(byDate.get(date) ?? 0, w))
@@ -372,6 +391,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
     }
   }
   for (const d of data.daily_logs) {
+    if (d.user_id !== profile.user_id) continue
     const a = getDay(d.date)
     a.waterL = d.water_l
     a.kcal = d.kcal
@@ -383,7 +403,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
     else if (imp.kind === 'endurance') a.importEnduranceMin += imp.duration_min
     else a.importMobilityMin += imp.duration_min
   }
-  for (const m of data.health_metrics) {
+  for (const m of healthMetrics) {
     if (m.vo2max != null) getDay(m.date).vo2 = m.vo2max
   }
   for (const checkin of data.settings?.addons?.recovery_history ?? []) {
@@ -421,7 +441,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
   /* --- pre-baseline Apple Health history informs the starting point. The 6b
      calibration stays the anchor; measured reality corrects it, and history
      from before the app never decays anything. --- */
-  const preVo2 = data.health_metrics
+  const preVo2 = healthMetrics
     .filter((m) => m.vo2max != null && m.date < start)
     .sort((a, b) => a.date.localeCompare(b.date))
     .pop()
@@ -484,8 +504,14 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
 
       if (a) {
         /* --- the brain: nutrition context for this training day --- */
-        const proteinHit = a.protein != null && a.protein >= targets.protein_g * 0.95
-        const deepDeficit = a.kcal != null && a.kcal < targets.kcal * 0.85
+        const proteinHit = canScoreNutrition
+          && a.protein != null
+          && Number.isFinite(a.protein)
+          && a.protein >= targets.protein_g * 0.95
+        const deepDeficit = canScoreNutrition
+          && a.kcal != null
+          && Number.isFinite(a.kcal)
+          && a.kcal < targets.kcal * 0.85
         const hydrated = a.waterL != null && a.waterL >= 2.5
         const hasStrengthSession = a.types.some(
           (t) => !t.recovery && (UPPER_TYPES.includes(t.type) || LOWER_TYPES.includes(t.type)),
@@ -579,7 +605,9 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
           healthFed = true
         }
         if (
+          canScoreNutrition &&
           a.kcal != null && a.protein != null &&
+          Number.isFinite(a.kcal) && Number.isFinite(a.protein) &&
           Math.abs(a.kcal - targets.kcal) <= targets.kcal * 0.1 &&
           a.protein >= targets.protein_g * 0.95
         ) {
@@ -721,14 +749,20 @@ export interface StatAdvice {
 }
 
 export function whatYourBodyNeeds(data: AppData, snapshots: RpgSnapshot[]): StatAdvice[] {
-  if (snapshots.length === 0) return []
-  const now = snapshots[snapshots.length - 1]
+  const ownerID = data.profile?.user_id
+  if (!ownerID) return []
+  const ownedSnapshots = snapshots.filter((row) => row.user_id === ownerID)
+  if (ownedSnapshots.length === 0) return []
+  const now = ownedSnapshots[ownedSnapshots.length - 1]
   const persona = data.profile?.persona ?? 'constantine'
-  const twoWeeksAgo = snapshots[Math.max(0, snapshots.length - 15)]
+  const twoWeeksAgo = ownedSnapshots[Math.max(0, ownedSnapshots.length - 15)]
+  const programDays = data.program_days.filter((row) => row.user_id === ownerID)
+  const workoutSessions = data.workout_sessions.filter((row) => row.user_id === ownerID)
+  const healthMetrics = data.health_metrics.filter((row) => row.user_id === ownerID)
 
-  const dayTypeById = new Map(data.program_days.map((d) => [d.id, d.day_type]))
+  const dayTypeById = new Map(programDays.map((d) => [d.id, d.day_type]))
   const lastFed: Record<string, string | null> = { endurance: null, flexibility: null, lower: null, upper: null }
-  for (const s of data.workout_sessions) {
+  for (const s of workoutSessions) {
     if (!s.completed) continue
     const type = dayTypeById.get(s.program_day_id)
     if (!type) continue
@@ -746,7 +780,7 @@ export function whatYourBodyNeeds(data: AppData, snapshots: RpgSnapshot[]): Stat
     if (!lastFed[key] || imp.date > (lastFed[key] as string)) lastFed[key] = imp.date
   }
 
-  const today = snapshots[snapshots.length - 1].date
+  const today = ownedSnapshots[ownedSnapshots.length - 1].date
   const daysSince = (d: string | null): number | null =>
     d == null ? null : differenceInCalendarDays(new Date(today + 'T12:00:00'), new Date(d + 'T12:00:00'))
   const starving = (d: number | null, limit: number): boolean => d == null || d > limit
@@ -756,7 +790,7 @@ export function whatYourBodyNeeds(data: AppData, snapshots: RpgSnapshot[]): Stat
   const trend = (a: number, b: number): number => a - b
 
   /* Recovery flag from resting heart rate (Apple Health) */
-  const rhr = data.health_metrics
+  const rhr = healthMetrics
     .filter((m) => m.resting_hr != null)
     .sort((a, b) => a.date.localeCompare(b.date))
   if (rhr.length >= 10) {
@@ -906,10 +940,13 @@ const LOW_STAT_ACTION: Record<AssessmentStat, string> = {
 
 export function assessBodyState(data: AppData, snapshots: RpgSnapshot[]): BodyAssessment | null {
   const profile = data.profile
-  const now = snapshots[snapshots.length - 1]
+  const ownedSnapshots = profile
+    ? snapshots.filter((row) => row.user_id === profile.user_id)
+    : []
+  const now = ownedSnapshots[ownedSnapshots.length - 1]
   if (!profile || !now) return null
 
-  const before = snapshots[Math.max(0, snapshots.length - 15)] ?? now
+  const before = ownedSnapshots[Math.max(0, ownedSnapshots.length - 15)] ?? now
   const overallDelta = now.overall - before.overall
   const stats = (Object.keys(ASSESSMENT_LABELS) as AssessmentStat[])
     .map((key) => ({ key, label: ASSESSMENT_LABELS[key], value: now[key] }))
@@ -919,15 +956,24 @@ export function assessBodyState(data: AppData, snapshots: RpgSnapshot[]): BodyAs
   const spread = strongest.value - weakest.value
 
   const recentStart = addDaysIso(now.date, -13)
-  const recentLogs = data.daily_logs.filter((log) => log.date >= recentStart && log.date <= now.date)
+  const recentLogs = data.daily_logs.filter(
+    (log) => log.user_id === profile.user_id && log.date >= recentStart && log.date <= now.date,
+  )
   const recentSessions = data.workout_sessions.filter(
-    (session) => session.completed && session.date >= recentStart && session.date <= now.date,
+    (session) => session.user_id === profile.user_id
+      && session.completed
+      && session.date >= recentStart
+      && session.date <= now.date,
   )
   const evidenceDays = new Set<string>()
   for (const log of recentLogs) evidenceDays.add(log.date)
   for (const session of recentSessions) evidenceDays.add(session.date)
   for (const metric of data.health_metrics) {
-    if (metric.date >= recentStart && metric.date <= now.date) evidenceDays.add(metric.date)
+    if (
+      metric.user_id === profile.user_id
+      && metric.date >= recentStart
+      && metric.date <= now.date
+    ) evidenceDays.add(metric.date)
   }
   for (const activity of signalBearingImportedActivitiesForOwner(data)) {
     if (activity.date >= recentStart && activity.date <= now.date) evidenceDays.add(activity.date)
@@ -964,8 +1010,9 @@ export function assessBodyState(data: AppData, snapshots: RpgSnapshot[]): BodyAs
   }
 
   const targets = computeTargets(profile, nutritionPlanContext(data.settings?.addons.training_induction ?? data.settings?.addons.training_induction_baseline))
+  const canScoreNutrition = hasScorableNutritionTargets(targets)
   const loggedProteinDays = recentLogs.filter((log) => log.protein_g != null)
-  const proteinHitRate = loggedProteinDays.length === 0
+  const proteinHitRate = !canScoreNutrition || loggedProteinDays.length === 0
     ? null
     : loggedProteinDays.filter((log) => (log.protein_g ?? 0) >= targets.protein_g * 0.95).length / loggedProteinDays.length
   const hydratedDays = recentLogs.filter((log) => log.water_l > 0)

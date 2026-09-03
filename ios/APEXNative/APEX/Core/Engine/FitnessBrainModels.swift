@@ -336,6 +336,8 @@ public struct FBMealRhythmDayRaw: Codable, Sendable {
 
 public struct FBEngineInput: Sendable {
     public var profile: FBProfile
+    public var trainingGoal: String?
+    public var planWeeks: Int?
     public var programDays: [FBProgramDayRef]
     public var exercises: [FBExerciseRef]
     public var workoutSessions: [FBWorkoutSession]
@@ -359,9 +361,13 @@ public struct FBEngineInput: Sendable {
         importedActivities: [FBImportedActivity] = [],
         capacityCalibrationEvidence: [FBCapacityCalibrationEvidence] = [],
         recoveryHistory: [FBRecoveryCheckin] = [],
-        mealRhythmHistory: [String: FBMealRhythmDayRaw] = [:]
+        mealRhythmHistory: [String: FBMealRhythmDayRaw] = [:],
+        trainingGoal: String? = nil,
+        planWeeks: Int? = nil
     ) {
         self.profile = profile
+        self.trainingGoal = trainingGoal
+        self.planWeeks = planWeeks
         self.programDays = programDays
         self.exercises = exercises
         self.workoutSessions = workoutSessions
@@ -451,6 +457,18 @@ public struct FBTargets: Codable, Sendable, Equatable {
     public var fatG: Double
     public var carbsG: Double
     public var waterL: Double
+
+    public var isPublishable: Bool {
+        [bmrMifflin, tdee, kcal, proteinG, fatG, carbsG, waterL]
+            .allSatisfy(\.isFinite)
+            && (bmrKatch?.isFinite ?? true)
+            && tdee > 0
+            && kcal > 0
+            && proteinG > 0
+            && fatG > 0
+            && carbsG >= 0
+            && proteinG * 4 + fatG * 9 + carbsG * 4 <= kcal
+    }
 
     enum CodingKeys: String, CodingKey {
         case bmrMifflin, bmrKatch, tdee, kcal

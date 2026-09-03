@@ -152,7 +152,7 @@ test('web and native completion paths present a swipeable, reduce-motion-aware d
   assert.match(native, /Image\(systemName: bullet\.icon\.rawValue\)/)
   assert.match(native, /slide\.energyPresets/)
   assert.match(native, /slide\.recommendedGoal/)
-  assert.match(native, /session\.setGoal\(preset\.goal\)/)
+  assert.match(native, /session\.setGoal\(preset\.goal,\s*operation:\s*operation\)/)
   assert.doesNotMatch(native, /systemName: "sparkle"/)
   assert.match(native, /APEXFont\.body\(14, weight: \.semibold\)/)
   assert.match(native, /page == briefing\.slides\.count - 1/)

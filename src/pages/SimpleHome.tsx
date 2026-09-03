@@ -18,7 +18,7 @@ import { AnimatePresence, motion, Reorder, useDragControls } from 'framer-motion
 import { useStore } from '../store/AppStore'
 import { useFoodStore } from '../store/FoodStore'
 import { ACCENTS } from '../lib/theme'
-import { ACTIVITY_MULTIPLIERS, buildTargetMealPlan, computeTargets, goalPresetsForPlan, nutritionPlanContext, type TargetMeal } from '../lib/nutrition'
+import { ACTIVITY_MULTIPLIERS, activityLevelLabel, buildTargetMealPlan, computeTargets, goalPresetsForPlan, nutritionPlanContext, type TargetMeal } from '../lib/nutrition'
 import { planForDate, programDaysForDate } from '../lib/plan'
 import { dailyLogId } from '../lib/ids'
 import type { ActivityLevel, DailyLog, ProgramSlug, Supplement } from '../lib/types'
@@ -48,9 +48,11 @@ import { estimatedTimelineMinutes } from '../lib/playerTimeline'
 import { isFocusT25Name } from '../lib/focusT25'
 import { calendarDayState, loadActiveDate, rememberActiveDate } from '../lib/activeDate'
 import { activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
-import { resolveDailyBurnedEnergy } from '../lib/activity'
+import { activityLogsForOwnerDate, resolveDailyBurnedEnergy } from '../lib/activity'
 import { recommendActivityMode } from '../lib/personalProtocol'
 import { NutritionGoalPresetPicker } from '../components/nutrition/NutritionGoalPresetPicker'
+import { NutritionTargetStatus } from '../components/nutrition/NutritionTargetStatus'
+import { publishableNutritionPrescription } from '../lib/nutritionTargetPresentation'
 import { SupplementStackEditor } from '../components/supplements/SupplementStackEditor'
 import { CompletedWorkoutHistoryCards } from '../components/workout/CompletedWorkoutHistoryCards'
 import { WorkoutInsightsCard } from '../components/workout/WorkoutInsightsCard'
@@ -161,8 +163,8 @@ export function SimpleHome() {
   const mealBlockSettings = useMemo(() => normalizeMealBlockSettings(settings?.addons.meal_blocks), [settings?.addons.meal_blocks])
   const hasManualWorkout = useMemo(() => manualSessionsForDate(data, selectedDate).length > 0, [data, selectedDate])
   const selectedActivityLogs = useMemo(
-    () => data.activity_logs.filter((log) => log.date === selectedDate),
-    [data.activity_logs, selectedDate],
+    () => activityLogsForOwnerDate(data.activity_logs, profile?.user_id, selectedDate),
+    [data.activity_logs, profile?.user_id, selectedDate],
   )
   const selectedWearableActivity = useMemo(
     () => (settings?.addons.watch_activity_history ?? []).filter((record) => record.date === selectedDate).at(-1),
@@ -191,11 +193,15 @@ export function SimpleHome() {
   )
   const activeNutritionGoalPreset = nutritionGoalPresets.find((preset) => preset.goal === profile?.goal) ?? nutritionGoalPresets[1]
   const targets = useMemo(() => profile ? computeTargets(profile, planNutritionContext) : null, [planNutritionContext, profile])
+  const nutritionPrescription = targets ? publishableNutritionPrescription(targets) : null
+  const activeDayLabel = profile
+    ? activityLevelLabel(profile.activity_level, targets?.isPublishable ? 'Adaptive' : 'Target unavailable')
+    : 'Adaptive'
   const mealPlan = useMemo(
     () => profile && targets
-      ? buildTargetMealPlan(data.meals, targets, ACTIVITY_MULTIPLIERS[profile.activity_level].label)
+      ? buildTargetMealPlan(data.meals, targets, activeDayLabel)
       : [],
-    [data.meals, profile, targets],
+    [activeDayLabel, data.meals, profile, targets],
   )
   const dateFoodMeals = useMemo(() => foodStore.mealsForDate(selectedDate), [foodStore, selectedDate])
   const dateMealIds = useMemo(
@@ -1104,7 +1110,7 @@ export function SimpleHome() {
             ) : blockId === 'nutrition' ? (
               <GlassCard accent={ACCENTS.amber} className="overflow-hidden p-0">
                 <NutritionGlance
-                  target={targets}
+                  target={nutritionPrescription}
                   consumed={consumed}
                   burnedKcal={burnedKcal}
                   activityLevel={activityLevel}
@@ -1136,6 +1142,11 @@ export function SimpleHome() {
                     </div>
                   ) : undefined}
                 />
+                {!nutritionPrescription && (
+                  <div className="border-t border-ink/6 bg-white/24 p-3 sm:p-4">
+                    <NutritionTargetStatus targets={targets} translate={t} />
+                  </div>
+                )}
               </GlassCard>
             ) : blockId === 'dayline' ? (
               <MealDayline
@@ -1378,7 +1389,7 @@ export function SimpleHome() {
               aria-label={quickPanel === 'training' ? trainingPanelTitle : t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}
             >
               <div className="flex items-start justify-between gap-3">
-                <div><p className="font-display text-base font-black text-ink">{quickPanel === 'training' ? trainingPanelTitle : t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${hydration.totalL.toFixed(2)} / ${waterTargetL.toFixed(2)} L · ${hydration.drinkL.toFixed(2)} L ${t('drinks')}${hydration.foodL > 0 ? ` + ${hydration.foodL.toFixed(2)} L ${t('from food')}` : ''}` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'training' ? trainingPanelSubtitle : quickPanel === 'targets' ? `${targets.kcal} kcal · ${t(activeNutritionGoalPreset.label)} · ${t(ACTIVITY_MULTIPLIERS[profile.activity_level].label)}` : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : quickPanel === 'weight' ? t('Your saved morning weigh-ins across weeks and months.') : t('Tap a meal to add, edit or remove it.')}</p></div>
+                <div><p className="font-display text-base font-black text-ink">{quickPanel === 'training' ? trainingPanelTitle : t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${hydration.totalL.toFixed(2)} / ${waterTargetL.toFixed(2)} L · ${hydration.drinkL.toFixed(2)} L ${t('drinks')}${hydration.foodL > 0 ? ` + ${hydration.foodL.toFixed(2)} L ${t('from food')}` : ''}` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'training' ? trainingPanelSubtitle : quickPanel === 'targets' ? nutritionPrescription ? `${nutritionPrescription.kcal} kcal · ${t(activeNutritionGoalPreset.label)} · ${t(activeDayLabel)}` : t('Target unavailable') : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : quickPanel === 'weight' ? t('Your saved morning weigh-ins across weeks and months.') : t('Tap a meal to add, edit or remove it.')}</p></div>
                 <button type="button" onClick={() => setQuickPanel(null)} aria-label={t('Close')} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink/5 text-lg font-black text-ink-soft">×</button>
               </div>
 
@@ -1511,6 +1522,7 @@ export function SimpleHome() {
                 </div>
               ) : quickPanel === 'targets' ? (
                 <div className="mt-4">
+                  {!nutritionPrescription && <NutritionTargetStatus targets={targets} translate={t} />}
                   <p className="font-mono text-[9px] font-black tracking-wide text-ink-faint uppercase">{t('Goal')}</p>
                   <div className="mt-2">
                     <NutritionGoalPresetPicker
@@ -1518,6 +1530,7 @@ export function SimpleHome() {
                       selected={profile.goal}
                       onSelect={(goal) => setProfile({ goal })}
                       translate={t}
+                      disabled={!targets.isPublishable}
                     />
                   </div>
                   <p className="mt-4 border-t border-ink/8 pt-3 font-mono text-[9px] font-black tracking-wide text-ink-faint uppercase">{t('Activity level')}</p>
@@ -1527,7 +1540,7 @@ export function SimpleHome() {
                       return <button key={activity} type="button" aria-pressed={active} onClick={() => setProfile({ activity_level: activity })} className={`rounded-xl px-2.5 py-2 text-[9px] font-black transition active:scale-95 ${active ? 'bg-cyan-600 text-white shadow-sm' : 'bg-cyan-50 text-cyan-900'}`}>{t(ACTIVITY_MULTIPLIERS[activity].label)}</button>
                     })}
                   </div>
-                  <p className="mt-3 text-center font-mono text-[9px] font-black text-ink-soft">{t('Updated target')}: {targets.kcal} kcal</p>
+                  <p className="mt-3 text-center font-mono text-[9px] font-black text-ink-soft">{nutritionPrescription ? `${t('Updated target')}: ${nutritionPrescription.kcal} kcal` : t('Target unavailable')}</p>
                 </div>
               ) : quickPanel === 'weight' ? (
                 <div className="mt-4">

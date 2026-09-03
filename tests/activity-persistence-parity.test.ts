@@ -21,6 +21,21 @@ test('automatic daily-log persistence uses the current date wearable total once'
   assert.match(automation, /data\.settings, upsert\]\)/)
 })
 
+test('automatic activity persistence reads and updates only the active owner rows', () => {
+  const start = appStore.indexOf('/* ---------- activity automation shared by every route ---------- */')
+  const end = appStore.indexOf('/* ---------- realtime merge from other devices ---------- */', start)
+  const automation = appStore.slice(start, end)
+
+  assert.match(
+    automation,
+    /data\.activity_logs\.filter\(\s*\(log\) => log\.user_id === profile\.user_id && log\.date === date,?\s*\)/,
+  )
+  assert.match(
+    automation,
+    /data\.daily_logs\.find\(\s*\(log\) => log\.user_id === profile\.user_id && log\.date === date,?\s*\)/,
+  )
+})
+
 test('finishing an Orbit run persists the wearable total for that run date once', () => {
   const start = liveRun.indexOf('const finish = async')
   const end = liveRun.indexOf('const cancel = async', start)

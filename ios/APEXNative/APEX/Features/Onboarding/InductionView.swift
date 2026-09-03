@@ -198,7 +198,7 @@ struct InductionView: View {
         switch step {
         case 0: termsAccepted && privacyAccepted
         case 1: bodyBaseline?.isValid == true
-        case 2: ["general", "muscle", "fat_loss", "strength", "endurance"].contains(input.goal)
+        case 2: TrainingInduction.canonicalTrainingGoals.contains(input.goal)
         case 3: OnboardingActivityPattern(rawValue: input.baselineAnswers.activityPattern) != nil
         case 4:
             OnboardingMovementAnswer(rawValue: input.baselineAnswers.cardiorespiratory) != nil
@@ -247,7 +247,7 @@ struct InductionView: View {
             bodyDetails
         case 2:
             choices(
-                [("general", "General fitness"), ("muscle", "Build muscle"),
+                [("rebuild", "General fitness"), ("muscle", "Build muscle"),
                  ("fat_loss", "Lose fat"), ("strength", "Get stronger"),
                  ("endurance", "Build endurance")],
                 selection: $input.goal

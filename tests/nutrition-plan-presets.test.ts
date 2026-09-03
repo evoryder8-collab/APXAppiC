@@ -44,12 +44,12 @@ test('a short fat-loss block may be more assertive but never becomes crash-diet 
   assert.ok(fourWeek.every((preset) => preset.factor >= 0.80 && preset.factor < 1))
 })
 
-test('the selected plan preset drives calories while retaining the recovery floor', () => {
+test('the selected plan preset drives calories without an invented BMR multiplier', () => {
   const context: NutritionPlanContext = { trainingGoal: 'fat_loss', planWeeks: 8 }
   const result = computeTargets({ ...profile, goal: 'maintain' }, context)
   const factor = goalPresetsForPlan(context).find((preset) => preset.goal === 'maintain')!.factor
 
-  assert.equal(result.kcal, Math.round(Math.max(result.activeBmr * 1.05, result.tdee * factor)))
+  assert.equal(result.kcal, Math.round(result.tdee * factor))
   assert.equal(recommendedGoalForTrainingGoal('fat_loss'), 'maintain')
   assert.equal(recommendedGoalForTrainingGoal('muscle'), 'bulk')
   assert.equal(recommendedGoalForTrainingGoal('strength'), 'maintain')

@@ -1,5 +1,12 @@
 import type { ActivityLevel, ActivityLog, Goal, Profile } from './types'
-import { computeMacroTargets } from './nutrition.ts'
+import {
+  ACTIVITY_MULTIPLIERS,
+  GOALS,
+  computeMacroTargets,
+  isSupportedActivityLevel,
+  isSupportedNutritionGoal,
+  type Targets,
+} from './nutrition.ts'
 import { bodyFatIsEnergyEligible } from './profilePolicy.ts'
 
 import type { SUPABASE_ENUMS } from './supabaseEnums'
@@ -50,12 +57,40 @@ export interface ActivityEstimate {
   pal: number
   level: ActivityLevel
   targetKcal: number
-  safetyFloorKcal: number
-  safetyClamped: boolean
   proteinG: number
   fatG: number
   carbsG: number
   calibrationK: number
+  targetPolicy: ExerciseEnergyTargetPolicy['kind']
+  prescriptionAdjustmentKcal: number
+  hasMeaningfulActivity: boolean
+}
+
+export type ExerciseEnergyTargetPolicy =
+  | { kind: 'informational' }
+  | { kind: 'conservative_compensation' }
+
+export const INFORMATIONAL_EXERCISE_ENERGY_POLICY: ExerciseEnergyTargetPolicy = { kind: 'informational' }
+export const CONSERVATIVE_EXERCISE_ENERGY_POLICY: ExerciseEnergyTargetPolicy = { kind: 'conservative_compensation' }
+
+function unavailableActivityEstimate(targetPolicy: ExerciseEnergyTargetPolicy): ActivityEstimate {
+  return {
+    bmr: 0,
+    floorKcal: 0,
+    rawBlockKcal: 0,
+    adjustedBlockKcal: 0,
+    tdee: 0,
+    pal: 0,
+    level: 'sedentary',
+    targetKcal: 0,
+    proteinG: 0,
+    fatG: 0,
+    carbsG: 0,
+    calibrationK: 1,
+    targetPolicy: targetPolicy.kind,
+    prescriptionAdjustmentKcal: 0,
+    hasMeaningfulActivity: false,
+  }
 }
 
 export interface CalibrationDay {
@@ -243,9 +278,9 @@ export function activityCatalogMap(types: ActivityType[]): Map<string, ActivityT
 }
 
 export const GOAL_FACTORS: Record<Goal, number> = {
-  recomp: 0.89,
-  maintain: 1,
-  bulk: 1.07,
+  recomp: GOALS.recomp.factor,
+  maintain: GOALS.maintain.factor,
+  bulk: GOALS.bulk.factor,
 }
 
 export const PAL_LABELS: Record<ActivityLevel, string> = {
@@ -264,23 +299,51 @@ export const PAL_TONES: Record<ActivityLevel, { deep: string; bright: string; wa
   extra: { deep: '#b91c1c', bright: '#ef4444', wash: 'rgba(239,68,68,.11)', glow: 'rgba(239,68,68,.34)' },
 }
 
-function ageOnDate(birthdate: string, at = new Date()): number {
-  const birth = new Date(`${birthdate}T00:00:00`)
-  let age = at.getFullYear() - birth.getFullYear()
-  const month = at.getMonth() - birth.getMonth()
-  if (month < 0 || (month === 0 && at.getDate() < birth.getDate())) age -= 1
+function ageOnDate(birthdate: string, at = new Date()): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthdate)
+  if (!match || !Number.isFinite(at.getTime())) return null
+  const year = Number(match[1])
+  const monthValue = Number(match[2])
+  const day = Number(match[3])
+  const birth = new Date(Date.UTC(year, monthValue - 1, day))
+  if (
+    birth.getUTCFullYear() !== year
+    || birth.getUTCMonth() !== monthValue - 1
+    || birth.getUTCDate() !== day
+  ) return null
+  let age = at.getUTCFullYear() - birth.getUTCFullYear()
+  const month = at.getUTCMonth() - birth.getUTCMonth()
+  if (month < 0 || (month === 0 && at.getUTCDate() < birth.getUTCDate())) age -= 1
   return age
 }
 
-export function activityBmr(profile: Pick<Profile, 'weight_kg' | 'height_cm' | 'birthdate' | 'sex' | 'body_fat_pct' | 'body_fat_source' | 'custom_bmr'>): number {
-  if (profile.custom_bmr != null && Number.isFinite(profile.custom_bmr) && profile.custom_bmr >= 800 && profile.custom_bmr <= 4000) {
+export function activityBmr(profile: Pick<Profile, 'weight_kg' | 'height_cm' | 'birthdate' | 'sex' | 'body_fat_pct' | 'body_fat_source' | 'custom_bmr' | 'custom_bmr_source'>): number {
+  const age = ageOnDate(profile.birthdate)
+  if (
+    age == null || age < 19 || age > 100
+    || !Number.isFinite(profile.weight_kg) || profile.weight_kg < 30 || profile.weight_kg > 300
+    || !Number.isFinite(profile.height_cm) || profile.height_cm < 120 || profile.height_cm > 230
+    || (profile.sex !== 'male' && profile.sex !== 'female')
+  ) return 0
+  if (
+    profile.custom_bmr_source !== 'dexa_report_estimate'
+    && profile.custom_bmr != null
+    && (!Number.isFinite(profile.custom_bmr) || profile.custom_bmr < 800 || profile.custom_bmr > 4000)
+  ) return 0
+  if (
+    profile.custom_bmr_source !== 'dexa_report_estimate'
+    && profile.custom_bmr != null
+    && Number.isFinite(profile.custom_bmr)
+    && profile.custom_bmr >= 800
+    && profile.custom_bmr <= 4000
+  ) {
     return profile.custom_bmr
   }
   if (bodyFatIsEnergyEligible(profile)) {
     const leanMassKg = profile.weight_kg * (1 - profile.body_fat_pct! / 100)
     return 370 + 21.6 * leanMassKg
   }
-  const mifflin = 10 * profile.weight_kg + 6.25 * profile.height_cm - 5 * ageOnDate(profile.birthdate)
+  const mifflin = 10 * profile.weight_kg + 6.25 * profile.height_cm - 5 * age
   return mifflin + (profile.sex === 'male' ? 5 : -161)
 }
 
@@ -340,29 +403,80 @@ export function resolveDailyBurnedEnergy(
   ), 0))
 }
 
+export function activityLogsForOwnerDate<T extends Pick<ActivityLog, 'user_id' | 'date'>>(
+  logs: readonly T[],
+  ownerId: string | null | undefined,
+  date: string,
+): T[] {
+  if (!ownerId) return []
+  return logs.filter((log) => log.user_id === ownerId && log.date === date)
+}
+
 export function estimateActivityDay(
-  profile: Pick<Profile, 'weight_kg' | 'height_cm' | 'birthdate' | 'sex' | 'body_fat_pct' | 'body_fat_source' | 'custom_bmr' | 'goal'> & { calibration_k?: number },
+  profile: Pick<Profile, 'weight_kg' | 'height_cm' | 'birthdate' | 'sex' | 'body_fat_pct' | 'body_fat_source' | 'custom_bmr' | 'custom_bmr_source' | 'goal'>
+    & Partial<Pick<Profile, 'activity_level'>>
+    & { calibration_k?: number },
   blocks: ActivityBlock[],
   catalog = ACTIVITY_BY_ID,
   goalFactor = GOAL_FACTORS[profile.goal],
   wearableActiveCalories?: number | null,
+  targetPolicy: ExerciseEnergyTargetPolicy = INFORMATIONAL_EXERCISE_ENERGY_POLICY,
 ): ActivityEstimate {
+  const habitualLevel = profile.activity_level ?? 'sedentary'
+  if (
+    !isSupportedActivityLevel(habitualLevel)
+    || !isSupportedNutritionGoal(profile.goal)
+    || !Number.isFinite(goalFactor)
+    || goalFactor <= 0
+  ) {
+    return unavailableActivityEstimate(targetPolicy)
+  }
   const bmr = activityBmr(profile)
+  if (!Number.isFinite(bmr) || bmr < 800 || bmr > 4_000) {
+    return unavailableActivityEstimate(targetPolicy)
+  }
   const floorKcal = bmr * 1.2
-  const estimatedBlockKcal = blocks.reduce((sum, block) => sum + netKcalForBlock(block, profile.weight_kg, catalog), 0)
+  let estimatedBlockKcal = 0
+  for (const block of blocks) {
+    const blockKcal = netKcalForBlock(block, profile.weight_kg, catalog)
+    if (!Number.isFinite(blockKcal)) return unavailableActivityEstimate(targetPolicy)
+    estimatedBlockKcal += blockKcal
+    if (!Number.isFinite(estimatedBlockKcal)) return unavailableActivityEstimate(targetPolicy)
+  }
   const rawBlockKcal = Number.isFinite(wearableActiveCalories) && Number(wearableActiveCalories) > 0
     ? Math.round(Number(wearableActiveCalories))
     : estimatedBlockKcal
-  const calibrationK = Math.min(1.15, Math.max(0.85, profile.calibration_k ?? 1))
+  const calibrationInput = profile.calibration_k ?? 1
+  if (!Number.isFinite(calibrationInput)) return unavailableActivityEstimate(targetPolicy)
+  const calibrationK = Math.min(1.15, Math.max(0.85, calibrationInput))
   const adjustedBlockKcal = rawBlockKcal * calibrationK
   const tdee = floorKcal + adjustedBlockKcal
   const pal = tdee / bmr
-  const safetyFloorKcal = bmr * 1.05
-  const proposedTarget = tdee * goalFactor
-  const targetKcal = Math.max(safetyFloorKcal, proposedTarget)
-  const roundedTargetKcal = Math.round(targetKcal)
+  const habitualTdee = bmr * ACTIVITY_MULTIPLIERS[habitualLevel].factor
+  const proposedTarget = habitualTdee * goalFactor
+  const baseTargetKcal = Math.round(proposedTarget)
+  const habitualActiveEnergy = Math.max(0, habitualTdee - floorKcal)
+  const positiveActiveEnergyExcess = Math.max(0, adjustedBlockKcal - habitualActiveEnergy)
+  /* This is an explicit bounded product policy, not a biological constant:
+     compensate only 25% of positive activity above the habitual baseline and
+     never add more than 250 kcal to the day's prescription. */
+  const prescriptionAdjustmentKcal = targetPolicy.kind === 'conservative_compensation'
+    ? Math.round(Math.min(250, positiveActiveEnergyExcess * 0.25))
+    : 0
+  const roundedTargetKcal = baseTargetKcal + prescriptionAdjustmentKcal
   const level = activityLevelForPal(pal)
-  const macros = computeMacroTargets(profile.weight_kg, level, profile.goal, roundedTargetKcal)
+  const macros = computeMacroTargets(profile.weight_kg, habitualLevel, profile.goal, roundedTargetKcal)
+  if (
+    ![floorKcal, rawBlockKcal, adjustedBlockKcal, tdee, pal, habitualTdee, roundedTargetKcal,
+      macros.protein_g, macros.fat_g, macros.carbs_g].every(Number.isFinite)
+    || rawBlockKcal < 0
+    || adjustedBlockKcal < 0
+    || tdee <= 0
+    || roundedTargetKcal <= 0
+    || macros.protein_g <= 0
+    || macros.fat_g <= 0
+    || macros.carbs_g < 0
+  ) return unavailableActivityEstimate(targetPolicy)
 
   return {
     bmr: Math.round(bmr),
@@ -373,12 +487,36 @@ export function estimateActivityDay(
     pal: Math.round(pal * 100) / 100,
     level,
     targetKcal: roundedTargetKcal,
-    safetyFloorKcal: Math.round(safetyFloorKcal),
-    safetyClamped: proposedTarget < safetyFloorKcal,
     proteinG: macros.protein_g,
     fatG: macros.fat_g,
     carbsG: macros.carbs_g,
     calibrationK,
+    targetPolicy: targetPolicy.kind,
+    prescriptionAdjustmentKcal,
+    hasMeaningfulActivity: rawBlockKcal > 0,
+  }
+}
+
+export function resolveActivityAdjustedTargets(
+  quickTargets: Targets | null,
+  activityEstimate: ActivityEstimate | null,
+  usesWholeDayProtocol: boolean,
+): Targets | null {
+  if (
+    !quickTargets
+    || !quickTargets.isPublishable
+    || !activityEstimate
+    || !activityEstimate.hasMeaningfulActivity
+    || usesWholeDayProtocol
+  ) return quickTargets
+
+  return {
+    ...quickTargets,
+    tdee: activityEstimate.tdee,
+    kcal: activityEstimate.targetKcal,
+    protein_g: activityEstimate.proteinG,
+    fat_g: activityEstimate.fatG,
+    carbs_g: activityEstimate.carbsG,
   }
 }
 
