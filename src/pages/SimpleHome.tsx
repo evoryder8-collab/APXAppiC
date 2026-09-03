@@ -56,7 +56,7 @@ import { publishableNutritionPrescription } from '../lib/nutritionTargetPresenta
 import { SupplementStackEditor } from '../components/supplements/SupplementStackEditor'
 import { CompletedWorkoutHistoryCards } from '../components/workout/CompletedWorkoutHistoryCards'
 import { WorkoutInsightsCard } from '../components/workout/WorkoutInsightsCard'
-import { clientPolicyForAccount } from '../lib/coachAccess'
+import { accountAccessHasSponsoredAccess, clientPolicyForAccount } from '../lib/coachAccess'
 import { coachText } from '../lib/coachCopy'
 
 const emerald = ACCENTS.emerald
@@ -109,7 +109,7 @@ function normalizedSimpleBlockOrder(value: unknown): SimpleBlockId[] {
 }
 
 export function SimpleHome() {
-  const { data, coachContext, snapshots, upsert, remove, setProfile, setSettings, toast } = useStore()
+  const { appAccess, data, coachContext, snapshots, upsert, remove, setProfile, setSettings, toast } = useStore()
   const foodStore = useFoodStore()
   const orbit = useOrbitStore()
   const navigate = useNavigate()
@@ -132,7 +132,11 @@ export function SimpleHome() {
   const [completedWorkoutTimeDraft, setCompletedWorkoutTimeDraft] = useState('')
   const profile = data.profile
   const settings = data.settings
-  const coachPolicy = clientPolicyForAccount(profile, coachContext)
+  const coachPolicy = clientPolicyForAccount(appAccess, coachContext)
+  const canCreateManualWorkouts = coachPolicy.can_create_custom_workouts
+  const sponsoredAccess = accountAccessHasSponsoredAccess(appAccess)
+  const sponsoredOnlyAccess = sponsoredAccess && !canCreateManualWorkouts
+  const showCoachPlan = sponsoredAccess || coachPolicy.coach_plan_read_only
   const [simpleBlockOrder, setSimpleBlockOrder] = useState<SimpleBlockId[]>(() => normalizedSimpleBlockOrder(settings?.addons.simple_block_order))
   const simpleBlockOrderRef = useRef(simpleBlockOrder)
   const mealTimeZone = timeZoneFromSettings(settings)
@@ -316,7 +320,8 @@ export function SimpleHome() {
     usableGuidedPrograms.transition,
   )
   const induction = data.settings?.addons.training_induction
-  const guidedProgramSlug: ProgramSlug = coachPolicy.can_follow_coach_plan && usableGuidedPrograms.coach
+  const guidedProgramSlug: ProgramSlug = sponsoredOnlyAccess
+    || coachPolicy.can_follow_coach_plan && usableGuidedPrograms.coach
     ? 'coach'
     : induction && isInsideInductionWindow(induction, 'transition', selectedDate) && usableGuidedPrograms.transition
       ? 'transition'
@@ -1072,7 +1077,7 @@ export function SimpleHome() {
         </div>
       </motion.header>
 
-      {coachContext.capabilities.sponsored_client && (
+      {showCoachPlan && (
         <Link to="/coach-plan" className="mb-4 block">
           <GlassCard accent={ACCENTS.violet} className="p-4">
             <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl text-white" style={{ background: ACCENTS.violet.gradient }}><DumbbellIcon className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="font-display text-base font-bold text-ink">{coachText('Your coach plan', language)}</p><p className="truncate text-[11px] font-medium text-ink-soft">{coachText('Provided by', language)} {coachContext.sponsorship?.coach_display_name}</p></div><span className="font-mono text-[10px] font-black text-violet-700">OPEN</span></div>
@@ -1207,16 +1212,16 @@ export function SimpleHome() {
                     onProfileChange={setProfile}
                   />
                 )}
-                <QuickWorkoutLauncher
+                {canCreateManualWorkouts && <QuickWorkoutLauncher
                   tile
                   className={selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') ? '' : 'h-[5.25rem] w-[5.25rem]'}
                   date={selectedDate}
                   accent={emerald}
                   onSaved={() => setSettings({ addons: { ...settings.addons, simple_show_manual_workout: true } })}
-                />
+                />}
               </div>
             ) : blockId === 'manual-workout' ? (
-              hasManualWorkout && (adhdMode || showManualWorkoutCard) ? <TodayManualWorkoutCard compact date={selectedDate} onAdd={openNewManualWorkout} onEdit={openManualWorkout} /> : null
+              canCreateManualWorkouts && hasManualWorkout && (adhdMode || showManualWorkoutCard) ? <TodayManualWorkoutCard compact date={selectedDate} onAdd={openNewManualWorkout} onEdit={openManualWorkout} /> : null
             ) : blockId === 'next-action' ? (
               !adhdMode && showNextAction ? <GlassCard accent={nextAction.accent} breathe className="p-5 sm:p-6">
                 <p className="font-mono text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: nextAction.accent.deep }}>{nextAction.eyebrow}</p>
@@ -1617,7 +1622,9 @@ export function SimpleHome() {
           />
         </Suspense>
       )}
-      <ManualWorkoutLogger open={showManualWorkout} onClose={closeManualWorkout} date={selectedDate} editSessionId={editingManualSessionId} focusExerciseId={editingManualExerciseId} />
+      {canCreateManualWorkouts && (
+        <ManualWorkoutLogger open={showManualWorkout} onClose={closeManualWorkout} date={selectedDate} editSessionId={editingManualSessionId} focusExerciseId={editingManualExerciseId} />
+      )}
       <WorkoutStatsSheet open={Boolean(workoutStatsSessionId)} onClose={() => setWorkoutStatsSessionId(null)} sessionId={workoutStatsSessionId} accent={ACCENTS.teal} />
       <PortalLanguageMenu />
     </div>

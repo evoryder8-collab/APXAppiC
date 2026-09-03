@@ -1,5 +1,5 @@
 import Foundation
-import CryptoKit
+import Observation
 
 /// The live answer to "can this account use the app", kept in one place so no
 /// screen has to work it out for itself.
@@ -7,11 +7,56 @@ import CryptoKit
 @MainActor
 final class EntitlementStore {
 
+    private static let sponsoredCacheLifetime: TimeInterval = 24 * 60 * 60
+
+    private struct AccessEvidence: Sendable {
+        let id: UUID
+        let envelope: AccountAccessEnvelope
+        /// Time already elapsed between the server observation being cached
+        /// and this evidence being loaded.
+        let baseElapsed: TimeInterval
+        /// Monotonic point at which this process accepted the evidence.
+        let acceptedSystemUptime: TimeInterval
+        /// Live responses carry a server-computed answer for this exact build.
+        /// Cached responses recompute it from their durable minimum-build fact.
+        let updateRequired: Bool
+    }
+
+    private struct Evaluation: Sendable {
+        let access: Entitlement.Access
+        let hasIndividualAccess: Bool
+        let deadlineDelay: TimeInterval?
+        let recoveryReason: RecoveryReason?
+    }
+
+    enum Resolution: Equatable, Sendable {
+        case resolving
+        case resolved
+        case failed
+    }
+
+    enum RecoveryReason: Equatable, Sendable {
+        case updateRequired
+        case revoked
+        case expired
+        case locked
+        case unavailable
+    }
+
     static let shared = EntitlementStore()
 
     private(set) var access: Entitlement.Access = .locked
+    private(set) var resolution: Resolution = .resolving
     private(set) var resolvedUserID: UUID?
     private(set) var hasIndividualAccess = false
+    private(set) var recoveryReason: RecoveryReason? = .unavailable
+    /// Exposed for deterministic contract tests and diagnostics. Production
+    /// invalidation is driven by one sleeping task, never a polling timer.
+    private(set) var scheduledAccessDeadlineUptime: TimeInterval?
+    private var latestObservation: Date?
+    @ObservationIgnored private var evidence: AccessEvidence?
+    @ObservationIgnored private var deadlineTask: Task<Void, Never>?
+    @ObservationIgnored private var accessDeniedHandler: ((UUID) -> Void)?
 
     var isUnlocked: Bool { Entitlement.isUnlocked(access) }
 
@@ -19,59 +64,8 @@ final class EntitlementStore {
         Entitlement.allows(feature, access: access)
     }
 
-    // MARK: - Beta unlock
-
-    /// What happened when a code was entered.
-    enum RedeemOutcome: Equatable {
-        case unlocked
-        case alreadyRedeemed
-        case notRecognised
-        case notSignedIn
-        case unavailable
-    }
-
-    /// A shared beta code, which belongs to whichever account claims it first.
-    ///
-    /// This cannot be decided on the device: a local flag is per install, so
-    /// the same code would work again on another phone, or after deleting and
-    /// reinstalling. The claim is recorded against the account server side.
-    func redeemBeta(
-        code: String,
-        expectedUserID: UUID,
-        service: SupabaseService
-    ) async throws -> RedeemOutcome {
-        guard resolvedUserID == expectedUserID else { return .notSignedIn }
-        guard await service.currentUserID() == expectedUserID else { return .notSignedIn }
-
-        let result: String
-        do {
-            result = try await service.redeemBetaCode(hash: hash(of: code))
-        } catch is CancellationError {
-            throw CancellationError()
-        } catch {
-            guard resolvedUserID == expectedUserID else { return .notSignedIn }
-            guard await service.currentUserID() == expectedUserID else { return .notSignedIn }
-            return .unavailable
-        }
-
-        guard resolvedUserID == expectedUserID else { return .notSignedIn }
-        guard await service.currentUserID() == expectedUserID else { return .notSignedIn }
-
-        switch result {
-        case "ok": return .unlocked
-        case "already_redeemed": return .alreadyRedeemed
-        case "not_signed_in": return .notSignedIn
-        default: return .notRecognised
-        }
-    }
-
-    /// Normalised the same way on every path, so a code typed with stray
-    /// spaces or in lower case still matches.
-    private func hash(of code: String) -> String {
-        let normalised = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        return SHA256.hash(data: Data(normalised.utf8))
-            .map { String(format: "%02x", $0) }
-            .joined()
+    func setAccessDeniedHandler(_ handler: @escaping (UUID) -> Void) {
+        accessDeniedHandler = handler
     }
 
     // MARK: - Resolution
@@ -81,42 +75,298 @@ final class EntitlementStore {
         guard resolvedUserID != userID else { return }
         resolvedUserID = userID
         access = .locked
+        resolution = .resolving
         hasIndividualAccess = false
+        recoveryReason = .unavailable
+        latestObservation = nil
+        evidence = nil
+        cancelDeadline()
     }
 
     func resetAccount() {
         resolvedUserID = nil
         access = .locked
+        resolution = .resolving
         hasIndividualAccess = false
+        recoveryReason = .unavailable
+        latestObservation = nil
+        evidence = nil
+        cancelDeadline()
     }
 
-    func resolve(profile: Profile?, sponsoredSeatActive: Bool = false) {
-        guard let profile else { return }
-        prepareForAccount(profile.userID)
-        let individualAccess = Entitlement.access(
-            foundingMember: profile.foundingMember ?? false,
-            betaCodeRedeemed: profile.betaCodeRedeemed ?? false,
-            subscribedTier: profile.subscriptionTier.flatMap(Entitlement.Tier.init(rawValue:)),
-            subscriptionExpires: profile.subscriptionExpiresAt.flatMap(Self.parse),
-            sponsoredSeatActive: false
+    /// Accept an access response only for the current owner and only when it is
+    /// at least as new as the answer already published. A delayed request from
+    /// before a revoke/grant transition can therefore never roll state back.
+    @discardableResult
+    func resolve(
+        envelope: AccountAccessEnvelope,
+        expectedUserID: UUID,
+        now: Date = Date(),
+        systemUptime: TimeInterval = ProcessInfo.processInfo.systemUptime
+    ) -> Bool {
+        // Deliberately do not compare a live response with `now`. The RPC has
+        // already resolved state using the server clock. Device clock skew
+        // must neither shorten nor extend that answer.
+        _ = now
+        guard resolvedUserID == expectedUserID,
+              envelope.userID == expectedUserID,
+              let observation = envelope.observationDate else { return false }
+        if let latestObservation, observation < latestObservation { return false }
+
+        latestObservation = observation
+        let acceptedEvidence = AccessEvidence(
+            id: UUID(),
+            envelope: envelope,
+            baseElapsed: 0,
+            acceptedSystemUptime: systemUptime,
+            updateRequired: envelope.updateRequired
         )
-        hasIndividualAccess = Entitlement.isUnlocked(individualAccess)
-        access = hasIndividualAccess ? individualAccess : Entitlement.access(
-            foundingMember: false,
-            betaCodeRedeemed: false,
-            subscribedTier: nil,
-            subscriptionExpires: nil,
-            sponsoredSeatActive: sponsoredSeatActive
+        evidence = acceptedEvidence
+        publish(acceptedEvidence, systemUptime: systemUptime)
+        return true
+    }
+
+    /// Resolve owner-scoped offline evidence. Its age is calculated from the
+    /// cached server observation plus nonnegative elapsed local time, never by
+    /// comparing the grant directly with today's device wall clock.
+    @discardableResult
+    func resolve(
+        cached: CachedAccountAccess,
+        expectedUserID: UUID,
+        currentBuild: Int,
+        now: Date = Date(),
+        systemUptime: TimeInterval = ProcessInfo.processInfo.systemUptime,
+        bootSessionID: String? = SystemBootSession.identifier()
+    ) -> Bool {
+        let envelope = cached.envelope
+        let permanentIndividual = envelope.state == .granted && envelope.expiresAt == nil
+        let boundedAccessCouldUnlock = !permanentIndividual
+            && (envelope.state == .granted || envelope.sponsoredSeatActive)
+        if boundedAccessCouldUnlock {
+            guard let savedSystemUptime = cached.savedSystemUptime,
+                  let savedBootSessionID = cached.savedBootSessionID,
+                  let bootSessionID,
+                  savedBootSessionID == bootSessionID,
+                  systemUptime >= savedSystemUptime else { return false }
+        }
+        guard resolvedUserID == expectedUserID,
+              envelope.userID == expectedUserID,
+              let observation = envelope.observationDate,
+              let elapsed = cached.elapsedTime(now: now, systemUptime: systemUptime)
+        else { return false }
+        if let latestObservation, observation < latestObservation { return false }
+
+        latestObservation = observation
+        let acceptedEvidence = AccessEvidence(
+            id: UUID(),
+            envelope: envelope,
+            baseElapsed: elapsed,
+            acceptedSystemUptime: systemUptime,
+            updateRequired: currentBuild < envelope.minimumBuild
+        )
+        evidence = acceptedEvidence
+        publish(acceptedEvidence, systemUptime: systemUptime)
+        return true
+    }
+
+    /// Re-evaluate the accepted evidence at a monotonic instant. Returning
+    /// false means the published answer did not change; callers never need to
+    /// poll this because the store schedules its nearest deadline itself.
+    @discardableResult
+    func reevaluateAccess(
+        systemUptime: TimeInterval = ProcessInfo.processInfo.systemUptime
+    ) -> Bool {
+        guard let evidence else { return false }
+        return publish(evidence, systemUptime: systemUptime)
+    }
+
+    func markUnavailable(expectedUserID: UUID) {
+        guard resolvedUserID == expectedUserID, resolution == .resolving else { return }
+        resolution = .failed
+        access = .locked
+        hasIndividualAccess = false
+        recoveryReason = .unavailable
+        evidence = nil
+        cancelDeadline()
+        accessDeniedHandler?(expectedUserID)
+    }
+
+    @discardableResult
+    private func publish(
+        _ evidence: AccessEvidence,
+        systemUptime: TimeInterval
+    ) -> Bool {
+        let evaluation = evaluate(evidence, systemUptime: systemUptime)
+        let changed = resolution != .resolved
+            || access != evaluation.access
+            || hasIndividualAccess != evaluation.hasIndividualAccess
+            || recoveryReason != evaluation.recoveryReason
+
+        if resolution != .resolved { resolution = .resolved }
+        if access != evaluation.access { access = evaluation.access }
+        if hasIndividualAccess != evaluation.hasIndividualAccess {
+            hasIndividualAccess = evaluation.hasIndividualAccess
+        }
+        if recoveryReason != evaluation.recoveryReason {
+            recoveryReason = evaluation.recoveryReason
+        }
+        scheduleDeadline(
+            evidenceID: evidence.id,
+            delay: evaluation.deadlineDelay,
+            systemUptime: systemUptime
+        )
+        if changed,
+           !Entitlement.isUnlocked(evaluation.access),
+           let resolvedUserID {
+            accessDeniedHandler?(resolvedUserID)
+        }
+        return changed
+    }
+
+    private func evaluate(
+        _ evidence: AccessEvidence,
+        systemUptime: TimeInterval
+    ) -> Evaluation {
+        guard systemUptime >= evidence.acceptedSystemUptime,
+              let serverObservation = evidence.envelope.observationDate else {
+            return Evaluation(
+                access: .locked,
+                hasIndividualAccess: false,
+                deadlineDelay: nil,
+                recoveryReason: .unavailable
+            )
+        }
+
+        let elapsed = evidence.baseElapsed
+            + (systemUptime - evidence.acceptedSystemUptime)
+        let effectiveServerNow = serverObservation.addingTimeInterval(elapsed)
+        let individualAccess: Bool
+        let individualDeadline: TimeInterval?
+        if evidence.envelope.state == .granted {
+            if let rawExpiry = evidence.envelope.expiresAt,
+               let expiry = AccountAccessEnvelope.parse(rawExpiry) {
+                let remaining = expiry.timeIntervalSince(effectiveServerNow)
+                individualAccess = remaining > 0
+                individualDeadline = individualAccess ? remaining : nil
+            } else if evidence.envelope.expiresAt == nil {
+                individualAccess = true
+                individualDeadline = nil
+            } else {
+                // A malformed finite deadline can never become permanent.
+                individualAccess = false
+                individualDeadline = nil
+            }
+        } else {
+            individualAccess = false
+            individualDeadline = nil
+        }
+
+        let sponsoredRemaining = Self.sponsoredCacheLifetime - elapsed
+        let sponsoredAccess = evidence.envelope.sponsoredSeatActive
+            && sponsoredRemaining > 0
+
+        if evidence.updateRequired {
+            return Evaluation(
+                access: .updateRequired,
+                hasIndividualAccess: individualAccess,
+                deadlineDelay: nil,
+                recoveryReason: .updateRequired
+            )
+        }
+        if individualAccess {
+            return Evaluation(
+                access: .testFlight,
+                hasIndividualAccess: true,
+                deadlineDelay: individualDeadline,
+                recoveryReason: nil
+            )
+        }
+        if sponsoredAccess {
+            return Evaluation(
+                access: .sponsored,
+                hasIndividualAccess: false,
+                deadlineDelay: sponsoredRemaining,
+                recoveryReason: nil
+            )
+        }
+        let recoveryReason: RecoveryReason
+        switch evidence.envelope.state {
+        case .revoked:
+            recoveryReason = .revoked
+        case .expired:
+            recoveryReason = .expired
+        case .locked, .missing:
+            recoveryReason = .locked
+        case .granted:
+            recoveryReason = evidence.envelope.expiresAt == nil ? .unavailable : .expired
+        }
+        return Evaluation(
+            access: .locked,
+            hasIndividualAccess: false,
+            deadlineDelay: nil,
+            recoveryReason: recoveryReason
         )
     }
 
-    /* Built per call rather than cached: a formatter is not Sendable, this runs
-       a handful of times per launch, and a subscription expiry silently failing
-       to parse would lock out someone who has paid. */
-    private static func parse(_ value: String) -> Date? {
-        if let plain = ISO8601DateFormatter().date(from: value) { return plain }
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        return fractional.date(from: value)
+    private func scheduleDeadline(
+        evidenceID: UUID,
+        delay: TimeInterval?,
+        systemUptime: TimeInterval
+    ) {
+        guard let delay, delay > 0 else {
+            cancelDeadline()
+            return
+        }
+        let target = systemUptime + delay
+        if let scheduledAccessDeadlineUptime,
+           abs(scheduledAccessDeadlineUptime - target) < 0.001,
+           deadlineTask != nil {
+            return
+        }
+
+        deadlineTask?.cancel()
+        scheduledAccessDeadlineUptime = target
+        deadlineTask = Task { [weak self] in
+            do {
+                try await Task.sleep(for: .seconds(delay))
+            } catch {
+                return
+            }
+            guard let self,
+                  self.evidence?.id == evidenceID else { return }
+            self.deadlineTask = nil
+            self.scheduledAccessDeadlineUptime = nil
+            // Sleeping can resume a fraction early. The scheduled monotonic
+            // target is the authoritative lower bound for this evaluation.
+            _ = self.reevaluateAccess(
+                systemUptime: max(ProcessInfo.processInfo.systemUptime, target)
+            )
+        }
     }
+
+    private func cancelDeadline() {
+        deadlineTask?.cancel()
+        deadlineTask = nil
+        scheduledAccessDeadlineUptime = nil
+    }
+
+    #if DEBUG
+    /// Deterministic local fixtures have no authenticated Supabase server. This
+    /// debug-only hook keeps UI automation independent without becoming a
+    /// release access path.
+    func resolveDebugFixture(userID: UUID, sponsoredSeatActive: Bool = false) {
+        prepareForAccount(userID)
+        resolution = .resolved
+        if sponsoredSeatActive {
+            access = .sponsored
+            hasIndividualAccess = false
+        } else {
+            access = .testFlight
+            hasIndividualAccess = true
+        }
+        recoveryReason = nil
+        evidence = nil
+        cancelDeadline()
+    }
+    #endif
 }

@@ -33,6 +33,7 @@ import { useFoodStore } from '../store/FoodStore'
 import { timeZoneFromSettings } from '../lib/mealTiming'
 import { CompletedWorkoutHistoryCards } from '../components/workout/CompletedWorkoutHistoryCards'
 import { WorkoutInsightsCard } from '../components/workout/WorkoutInsightsCard'
+import { clientPolicyForAccount } from '../lib/coachAccess'
 
 const CustomWorkoutBuilder = lazy(() =>
   import('../components/CustomWorkoutBuilder').then((module) => ({ default: module.CustomWorkoutBuilder })),
@@ -49,7 +50,8 @@ const EVENT_TYPES: Array<{ value: EventType; label: string }> = [
 ]
 
 export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; accent: Accent; title: string }) {
-  const { data, upsert, remove, toast } = useStore()
+  const { appAccess, coachContext, data, upsert, remove, toast } = useStore()
+  const canCreateCustomWorkouts = clientPolicyForAccount(appAccess, coachContext).can_create_custom_workouts
   const ownerId = data.profile?.user_id ?? data.settings?.user_id
   const foodStore = useFoodStore()
   const orbit = useOrbitStore()
@@ -293,41 +295,45 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
         </div>
 
 
-        <TodayManualWorkoutCard
-          detailed={detailedInterface}
-          date={today}
-          onAdd={() => {
-            setEditingManualSessionId(null)
-            setEditingManualExerciseId(null)
-            setShowManualWorkout(true)
-          }}
-          onEdit={(sessionId, exerciseId) => {
-            setEditingManualSessionId(sessionId)
-            setEditingManualExerciseId(exerciseId)
-            setShowManualWorkout(true)
-          }}
-          accent={accent}
-        />
+        {canCreateCustomWorkouts && (
+          <TodayManualWorkoutCard
+            detailed={detailedInterface}
+            date={today}
+            onAdd={() => {
+              setEditingManualSessionId(null)
+              setEditingManualExerciseId(null)
+              setShowManualWorkout(true)
+            }}
+            onEdit={(sessionId, exerciseId) => {
+              setEditingManualSessionId(sessionId)
+              setEditingManualExerciseId(exerciseId)
+              setShowManualWorkout(true)
+            }}
+            accent={accent}
+          />
+        )}
 
         <CompletedWorkoutHistoryCards date={today} accent={accent} includeQuickLogs={false} />
         <WorkoutInsightsCard anchorDate={today} accent={accent} />
 
         {/* Custom workout studio */}
-        <div className="relative overflow-hidden rounded-[30px] border border-violet-200/35 bg-[#07111f] p-5 text-white shadow-[0_28px_70px_-38px_rgba(109,40,217,.95)] sm:p-6">
-          <div className="orbit-stars pointer-events-none absolute inset-0 opacity-55" aria-hidden />
-          <div className="pointer-events-none absolute -top-24 right-[-3rem] h-64 w-64 rounded-full bg-violet-500/25 blur-3xl" aria-hidden />
-          <div className="pointer-events-none absolute -bottom-28 left-[-4rem] h-56 w-56 rounded-full bg-cyan-400/15 blur-3xl" aria-hidden />
-          <div className="relative grid items-center gap-5 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <div>
-              <p className="font-mono text-[9px] font-black tracking-[.2em] text-cyan-200 uppercase">{t('APEX WORKOUT STUDIO')}</p>
-              <h2 className="mt-2 font-display text-2xl font-bold">{t('Create your own workout')}</h2>
-              {detailedInterface && <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-300">{t('Search machines, free weights, calisthenics, street training, HIIT and mobility. Your muscle map updates as you build.')}</p>}
+        {canCreateCustomWorkouts && (
+          <div className="relative overflow-hidden rounded-[30px] border border-violet-200/35 bg-[#07111f] p-5 text-white shadow-[0_28px_70px_-38px_rgba(109,40,217,.95)] sm:p-6">
+            <div className="orbit-stars pointer-events-none absolute inset-0 opacity-55" aria-hidden />
+            <div className="pointer-events-none absolute -top-24 right-[-3rem] h-64 w-64 rounded-full bg-violet-500/25 blur-3xl" aria-hidden />
+            <div className="pointer-events-none absolute -bottom-28 left-[-4rem] h-56 w-56 rounded-full bg-cyan-400/15 blur-3xl" aria-hidden />
+            <div className="relative grid items-center gap-5 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <div>
+                <p className="font-mono text-[9px] font-black tracking-[.2em] text-cyan-200 uppercase">{t('APEX WORKOUT STUDIO')}</p>
+                <h2 className="mt-2 font-display text-2xl font-bold">{t('Create your own workout')}</h2>
+                {detailedInterface && <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-300">{t('Search machines, free weights, calisthenics, street training, HIIT and mobility. Your muscle map updates as you build.')}</p>}
+              </div>
+              <button type="button" onClick={() => setShowWorkoutBuilder(true)} className="min-h-14 rounded-2xl bg-gradient-to-r from-violet-600 via-fuchsia-500 to-cyan-400 px-6 text-sm font-black text-white shadow-[0_18px_42px_-18px_rgba(168,85,247,.9)] transition active:scale-[.98]">
+                {t('Build a workout')} →
+              </button>
             </div>
-            <button type="button" onClick={() => setShowWorkoutBuilder(true)} className="min-h-14 rounded-2xl bg-gradient-to-r from-violet-600 via-fuchsia-500 to-cyan-400 px-6 text-sm font-black text-white shadow-[0_18px_42px_-18px_rgba(168,85,247,.9)] transition active:scale-[.98]">
-              {t('Build a workout')} →
-            </button>
           </div>
-        </div>
+        )}
 
         {/* Events */}
         <GlassCard accent={ACCENTS.amber} className="p-5">
@@ -385,29 +391,33 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
         />
       )}
 
-      <Suspense fallback={null}>
-        <CustomWorkoutBuilder
-          open={showWorkoutBuilder}
-          onClose={() => setShowWorkoutBuilder(false)}
-          onSaved={() => {
-            if (slug !== 'custom') navigate('/custom-workouts')
-          }}
-          accent={ACCENTS.violet}
-        />
-      </Suspense>
+      {canCreateCustomWorkouts && (
+        <Suspense fallback={null}>
+          <CustomWorkoutBuilder
+            open={showWorkoutBuilder}
+            onClose={() => setShowWorkoutBuilder(false)}
+            onSaved={() => {
+              if (slug !== 'custom') navigate('/custom-workouts')
+            }}
+            accent={ACCENTS.violet}
+          />
+        </Suspense>
+      )}
 
-      <ManualWorkoutLogger
-        open={showManualWorkout}
-        onClose={() => {
-          setShowManualWorkout(false)
-          setEditingManualSessionId(null)
-          setEditingManualExerciseId(null)
-        }}
-        date={today}
-        editSessionId={editingManualSessionId}
-        focusExerciseId={editingManualExerciseId}
-        accent={accent}
-      />
+      {canCreateCustomWorkouts && (
+        <ManualWorkoutLogger
+          open={showManualWorkout}
+          onClose={() => {
+            setShowManualWorkout(false)
+            setEditingManualSessionId(null)
+            setEditingManualExerciseId(null)
+          }}
+          date={today}
+          editSessionId={editingManualSessionId}
+          focusExerciseId={editingManualExerciseId}
+          accent={accent}
+        />
+      )}
 
       {/* Event form */}
       <Sheet open={showEventForm} onClose={() => setShowEventForm(false)}>

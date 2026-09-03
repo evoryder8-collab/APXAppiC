@@ -18,7 +18,15 @@ import {
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { createSessionBoundSupabase, isLocalMode, supabase } from '../lib/supabase'
 import { clearAllLocal, loadCache, loadQueue, saveCache, saveQueue, type SyncOp } from '../lib/local'
-import type { AppData, CustomBmrSource, DailyLog, FitnessEvidenceRecord, RpgSnapshot, Settings } from '../lib/types'
+import type {
+  AccountAccessResolution,
+  AppData,
+  CustomBmrSource,
+  DailyLog,
+  FitnessEvidenceRecord,
+  RpgSnapshot,
+  Settings,
+} from '../lib/types'
 import type { NormalizedFitnessEvidence } from '../lib/fitnessEvidence'
 import type { HydrationPreferences } from '../lib/hydrationLedger'
 import { inferredHydrationTargetMode } from '../lib/hydration'
@@ -87,8 +95,26 @@ import {
   EMPTY_COACH_ACCOUNT_CONTEXT,
   type CoachAccountContext,
 } from '../lib/coachPlatform.ts'
+import {
+  AccountAccessProtocolError,
+  accountAccessAfterFailure,
+  accountAccessAfterRelationshipMutation,
+  accountAccessHasAppAccess,
+  accountAccessNextChangeAt,
+  clearCachedAccountAccess,
+  failedAccountAccess,
+  fetchMyAppAccess,
+  loadCachedAccountAccess,
+  localAccountAccess,
+  pendingAccountAccess,
+  saveCachedAccountAccess,
+  validatedAccountAccessProgression,
+} from '../lib/coachAccess.ts'
+
+const MAX_BROWSER_TIMEOUT_MS = 2_147_483_647
 
 export type SyncStatus = 'synced' | 'queued' | 'local'
+type RefreshAppAccessOptions = { failClosed?: boolean }
 export type ListTable =
   | 'meals'
   | 'meal_logs'
@@ -125,6 +151,7 @@ function isListTable(value: string): value is ListTable {
 interface StoreValue {
   data: AppData
   coachContext: CoachAccountContext
+  appAccess: AccountAccessResolution
   ready: boolean
   authed: boolean
   syncStatus: SyncStatus
@@ -140,6 +167,7 @@ interface StoreValue {
   setHydrationPreferences: (patch: Partial<HydrationPreferences>) => void
   recordFitnessEvidence: (evidence: NormalizedFitnessEvidence) => void
   refresh: () => Promise<void>
+  refreshAppAccess: (options?: RefreshAppAccessOptions) => Promise<void>
   refreshCoachContext: () => Promise<void>
   toast: (message: string, kind?: 'error' | 'ok') => void
   toasts: Array<{ id: number; message: string; kind: 'error' | 'ok' }>
@@ -263,6 +291,57 @@ function normalizeAppData(value: AppData): AppData {
   }
 }
 
+function loadScopedPrivateState(activeSession: Session): { data: AppData; queueLength: number } {
+  const scope = activeSession.user.id
+  let cached = loadCache(scope)
+  let queue = loadQueue(scope)
+  /* One-time migration from the original single-account cache. Only the
+     legacy Constantine account may inherit it; friend accounts always
+     start with isolated storage. */
+  if (!cached && activeSession.user.user_metadata?.persona === 'constantine') {
+    const legacyCache = loadCache('local')
+    const legacyQueue = loadQueue('local')
+    if (legacyCache) {
+      cached = legacyCache
+      saveCache(legacyCache, scope)
+    }
+    if (legacyQueue.length > 0) {
+      queue = legacyQueue
+      saveQueue(legacyQueue, scope)
+    }
+    if (legacyCache || legacyQueue.length > 0) clearAllLocal('local')
+  }
+  if (cached?.profile) {
+    const cachedProfile = cached.profile
+    cached = {
+      ...cached,
+      profile: {
+        ...cachedProfile,
+        persona: cachedProfile.persona ?? 'constantine',
+        display_name: cachedProfile.display_name ?? 'Constantine',
+        target_kcal: cachedProfile.target_kcal ?? null,
+        target_protein_g: cachedProfile.target_protein_g ?? null,
+        target_fat_g: cachedProfile.target_fat_g ?? null,
+        target_carbs_g: cachedProfile.target_carbs_g ?? null,
+        custom_bmr: cachedProfile.custom_bmr == null ? null : Number(cachedProfile.custom_bmr),
+        custom_bmr_source: cachedProfile.custom_bmr == null
+          ? null
+          : normalizeCustomBmrSource(cachedProfile.custom_bmr_source),
+        profile_note: cachedProfile.profile_note ?? '',
+        seed_version: Number(cachedProfile.seed_version ?? 0),
+        calibration_k: Number(cachedProfile.calibration_k ?? 1),
+        calibration_history: Array.isArray(cachedProfile.calibration_history)
+          ? cachedProfile.calibration_history
+          : [],
+      },
+    }
+  }
+  return {
+    data: cached ? normalizeAppData(cached) : EMPTY_DATA,
+    queueLength: queue.length,
+  }
+}
+
 function isSchemaCacheError(error: { code?: string; message: string }): boolean {
   return (
     error.code === 'PGRST205' ||
@@ -340,6 +419,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   )
   const [ready, setReady] = useState(isLocalMode)
   const [session, setSession] = useState<Session | null>(null)
+  const [appAccess, setAppAccess] = useState<AccountAccessResolution>(() =>
+    isLocalMode ? localAccountAccess(LOCAL_USER) : pendingAccountAccess(null),
+  )
+  const appAccessRef = useRef(appAccess)
+  appAccessRef.current = appAccess
   const [coachContext, setCoachContext] = useState<CoachAccountContext>(EMPTY_COACH_ACCOUNT_CONTEXT)
   const coachContextRef = useRef(coachContext)
   coachContextRef.current = coachContext
@@ -358,6 +442,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const inFlightOperationId = useRef<string | null>(null)
   const mutationRevision = useRef(0)
   const fetchGeneration = useRef(0)
+  const accessFetchGeneration = useRef(0)
+  const coachContextFetchGeneration = useRef(0)
+  const hydratedPrivateOwnerRef = useRef<string | null>(isLocalMode ? LOCAL_USER : null)
   const lastSchemaToastAt = useRef(0)
   const lastSyncErrorToastAt = useRef(0)
   const pendingCache = useRef<{ data: AppData; scope: string } | null>(null)
@@ -383,6 +470,24 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     cacheSaveTimer.current = window.setTimeout(flushPendingCache, 180)
   }, [flushPendingCache])
 
+  const clearPrivateState = useCallback((): void => {
+    flushPendingCache()
+    fetchGeneration.current += 1
+    hydratedPrivateOwnerRef.current = null
+    dataRef.current = EMPTY_DATA
+    setData(EMPTY_DATA)
+    setQueueLen(0)
+  }, [flushPendingCache])
+
+  const hydratePrivateState = useCallback((activeSession: Session): void => {
+    if (scopeRef.current !== activeSession.user.id) return
+    const privateState = loadScopedPrivateState(activeSession)
+    hydratedPrivateOwnerRef.current = activeSession.user.id
+    dataRef.current = privateState.data
+    setData(privateState.data)
+    setQueueLen(privateState.queueLength)
+  }, [])
+
   const toast = useCallback((message: string, kind: 'error' | 'ok' = 'error') => {
     const id = Date.now() + Math.random()
     setToasts((t) => [...t, { id, message, kind }])
@@ -396,10 +501,23 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     scheduleCacheSave(next)
   }, [scheduleCacheSave])
 
+  const checkpointAccountAccess = useCallback((): void => {
+    const current = appAccessRef.current
+    if (current.status !== 'resolved' || current.source === 'local') return
+    if (accountAccessHasAppAccess(current)) {
+      saveCachedAccountAccess(current, current.owner_user_id)
+    } else {
+      clearCachedAccountAccess(current.owner_user_id)
+    }
+  }, [])
+
   useEffect(() => {
-    const flushOnPageHide = (): void => flushPendingCache()
+    const flushOnPageHide = (): void => {
+      flushPendingCache()
+      checkpointAccountAccess()
+    }
     const flushWhenHidden = (): void => {
-      if (document.visibilityState === 'hidden') flushPendingCache()
+      if (document.visibilityState === 'hidden') flushOnPageHide()
     }
     window.addEventListener('pagehide', flushOnPageHide)
     document.addEventListener('visibilitychange', flushWhenHidden)
@@ -407,12 +525,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('pagehide', flushOnPageHide)
       document.removeEventListener('visibilitychange', flushWhenHidden)
       flushPendingCache()
+      checkpointAccountAccess()
     }
-  }, [flushPendingCache])
+  }, [checkpointAccountAccess, flushPendingCache])
 
   /* ---------- queue flush ---------- */
   const flush = useCallback(async () => {
-    if (!supabase || !navigator.onLine) return
+    if (!supabase || !navigator.onLine || !accountAccessHasAppAccess(appAccessRef.current)) return
     if (flushing.current) {
       flushRequested.current = true
       return
@@ -430,7 +549,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       const blockedKeys = new Set<string>()
       const blockedGroups = new Set<string>()
       while (queue.length > 0) {
-        if (scopeRef.current !== scope) break
+        if (scopeRef.current !== scope || !accountAccessHasAppAccess(appAccessRef.current)) break
         const op = nextPendingSyncOperation(queue, attemptedIds, blockedKeys, blockedGroups)
         if (!op) break
         attemptedIds.add(op.id)
@@ -713,68 +832,36 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const adoptSession = useCallback((nextSession: Session | null) => {
     /* Finish the previous account's cache write before changing the scope. */
     flushPendingCache()
+    checkpointAccountAccess()
     fetchGeneration.current += 1
+    accessFetchGeneration.current += 1
+    coachContextFetchGeneration.current += 1
     coachContextRef.current = EMPTY_COACH_ACCOUNT_CONTEXT
     setCoachContext(EMPTY_COACH_ACCOUNT_CONTEXT)
     if (nextSession) {
       const scope = nextSession.user.id
-      let cached = loadCache(scope)
-      let queue = loadQueue(scope)
-      /* One-time migration from the original single-account cache. Only the
-         legacy Constantine account may inherit it; friend accounts always
-         start with isolated storage. */
-      if (!cached && nextSession.user.user_metadata?.persona === 'constantine') {
-        const legacyCache = loadCache('local')
-        const legacyQueue = loadQueue('local')
-        if (legacyCache) {
-          cached = legacyCache
-          saveCache(legacyCache, scope)
-        }
-        if (legacyQueue.length > 0) {
-          queue = legacyQueue
-          saveQueue(legacyQueue, scope)
-        }
-        if (legacyCache || legacyQueue.length > 0) clearAllLocal('local')
-      }
-      if (cached?.profile) {
-        const cachedProfile = cached.profile
-        cached = {
-          ...cached,
-          profile: {
-            ...cachedProfile,
-            persona: cachedProfile.persona ?? 'constantine',
-            display_name: cachedProfile.display_name ?? 'Constantine',
-            target_kcal: cachedProfile.target_kcal ?? null,
-            target_protein_g: cachedProfile.target_protein_g ?? null,
-            target_fat_g: cachedProfile.target_fat_g ?? null,
-            target_carbs_g: cachedProfile.target_carbs_g ?? null,
-            custom_bmr: cachedProfile.custom_bmr == null ? null : Number(cachedProfile.custom_bmr),
-            custom_bmr_source: cachedProfile.custom_bmr == null
-              ? null
-              : normalizeCustomBmrSource(cachedProfile.custom_bmr_source),
-            profile_note: cachedProfile.profile_note ?? '',
-            seed_version: Number(cachedProfile.seed_version ?? 0),
-            calibration_k: Number(cachedProfile.calibration_k ?? 1),
-            calibration_history: Array.isArray(cachedProfile.calibration_history)
-              ? cachedProfile.calibration_history
-              : [],
-          },
-        }
-      }
-      if (cached) cached = normalizeAppData(cached)
+      const currentAccess = appAccessRef.current
+      const sameAccessOwner = scopeRef.current === scope && currentAccess.owner_user_id === scope
+      const cachedAccess = sameAccessOwner ? null : loadCachedAccountAccess(scope)
+      const nextAccess = sameAccessOwner ? currentAccess : cachedAccess ?? pendingAccountAccess(scope)
+      appAccessRef.current = nextAccess
+      setAppAccess(nextAccess)
       scopeRef.current = scope
-      dataRef.current = cached ?? EMPTY_DATA
-      setData(cached ?? EMPTY_DATA)
-      setQueueLen(queue.length)
+      if (accountAccessHasAppAccess(nextAccess)) {
+        hydratePrivateState(nextSession)
+      } else {
+        clearPrivateState()
+      }
     } else {
       scopeRef.current = 'pending'
-      dataRef.current = EMPTY_DATA
-      setData(EMPTY_DATA)
-      setQueueLen(0)
+      const nextAccess = pendingAccountAccess(null)
+      appAccessRef.current = nextAccess
+      setAppAccess(nextAccess)
+      clearPrivateState()
     }
     setSession(nextSession)
     setReady(true)
-  }, [flushPendingCache])
+  }, [checkpointAccountAccess, clearPrivateState, flushPendingCache, hydratePrivateState])
 
   useEffect(() => {
     if (!supabase) {
@@ -801,13 +888,90 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe()
   }, [adoptSession, persist])
 
+  const refreshAppAccess = useCallback(async (options?: RefreshAppAccessOptions): Promise<void> => {
+    const accessSession = sessionRef.current
+    if (!accessSession) return
+    const expectedUserID = accessSession.user.id
+    if (scopeRef.current !== expectedUserID) return
+    const generation = ++accessFetchGeneration.current
+    const previousAccess = appAccessRef.current
+
+    if (options?.failClosed) {
+      const checking = accountAccessAfterRelationshipMutation(
+        previousAccess,
+        expectedUserID,
+        'Access is being rechecked',
+      )
+      clearCachedAccountAccess(expectedUserID)
+      if (accountAccessHasAppAccess(checking)) {
+        saveCachedAccountAccess(checking, expectedUserID)
+      } else {
+        clearPrivateState()
+      }
+      appAccessRef.current = checking
+      setAppAccess(checking)
+    }
+
+    const client = createSessionBoundSupabase(accessSession.access_token)
+    if (!navigator.onLine || !client) {
+      const message = navigator.onLine
+        ? 'Access service is unavailable'
+        : 'Access check is waiting for a connection'
+      const failed = accountAccessAfterFailure(appAccessRef.current, expectedUserID, message)
+      if (!accountAccessHasAppAccess(failed)) clearCachedAccountAccess(expectedUserID)
+      appAccessRef.current = failed
+      setAppAccess(failed)
+      return
+    }
+
+    try {
+      const next = await fetchMyAppAccess(async (name, args) => {
+        const result = await client.rpc(name, args)
+        return {
+          data: result.data,
+          error: result.error ? { message: result.error.message } : null,
+        }
+      }, expectedUserID)
+      if (
+        scopeRef.current !== expectedUserID
+        || sessionRef.current?.user.id !== expectedUserID
+        || generation !== accessFetchGeneration.current
+      ) return
+
+      const accepted = validatedAccountAccessProgression(previousAccess, next)
+      appAccessRef.current = accepted
+      setAppAccess(accepted)
+      if (accountAccessHasAppAccess(accepted)) {
+        saveCachedAccountAccess(accepted, expectedUserID)
+      } else {
+        clearCachedAccountAccess(expectedUserID)
+      }
+    } catch (error) {
+      if (
+        scopeRef.current !== expectedUserID
+        || sessionRef.current?.user.id !== expectedUserID
+        || generation !== accessFetchGeneration.current
+      ) return
+      const message = error instanceof Error ? error.message : 'Access service is unavailable'
+      const failed = error instanceof AccountAccessProtocolError
+        ? failedAccountAccess(expectedUserID, message)
+        : accountAccessAfterFailure(appAccessRef.current, expectedUserID, message)
+      if (error instanceof AccountAccessProtocolError || !accountAccessHasAppAccess(failed)) {
+        clearCachedAccountAccess(expectedUserID)
+      }
+      appAccessRef.current = failed
+      setAppAccess(failed)
+    }
+  }, [clearPrivateState])
+
   const fetchAll = useCallback(async () => {
-    if (!session) return
+    if (!session || !accountAccessHasAppAccess(appAccessRef.current)) return
     const sessionUserId = session.user.id
     const sb = createSessionBoundSupabase(session.access_token)
     if (!sb || scopeRef.current !== sessionUserId) return
     const accountPersona = personaFromUserMetadata(session.user.user_metadata)
     const generation = ++fetchGeneration.current
+    const coachGeneration = ++coachContextFetchGeneration.current
     const revision = mutationRevision.current
     const pendingBefore = loadQueue(sessionUserId)
     try {
@@ -820,11 +984,15 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         Promise.all(LIST_TABLES.map((table) => fetchAllOwnedRows(sb, table, sessionUserId))),
         fetchCoachAccountContext(sb),
       ])
-      if (scopeRef.current !== sessionUserId || fetchGeneration.current !== generation) return
+      if (
+        scopeRef.current !== sessionUserId
+        || fetchGeneration.current !== generation
+        || !accountAccessHasAppAccess(appAccessRef.current)
+      ) return
       const failed = [profileRes, settingsRes, hydrationPreferencesRes, catalogRes]
         .find((result) => result.error && !isSchemaCacheError(result.error))?.error
       if (failed) throw failed
-      if (!coachRes.error) {
+      if (!coachRes.error && coachGeneration === coachContextFetchGeneration.current) {
         coachContextRef.current = coachRes.context
         setCoachContext(coachRes.context)
       }
@@ -951,24 +1119,71 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const sb = createSessionBoundSupabase(session.access_token)
     if (!sb) return
     const expectedUserID = session.user.id
+    const generation = ++coachContextFetchGeneration.current
     const result = await fetchCoachAccountContext(sb)
     if (result.error) throw result.error
-    if (scopeRef.current !== expectedUserID) return
+    if (
+      scopeRef.current !== expectedUserID
+      || generation !== coachContextFetchGeneration.current
+    ) return
     coachContextRef.current = result.context
     setCoachContext(result.context)
   }, [session])
 
   useEffect(() => {
-    if (session) void fetchAll()
-  }, [session, fetchAll, hydrationRetry])
+    if (!session || isLocalMode) return
+    if (accountAccessHasAppAccess(appAccess)) {
+      if (hydratedPrivateOwnerRef.current !== session.user.id) hydratePrivateState(session)
+    } else {
+      clearPrivateState()
+    }
+  }, [appAccess, clearPrivateState, hydratePrivateState, session])
+
+  useEffect(() => {
+    if (session && accountAccessHasAppAccess(appAccess)) void fetchAll()
+  }, [appAccess, session, fetchAll, hydrationRetry])
+
+  useEffect(() => {
+    if (session) {
+      void refreshAppAccess()
+      void refreshCoachContext()
+    }
+  }, [session, refreshAppAccess, refreshCoachContext])
+
+  useEffect(() => {
+    const deadline = accountAccessNextChangeAt(appAccess, Date.now(), coachContext)
+    if (deadline === null) return
+    const remaining = Math.max(0, deadline - Date.now())
+    const reachesDeadline = remaining <= MAX_BROWSER_TIMEOUT_MS
+    const timer = window.setTimeout(() => {
+      const current = appAccessRef.current
+      if (current !== appAccess || current.status !== 'resolved') return
+
+      /* Re-render against the elapsed-time clock before any network response,
+         so a continuously open or offline tab closes access at the deadline. */
+      const reevaluated: AccountAccessResolution = { ...current }
+      appAccessRef.current = reevaluated
+      setAppAccess(reevaluated)
+      if (reachesDeadline) {
+        if (!accountAccessHasAppAccess(reevaluated)) {
+          clearCachedAccountAccess(reevaluated.owner_user_id)
+        }
+        void Promise.allSettled([
+          refreshAppAccess(),
+          refreshCoachContext(),
+        ])
+      }
+    }, Math.min(remaining, MAX_BROWSER_TIMEOUT_MS))
+    return () => window.clearTimeout(timer)
+  }, [appAccess, coachContext, refreshAppAccess, refreshCoachContext])
 
   /* A profile switch can interrupt an in-flight write after Supabase has
      received it but before the local queue is acknowledged. Resume every
      scoped queue as soon as that account is active again, even if the user
      has not made another edit yet. */
   useEffect(() => {
-    if (session && online && queueLen > 0) void flush()
-  }, [session, online, queueLen, flush])
+    if (session && online && queueLen > 0 && accountAccessHasAppAccess(appAccess)) void flush()
+  }, [appAccess, session, online, queueLen, flush])
 
   /* ---------- activity automation shared by every route ---------- */
   useEffect(() => {
@@ -1041,11 +1256,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   /* ---------- realtime merge from other devices ---------- */
   useEffect(() => {
     const sb = supabase
-    if (!sb || !session) return
+    if (!sb || !session || !accountAccessHasAppAccess(appAccess)) return
     const channel = sb
       .channel(`apex-sync-${session.user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
-        if (scopeRef.current !== session.user.id) return
+        if (
+          scopeRef.current !== session.user.id
+          || !accountAccessHasAppAccess(appAccessRef.current)
+        ) return
         const table = payload.table
         if (table !== 'profile' && table !== 'settings' && table !== 'fitness_evidence' && !isListTable(table)) return
         const cur = dataRef.current
@@ -1138,19 +1356,25 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     return () => {
       void sb.removeChannel(channel)
     }
-  }, [session, scheduleCacheSave])
+  }, [appAccess, session, scheduleCacheSave])
 
   /* ---------- connectivity ---------- */
   useEffect(() => {
     const on = (): void => {
       setOnline(true)
       void flush()
+      void refreshAppAccess()
+      void refreshCoachContext()
     }
     const off = (): void => setOnline(false)
     window.addEventListener('online', on)
     window.addEventListener('offline', off)
     const vis = (): void => {
-      if (document.visibilityState === 'visible') void flush()
+      if (document.visibilityState === 'visible') {
+        void flush()
+        void refreshAppAccess()
+        void refreshCoachContext()
+      }
     }
     document.addEventListener('visibilitychange', vis)
     return () => {
@@ -1158,7 +1382,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('offline', off)
       document.removeEventListener('visibilitychange', vis)
     }
-  }, [flush])
+  }, [flush, refreshAppAccess, refreshCoachContext])
 
   /* ---------- RPG engine: recompute on load + when history changes ---------- */
   const engine = useMemo(
@@ -1218,6 +1442,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const selectedPersona = getSelectedPersona() ?? cachedPersona ?? 'constantine'
     if (!supabase) {
       scopeRef.current = LOCAL_USER
+      const localAccess = localAccountAccess(LOCAL_USER)
+      appAccessRef.current = localAccess
+      setAppAccess(localAccess)
       const { buildSeedData } = await import('../data/seed')
       const seeded = buildSeedData(LOCAL_USER, selectedPersona)
       const current = dataRef.current.profile ? normalizeAppData(dataRef.current) : seeded
@@ -1236,8 +1463,20 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }, [persist])
 
   const signOut = useCallback(async () => {
-    if (supabase) await supabase.auth.signOut()
-    adoptSession(null)
+    let remoteSignOut: Promise<unknown> | undefined
+    try {
+      if (supabase) remoteSignOut = supabase.auth.signOut()
+    } finally {
+      /* Start revocation, but clear the local account before waiting on the
+         network. An offline request must never hold the person inside a locked
+         account or leave its private stores visible. */
+      adoptSession(null)
+    }
+    try {
+      await remoteSignOut
+    } catch {
+      // Local sign-out is already complete; remote revocation can retry later.
+    }
   }, [adoptSession])
 
   const syncStatus: SyncStatus = isLocalMode ? 'local' : queueLen > 0 || !online ? 'queued' : 'synced'
@@ -1245,6 +1484,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const value = useMemo<StoreValue>(() => ({
     data,
     coachContext,
+    appAccess,
     ready,
     authed: isLocalMode || !!session,
     syncStatus,
@@ -1260,18 +1500,21 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     setHydrationPreferences,
     recordFitnessEvidence,
     refresh: fetchAll,
+    refreshAppAccess,
     refreshCoachContext,
     toast,
     toasts,
   }), [
     bulkUpsert,
     coachContext,
+    appAccess,
     data,
     engine.synergies,
     ready,
     remove,
     recordFitnessEvidence,
     fetchAll,
+    refreshAppAccess,
     refreshCoachContext,
     session,
     setProfile,

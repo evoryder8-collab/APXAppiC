@@ -946,6 +946,44 @@ final class HealthAccountBoundarySourceTests: XCTestCase {
         XCTAssertTrue(session.contains("HealthKitManager.shared.resetAccountBoundary()"))
     }
 
+    func testAccessDenialInvalidatesInFlightHealthRefreshBeforeStoppingObservers() throws {
+        let rawSession = try source("APEX/App/AppSession.swift")
+        let session = withoutWhitespace(rawSession)
+        let manager = withoutWhitespace(
+            try source("APEX/Features/Health/HealthKitManager.swift")
+        )
+
+        let boundaryStart = try XCTUnwrap(
+            session.range(of: "funcrouteToAccessRecoveryBoundary(forownerID:UUID)")
+        )
+        let boundaryEnd = try XCTUnwrap(
+            session.range(
+                of: "varinterfaceMode:",
+                range: boundaryStart.upperBound..<session.endIndex
+            )
+        )
+        let boundary = String(session[boundaryStart.lowerBound..<boundaryEnd.lowerBound])
+        XCTAssertTrue(
+            boundary.contains("HealthKitManager.shared.suspendPrivateWorkForAccessDenial()"),
+            "access denial must revoke the HealthKit request generation, not merely stop current observers"
+        )
+
+        let suspensionStart = try XCTUnwrap(
+            manager.range(of: "funcsuspendPrivateWorkForAccessDenial()")
+        )
+        let suspensionEnd = try XCTUnwrap(
+            manager.range(
+                of: "funcstopBackgroundMonitoring()",
+                range: suspensionStart.upperBound..<manager.endIndex
+            )
+        )
+        let suspension = String(
+            manager[suspensionStart.lowerBound..<suspensionEnd.lowerBound]
+        )
+        XCTAssertTrue(suspension.contains("accountGeneration&+=1"))
+        XCTAssertTrue(suspension.contains("stopBackgroundMonitoring()"))
+    }
+
     func testDietaryWaterDeletionAnchorIsOwnerScopedAndCommittedAfterReconciliation() throws {
         let manager = withoutWhitespace(try source("APEX/Features/Health/HealthKitManager.swift"))
         let session = withoutWhitespace(try source("APEX/App/AppSession.swift"))
@@ -1227,7 +1265,7 @@ final class HealthAccountBoundarySourceTests: XCTestCase {
 
         XCTAssertTrue(session.contains("finishHydrationMutation(_mutation:HydrationCompanionMutation,markProcessed:Bool)"))
         XCTAssertTrue(session.contains("guardmarkProcessedelse{return}"))
-        XCTAssertTrue(session.contains("guard!Task.isCancelled,mutation.belongs(to:operation.ownerID),accountOperationIsCurrent(operation)else{"))
+        XCTAssertTrue(session.contains("guard!Task.isCancelled,accountAccessAllowsPrivateWork(for:operation.ownerID),mutation.belongs(to:operation.ownerID),accountOperationIsCurrent(operation)else{"))
         XCTAssertTrue(session.contains("guard!Task.isCancelled,accountOperationIsCurrent(operation)else{return}publishHydrationState()markProcessed=true"))
         XCTAssertTrue(session.contains("enqueueHydrationMutationRetry(mutation)"))
         XCTAssertTrue(session.contains("retryPendingHydrationMutations(operation:operation)"))

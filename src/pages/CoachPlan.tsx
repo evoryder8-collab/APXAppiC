@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { CoachScopePicker } from '../components/coach/CoachScopePicker'
 import { coachAPI } from '../lib/coachApi'
+import { clientPolicyForAccount } from '../lib/coachAccess'
 import { coachText } from '../lib/coachCopy'
 import type { CoachConsentScope } from '../lib/coachPlatform'
 import { useLanguage } from '../lib/i18n'
@@ -14,11 +15,12 @@ const WEEKDAYS: Record<'en' | 'ro' | 'th', string[]> = {
 }
 
 export function CoachPlan() {
-  const { coachContext, refresh, refreshCoachContext, toast } = useStore()
+  const { appAccess, coachContext, refresh, refreshAppAccess, refreshCoachContext, toast } = useStore()
   const { language } = useLanguage()
   const navigate = useNavigate()
   const t = (value: string) => coachText(value, language)
   const sponsorship = coachContext.sponsorship
+  const policy = clientPolicyForAccount(appAccess, coachContext)
   const plan = coachContext.current_plan
   const [scopes, setScopes] = useState<CoachConsentScope[]>(sponsorship?.consented_scopes.filter((scope) => scope !== 'visual_progress') ?? [])
   const [visualProgress, setVisualProgress] = useState(sponsorship?.consented_scopes.includes('visual_progress') ?? false)
@@ -29,24 +31,26 @@ export function CoachPlan() {
     setVisualProgress(sponsorship?.consented_scopes.includes('visual_progress') ?? false)
   }, [sponsorship])
 
-  const run = async (name: string, operation: () => Promise<unknown>, success: string) => {
+  const run = async (name: string, operation: () => Promise<unknown>, success: string): Promise<boolean> => {
     setBusy(name)
     try {
       await operation()
       await refreshCoachContext()
       toast(t(success), 'ok')
+      return true
     } catch (error) {
       toast(error instanceof Error ? error.message : 'Could not update your coach plan.', 'error')
+      return false
     } finally {
       setBusy(null)
     }
   }
 
-  if (!sponsorship || !coachContext.capabilities.sponsored_client) {
+  if (!sponsorship || (!policy.can_use_sponsored_app && !policy.coach_plan_read_only)) {
     return <div className="mx-auto max-w-xl pt-12 text-center"><h1 className="font-display text-3xl font-black text-ink">{t('Your coach plan')}</h1><p className="mt-3 text-sm font-semibold text-ink-soft">No active coach relationship.</p><Link to="/" className="mt-6 inline-flex rounded-full bg-emerald-600 px-5 py-3 text-sm font-black text-white">{t('Return home')}</Link></div>
   }
 
-  const grace = sponsorship.relationship_status === 'grace' || sponsorship.seat_state === 'grace'
+  const grace = policy.coach_plan_read_only
   const offeredScopes = sponsorship.offered_scopes ?? sponsorship.consented_scopes
 
   return (
@@ -80,7 +84,7 @@ export function CoachPlan() {
         <h2 className="font-display text-2xl font-black text-ink">{t('Privacy controls')}</h2><p className="mt-1 text-xs font-semibold text-ink-soft">{t('You decide what your coach can see.')}</p>
         <div className="mt-5"><CoachScopePicker language={language} scopes={scopes} onChange={setScopes} allowedScopes={offeredScopes} visualProgressOffered={offeredScopes.includes('visual_progress')} visualProgressConsent={visualProgress} onVisualProgressConsent={setVisualProgress} disabled={grace} /></div>
         <button type="button" disabled={busy != null || grace} onClick={() => void run('scopes', () => coachAPI.updateScopes(sponsorship.relationship_id, scopes, visualProgress), 'Privacy controls')} className="mt-5 w-full rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white disabled:opacity-45">{t('Save sharing choices')}</button>
-        <button type="button" disabled={busy != null} onClick={() => { if (window.confirm(t('End coach access'))) void run('end', () => coachAPI.endRelationship(sponsorship.relationship_id), 'Coach access ended').then(() => navigate('/', { replace: true })) }} className="mt-3 w-full rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-black text-rose-700 disabled:opacity-45">{t('End coach access')}</button>
+        <button type="button" disabled={busy != null} onClick={() => { if (window.confirm(t('End coach access'))) void run('end', async () => { await coachAPI.endRelationship(sponsorship.relationship_id); await refreshAppAccess({ failClosed: true }) }, 'Coach access ended').then((ended) => { if (ended) navigate('/', { replace: true }) }) }} className="mt-3 w-full rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-black text-rose-700 disabled:opacity-45">{t('End coach access')}</button>
       </section>
     </div>
   )

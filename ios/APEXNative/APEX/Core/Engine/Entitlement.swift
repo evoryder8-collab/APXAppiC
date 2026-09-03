@@ -1,9 +1,118 @@
 import Foundation
+import Darwin
 
-/// Who can use what, and what it costs.
+/// A durable identity for the current device boot. Uptime alone is not a boot
+/// identity: after a reboot it can eventually overtake the value saved by an
+/// earlier boot. `kern.boottime` is covered by the app's declared
+/// SystemBootTime/35F9.1 elapsed-time purpose.
+enum SystemBootSession {
+    static func identifier() -> String? {
+        var bootTime = timeval()
+        var size = MemoryLayout<timeval>.size
+        let status = withUnsafeMutablePointer(to: &bootTime) { pointer in
+            sysctlbyname("kern.boottime", pointer, &size, nil, 0)
+        }
+        guard status == 0 else { return nil }
+        return "\(bootTime.tv_sec):\(bootTime.tv_usec)"
+    }
+}
+
+/// The single server-owned answer to whether the authenticated account may
+/// enter this client. It is deliberately independent of `Profile`: a new
+/// account can be entitled before onboarding has created any health record.
+struct AccountAccessEnvelope: Codable, Equatable, Sendable {
+    enum State: String, Codable, Sendable {
+        case granted
+        case expired
+        case revoked
+        case locked
+        case missing
+    }
+
+    let userID: UUID
+    let state: State
+    let expiresAt: String?
+    let updatedAt: String?
+    let serverNow: String
+    let sponsoredSeatActive: Bool
+    let minimumBuild: Int
+    let updateRequired: Bool
+    let webBetaCodesEnabled: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case state
+        case userID = "user_id"
+        case expiresAt = "expires_at"
+        case updatedAt = "entitlement_updated_at"
+        case serverNow = "server_now"
+        case sponsoredSeatActive = "sponsored_seat_active"
+        case minimumBuild = "minimum_build"
+        case updateRequired = "update_required"
+        case webBetaCodesEnabled = "web_beta_codes_enabled"
+    }
+
+    var observationDate: Date? { Self.parse(serverNow) }
+
+    static func parse(_ value: String) -> Date? {
+        if let plain = ISO8601DateFormatter().date(from: value) { return plain }
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return fractional.date(from: value)
+    }
+}
+
+/// A server access answer plus the local instant at which it was safely
+/// persisted. The server's clock remains the authority; local time is used
+/// only to measure how much nonnegative time has elapsed while offline.
+struct CachedAccountAccess: Codable, Equatable, Sendable {
+    let envelope: AccountAccessEnvelope
+    let savedAt: Date
+    let savedSystemUptime: TimeInterval?
+    let savedBootSessionID: String?
+
+    init(
+        envelope: AccountAccessEnvelope,
+        savedAt: Date,
+        savedSystemUptime: TimeInterval?,
+        savedBootSessionID: String? = SystemBootSession.identifier()
+    ) {
+        self.envelope = envelope
+        self.savedAt = savedAt
+        self.savedSystemUptime = savedSystemUptime
+        self.savedBootSessionID = savedBootSessionID
+    }
+
+    /// Prefer monotonic elapsed time while the device remains in the same boot
+    /// session. After a reboot, fall back to wall time. A wall-clock rollback
+    /// is rejected even when uptime advanced: accepting it could extend a
+    /// finite grant indefinitely by repeatedly turning the clock backwards.
+    func elapsedTime(
+        now: Date,
+        systemUptime: TimeInterval
+    ) -> TimeInterval? {
+        let wallElapsed = now.timeIntervalSince(savedAt)
+        guard wallElapsed >= 0 else { return nil }
+        if let savedSystemUptime, systemUptime >= savedSystemUptime {
+            let uptimeElapsed = systemUptime - savedSystemUptime
+            let bootEpochShift = (now.timeIntervalSince1970 - systemUptime)
+                - (savedAt.timeIntervalSince1970 - savedSystemUptime)
+            // A materially earlier estimated boot epoch means the wall clock
+            // moved backwards during this boot. Do not let that extend cache.
+            guard bootEpochShift >= -300 else { return nil }
+            if abs(bootEpochShift) <= 300 {
+                // Monotonic time wins on the same boot; max also absorbs small
+                // backwards wall adjustments without extending the grant.
+                return max(wallElapsed, uptimeElapsed)
+            }
+        }
+        return wallElapsed
+    }
+}
+
+/// Who can use what.
 ///
-/// During beta, access is granted only by an account-owned server fact: a
-/// founding profile, a claimed beta code, or an active subscription.
+/// Access is granted only by the authenticated account's server envelope or
+/// by its active coach-sponsored seat.
 enum Entitlement {
 
     enum Tier: String, Codable, Sendable, CaseIterable {
@@ -18,46 +127,13 @@ enum Entitlement {
         case founding
         case beta
         case subscribed(Tier)
+        /// The release-wide account grant used by the TestFlight phase.
+        case testFlight
         /// A free client seat owned by an active, server-authorised coach.
         /// It unlocks the client experience, never coach administration.
         case sponsored
+        case updateRequired
         case locked
-    }
-
-    // MARK: - Pricing
-
-    /// Prices in Swiss francs, held as integers of rappen so no rounding error
-    /// can reach a price tag.
-    struct Price: Equatable, Sendable {
-        let monthlyRappen: Int
-        /// Optional so a tier can be offered monthly only. Both tiers currently
-        /// have a yearly plan at roughly a third off.
-        let yearlyRappen: Int?
-
-        /// What the yearly plan saves against twelve months, as a whole percent.
-        var yearlySavingPercent: Int? {
-            guard let yearlyRappen, monthlyRappen > 0 else { return nil }
-            let full = monthlyRappen * 12
-            return Int(((Double(full - yearlyRappen) / Double(full)) * 100).rounded())
-        }
-    }
-
-    static func price(_ tier: Tier) -> Price {
-        switch tier {
-        case .premium: Price(monthlyRappen: 990, yearlyRappen: 7_900)
-        case .coach: Price(monthlyRappen: 2_900, yearlyRappen: 22_900)
-        }
-    }
-
-    /// Seats included in the Coach tier before per-seat pricing starts.
-    static let coachIncludedSeats = 3
-    static let coachExtraSeatRappen = 600
-
-    /// What a coach pays each month for a roster of this size.
-    static func coachMonthlyRappen(seats: Int) -> Int {
-        let base = price(.coach).monthlyRappen
-        guard seats > coachIncludedSeats else { return base }
-        return base + (seats - coachIncludedSeats) * coachExtraSeatRappen
     }
 
     // MARK: - Access
@@ -87,7 +163,12 @@ enum Entitlement {
         return .locked
     }
 
-    static func isUnlocked(_ access: Access) -> Bool { access != .locked }
+    static func isUnlocked(_ access: Access) -> Bool {
+        switch access {
+        case .locked, .updateRequired: false
+        default: true
+        }
+    }
 
     /// Features that exist only for coaches. Client rosters and plan authoring
     /// are a different job from training yourself, not a bigger version of it.

@@ -108,6 +108,46 @@ enum TrainingInduction {
         }
     }
 
+    static func firstRunInput(startDate: String) -> Input {
+        var input = Input(startDate: startDate)
+        input.goal = ""
+        input.inactivity = ""
+        input.venue = ""
+        input.sessionsPerWeek = 0
+        input.availableMinutes = 0
+        return input
+    }
+
+    static func canContinueRequiredStep(
+        _ step: Int,
+        input: Input,
+        safetyAcknowledged: Bool = false
+    ) -> Bool {
+        switch step {
+        case 3:
+            return [
+                "under_three_months",
+                "three_to_six_months",
+                "six_to_twelve_months",
+                "over_one_year",
+            ].contains(input.inactivity)
+                && OnboardingActivityPattern(rawValue: input.baselineAnswers.activityPattern) != nil
+        case 4:
+            return OnboardingMovementAnswer(rawValue: input.baselineAnswers.cardiorespiratory) != nil
+                && OnboardingMovementAnswer(rawValue: input.baselineAnswers.upperStrength) != nil
+                && OnboardingMovementAnswer(rawValue: input.baselineAnswers.lowerStrength) != nil
+                && OnboardingMovementAnswer(rawValue: input.baselineAnswers.mobility) != nil
+        case 5:
+            return ["gym", "home", "outdoors"].contains(input.venue)
+                && (2...7).contains(input.sessionsPerWeek)
+                && (15...180).contains(input.availableMinutes)
+        case 6:
+            return safetyAcknowledged
+        default:
+            return true
+        }
+    }
+
     /// Consent, measured body facts and the selected goal occupy steps 0...2.
     /// A first-run account cannot bypass them, but may leave the workout-only
     /// questions unanswered from step 3 onwards.

@@ -6,6 +6,27 @@ final class APEXSmokeUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    func testDecliningConsentCanSignOutWithoutSupplyingHealthData() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-apex-preview", "induction", "-apex-ui-test-first-run", "-AppleLanguages", "(en)",
+        ]
+        app.launchEnvironment["APEX_UI_TESTING"] = "1"
+        app.launch()
+
+        app.buttons["I don't accept"].tap()
+        let alert = app.alerts["APEX cannot personalise without permission"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 3))
+        XCTAssertTrue(alert.buttons["Review consent"].exists)
+        XCTAssertTrue(alert.buttons["Sign out"].exists)
+        alert.buttons["Sign out"].tap()
+
+        XCTAssertTrue(
+            app.buttons["Continue with eMail"].waitForExistence(timeout: 5),
+            "declining consent must leave setup without collecting body, movement or safety answers"
+        )
+    }
+
     func testFirstRunDistillsAnswersIntoBroadStartingMapBeforePlanCreation() {
         let app = XCUIApplication()
         app.launchArguments = [
@@ -48,6 +69,9 @@ final class APEXSmokeUITests: XCTestCase {
         app.buttons["induction-next"].tap()
 
         app.buttons["induction-choice-home"].tap()
+        let sessions = app.buttons["induction-sessions-3"]
+        XCTAssertTrue(scrollUntilVisible(sessions, in: app, attempts: 5))
+        sessions.tap()
         let timeChoice = app.buttons["induction-time-45"]
         XCTAssertTrue(scrollUntilVisible(timeChoice, in: app, attempts: 5))
         timeChoice.tap()
@@ -55,7 +79,7 @@ final class APEXSmokeUITests: XCTestCase {
 
         let noConcerns = app.buttons["induction-health-none"]
         XCTAssertTrue(scrollUntilVisible(noConcerns, in: app, attempts: 8))
-        noConcerns.tap()
+        tapClearOfDock(noConcerns)
         app.buttons["induction-next"].tap()
 
         XCTAssertTrue(app.descendants(matching: .any)["induction-starting-map"].waitForExistence(timeout: 3))

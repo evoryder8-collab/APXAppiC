@@ -12,6 +12,8 @@ import {
   archivedTrainingDayIds,
   assessTrainingInput,
   canRestoreOriginalTrainingProgramme,
+  isTrainingInductionStepComplete,
+  isTrainingInductionNothingToFlag,
   commitTrainingPlanAddons,
   generateTrainingPlan,
   invalidateTrainingPlanAddons,
@@ -22,9 +24,13 @@ import {
   pendingTrainingDayIds,
   restoreTrainingPlanAddons,
   searchEquipment,
+  trainingInductionAnswerRequiredText,
+  trainingInductionAnswersFromProfile,
+  trainingInductionAcuteSymptomsText,
   trainingInputFromProfile,
   trainingGenerationRevision,
   type TrainingInductionInput,
+  type TrainingInductionRequiredAnswer,
 } from '../src/lib/trainingInduction.ts'
 
 const userId = '19191919-aaaa-4bbb-8ccc-292929292929'
@@ -41,6 +47,123 @@ const baseInput: TrainingInductionInput = {
   plan_weeks: 12,
   goal: 'rebuild',
 }
+
+test('every offered language authors the required-answer prompt', () => {
+  assert.deepEqual(
+    (['en', 'ro', 'th'] as const).map((language) => trainingInductionAnswerRequiredText(language)),
+    [
+      'Complete this step before continuing.',
+      'Finalizează acest pas înainte de a continua.',
+      'ทำขั้นตอนนี้ให้ครบก่อนดำเนินการต่อ',
+    ],
+  )
+})
+
+test('new plan builders require an explicit answer for every prescription and safety step', () => {
+  const none = new Set<TrainingInductionRequiredAnswer>()
+  for (const step of [0, 1, 2, 3, 4]) {
+    assert.equal(isTrainingInductionStepComplete(step, baseInput, none), false, `step ${step}`)
+  }
+  assert.equal(isTrainingInductionStepComplete(5, baseInput, none), true, 'review has no new question')
+
+  const answered = new Set<TrainingInductionRequiredAnswer>([
+    'inactivity', 'frequency', 'safety', 'venue', 'goal', 'duration',
+  ])
+  for (const step of [0, 1, 2, 3, 4, 5]) {
+    assert.equal(isTrainingInductionStepComplete(step, baseInput, answered), true, `step ${step}`)
+  }
+})
+
+test('persisted plan answers reopen as valid but malformed values still fail closed', () => {
+  const answered = new Set<TrainingInductionRequiredAnswer>([
+    'inactivity', 'frequency', 'safety', 'venue', 'goal', 'duration',
+  ])
+  const malformed = {
+    ...baseInput,
+    sessions_per_week: 0,
+    plan_weeks: 5,
+    goal: 'unexpected',
+  } as unknown as TrainingInductionInput
+
+  assert.equal(isTrainingInductionStepComplete(0, malformed, answered), false)
+  assert.equal(isTrainingInductionStepComplete(3, malformed, answered), false)
+  assert.equal(isTrainingInductionStepComplete(4, malformed, answered), false)
+})
+
+test('only valid raw persisted questionnaire values restore explicit answers', () => {
+  const complete = trainingInductionAnswersFromProfile({
+    ...baseInput,
+    acute_symptoms: false,
+  })
+  assert.deepEqual([...complete], [
+    'inactivity', 'frequency', 'safety', 'venue', 'goal', 'duration',
+  ])
+
+  const partial = trainingInductionAnswersFromProfile({
+    inactivity: 'one_to_three_months',
+    sessions_per_week: 3,
+    pain_areas: [],
+    recent_operation: false,
+    chronic_lower_back_pain: false,
+    venue: 'gym',
+    goal: 'rebuild',
+  })
+  assert.equal(partial.has('inactivity'), true)
+  assert.equal(partial.has('frequency'), true)
+  assert.equal(partial.has('safety'), false, 'missing acute-symptom answer must not become a safe answer')
+  assert.equal(partial.has('venue'), true)
+  assert.equal(partial.has('goal'), true)
+  assert.equal(partial.has('duration'), false, 'a defaulted duration was never explicitly answered')
+
+  const corrupt = trainingInductionAnswersFromProfile({
+    inactivity: 'unexpected',
+    sessions_per_week: 99,
+    pain_areas: ['mystery-joint'],
+    recent_operation: 'false',
+    chronic_lower_back_pain: false,
+    acute_symptoms: false,
+    venue: 'garage',
+    goal: 'surprise-me',
+    plan_weeks: 5,
+  })
+  assert.deepEqual([...corrupt], [])
+
+  const inheritedPayload = {
+    inactivity: 'toString',
+    sessions_per_week: 3,
+    pain_areas: ['toString'],
+    recent_operation: false,
+    chronic_lower_back_pain: false,
+    acute_symptoms: false,
+    venue: 'gym',
+    goal: 'constructor',
+    plan_weeks: 12,
+  }
+  const inheritedNames = trainingInductionAnswersFromProfile(inheritedPayload)
+  assert.deepEqual(
+    [...inheritedNames],
+    ['frequency', 'venue', 'duration'],
+    'prototype properties are not questionnaire options',
+  )
+  const normalizedInheritedNames = trainingInputFromProfile(inheritedPayload, '2026-09-03')
+  assert.equal(normalizedInheritedNames.inactivity, 'one_to_three_months')
+  assert.deepEqual(normalizedInheritedNames.pain_areas, [])
+  assert.equal(normalizedInheritedNames.goal, 'rebuild')
+})
+
+test('acute warning symptoms prevent the safety step from presenting Nothing to flag', () => {
+  assert.equal(isTrainingInductionNothingToFlag({ ...baseInput, acute_symptoms: false }), true)
+  assert.equal(isTrainingInductionNothingToFlag({ ...baseInput, acute_symptoms: true }), false)
+  assert.equal(isTrainingInductionNothingToFlag({ ...baseInput, pain_areas: ['knees'] }), false)
+  assert.deepEqual(
+    (['en', 'ro', 'th'] as const).map(trainingInductionAcuteSymptomsText),
+    [
+      'Exercise has caused chest pain, faintness or unusual breathlessness',
+      'Efortul a provocat durere în piept, senzație de leșin sau lipsă de aer neobișnuită',
+      'การออกกำลังกายทำให้เจ็บหน้าอก หน้ามืด หรือหายใจไม่อิ่มผิดปกติ',
+    ],
+  )
+})
 
 test('predictive equipment search finds both dumbbell formats from dum', () => {
   const ids = searchEquipment('dum').map((item) => item.id)
@@ -424,7 +547,7 @@ test('a skipped settings-only account can build without becoming another persona
   assert.match(workout, /training_induction_skipped/)
   const app = readFileSync(join(process.cwd(), 'src/App.tsx'), 'utf8')
   assert.match(app, /data\.profile\?\.user_id \?\? data\.settings\?\.user_id \?\? 'signed-out'/)
-  assert.match(app, /settingsOnly \? <WorkoutSection/)
+  assert.match(app, /settingsOnly \? <AccountFeature capability="can_rebuild_fitness_plan"><WorkoutSection/)
 })
 
 test('a committed cross-platform plan recovers only its authenticated missing profile', () => {

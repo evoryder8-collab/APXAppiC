@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import UIKit
+import CoreFoundation
 
 struct AccountGenerationGate: Sendable {
     private(set) var token: UInt64 = 0
@@ -24,6 +25,10 @@ struct AccountOperationLease: Sendable, Equatable {
 
 private struct SyncAccountBoundaryError: Error, Sendable {}
 
+private enum AccountAccessValidationError: Error, Sendable {
+    case invalidEnvelope
+}
+
 private struct PendingHydrationMutationRetry: Codable, Sendable {
     let mutation: HydrationCompanionMutation
     var attempts: Int
@@ -41,8 +46,8 @@ final class AppSession {
     /// The address a confirmation link was just sent to, if any. Held so the
     /// sign-up screen can say what happened rather than appear to do nothing.
     var awaitingConfirmationFor: String?
-    /// Debug only: opens the premium sheet straight away for visual checking.
-    var previewPaywall = false
+    /// Debug only: opens access recovery straight away for visual checking.
+    var previewAccessRecovery = false
     var data: DashboardData = .empty {
         didSet { recomputeBrain() }
     }
@@ -72,6 +77,8 @@ final class AppSession {
     @ObservationIgnored private var accountGeneration = AccountGenerationGate()
     @ObservationIgnored private var authenticatedOwnerID: UUID?
     @ObservationIgnored private var lastShadowObservationSignature: String?
+    @ObservationIgnored private var suspendedAccessOwnerID: UUID?
+    @ObservationIgnored private var accessServiceSuspensionTask: Task<Void, Never>?
 
     #if DEBUG
     private static let firstRunFixtureOwnerID = UUID(
@@ -85,6 +92,9 @@ final class AppSession {
         }
     ) {
         self.foodSearchProvider = foodSearchProvider
+        EntitlementStore.shared.setAccessDeniedHandler { [weak self] ownerID in
+            self?.routeToAccessRecoveryBoundary(for: ownerID)
+        }
         hydrationConnectivity.mutationHandler = { [weak self] mutation in
             await self?.handleHydrationMutation(mutation)
         }
@@ -94,6 +104,7 @@ final class AppSession {
     func beginAccountBoundary() -> UInt64 {
         accountGeneration.advance()
         authenticatedOwnerID = nil
+        suspendedAccessOwnerID = nil
         EntitlementStore.shared.resetAccount()
         OrbitLocationManager.shared.releaseForAccountBoundary()
         NudgeCenter.shared.clearAccountBoundary()
@@ -181,7 +192,42 @@ final class AppSession {
     }
 
     var profile: Profile? { data.profile }
-    var isAuthenticated: Bool { data.profile != nil }
+    var isAuthenticated: Bool { authenticatedOwnerID != nil }
+
+    private func accountAccessAllowsPrivateWork(for ownerID: UUID) -> Bool {
+        let entitlements = EntitlementStore.shared
+        return authenticatedOwnerID == ownerID
+            && entitlements.resolvedUserID == ownerID
+            && entitlements.isUnlocked
+    }
+
+    /// Move an authenticated but denied account onto a protected route so the
+    /// root can present recovery without exposing or loading private content.
+    private func routeToAccessRecoveryBoundary(for ownerID: UUID) {
+        guard authenticatedOwnerID == ownerID else { return }
+        if suspendedAccessOwnerID != ownerID {
+            suspendedAccessOwnerID = ownerID
+            accountGeneration.advance()
+            OrbitLocationManager.shared.releaseForAccountBoundary()
+            HealthKitManager.shared.suspendPrivateWorkForAccessDenial()
+            hydrationConnectivity.publishDisconnected()
+            realtimeDebounceTask?.cancel()
+            realtimeDebounceTask = nil
+            workoutSyncTask?.cancel()
+            workoutSyncTask = nil
+            // Denial deliberately advances the account generation. Clear
+            // activity flags synchronously because their old-token defers must
+            // not mutate this new protected boundary.
+            isBusy = false
+            isRefreshing = false
+            accessServiceSuspensionTask = Task { [service] in
+                await service.stopRealtime()
+            }
+        }
+        route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
+            ? .portal : .induction
+    }
+
     var interfaceMode: PortalUIMode { PortalUIMode.current(from: data.settings) }
     var coachClientPolicy: CoachClientPolicy {
         CoachClientPolicy.resolve(
@@ -228,9 +274,9 @@ final class AppSession {
             case "induction": route = .induction
             case "consent": route = .consent
             case "persona": route = .persona
-            case "paywall":
+            case "access-recovery":
                 route = .persona
-                previewPaywall = true
+                previewAccessRecovery = true
             default: route = .welcome
             }
             bootstrapped = true
@@ -317,10 +363,14 @@ final class AppSession {
                 failedSyncCount = (try? await offlineStore.failedOperations(for: debugProfile.userID).count) ?? 1
             }
             if let debugProfile = data.profile {
+                authenticatedOwnerID = debugProfile.userID
                 EntitlementStore.shared.prepareForAccount(debugProfile.userID)
                 let sponsored = coachContext.sponsorship?.relationshipStatus == .active
                     && coachContext.sponsorship?.seatState == .active
-                EntitlementStore.shared.resolve(profile: debugProfile, sponsoredSeatActive: sponsored)
+                EntitlementStore.shared.resolveDebugFixture(
+                    userID: debugProfile.userID,
+                    sponsoredSeatActive: sponsored
+                )
             }
             route = .portal
             return
@@ -331,28 +381,66 @@ final class AppSession {
             guard accountGeneration.accepts(accountToken) else { return }
             authenticatedOwnerID = userID
             EntitlementStore.shared.prepareForAccount(userID)
-            let cached = try? await offlineStore.loadDashboard(for: userID)
-            guard accountGeneration.accepts(accountToken) else { return }
-            if let cached, TrainingInduction.belongsToAccount(cached, userID: userID) {
-                var hydratedCache = cached
-                let migratedRestingEnergySettings = RestingEnergyPolicy.migrateLegacyProfileValue(
-                    in: &hydratedCache,
-                    ownerID: userID
+            if let cachedAccess = try? await offlineStore.loadAccountAccess(for: userID) {
+                _ = EntitlementStore.shared.resolve(
+                    cached: cachedAccess,
+                    expectedUserID: userID,
+                    currentBuild: Self.clientBuildNumber
                 )
-                hydratedCache.foods = hydratedCache.foods.map(FoodHydration.resolved)
-                data = hydratedCache
-                selectedPersona = hydratedCache.profile?.persona
-                route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
-                    ? .portal : .induction
-                if migratedRestingEnergySettings != nil {
-                    try? await offlineStore.saveDashboard(hydratedCache, for: userID)
-                    guard accountGeneration.accepts(accountToken) else { return }
+            }
+            if accountAccessAllowsPrivateWork(for: userID) {
+                let cached = try? await offlineStore.loadDashboard(for: userID)
+                guard accountGeneration.accepts(accountToken) else { return }
+                if let cached, TrainingInduction.belongsToAccount(cached, userID: userID) {
+                    var hydratedCache = cached
+                    let migratedRestingEnergySettings = RestingEnergyPolicy.migrateLegacyProfileValue(
+                        in: &hydratedCache,
+                        ownerID: userID
+                    )
+                    hydratedCache.foods = hydratedCache.foods.map(FoodHydration.resolved)
+                    data = hydratedCache
+                    selectedPersona = hydratedCache.profile?.persona
+                    route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
+                        ? .portal : .induction
+                    if migratedRestingEnergySettings != nil {
+                        try? await offlineStore.saveDashboard(hydratedCache, for: userID)
+                        guard accountGeneration.accepts(accountToken) else { return }
+                    }
                 }
             }
             do {
+                do {
+                    try await refreshAccountAccess(expectedUserID: userID)
+                } catch {
+                    EntitlementStore.shared.markUnavailable(expectedUserID: userID)
+                }
+                guard accountGeneration.accepts(accountToken) else { return }
+                guard accountAccessAllowsPrivateWork(for: userID) else {
+                    routeToAccessRecoveryBoundary(for: userID)
+                    return
+                }
+                if data.profile == nil,
+                   data.settings == nil,
+                   let cached = try? await offlineStore.loadDashboard(for: userID),
+                   TrainingInduction.belongsToAccount(cached, userID: userID) {
+                    var hydratedCache = cached
+                    let migratedRestingEnergySettings = RestingEnergyPolicy.migrateLegacyProfileValue(
+                        in: &hydratedCache,
+                        ownerID: userID
+                    )
+                    hydratedCache.foods = hydratedCache.foods.map(FoodHydration.resolved)
+                    data = hydratedCache
+                    selectedPersona = hydratedCache.profile?.persona
+                    route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
+                        ? .portal : .induction
+                    if migratedRestingEnergySettings != nil {
+                        try? await offlineStore.saveDashboard(hydratedCache, for: userID)
+                        guard accountGeneration.accepts(accountToken) else { return }
+                    }
+                }
                 await flushPendingChanges(for: userID)
                 guard accountGeneration.accepts(accountToken) else { return }
-                try await refreshDashboard(expectedUserID: userID)
+                try await refreshDashboard(expectedUserID: userID, refreshAccess: false)
                 guard accountGeneration.accepts(accountToken) else { return }
                 selectedPersona = data.profile?.persona
                 route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
@@ -364,6 +452,10 @@ final class AppSession {
                 return
             } catch {
                 guard accountGeneration.accepts(accountToken) else { return }
+                guard accountAccessAllowsPrivateWork(for: userID) else {
+                    routeToAccessRecoveryBoundary(for: userID)
+                    return
+                }
                 if TrainingInduction.belongsToAccount(data, userID: userID) {
                     /* No alert: the sync indicator already shows this, and a modal on
                        every launch without signal trains people to dismiss modals. */
@@ -374,6 +466,8 @@ final class AppSession {
                     await importHealthQuietly(operation: operation)
                     return
                 }
+                route = .induction
+                return
             }
         }
 
@@ -439,6 +533,8 @@ final class AppSession {
                 ? .portal : .induction
             guard let operation = accountOperationLease() else { return }
             await startRealtimeSync(operation: operation)
+        } catch is CancellationError {
+            return
         } catch {
             guard accountGeneration.accepts(accountToken) else { return }
             if !boundaryCompleted {
@@ -475,12 +571,20 @@ final class AppSession {
             case .signedIn(let userID):
                 authenticatedOwnerID = userID
                 EntitlementStore.shared.prepareForAccount(userID)
+                do {
+                    try await refreshAccountAccess(expectedUserID: userID)
+                } catch {
+                    EntitlementStore.shared.markUnavailable(expectedUserID: userID)
+                }
+                guard accountGeneration.accepts(accountToken) else { return }
                 selectedPersona = nil
                 data = .empty
                 route = .induction
             case .awaitingEmailConfirmation:
                 awaitingConfirmationFor = email
             }
+        } catch is CancellationError {
+            return
         } catch {
             guard accountGeneration.accepts(accountToken) else { return }
             if !boundaryCompleted {
@@ -514,6 +618,8 @@ final class AppSession {
                 ? .portal : .induction
             guard let operation = accountOperationLease() else { return }
             await startRealtimeSync(operation: operation)
+        } catch is CancellationError {
+            return
         } catch {
             guard accountGeneration.accepts(accountToken) else { return }
             if !boundaryCompleted {
@@ -697,7 +803,9 @@ final class AppSession {
         data.exercises = plan?.exercises ?? []
         data.snapshots = []
         EntitlementStore.shared.prepareForAccount(userID)
-        EntitlementStore.shared.resolve(profile: data.profile)
+        if let profile = data.profile {
+            EntitlementStore.shared.resolveDebugFixture(userID: profile.userID)
+        }
         route = .consent
     }
     #endif
@@ -715,35 +823,41 @@ final class AppSession {
 
     func signOut() async {
         var accountToken = beginAccountBoundary()
-        route = .launching
+        accountToken = completeAccountBoundary()
+        route = .welcome
         isBusy = true
         defer {
             if accountGeneration.accepts(accountToken) { isBusy = false }
         }
         do {
             try await service.signOut()
+        } catch {
+            /* The local privacy boundary and exit are already complete. If the
+               network sign-out fails, keep the user safely outside rather than
+               resurrecting the account or trapping them behind recovery. */
             guard accountGeneration.accepts(accountToken) else { return }
-            accountToken = completeAccountBoundary()
         }
-        catch {
-            guard accountGeneration.accepts(accountToken) else { return }
-            accountToken = completeAccountBoundary()
-            alertMessage = error.localizedDescription
-        }
-        guard accountGeneration.accepts(accountToken) else { return }
-        data = .empty
-        pendingSyncCount = 0
-        failedSyncCount = 0
-        navigationPath.removeAll()
-        selectedPersona = nil
-        route = .welcome
     }
 
-    func refreshDashboard(expectedUserID: UUID? = nil) async throws {
+    func refreshDashboard(
+        expectedUserID: UUID? = nil,
+        refreshAccess: Bool = true
+    ) async throws {
         let accountToken = accountGeneration.token
         isRefreshing = true
         defer {
             if accountGeneration.accepts(accountToken) { isRefreshing = false }
+        }
+        guard let ownerID = expectedUserID ?? authenticatedOwnerID else {
+            throw CancellationError()
+        }
+        if refreshAccess {
+            await resolveEntitlements()
+            guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
+        }
+        guard accountAccessAllowsPrivateWork(for: ownerID) else {
+            routeToAccessRecoveryBoundary(for: ownerID)
+            throw CancellationError()
         }
         var followUpRefreshAvailable = true
         var refreshedUserID: UUID?
@@ -891,8 +1005,6 @@ final class AppSession {
         guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
         await refreshCoachContext(expectedUserID: refreshedUserID)
         guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
-        await resolveEntitlements()
-        guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
     }
 
     /// Store a new profile picture.
@@ -932,7 +1044,8 @@ final class AppSession {
     /// so there is nothing to wait for and no reason to make anyone press a
     /// button for data the system already has.
     func importHealthQuietly(operation: AccountOperationLease) async {
-        guard healthImportIsEnabled(operation: operation) else { return }
+        guard accountAccessAllowsPrivateWork(for: operation.ownerID),
+              healthImportIsEnabled(operation: operation) else { return }
         await HealthKitManager.shared.requestNewReadAccessIfNeeded()
         guard accountOperationIsCurrent(operation) else { return }
         if HealthKitManager.shared.waterWriteState == .authorized {
@@ -1028,15 +1141,84 @@ final class AppSession {
         ))
     }
 
-    /// Resolve access only from the authenticated account's server profile.
-    func resolveEntitlements() async {
-        if let userID = data.profile?.userID ?? data.settings?.userID {
-            EntitlementStore.shared.prepareForAccount(userID)
+    private static var clientBuildNumber: Int {
+        let bundleVersionKey = kCFBundleVersionKey as String
+        if let number = Bundle.main.object(forInfoDictionaryKey: bundleVersionKey) as? NSNumber {
+            return number.intValue
         }
-        guard let profile else { return }
-        let sponsored = coachContext.sponsorship?.relationshipStatus == .active
-            && coachContext.sponsorship?.seatState == .active
-        EntitlementStore.shared.resolve(profile: profile, sponsoredSeatActive: sponsored)
+        if let string = Bundle.main.object(forInfoDictionaryKey: bundleVersionKey) as? String {
+            return Int(string) ?? 0
+        }
+        return 0
+    }
+
+    /// Refresh the small account-access fact independently of the dashboard.
+    /// This keeps a profileless first run and a slow/failed dashboard fetch
+    /// from being misreported as an access denial.
+    func refreshAccountAccess(expectedUserID: UUID? = nil) async throws {
+        let accountToken = accountGeneration.token
+        guard let ownerID = expectedUserID ?? authenticatedOwnerID,
+              authenticatedOwnerID == ownerID else {
+            throw CancellationError()
+        }
+        EntitlementStore.shared.prepareForAccount(ownerID)
+        let envelope = try await service.loadAccountAccess(
+            platform: "ios",
+            build: Self.clientBuildNumber
+        )
+        guard accountGeneration.accepts(accountToken),
+              authenticatedOwnerID == ownerID else { throw CancellationError() }
+        guard EntitlementStore.shared.resolve(
+            envelope: envelope,
+            expectedUserID: ownerID
+        ) else {
+            EntitlementStore.shared.markUnavailable(expectedUserID: ownerID)
+            throw AccountAccessValidationError.invalidEnvelope
+        }
+        if EntitlementStore.shared.isUnlocked {
+            suspendedAccessOwnerID = nil
+        }
+        try? await offlineStore.saveAccountAccess(envelope, for: ownerID)
+    }
+
+    func resolveEntitlements() async {
+        guard let ownerID = authenticatedOwnerID else { return }
+        do {
+            try await refreshAccountAccess(expectedUserID: ownerID)
+        } catch is CancellationError {
+            return
+        } catch {
+            EntitlementStore.shared.markUnavailable(expectedUserID: ownerID)
+        }
+    }
+
+    /// Rebuild account services only after recovery has obtained a fresh,
+    /// owner-matched grant. Sensor and realtime work were stopped at denial.
+    func resumePrivateWorkAfterAccessRecovery(
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard accountAccessAllowsPrivateWork(for: operation.ownerID) else {
+            throw AccountAccessValidationError.invalidEnvelope
+        }
+        if let accessServiceSuspensionTask {
+            await accessServiceSuspensionTask.value
+            self.accessServiceSuspensionTask = nil
+        }
+        try requireCurrentAccountOperation(operation)
+        try await refreshDashboard(
+            expectedUserID: operation.ownerID,
+            refreshAccess: false
+        )
+        try requireCurrentAccountOperation(operation)
+        selectedPersona = data.profile?.persona
+        route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
+            ? .portal : .induction
+        if route == .portal {
+            await startRealtimeSync(operation: operation)
+            try requireCurrentAccountOperation(operation)
+            await importHealthQuietly(operation: operation)
+        }
     }
 
     func refreshCoachContext(expectedUserID: UUID? = nil) async {
@@ -1054,20 +1236,6 @@ final class AppSession {
             // Preserve the last server-authoritative answer during a transient
             // outage. Account boundaries clear it synchronously above.
         }
-    }
-
-    func redeemBetaAccess(
-        code: String,
-        operation: AccountOperationLease
-    ) async throws -> EntitlementStore.RedeemOutcome {
-        try requireCurrentAccountOperation(operation)
-        let outcome = try await EntitlementStore.shared.redeemBeta(
-            code: code,
-            expectedUserID: operation.ownerID,
-            service: .shared
-        )
-        try requireCurrentAccountOperation(operation)
-        return outcome
     }
 
     func loadCoachRoster(
@@ -1151,7 +1319,7 @@ final class AppSession {
         }
         try requireCurrentAccountOperation(operation)
         coachContext = context
-        await resolveEntitlements()
+        try await refreshAccountAccess(expectedUserID: operation.ownerID)
         try requireCurrentAccountOperation(operation)
     }
 
@@ -1413,8 +1581,18 @@ final class AppSession {
     }
 
     func refresh() async {
-        if let userID = profile?.userID { await flushPendingChanges(for: userID) }
-        do { try await refreshDashboard() }
+        await refresh(includeAccess: true)
+    }
+
+    private func refresh(includeAccess: Bool) async {
+        if includeAccess { await resolveEntitlements() }
+        guard let ownerID = authenticatedOwnerID else { return }
+        guard accountAccessAllowsPrivateWork(for: ownerID) else {
+            routeToAccessRecoveryBoundary(for: ownerID)
+            return
+        }
+        await flushPendingChanges(for: ownerID)
+        do { try await refreshDashboard(refreshAccess: false) }
         catch is CancellationError {
             // Pull-to-refresh, realtime refreshes and scene transitions may
             // legitimately supersede one another. Cancellation is control
@@ -1434,6 +1612,12 @@ final class AppSession {
         // brings the app to the foreground.
         if ProcessInfo.processInfo.arguments.contains("-apex-ui-test") { return }
         #endif
+        await resolveEntitlements()
+        guard let ownerID = authenticatedOwnerID else { return }
+        guard accountAccessAllowsPrivateWork(for: ownerID) else {
+            routeToAccessRecoveryBoundary(for: ownerID)
+            return
+        }
         guard route == .portal else { return }
         /* Health first, and independent of the network. It used to hang off the
            end of the dashboard refresh, so any failed or slow request skipped
@@ -1444,7 +1628,7 @@ final class AppSession {
         guard accountOperationIsCurrent(operation) else { return }
         await importHealthQuietly(operation: operation)
         guard accountOperationIsCurrent(operation) else { return }
-        await refresh()
+        await refresh(includeAccess: false)
     }
 
     func handleAuthCallback(_ url: URL) async {
@@ -1461,6 +1645,13 @@ final class AppSession {
             switchedAccounts = true
             authenticatedOwnerID = userID
             EntitlementStore.shared.prepareForAccount(userID)
+            if let cachedAccess = try? await offlineStore.loadAccountAccess(for: userID) {
+                _ = EntitlementStore.shared.resolve(
+                    cached: cachedAccess,
+                    expectedUserID: userID,
+                    currentBuild: Self.clientBuildNumber
+                )
+            }
             data = .empty
             pendingSyncCount = 0
             failedSyncCount = 0
@@ -1470,22 +1661,24 @@ final class AppSession {
                account is new. Keep the route non-writable until either its
                owner-scoped cache or the server dashboard proves its state. */
             route = .launching
-            let cached = try? await offlineStore.loadDashboard(for: userID)
-            guard accountGeneration.accepts(accountToken) else { return }
-            if let cached,
-               TrainingInduction.belongsToAccount(cached, userID: userID) {
-                var hydratedCache = cached
-                RestingEnergyPolicy.migrateLegacyProfileValue(
-                    in: &hydratedCache,
-                    ownerID: userID
-                )
-                hydratedCache.foods = hydratedCache.foods.map(FoodHydration.resolved)
-                data = hydratedCache
-                selectedPersona = hydratedCache.profile?.persona
-                route = TrainingInduction.shouldEnterPortal(
-                    profile: hydratedCache.profile,
-                    settings: hydratedCache.settings
-                ) ? .portal : .induction
+            if accountAccessAllowsPrivateWork(for: userID) {
+                let cached = try? await offlineStore.loadDashboard(for: userID)
+                guard accountGeneration.accepts(accountToken) else { return }
+                if let cached,
+                   TrainingInduction.belongsToAccount(cached, userID: userID) {
+                    var hydratedCache = cached
+                    RestingEnergyPolicy.migrateLegacyProfileValue(
+                        in: &hydratedCache,
+                        ownerID: userID
+                    )
+                    hydratedCache.foods = hydratedCache.foods.map(FoodHydration.resolved)
+                    data = hydratedCache
+                    selectedPersona = hydratedCache.profile?.persona
+                    route = TrainingInduction.shouldEnterPortal(
+                        profile: hydratedCache.profile,
+                        settings: hydratedCache.settings
+                    ) ? .portal : .induction
+                }
             }
             try await refreshDashboard(expectedUserID: userID)
             guard accountGeneration.accepts(accountToken) else { return }
@@ -1495,18 +1688,34 @@ final class AppSession {
             if route == .portal, let operation = accountOperationLease() {
                 await startRealtimeSync(operation: operation)
             }
+        } catch is CancellationError {
+            return
         } catch {
             guard accountGeneration.accepts(accountToken) else { return }
             if !switchedAccounts {
                 let existingUserID = await service.currentUserID()
                 guard accountGeneration.accepts(accountToken) else { return }
                 if let existingUserID {
+                    accountToken = completeAccountBoundary()
+                    authenticatedOwnerID = existingUserID
+                    EntitlementStore.shared.prepareForAccount(existingUserID)
+                    if let cachedAccess = try? await offlineStore.loadAccountAccess(for: existingUserID) {
+                        _ = EntitlementStore.shared.resolve(
+                            cached: cachedAccess,
+                            expectedUserID: existingUserID,
+                            currentBuild: Self.clientBuildNumber
+                        )
+                    }
+                    await resolveEntitlements()
+                    guard accountGeneration.accepts(accountToken) else { return }
+                    guard accountAccessAllowsPrivateWork(for: existingUserID) else {
+                        routeToAccessRecoveryBoundary(for: existingUserID)
+                        return
+                    }
                     let cached = try? await offlineStore.loadDashboard(for: existingUserID)
                     guard accountGeneration.accepts(accountToken) else { return }
                     if let cached,
                        TrainingInduction.belongsToAccount(cached, userID: existingUserID) {
-                        accountToken = completeAccountBoundary()
-                        authenticatedOwnerID = existingUserID
                         var hydratedCache = cached
                         RestingEnergyPolicy.migrateLegacyProfileValue(
                             in: &hydratedCache,
@@ -1519,9 +1728,6 @@ final class AppSession {
                             profile: hydratedCache.profile,
                             settings: hydratedCache.settings
                         ) ? .portal : .induction
-                        EntitlementStore.shared.prepareForAccount(existingUserID)
-                        await resolveEntitlements()
-                        guard accountGeneration.accepts(accountToken) else { return }
                         if route == .portal, let operation = accountOperationLease() {
                             await startRealtimeSync(operation: operation)
                         }
@@ -1550,6 +1756,10 @@ final class AppSession {
                     guard accountGeneration.accepts(accountToken) else { return }
                     await resolveEntitlements()
                     guard accountGeneration.accepts(accountToken) else { return }
+                    guard accountAccessAllowsPrivateWork(for: ownerID) else {
+                        routeToAccessRecoveryBoundary(for: ownerID)
+                        return
+                    }
                     if route == .portal, let operation = accountOperationLease() {
                         await startRealtimeSync(operation: operation)
                     }
@@ -3110,6 +3320,7 @@ final class AppSession {
             enqueueHydrationMutationRetry(mutation)
             return
         }
+        guard accountAccessAllowsPrivateWork(for: operation.ownerID) else { return }
         guard mutation.ownerID == operation.ownerID else {
             enqueueHydrationMutationRetry(mutation)
             return
@@ -3128,6 +3339,7 @@ final class AppSession {
         operation: AccountOperationLease
     ) async {
         guard !Task.isCancelled,
+              accountAccessAllowsPrivateWork(for: operation.ownerID),
               mutation.belongs(to: operation.ownerID),
               accountOperationIsCurrent(operation) else {
             enqueueHydrationMutationRetry(mutation)
@@ -3248,7 +3460,8 @@ final class AppSession {
         _ snapshot: HealthSnapshot,
         operation: AccountOperationLease
     ) async {
-        guard healthImportIsEnabled(operation: operation),
+        guard accountAccessAllowsPrivateWork(for: operation.ownerID),
+              healthImportIsEnabled(operation: operation),
               profile?.userID == operation.ownerID else { return }
         let ownerID = operation.ownerID
         if HealthKitManager.shared.waterWriteState == .authorized,
@@ -6924,7 +7137,8 @@ final class AppSession {
 
     private func flushPendingChanges(for userID: UUID) async {
         let accountToken = accountGeneration.token
-        guard accountGeneration.accepts(accountToken),
+        guard accountAccessAllowsPrivateWork(for: userID),
+              accountGeneration.accepts(accountToken),
               verifiedPersistenceOwnerID(userID) == userID else { return }
         let requeuedAuthenticationFailures =
             (try? await offlineStore.requeueAuthenticationFailures(for: userID)) ?? 0
@@ -6987,7 +7201,8 @@ final class AppSession {
     }
 
     private func bindHealthBackgroundMonitoring(operation: AccountOperationLease) {
-        guard healthImportIsEnabled(operation: operation) else { return }
+        guard accountAccessAllowsPrivateWork(for: operation.ownerID),
+              healthImportIsEnabled(operation: operation) else { return }
         HealthKitManager.shared.startBackgroundMonitoring(
             ownerID: operation.ownerID
         ) { [weak self, operation] snapshot in
@@ -6996,13 +7211,16 @@ final class AppSession {
     }
 
     private func retryPendingHydrationMutations(operation: AccountOperationLease) async {
-        guard !Task.isCancelled, accountOperationIsCurrent(operation) else { return }
+        guard !Task.isCancelled,
+              accountAccessAllowsPrivateWork(for: operation.ownerID),
+              accountOperationIsCurrent(operation) else { return }
         var pending = pendingHydrationMutationRetries(ownerID: operation.ownerID)
             .filter { !hydrationMutationWasProcessed($0.mutation) }
         saveHydrationMutationRetries(pending, ownerID: operation.ownerID)
         let retryable = pending.filter { $0.attempts < 1 }
         for candidate in retryable {
             guard !Task.isCancelled,
+                  accountAccessAllowsPrivateWork(for: operation.ownerID),
                   accountOperationIsCurrent(operation),
                   candidate.mutation.ownerID == operation.ownerID else { return }
             if let index = pending.firstIndex(where: {
@@ -7017,7 +7235,12 @@ final class AppSession {
     }
 
     private func startRealtimeSync(operation: AccountOperationLease) async {
-        guard accountOperationIsCurrent(operation) else { return }
+        if let accessServiceSuspensionTask {
+            await accessServiceSuspensionTask.value
+            self.accessServiceSuspensionTask = nil
+        }
+        guard accountAccessAllowsPrivateWork(for: operation.ownerID),
+              accountOperationIsCurrent(operation) else { return }
         await retryPendingHydrationMutations(operation: operation)
         guard accountOperationIsCurrent(operation) else { return }
         bindHealthBackgroundMonitoring(operation: operation)

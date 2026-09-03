@@ -6,7 +6,6 @@ struct OrbitHomeView: View {
     @Environment(AppSession.self) private var session
     @State private var nudges = NudgeCenter.shared
     @State private var showNudges = false
-    @State private var showPaywall = false
     @State private var location = OrbitLocationManager.shared
     @State private var mapPosition: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var language = LanguageState.shared
@@ -21,8 +20,7 @@ struct OrbitHomeView: View {
                     profile: session.profile,
                     onSettings: { session.navigationPath.append(.settings) },
                     nudges: nudges,
-                    onOpenNudges: { showNudges = true },
-                    onOpenPaywall: { showPaywall = true }
+                    onOpenNudges: { showNudges = true }
                 )
 
                 VStack(alignment: .leading, spacing: 7) {
@@ -186,9 +184,6 @@ struct OrbitHomeView: View {
         }
         .navigationTitle("Orbit")  // brand name
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showPaywall) {
-            PaywallView { showPaywall = false }
-        }
         .sheet(isPresented: $showNudges) {
             NudgeSheet(nudges: nudges) { showNudges = false }
                 .apexTransientSheet(.fraction(0.62))

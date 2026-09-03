@@ -46,7 +46,7 @@ struct EmailAuthView: View {
                         .font(APEXFont.display(30))
                         .multilineTextAlignment(.center)
                     Text(language.text(isSignUp
-                        ? "Premium access or a beta code is required."
+                        ? "TestFlight access is included for every account through 31 December 2027."
                         : "Sign in with the email and password you already use."))
                         .font(APEXFont.body(14))
                         .foregroundStyle(APEXColor.secondaryInk)

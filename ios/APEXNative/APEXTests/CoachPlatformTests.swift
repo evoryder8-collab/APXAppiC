@@ -242,7 +242,9 @@ final class CoachPlatformTests: XCTestCase {
             before: "func loadCoachClientOverview("
         )
         try assertGuardedMutation(accept, remoteCall: "acceptCoachInvitation(")
-        let entitlementResolution = try XCTUnwrap(accept.range(of: "await resolveEntitlements()"))
+        let entitlementResolution = try XCTUnwrap(
+            accept.range(of: "refreshAccountAccess(expectedUserID: operation.ownerID)")
+        )
         let acceptedContext = try XCTUnwrap(accept.range(of: "coachContext = context"))
         XCTAssertLessThan(acceptedContext.lowerBound, entitlementResolution.lowerBound)
 

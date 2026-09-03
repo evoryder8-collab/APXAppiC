@@ -20,7 +20,7 @@ struct SettingsView: View {
     @State private var health = HealthKitManager.shared
     @State private var language = LanguageState.shared
     @State private var entitlements = EntitlementStore.shared
-    @State private var showPaywall = false
+    @State private var showAccessRecovery = false
     @State private var showLogout = false
     @State private var showFoodDataAcknowledgements = false
     @State private var pendingNewbieMode = false
@@ -72,8 +72,8 @@ struct SettingsView: View {
         .sheet(isPresented: $showFoodDataAcknowledgements, content: FoodDataAcknowledgementsView.init)
     }
 
-    /// What this account is entitled to, in plain words, and a way to see the
-    /// available tiers without implying a temporary free-access period.
+    /// What this account is entitled to, in plain words, with a truthful route
+    /// to re-check server-owned access in the beta build.
     private var membershipCard: some View {
         GlassCard(radius: 31, padding: 20) {
             VStack(alignment: .leading, spacing: 12) {
@@ -83,17 +83,15 @@ struct SettingsView: View {
                     .font(APEXFont.body(13))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)
-                /* A founding account has nothing to buy, so it is not shown a
-                   price list it can never need. */
-                if entitlements.access == .locked {
-                    Button(language.text("See the plans")) { showPaywall = true }
+                if entitlements.access == .locked || entitlements.access == .updateRequired {
+                    Button(language.shortText("Review access")) { showAccessRecovery = true }
                         .font(APEXFont.body(14, weight: .bold))
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .sheet(isPresented: $showPaywall) {
-            PaywallView { showPaywall = false }
+        .sheet(isPresented: $showAccessRecovery) {
+            AccessRecoveryView { showAccessRecovery = false }
         }
     }
 
@@ -102,13 +100,17 @@ struct SettingsView: View {
         case .founding:
             language.text("Founding account. Full access, permanently, with nothing to pay.")
         case .beta:
-            language.text("Unlocked with a beta code.")
+            language.text("Early access is active.")
         case .subscribed(let tier):
             language.format("Subscribed to %@.", language.text(tier == .premium ? "Premium" : "Coach"))
+        case .testFlight:
+            language.text("TestFlight access is active through 31 December 2027.")
         case .sponsored:
             language.text("Access provided by your coach.")
+        case .updateRequired:
+            language.text("Update APEX to continue.")
         case .locked:
-            language.text("Premium access or a beta code is required.")
+            language.text("Access is not available for this account.")
         }
     }
 

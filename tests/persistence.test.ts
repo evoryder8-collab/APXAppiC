@@ -169,14 +169,14 @@ test('photo hydration reconciles under the cache write lock and hides stale owne
 })
 
 test('all private domain providers remount at the authenticated owner boundary', () => {
-  assert.match(appRoot, /const ownerKey = data\.profile\?\.user_id \?\? data\.settings\?\.user_id \?\? 'signed-out'/)
+  assert.match(appRoot, /const ownerKey = appAccess\.owner_user_id \?\? data\.profile\?\.user_id \?\? data\.settings\?\.user_id \?\? 'signed-out'/)
   assert.match(appRoot, /<FoodStoreProvider key=\{ownerKey\}>[\s\S]*<ProgressPhotoStoreProvider>[\s\S]*<OrbitStoreProvider>/)
 })
 
 test('legacy single-account cache migration requires explicit Constantine metadata', () => {
-  assert.match(appStore, /nextSession\.user\.user_metadata\?\.persona === 'constantine'/)
+  assert.match(appStore, /activeSession\.user\.user_metadata\?\.persona === 'constantine'/)
   assert.doesNotMatch(
     appStore,
-    /!cached && personaFromUserMetadata\(nextSession\.user\.user_metadata\) === 'constantine'/,
+    /!cached && personaFromUserMetadata\(activeSession\.user\.user_metadata\) === 'constantine'/,
   )
 })

@@ -11,13 +11,19 @@ import {
   commitTrainingPlanAddons,
   generateTrainingPlan,
   invalidateTrainingPlanAddons,
+  isTrainingInductionNothingToFlag,
+  isTrainingInductionStepComplete,
   markPendingTrainingPlanAddons,
   protectOriginalTrainingProgrammeAddons,
   searchEquipment,
   TRAINING_PLAN_WEEK_OPTIONS,
+  trainingInductionAnswerRequiredText,
+  trainingInductionAnswersFromProfile,
+  trainingInductionAcuteSymptomsText,
   trainingInputFromProfile,
   trainingGenerationRevision,
   type TrainingInductionInput,
+  type TrainingInductionRequiredAnswer,
 } from '../../lib/trainingInduction'
 import { ACCENTS } from '../../lib/theme'
 import { buildPlanBriefing, type PlanBriefing, type PlanBriefingBulletIcon } from '../../lib/planBriefing'
@@ -346,6 +352,8 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
   const { language } = useLanguage()
   const lang = language as Language
   const copy = COPY[lang]
+  const answerRequired = trainingInductionAnswerRequiredText(lang)
+  const acuteSymptomsLabel = trainingInductionAcuteSymptomsText(lang)
   const current = data.settings?.addons.training_induction
   const draftFromCurrent = (): TrainingInductionInput => current
     ? trainingInputFromProfile(current, todayIso())
@@ -368,6 +376,16 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
   const [search, setSearch] = useState('')
   const [pendingFrequency, setPendingFrequency] = useState<6 | 7 | null>(null)
   const [draft, setDraft] = useState<TrainingInductionInput>(draftFromCurrent)
+  const [answered, setAnswered] = useState<Set<TrainingInductionRequiredAnswer>>(
+    () => trainingInductionAnswersFromProfile(current),
+  )
+  const markAnswered = (answer: TrainingInductionRequiredAnswer): void => {
+    setAnswered((currentAnswers) => {
+      const next = new Set(currentAnswers)
+      next.add(answer)
+      return next
+    })
+  }
   const assessment = useMemo(() => assessTrainingInput(draft), [draft])
   const equipmentResults = useMemo(() => searchEquipment(search, lang).filter((item) => !draft.equipment.includes(item.id)).slice(0, 6), [draft.equipment, lang, search])
   const labelForEquipment = (id: string): string => {
@@ -387,6 +405,7 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
   }
   const openBuilder = (): void => {
     setDraft(draftFromCurrent())
+    setAnswered(trainingInductionAnswersFromProfile(current))
     setSearch('')
     setPendingFrequency(null)
     setStep(0)
@@ -422,6 +441,7 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
     setBriefingOpen(true)
   }
   const install = (): void => {
+    if (![0, 1, 2, 3, 4].every((requiredStep) => isTrainingInductionStepComplete(requiredStep, draft, answered))) return
     const userId = data.profile?.user_id ?? data.settings?.user_id
     const settings = data.settings
     if (!userId || !settings) return
@@ -480,6 +500,8 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
   }))
   const durationLabel = (weeks: TrainingPlanWeeks): string => weeks === 26 ? copy.sixMonths : `${weeks} ${copy.weeks}`
   const phases = draft.plan_weeks === 4 ? copy.phases4 : draft.plan_weeks === 8 ? copy.phases8 : draft.plan_weeks === 26 ? copy.phases26 : copy.phases12
+  const stepComplete = isTrainingInductionStepComplete(step, draft, answered)
+  const readyToInstall = [0, 1, 2, 3, 4].every((requiredStep) => isTrainingInductionStepComplete(requiredStep, draft, answered))
 
   return (
     <div data-no-translate>
@@ -531,7 +553,7 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
                 <h3 className="font-display text-xl font-bold text-ink">{copy.gapTitle}</h3>
                 <p className="mt-1 text-sm font-medium text-ink-soft">{copy.gapBody}</p>
                 <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {INACTIVITY.map((option) => <Choice key={option.value} active={draft.inactivity === option.value} onClick={() => setDraft((value) => ({ ...value, inactivity: option.value }))}>{option[lang]}</Choice>)}
+                  {INACTIVITY.map((option) => <Choice key={option.value} active={answered.has('inactivity') && draft.inactivity === option.value} onClick={() => { markAnswered('inactivity'); setDraft((value) => ({ ...value, inactivity: option.value })) }}>{option[lang]}</Choice>)}
                 </div>
                 <h3 className="mt-7 font-display text-lg font-bold text-ink">{copy.frequency}</h3>
                 <p className="mt-1 text-xs font-bold tracking-wide text-violet-700 uppercase">{frequencyCopy.days}</p>
@@ -539,10 +561,13 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
                   {([2, 3, 4, 5, 6, 7] as const).map((count) => (
                     <Choice
                       key={count}
-                      active={draft.sessions_per_week === count}
+                      active={answered.has('frequency') && draft.sessions_per_week === count}
                       onClick={() => {
                         if (count === 6 || count === 7) setPendingFrequency(count)
-                        else setDraft((value) => ({ ...value, sessions_per_week: count }))
+                        else {
+                          markAnswered('frequency')
+                          setDraft((value) => ({ ...value, sessions_per_week: count }))
+                        }
                       }}
                       className="text-center"
                     >
@@ -559,13 +584,14 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
                 <h3 className="font-display text-xl font-bold text-ink">{copy.bodyTitle}</h3>
                 <p className="mt-1 text-sm font-medium text-ink-soft">{copy.bodyBody}</p>
                 <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {PAIN.map((option) => <Choice key={option.value} active={draft.pain_areas.includes(option.value)} onClick={() => togglePain(option.value)}>{option[lang]}</Choice>)}
+                  {PAIN.map((option) => <Choice key={option.value} active={draft.pain_areas.includes(option.value)} onClick={() => { markAnswered('safety'); togglePain(option.value) }}>{option[lang]}</Choice>)}
                 </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                  <Choice active={draft.recent_operation} onClick={() => setDraft((value) => ({ ...value, recent_operation: !value.recent_operation }))}>{copy.operation}</Choice>
-                  <Choice active={draft.chronic_lower_back_pain} onClick={() => setDraft((value) => ({ ...value, chronic_lower_back_pain: !value.chronic_lower_back_pain }))}>{copy.lowerBack}</Choice>
+                  <Choice active={draft.recent_operation} onClick={() => { markAnswered('safety'); setDraft((value) => ({ ...value, recent_operation: !value.recent_operation })) }}>{copy.operation}</Choice>
+                  <Choice active={draft.chronic_lower_back_pain} onClick={() => { markAnswered('safety'); setDraft((value) => ({ ...value, chronic_lower_back_pain: !value.chronic_lower_back_pain })) }}>{copy.lowerBack}</Choice>
+                  <Choice active={draft.acute_symptoms === true} onClick={() => { markAnswered('safety'); setDraft((value) => ({ ...value, acute_symptoms: value.acute_symptoms !== true })) }}>{acuteSymptomsLabel}</Choice>
+                  <Choice active={answered.has('safety') && isTrainingInductionNothingToFlag(draft)} onClick={() => { markAnswered('safety'); setDraft((value) => ({ ...value, pain_areas: [], recent_operation: false, chronic_lower_back_pain: false, acute_symptoms: false })) }}>{copy.none}</Choice>
                 </div>
-                {!draft.recent_operation && !draft.chronic_lower_back_pain && draft.pain_areas.length === 0 && <p className="mt-4 text-center text-xs font-bold text-emerald-700">✓ {copy.none}</p>}
               </div>
             )}
             {step === 2 && (
@@ -574,7 +600,7 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
                 <p className="mt-1 text-sm font-medium text-ink-soft">{copy.venueBody}</p>
                 <div className="mt-5 grid gap-3 sm:grid-cols-3">
                   {([['home', copy.homeLabel, copy.homeBody], ['gym', copy.gymLabel, copy.gymBody], ['outdoors', copy.outdoorLabel, copy.outdoorBody]] as Array<[TrainingVenue, string, string]>).map(([venue, title, body]) => (
-                    <Choice key={venue} active={draft.venue === venue} onClick={() => setDraft((value) => ({ ...value, venue }))} className="min-h-28">
+                    <Choice key={venue} active={answered.has('venue') && draft.venue === venue} onClick={() => { markAnswered('venue'); setDraft((value) => ({ ...value, venue })) }} className="min-h-28">
                       <span className="block font-display text-lg text-ink">{title}</span><span className="mt-1 block text-xs leading-relaxed font-medium text-ink-soft">{body}</span>
                     </Choice>
                   ))}
@@ -597,7 +623,7 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
                 <h3 className={`${draft.venue !== 'gym' ? 'mt-7' : ''} font-display text-xl font-bold text-ink`}>{copy.goalTitle}</h3>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
                   {goalChoices.map(({ goal, label, symbol, detail }) => (
-                    <Choice key={goal} active={draft.goal === goal} onClick={() => setDraft((value) => ({ ...value, goal }))} className="min-h-24">
+                    <Choice key={goal} active={answered.has('goal') && draft.goal === goal} onClick={() => { markAnswered('goal'); setDraft((value) => ({ ...value, goal })) }} className="min-h-24">
                       <span className="flex items-start gap-3">
                         <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-violet-100 font-display text-lg text-violet-800">{symbol}</span>
                         <span>
@@ -616,7 +642,7 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
                 <p className="mt-1 text-sm font-medium text-ink-soft">{copy.durationBody}</p>
                 <div className="mt-5 grid grid-cols-2 gap-3">
                   {TRAINING_PLAN_WEEK_OPTIONS.map((weeks) => (
-                    <Choice key={weeks} active={draft.plan_weeks === weeks} onClick={() => setDraft((value) => ({ ...value, plan_weeks: weeks }))} className="min-h-28 text-center">
+                    <Choice key={weeks} active={answered.has('duration') && draft.plan_weeks === weeks} onClick={() => { markAnswered('duration'); setDraft((value) => ({ ...value, plan_weeks: weeks })) }} className="min-h-28 text-center">
                       <span className="block font-display text-3xl text-ink">{weeks === 26 ? '6' : weeks}</span>
                       <span className="mt-1 block text-xs font-black tracking-wide text-violet-700 uppercase">{weeks === 26 ? copy.sixMonths.replace(/^6\s*/, '') : copy.weeks}</span>
                     </Choice>
@@ -641,8 +667,9 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
 
           <div className="mt-6 flex gap-2 border-t border-ink/8 pt-4">
             {step > 0 && <GhostButton onClick={() => setStep((value) => value - 1)} className="flex-1">{copy.back}</GhostButton>}
-            {step < 5 ? <GradientButton accent={ACCENTS.violet} onClick={() => setStep((value) => value + 1)} className="flex-1">{copy.next}</GradientButton> : <GradientButton accent={ACCENTS.violet} onClick={install} className="flex-1">{copy.install}</GradientButton>}
+            {step < 5 ? <GradientButton accent={ACCENTS.violet} disabled={!stepComplete} onClick={() => setStep((value) => value + 1)} className="flex-1">{copy.next}</GradientButton> : <GradientButton accent={ACCENTS.violet} disabled={!readyToInstall} onClick={install} className="flex-1">{copy.install}</GradientButton>}
           </div>
+          {step < 5 && !stepComplete && <p className="mt-2 text-center text-xs font-bold text-amber-700" role="status">{answerRequired}</p>}
 
           {pendingFrequency && (
             <div className="fixed inset-0 z-[90] grid place-items-center overflow-y-auto bg-ink/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="high-frequency-title">
@@ -671,6 +698,7 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
                 <div className="mt-5 grid gap-2 sm:grid-cols-2">
                   <GhostButton onClick={() => setPendingFrequency(null)}>{frequencyCopy.fewer}</GhostButton>
                   <GradientButton accent={ACCENTS.violet} onClick={() => {
+                    markAnswered('frequency')
                     setDraft((value) => ({ ...value, sessions_per_week: pendingFrequency }))
                     setPendingFrequency(null)
                   }}>{frequencyCopy.accept}</GradientButton>

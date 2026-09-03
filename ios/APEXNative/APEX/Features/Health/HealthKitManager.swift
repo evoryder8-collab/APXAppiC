@@ -501,13 +501,20 @@ final class HealthKitManager {
     /// presentation state at an account boundary prevents a delayed callback
     /// or Account A's last snapshot from appearing for Account B.
     func resetAccountBoundary() {
-        accountGeneration &+= 1
-        stopBackgroundMonitoring()
+        suspendPrivateWorkForAccessDenial()
         isAuthorized = false
         waterWriteState = .notDetermined
         isSyncing = false
         lastSnapshot = nil
         message = nil
+    }
+
+    /// Access can be revoked while a silent refresh is awaiting HealthKit.
+    /// Advancing the generation makes every delayed read discard its result
+    /// before it can publish a snapshot or recreate observer queries.
+    func suspendPrivateWorkForAccessDenial() {
+        accountGeneration &+= 1
+        stopBackgroundMonitoring()
     }
 
     func stopBackgroundMonitoring() {

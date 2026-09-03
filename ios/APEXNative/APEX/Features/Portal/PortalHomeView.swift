@@ -4,7 +4,6 @@ struct PortalHomeView: View {
     @Environment(AppSession.self) private var session
     @State private var nudges = NudgeCenter.shared
     @State private var showNudges = false
-    @State private var showPaywall = false
     @State private var language = LanguageState.shared
     @State private var showingSyncIssues = false
 
@@ -32,8 +31,7 @@ struct PortalHomeView: View {
                     profile: session.profile,
                     onSettings: { session.navigationPath.append(.settings) },
                     nudges: nudges,
-                    onOpenNudges: { showNudges = true },
-                    onOpenPaywall: { showPaywall = true }
+                    onOpenNudges: { showNudges = true }
                 )
 
                 HStack {
@@ -130,9 +128,6 @@ struct PortalHomeView: View {
 .dockClearance()
         }
         .refreshable { await session.refresh() }
-        .sheet(isPresented: $showPaywall) {
-            PaywallView { showPaywall = false }
-        }
         .sheet(isPresented: $showingSyncIssues) {
             SyncIssuesSheet()
                 .environment(session)

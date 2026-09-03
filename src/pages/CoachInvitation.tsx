@@ -11,7 +11,7 @@ export function CoachInvitation() {
   const { token = '' } = useParams()
   const navigate = useNavigate()
   const { language } = useLanguage()
-  const { refreshCoachContext, toast } = useStore()
+  const { refreshAppAccess, refreshCoachContext, toast } = useStore()
   const t = (value: string) => coachText(value, language)
   const [preview, setPreview] = useState<CoachInvitationPreview | null>(null)
   const [scopes, setScopes] = useState<CoachConsentScope[]>([])
@@ -36,7 +36,7 @@ export function CoachInvitation() {
     setAccepting(true)
     try {
       await coachAPI.acceptInvitation(token, scopes, visualProgress)
-      await refreshCoachContext()
+      await Promise.all([refreshAppAccess({ failClosed: true }), refreshCoachContext()])
       toast(t('Invitation accepted'), 'ok')
       navigate('/coach-plan', { replace: true })
     } catch (error) {
@@ -65,7 +65,7 @@ export function CoachInvitation() {
                 onVisualProgressConsent={setVisualProgress}
               />
             </div>
-            <button type="button" disabled={accepting || scopes.length === 0} onClick={() => void accept()} className="mt-6 w-full rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-5 py-4 text-sm font-black text-white shadow-xl disabled:opacity-45">{t('Accept and continue')}</button>
+            <button type="button" disabled={accepting || (scopes.length === 0 && !visualProgress)} onClick={() => void accept()} className="mt-6 w-full rounded-2xl bg-gradient-to-r from-violet-600 to-fuchsia-500 px-5 py-4 text-sm font-black text-white shadow-xl disabled:opacity-45">{t('Accept and continue')}</button>
           </>
         ) : <div className="mt-8 text-center"><p className="text-sm font-bold text-ink-soft">Invitation unavailable.</p><Link to="/" className="mt-4 inline-flex rounded-full bg-ink px-5 py-3 text-sm font-black text-white">{t('Return home')}</Link></div>}
       </div>

@@ -10,11 +10,7 @@ struct InductionView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var language = LanguageState.shared
     @State private var step = 0
-    @State private var input: TrainingInduction.Input = {
-        var value = TrainingInduction.Input(startDate: Date().apexDateKey)
-        value.goal = ""
-        return value
-    }()
+    @State private var input = TrainingInduction.firstRunInput(startDate: Date().apexDateKey)
     @State private var termsAccepted = false
     @State private var privacyAccepted = false
     @State private var baselineSex = ""
@@ -30,6 +26,7 @@ struct InductionView: View {
     @State private var pulsePage = 0
     @State private var showEquipment = false
     @State private var showEstimateDetails = false
+    @State private var safetyAcknowledged = false
     /* Drives the per-question entrance. Keyed on the step so each question
        assembles itself rather than the whole screen blinking. */
     @State private var shown = false
@@ -199,13 +196,12 @@ struct InductionView: View {
         case 0: termsAccepted && privacyAccepted
         case 1: bodyBaseline?.isValid == true
         case 2: TrainingInduction.canonicalTrainingGoals.contains(input.goal)
-        case 3: OnboardingActivityPattern(rawValue: input.baselineAnswers.activityPattern) != nil
-        case 4:
-            OnboardingMovementAnswer(rawValue: input.baselineAnswers.cardiorespiratory) != nil
-                && OnboardingMovementAnswer(rawValue: input.baselineAnswers.upperStrength) != nil
-                && OnboardingMovementAnswer(rawValue: input.baselineAnswers.lowerStrength) != nil
-                && OnboardingMovementAnswer(rawValue: input.baselineAnswers.mobility) != nil
-        case 5: (15...180).contains(input.availableMinutes)
+        case 3...6:
+            TrainingInduction.canContinueRequiredStep(
+                step,
+                input: input,
+                safetyAcknowledged: safetyAcknowledged
+            )
         default: true
         }
     }
@@ -321,6 +317,9 @@ struct InductionView: View {
                 .buttonStyle(.plain)
                 .alert(language.text("APEX cannot personalise without permission"), isPresented: $showDeclineExplanation) {
                     Button(language.text("Review consent"), role: .cancel) {}
+                    Button(language.text("Sign out"), role: .destructive) {
+                        Task { await session.signOut() }
+                    }
                 } message: {
                     Text(language.text("You can leave setup without sharing these details. A personalised plan, calories and macros require the measurements and goal you choose to provide."))
                 }
@@ -690,21 +689,7 @@ struct InductionView: View {
             )
 
             onboardingSection("How many training days fit a normal week?")
-            Stepper(value: Binding(
-                get: { input.sessionsPerWeek },
-                set: { count in
-                    input.sessionsPerWeek = count
-                    if TrainingInduction.highFrequencyAdvisory(for: count) != nil {
-                        pendingHighFrequencyDays = count
-                    }
-                }
-            ), in: 2...7) {
-                Text(language.format("%d days a week", input.sessionsPerWeek))
-                    .font(APEXFont.body(15, weight: .semibold))
-            }
-            .padding(16)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-            .accessibilityIdentifier("induction-sessions-stepper")
+            sessions
 
             onboardingSection("How much time fits most sessions?")
             VStack(spacing: 9) {
@@ -872,6 +857,7 @@ struct InductionView: View {
                         pendingHighFrequencyDays = count
                     }
                 }
+                .accessibilityIdentifier("induction-sessions-\(count)")
             }
         }
     }
@@ -895,15 +881,18 @@ struct InductionView: View {
         VStack(spacing: 9) {
             toggleRow(
                 label: language.text("I have had an operation in the last six months"),
-                isOn: $input.recentOperation
+                isOn: $input.recentOperation,
+                onChange: { safetyAcknowledged = true }
             )
             toggleRow(
                 label: language.text("I have ongoing lower-back pain"),
-                isOn: $input.chronicLowerBackPain
+                isOn: $input.chronicLowerBackPain,
+                onChange: { safetyAcknowledged = true }
             )
             toggleRow(
                 label: language.text("Exercise has caused chest pain, faintness or unusual breathlessness"),
-                isOn: $input.acuteSymptoms
+                isOn: $input.acuteSymptoms,
+                onChange: { safetyAcknowledged = true }
             )
             Text(language.text("Any joints currently sore?"))
                 .font(APEXFont.body(13, weight: .semibold))
@@ -914,6 +903,7 @@ struct InductionView: View {
                     selected: input.painAreas.contains(area),
                     index: position + 2
                 ) {
+                    safetyAcknowledged = true
                     if let index = input.painAreas.firstIndex(of: area) {
                         input.painAreas.remove(at: index)
                     } else {
@@ -923,9 +913,10 @@ struct InductionView: View {
             }
             selectRow(
                 label: language.text("None"),
-                selected: !input.hasHealthConcerns,
+                selected: safetyAcknowledged && !input.hasHealthConcerns,
                 index: 8
             ) {
+                safetyAcknowledged = true
                 input.clearHealthConcerns()
             }
             .accessibilityIdentifier("induction-health-none")
@@ -986,7 +977,11 @@ struct InductionView: View {
         .floating(index: index, active: !reduceMotion)
     }
 
-    private func toggleRow(label: String, isOn: Binding<Bool>) -> some View {
+    private func toggleRow(
+        label: String,
+        isOn: Binding<Bool>,
+        onChange: @escaping () -> Void = {}
+    ) -> some View {
         Toggle(isOn: isOn) {
             Text(label)
                 .font(APEXFont.body(15))
@@ -996,6 +991,7 @@ struct InductionView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 11)
         .background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 16))
+        .onChange(of: isOn.wrappedValue) { _, _ in onChange() }
     }
 }
 

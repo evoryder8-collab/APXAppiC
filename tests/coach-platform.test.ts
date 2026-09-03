@@ -221,7 +221,8 @@ test('coach and sponsored-client surfaces expose the complete consented workflow
   assert.match(clientPlan, /coachAPI\.updateScopes/)
   assert.match(clientPlan, /coachAPI\.endRelationship/)
   assert.match(portal, /capabilities\.coach_workspace[\s\S]*to="\/coach"/)
-  assert.match(portal, /capabilities\.sponsored_client[\s\S]*to="\/coach-plan"/)
+  assert.match(portal, /const sponsoredAccess = accountAccessHasSponsoredAccess\(appAccess\)/)
+  assert.match(portal, /const showCoachPlan = sponsoredAccess \|\| coachPolicy\.coach_plan_read_only[\s\S]*\{showCoachPlan && \([\s\S]*to="\/coach-plan"/)
   assert.match(nativeWorkspace, /createCoachInvitation/)
   assert.match(nativeWorkspace, /publishCoachPlan/)
   assert.match(nativePlan, /acknowledgeCoachPlan/)
@@ -234,4 +235,29 @@ test('coach and sponsored-client surfaces expose the complete consented workflow
   )
   assert.match(nativeShell, /case \.coachPlan: CoachPlanView\(\)/)
   assert.match(nativeShell, /case \.coachWorkouts:[\s\S]*canFollowCoachPlan/)
+})
+
+test('simple mode keeps every manual-workout entry behind the custom-workout policy', async () => {
+  const simpleHome = await readFile(new URL('../src/pages/SimpleHome.tsx', import.meta.url), 'utf8')
+  const sponsoredOnly = coachClientPolicy({
+    relationship_status: 'active',
+    seat_state: 'active',
+    consented_scopes: ['workouts'],
+    individual_access: false,
+  })
+  const individual = coachClientPolicy({
+    relationship_status: 'active',
+    seat_state: 'active',
+    consented_scopes: ['workouts'],
+    individual_access: true,
+  })
+
+  assert.equal(sponsoredOnly.can_create_custom_workouts, false)
+  assert.equal(individual.can_create_custom_workouts, true)
+  assert.match(simpleHome, /const canCreateManualWorkouts = coachPolicy\.can_create_custom_workouts/)
+  assert.match(simpleHome, /const sponsoredOnlyAccess = sponsoredAccess && !canCreateManualWorkouts/)
+  assert.match(simpleHome, /const guidedProgramSlug: ProgramSlug = sponsoredOnlyAccess[\s\S]*?\? 'coach'/)
+  assert.match(simpleHome, /canCreateManualWorkouts && <QuickWorkoutLauncher/)
+  assert.match(simpleHome, /canCreateManualWorkouts && hasManualWorkout[\s\S]*?<TodayManualWorkoutCard/)
+  assert.match(simpleHome, /canCreateManualWorkouts && \(\s*<ManualWorkoutLogger/)
 })

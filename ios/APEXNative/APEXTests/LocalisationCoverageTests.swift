@@ -38,6 +38,54 @@ final class LocalisationCoverageTests: XCTestCase {
         }
     }
 
+    func testEveryOfferedLanguageHasAuthoredAccessRecoveryCopy() throws {
+        let fullKeys: Set<String> = [
+            "Access needs attention",
+            "APEX could not confirm access for this account. Your account data has not been changed.",
+            "This version of APEX needs an update before it can open this account. Your account data has not been changed.",
+            "Purchases are not available in this TestFlight build.",
+            "Check access again",
+            "Access is still unavailable. Try again when online, or sign out safely.",
+            "Sign in again to check access.",
+            "TestFlight access is included for every account through 31 December 2027.",
+            "TestFlight access is active through 31 December 2027.",
+            "Early access is active.",
+            "Update APEX to continue.",
+            "Access is not available for this account.",
+            "Review access",
+        ]
+
+        for language in languages {
+            guard let translations = table(language) else { continue }
+            let missing = fullKeys.subtracting(translations.keys)
+            XCTAssertTrue(missing.isEmpty, "\(language) is missing access-recovery copy: \(missing.sorted())")
+            let blank = fullKeys.filter {
+                translations[$0]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false
+            }
+            XCTAssertTrue(blank.isEmpty, "\(language) has blank access-recovery copy: \(blank.sorted())")
+        }
+
+        let compactValues = [
+            "en": "Review access", "de": "Zugriff prüfen", "de-CH": "Zugriff prüefe",
+            "it": "Verifica accesso", "es": "Revisar acceso", "pt": "Rever acesso",
+            "ja": "アクセス権を確認", "ro": "Verifică accesul", "th": "ตรวจสอบสิทธิ์",
+        ]
+        for (language, expected) in compactValues {
+            guard let url = Bundle.main.url(
+                forResource: "LocalizableShort",
+                withExtension: "strings",
+                subdirectory: nil,
+                localization: language
+            ) else {
+                XCTFail("Missing compact table for \(language)")
+                continue
+            }
+            let data = try Data(contentsOf: url)
+            let compact = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
+            XCTAssertEqual(compact?["Review access"], expected)
+        }
+    }
+
     func testEveryOfferedLanguageHasFoodDataAcknowledgementCopy() throws {
         let keys: Set<String> = [
             "Food data acknowledgements",
@@ -378,7 +426,7 @@ final class LocalisationCoverageTests: XCTestCase {
             }
             let data = try Data(contentsOf: url)
             let table = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
-            XCTAssertEqual(table?.count, 88, "Unexpected compact-label count for \(language)")
+            XCTAssertEqual(table?.count, 89, "Unexpected compact-label count for \(language)")
             XCTAssertFalse(table?.values.contains(where: { $0.isEmpty }) ?? true)
             let keys = Set(table?.keys.map { $0 } ?? [])
             XCTAssertTrue(

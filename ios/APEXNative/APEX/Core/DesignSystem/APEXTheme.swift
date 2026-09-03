@@ -132,8 +132,6 @@ struct APEXTopBar: View {
        empty bell trains people to stop looking at it. */
     var nudges: NudgeCenter?
     var onOpenNudges: (() -> Void)?
-    /// Retained as an API hook for screens that offer membership management.
-    var onOpenPaywall: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 10) {

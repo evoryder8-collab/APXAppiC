@@ -496,6 +496,36 @@ actor OfflineStore {
         try JSONEncoder.apex.encode(migratedDashboard).write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     }
 
+    func loadAccountAccess(for userID: UUID) throws -> CachedAccountAccess? {
+        let url = accountAccessURL(for: userID)
+        guard fileManager.fileExists(atPath: url.path) else { return nil }
+        let cached = try JSONDecoder.apex.decode(
+            CachedAccountAccess.self,
+            from: Data(contentsOf: url)
+        )
+        guard cached.envelope.userID == userID else { return nil }
+        return cached
+    }
+
+    func saveAccountAccess(
+        _ envelope: AccountAccessEnvelope,
+        for userID: UUID,
+        savedAt: Date = Date(),
+        systemUptime: TimeInterval = ProcessInfo.processInfo.systemUptime
+    ) throws {
+        guard envelope.userID == userID else { throw APEXServiceError.configurationMissing }
+        try prepareDirectory(for: userID)
+        let cached = CachedAccountAccess(
+            envelope: envelope,
+            savedAt: savedAt,
+            savedSystemUptime: systemUptime
+        )
+        try JSONEncoder.apex.encode(cached).write(
+            to: accountAccessURL(for: userID),
+            options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
+        )
+    }
+
     func enqueue(_ operation: OfflineOperation, for userID: UUID) throws {
         var operations = try pendingOperations(for: userID)
         operations.append(operation)
@@ -699,6 +729,10 @@ actor OfflineStore {
 
     private func dashboardURL(for userID: UUID) -> URL {
         userDirectory(for: userID).appendingPathComponent("dashboard.json")
+    }
+
+    private func accountAccessURL(for userID: UUID) -> URL {
+        userDirectory(for: userID).appendingPathComponent("access.json")
     }
 
     private func outboxURL(for userID: UUID) -> URL {

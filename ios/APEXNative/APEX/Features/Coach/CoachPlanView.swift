@@ -7,8 +7,6 @@ struct CoachPlanView: View {
     @State private var visualProgress = false
     @State private var busy = false
     @State private var confirmEnd = false
-    @State private var invitationToken = ""
-    @State private var invitationPreview: CoachInvitationPreview?
 
     var body: some View {
         ScrollView {
@@ -18,7 +16,7 @@ struct CoachPlanView: View {
                     planCard
                     privacyCard(sponsorship)
                 } else {
-                    invitationCard
+                    CoachInvitationAcceptanceCard()
                 }
             }
             .padding(18)
@@ -31,8 +29,6 @@ struct CoachPlanView: View {
         .onChange(of: session.coachContext) { _, _ in syncPrivacyState() }
         .onChange(of: session.profile?.userID) { _, _ in
             busy = false
-            invitationPreview = nil
-            invitationToken = ""
             syncPrivacyState()
         }
         .confirmationDialog(language.text("End coach access"), isPresented: $confirmEnd) {
@@ -210,52 +206,6 @@ struct CoachPlanView: View {
         }
     }
 
-    private var invitationCard: some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: 15) {
-                Text(language.text("Accept coach invitation"))
-                    .font(APEXFont.display(29))
-                    .foregroundStyle(APEXColor.ink)
-                Text(language.text("Paste the private invitation token from your coach."))
-                    .font(APEXFont.body(12, weight: .semibold))
-                    .foregroundStyle(APEXColor.secondaryInk)
-                SecureField(language.text("Invitation token"), text: $invitationToken)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .font(APEXFont.mono(11))
-                    .padding(13)
-                    .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-
-                if let invitationPreview {
-                    Text("\(language.text("Provided by")) \(invitationPreview.coachDisplayName)")
-                        .font(APEXFont.body(14, weight: .bold))
-                    CoachScopeSelector(
-                        scopes: $scopes,
-                        visualProgress: $visualProgress,
-                        offered: invitationPreview.requestedScopes,
-                        visualProgressOffered: invitationPreview.visualProgressRequested
-                    )
-                    Button(language.text("Accept and continue")) {
-                        guard let operation = session.accountOperationLease() else { return }
-                        Task { await acceptInvitation(operation: operation) }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(APEXColor.violet)
-                    .frame(maxWidth: .infinity)
-                    .disabled(busy || scopes.isEmpty)
-                } else {
-                    Button(language.text("Review invitation")) {
-                        guard let operation = session.accountOperationLease() else { return }
-                        Task { await previewInvitation(operation: operation) }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(APEXColor.violet)
-                    .disabled(busy || invitationToken.count != 48)
-                }
-            }
-        }
-    }
-
     private func syncPrivacyState() {
         scopes = session.coachContext.sponsorship?.consentedScopes ?? []
         scopes.remove(.visualProgress)
@@ -300,6 +250,91 @@ struct CoachPlanView: View {
     }
 
     @MainActor
+    private func perform(
+        operation: AccountOperationLease,
+        _ action: @escaping () async throws -> Void
+    ) async {
+        guard session.accountOperationIsCurrent(operation) else { return }
+        busy = true
+        defer {
+            if session.accountOperationIsCurrent(operation) { busy = false }
+        }
+        do {
+            try await action()
+        } catch is CancellationError {
+            return
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
+            session.alertMessage = error.localizedDescription
+        }
+    }
+}
+
+/// Invitation acceptance is deliberately reusable from the locked access
+/// boundary. A client who has not yet received an individual grant can accept
+/// a coach-sponsored seat without briefly exposing any other private screen.
+struct CoachInvitationAcceptanceCard: View {
+    @Environment(AppSession.self) private var session
+    @State private var language = LanguageState.shared
+    @State private var scopes: Set<CoachConsentScope> = []
+    @State private var visualProgress = false
+    @State private var busy = false
+    @State private var invitationToken = ""
+    @State private var invitationPreview: CoachInvitationPreview?
+
+    var onAccepted: (() -> Void)?
+
+    var body: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: 15) {
+                Text(language.text("Accept coach invitation"))
+                    .font(APEXFont.display(29))
+                    .foregroundStyle(APEXColor.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(language.text("Paste the private invitation token from your coach."))
+                    .font(APEXFont.body(12, weight: .semibold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                SecureField(language.text("Invitation token"), text: $invitationToken)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .font(APEXFont.mono(11))
+                    .padding(13)
+                    .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+
+                if let invitationPreview {
+                    Text("\(language.text("Provided by")) \(invitationPreview.coachDisplayName)")
+                        .font(APEXFont.body(14, weight: .bold))
+                        .fixedSize(horizontal: false, vertical: true)
+                    CoachScopeSelector(
+                        scopes: $scopes,
+                        visualProgress: $visualProgress,
+                        offered: invitationPreview.requestedScopes,
+                        visualProgressOffered: invitationPreview.visualProgressRequested
+                    )
+                    Button(language.text("Accept and continue")) {
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task { await acceptInvitation(operation: operation) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(APEXColor.violet)
+                    .frame(maxWidth: .infinity)
+                    .disabled(busy || scopes.isEmpty)
+                } else {
+                    Button(language.text("Review invitation")) {
+                        guard let operation = session.accountOperationLease() else { return }
+                        Task { await previewInvitation(operation: operation) }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(APEXColor.violet)
+                    .disabled(busy || invitationToken.count != 48)
+                }
+            }
+        }
+        .onChange(of: invitationToken) { _, _ in invitationPreview = nil }
+    }
+
+    @MainActor
     private func previewInvitation(operation: AccountOperationLease) async {
         busy = true
         defer {
@@ -324,28 +359,19 @@ struct CoachPlanView: View {
 
     @MainActor
     private func acceptInvitation(operation: AccountOperationLease) async {
-        await perform(operation: operation) {
+        busy = true
+        defer {
+            if session.accountOperationIsCurrent(operation) { busy = false }
+        }
+        do {
             try await session.acceptCoachInvitation(
                 token: invitationToken,
                 scopes: scopes,
                 visualProgressConsent: visualProgress,
                 operation: operation
             )
-        }
-    }
-
-    @MainActor
-    private func perform(
-        operation: AccountOperationLease,
-        _ action: @escaping () async throws -> Void
-    ) async {
-        guard session.accountOperationIsCurrent(operation) else { return }
-        busy = true
-        defer {
-            if session.accountOperationIsCurrent(operation) { busy = false }
-        }
-        do {
-            try await action()
+            guard session.accountOperationIsCurrent(operation) else { return }
+            onAccepted?()
         } catch is CancellationError {
             return
         } catch {

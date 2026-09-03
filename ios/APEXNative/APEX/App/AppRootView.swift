@@ -20,10 +20,10 @@ struct AppRootView: View {
                 EmailAuthView(signUp: signUp)
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             case .induction:
-                InductionView()
+                accessProtected { InductionView() }
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             case .consent:
-                ConsentView()
+                accessProtected { ConsentView() }
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             case .persona:
                 PersonaSelectorView()
@@ -32,15 +32,15 @@ struct AppRootView: View {
                 LoginView(persona: persona)
                     .transition(.move(edge: .trailing).combined(with: .opacity))
             case .portal:
-                PortalShellView()
+                accessProtected { PortalShellView() }
                     .transition(.opacity)
             }
         }
         .sheet(isPresented: Binding(
-            get: { session.previewPaywall },
-            set: { session.previewPaywall = $0 }
+            get: { session.previewAccessRecovery },
+            set: { session.previewAccessRecovery = $0 }
         )) {
-            PaywallView { session.previewPaywall = false }
+            AccessRecoveryView { session.previewAccessRecovery = false }
         }
         .overlay {
             if let persona = session.greetingPersona {
@@ -50,13 +50,18 @@ struct AppRootView: View {
                 .transition(.opacity)
             }
         }
-        /* Access is resolved after authentication. A locked account never
-           flashes the portal underneath a dismissible sheet. */
+        /* Access is resolved independently of profile/onboarding. A pending or
+           locked account never flashes private content underneath recovery. */
         .sheet(isPresented: Binding(
-            get: { session.route == .portal && !entitlements.isUnlocked },
+            get: {
+                accessGateEnabled
+                    && protectedRoute
+                    && entitlements.resolution != .resolving
+                    && !entitlements.isUnlocked
+            },
             set: { _ in }
         )) {
-            PaywallView()
+            AccessRecoveryView()
                 .interactiveDismissDisabled()
         }
         .animation(.snappy(duration: 0.42, extraBounce: 0.04), value: session.route)
@@ -67,6 +72,30 @@ struct AppRootView: View {
             Button(language.text("OK"), role: .cancel) { session.alertMessage = nil }
         } message: {
             Text(language.text(session.alertMessage ?? ""))
+        }
+    }
+
+    private var accessGateEnabled: Bool {
+        session.isAuthenticated && !APEXRuntimeEnvironment.usesLocalUITestFixture()
+    }
+
+    private var protectedRoute: Bool {
+        switch session.route {
+        case .induction, .consent, .portal: return true
+        default: return false
+        }
+    }
+
+    @ViewBuilder
+    private func accessProtected<Content: View>(
+        @ViewBuilder content: () -> Content
+    ) -> some View {
+        if !accessGateEnabled || entitlements.isUnlocked {
+            content()
+        } else if entitlements.resolution == .resolving {
+            APEXLaunchView()
+        } else {
+            Color.clear
         }
     }
 }

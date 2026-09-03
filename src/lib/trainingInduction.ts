@@ -1,4 +1,5 @@
 import type { PersonaSlug } from './persona'
+import type { IntroLanguage } from './introLanguage'
 import type {
   DayType,
   AppData,
@@ -98,6 +99,105 @@ export interface TrainingInductionInput {
 
 export const TRAINING_PLAN_WEEK_OPTIONS: readonly TrainingPlanWeeks[] = [4, 8, 12, 26]
 
+export const TRAINING_INDUCTION_REQUIRED_ANSWERS = [
+  'inactivity',
+  'frequency',
+  'safety',
+  'venue',
+  'goal',
+  'duration',
+] as const
+
+export type TrainingInductionRequiredAnswer = typeof TRAINING_INDUCTION_REQUIRED_ANSWERS[number]
+
+const TRAINING_INDUCTION_ANSWER_REQUIRED_TEXT: Record<IntroLanguage, string> = {
+  en: 'Complete this step before continuing.',
+  ro: 'Finalizează acest pas înainte de a continua.',
+  th: 'ทำขั้นตอนนี้ให้ครบก่อนดำเนินการต่อ',
+}
+
+export function trainingInductionAnswerRequiredText(language: IntroLanguage): string {
+  return TRAINING_INDUCTION_ANSWER_REQUIRED_TEXT[language]
+}
+
+const TRAINING_INDUCTION_ACUTE_SYMPTOMS_TEXT: Record<IntroLanguage, string> = {
+  en: 'Exercise has caused chest pain, faintness or unusual breathlessness',
+  ro: 'Efortul a provocat durere în piept, senzație de leșin sau lipsă de aer neobișnuită',
+  th: 'การออกกำลังกายทำให้เจ็บหน้าอก หน้ามืด หรือหายใจไม่อิ่มผิดปกติ',
+}
+
+export function trainingInductionAcuteSymptomsText(language: IntroLanguage): string {
+  return TRAINING_INDUCTION_ACUTE_SYMPTOMS_TEXT[language]
+}
+
+const TRAINING_INACTIVITY_OPTIONS = new Set<TrainingInactivity>([
+  'currently_training',
+  'under_1_month',
+  'one_to_three_months',
+  'three_to_six_months',
+  'six_to_twelve_months',
+  'over_one_year',
+])
+const TRAINING_VENUE_OPTIONS = new Set<TrainingVenue>(['home', 'gym', 'outdoors'])
+const TRAINING_GOAL_OPTIONS = new Set<TrainingGoal>(['rebuild', 'muscle', 'fat_loss', 'strength', 'endurance'])
+const TRAINING_INACTIVITY_INPUT_MAP: Record<string, TrainingInactivity> = {
+  currently_training: 'currently_training',
+  under_1_month: 'under_1_month',
+  one_to_three_months: 'one_to_three_months',
+  under_three_months: 'one_to_three_months',
+  three_to_six_months: 'three_to_six_months',
+  six_to_twelve_months: 'six_to_twelve_months',
+  over_one_year: 'over_one_year',
+}
+const TRAINING_PAIN_INPUT_MAP: Record<string, TrainingPainArea> = {
+  shoulder: 'shoulders', shoulders: 'shoulders',
+  elbow: 'elbows', elbows: 'elbows',
+  wrist: 'wrists', wrists: 'wrists',
+  hip: 'hips', hips: 'hips',
+  knee: 'knees', knees: 'knees',
+  ankle: 'ankles', ankles: 'ankles',
+}
+const TRAINING_GOAL_INPUT_MAP: Record<string, TrainingGoal> = {
+  rebuild: 'rebuild', general: 'rebuild', fat_loss: 'fat_loss', endurance: 'endurance',
+  muscle: 'muscle', hypertrophy: 'muscle', strength: 'strength',
+}
+
+function hasOwnOption<T>(options: Record<string, T>, value: unknown): value is string {
+  return typeof value === 'string' && Object.prototype.hasOwnProperty.call(options, value)
+}
+
+/** A value becomes an answer only after the person chose it on this pass.
+ * Existing committed plans seed every acknowledgement when reopened, while
+ * new builders cannot silently accept convenient-looking defaults. */
+export function isTrainingInductionStepComplete(
+  step: number,
+  input: TrainingInductionInput,
+  answered: ReadonlySet<TrainingInductionRequiredAnswer>,
+): boolean {
+  switch (step) {
+    case 0:
+      return answered.has('inactivity')
+        && answered.has('frequency')
+        && TRAINING_INACTIVITY_OPTIONS.has(input.inactivity)
+        && Number.isInteger(input.sessions_per_week)
+        && input.sessions_per_week >= 2
+        && input.sessions_per_week <= 7
+    case 1:
+      return answered.has('safety')
+        && typeof input.recent_operation === 'boolean'
+        && typeof input.chronic_lower_back_pain === 'boolean'
+        && Array.isArray(input.pain_areas)
+    case 2:
+      return answered.has('venue') && TRAINING_VENUE_OPTIONS.has(input.venue)
+    case 3:
+      return answered.has('goal') && TRAINING_GOAL_OPTIONS.has(input.goal)
+    case 4:
+      return answered.has('duration') && TRAINING_PLAN_WEEK_OPTIONS.includes(input.plan_weeks)
+    default:
+      return true
+  }
+}
+
 function normalizedPlanWeeks(value: unknown): TrainingPlanWeeks {
   return TRAINING_PLAN_WEEK_OPTIONS.includes(value as TrainingPlanWeeks)
     ? value as TrainingPlanWeeks
@@ -125,31 +225,54 @@ function profileGenerationRevision(value: unknown): number {
   return typeof raw === 'number' && Number.isFinite(raw) ? Math.max(0, Math.trunc(raw)) : 0
 }
 
+/** Preserve only answers that were actually present and valid in persisted
+ * cross-platform JSON. Normalized form defaults are not user answers. */
+export function trainingInductionAnswersFromProfile(
+  value: unknown,
+): Set<TrainingInductionRequiredAnswer> {
+  const raw = jsonRecord(value)
+  const answers = new Set<TrainingInductionRequiredAnswer>()
+  if (!raw) return answers
+
+  if (hasOwnOption(TRAINING_INACTIVITY_INPUT_MAP, raw.inactivity)) {
+    answers.add('inactivity')
+  }
+  if (typeof raw.sessions_per_week === 'number'
+    && Number.isInteger(raw.sessions_per_week)
+    && raw.sessions_per_week >= 2
+    && raw.sessions_per_week <= 7) {
+    answers.add('frequency')
+  }
+  if (typeof raw.recent_operation === 'boolean'
+    && typeof raw.chronic_lower_back_pain === 'boolean'
+    && typeof raw.acute_symptoms === 'boolean'
+    && Array.isArray(raw.pain_areas)
+    && raw.pain_areas.every((area) => hasOwnOption(TRAINING_PAIN_INPUT_MAP, area))) {
+    answers.add('safety')
+  }
+  if (typeof raw.venue === 'string' && TRAINING_VENUE_OPTIONS.has(raw.venue as TrainingVenue)) {
+    answers.add('venue')
+  }
+  if (hasOwnOption(TRAINING_GOAL_INPUT_MAP, raw.goal)) {
+    answers.add('goal')
+  }
+  if (TRAINING_PLAN_WEEK_OPTIONS.includes(raw.plan_weeks as TrainingPlanWeeks)) {
+    answers.add('duration')
+  }
+  return answers
+}
+
+export function isTrainingInductionNothingToFlag(input: TrainingInductionInput): boolean {
+  return !input.recent_operation
+    && !input.chronic_lower_back_pain
+    && input.acute_symptoms !== true
+    && input.pain_areas.length === 0
+}
+
 /** Supabase settings JSON is shared with native and legacy builds, so validate
  * and translate it before the typed web form or generator sees it. */
 export function trainingInputFromProfile(value: unknown, fallbackStartDate: string): TrainingInductionInput {
   const raw = jsonRecord(value) ?? {}
-  const inactivityMap: Record<string, TrainingInactivity> = {
-    currently_training: 'currently_training',
-    under_1_month: 'under_1_month',
-    one_to_three_months: 'one_to_three_months',
-    under_three_months: 'one_to_three_months',
-    three_to_six_months: 'three_to_six_months',
-    six_to_twelve_months: 'six_to_twelve_months',
-    over_one_year: 'over_one_year',
-  }
-  const painMap: Record<string, TrainingPainArea> = {
-    shoulder: 'shoulders', shoulders: 'shoulders',
-    elbow: 'elbows', elbows: 'elbows',
-    wrist: 'wrists', wrists: 'wrists',
-    hip: 'hips', hips: 'hips',
-    knee: 'knees', knees: 'knees',
-    ankle: 'ankles', ankles: 'ankles',
-  }
-  const goalMap: Record<string, TrainingGoal> = {
-    rebuild: 'rebuild', general: 'rebuild', fat_loss: 'fat_loss', endurance: 'endurance',
-    muscle: 'muscle', hypertrophy: 'muscle', strength: 'strength',
-  }
   const venue: TrainingVenue = raw.venue === 'gym' || raw.venue === 'outdoors' ? raw.venue : 'home'
   const rawSessions = typeof raw.sessions_per_week === 'number' && Number.isFinite(raw.sessions_per_week)
     ? Math.trunc(raw.sessions_per_week)
@@ -161,13 +284,13 @@ export function trainingInputFromProfile(value: unknown, fallbackStartDate: stri
     : undefined
   return {
     start_date: typeof raw.start_date === 'string' && raw.start_date ? raw.start_date : fallbackStartDate,
-    inactivity: typeof raw.inactivity === 'string'
-      ? inactivityMap[raw.inactivity] ?? 'one_to_three_months'
+    inactivity: hasOwnOption(TRAINING_INACTIVITY_INPUT_MAP, raw.inactivity)
+      ? TRAINING_INACTIVITY_INPUT_MAP[raw.inactivity]
       : 'one_to_three_months',
     venue,
     equipment: stringArray(raw.equipment),
     pain_areas: sortedIds(
-      stringArray(raw.pain_areas).flatMap((area) => painMap[area] ? [painMap[area]] : []),
+      stringArray(raw.pain_areas).flatMap((area) => hasOwnOption(TRAINING_PAIN_INPUT_MAP, area) ? [TRAINING_PAIN_INPUT_MAP[area]] : []),
     ) as TrainingPainArea[],
     recent_operation: raw.recent_operation === true,
     chronic_lower_back_pain: raw.chronic_lower_back_pain === true,
@@ -177,7 +300,7 @@ export function trainingInputFromProfile(value: unknown, fallbackStartDate: stri
     ...(availableMinutes != null && availableMinutes >= 15 && availableMinutes <= 180
       ? { available_minutes: availableMinutes }
       : {}),
-    goal: typeof raw.goal === 'string' ? goalMap[raw.goal] ?? 'rebuild' : 'rebuild',
+    goal: hasOwnOption(TRAINING_GOAL_INPUT_MAP, raw.goal) ? TRAINING_GOAL_INPUT_MAP[raw.goal] : 'rebuild',
     ...(baselineAssessment && movement
       ? {
         baseline_assessment: {

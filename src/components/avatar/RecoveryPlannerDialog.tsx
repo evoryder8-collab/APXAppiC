@@ -23,14 +23,14 @@ export function RecoveryPlannerDialog({
   target: RecoveryPlanTarget
   onClose: () => void
 }) {
-  const { data, coachContext, bulkUpsert, toast } = useStore()
+  const { appAccess, data, coachContext, bulkUpsert, toast } = useStore()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const [source, setSource] = useState<RecoveryPlanSource>('guided')
   const closeButton = useRef<HTMLButtonElement>(null)
   const ownerId = data.profile?.user_id ?? data.settings?.user_id ?? null
   const startDate = useMemo(tomorrowIso, [])
-  const policy = clientPolicyForAccount(data.profile, coachContext)
+  const policy = clientPolicyForAccount(appAccess, coachContext)
   const proposal = useMemo(() => ownerId ? buildRecoveryPlan({
     ownerId,
     startDate,

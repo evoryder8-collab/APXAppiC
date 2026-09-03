@@ -15,6 +15,53 @@ import type {
 export type ActivityLevel = (typeof SUPABASE_ENUMS.activity_level)[number]
 export type Goal = (typeof SUPABASE_ENUMS.goal)[number]
 
+export type AccountEntitlementState = 'granted' | 'locked' | 'revoked' | 'expired' | 'missing'
+
+/** Server-owned answer returned by get_my_app_access for one authenticated account. */
+export interface AccountAccessEnvelope {
+  user_id: string
+  state: AccountEntitlementState
+  expires_at: string | null
+  entitlement_updated_at: string | null
+  server_now: string
+  sponsored_seat_active: boolean
+  minimum_build: number
+  update_required: boolean
+  web_beta_codes_enabled: boolean
+}
+
+export type AccountAccessResolution =
+  | {
+      status: 'pending'
+      owner_user_id: string | null
+      envelope: null
+      source: null
+      resolved_at: null
+      error: null
+    }
+  | {
+      status: 'resolved'
+      owner_user_id: string
+      envelope: AccountAccessEnvelope
+      source: 'server' | 'cache' | 'local'
+      resolved_at: string
+      /** Highest local wall-clock instant observed while evaluating bounded access. */
+      clock_observed_at: string
+      /** Elapsed duration already accrued when this runtime's monotonic anchor was captured. */
+      elapsed_anchor_ms: number
+      /** Runtime-only monotonic anchor; null only where no elapsed clock is available. */
+      monotonic_anchor_ms: number | null
+      error: null
+    }
+  | {
+      status: 'failed'
+      owner_user_id: string
+      envelope: null
+      source: null
+      resolved_at: null
+      error: string
+    }
+
 export type CustomBmrSource =
   | 'indirect_calorimetry'
   | 'dexa_report_estimate'

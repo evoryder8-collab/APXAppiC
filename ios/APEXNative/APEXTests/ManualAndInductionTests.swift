@@ -498,6 +498,40 @@ final class TrainingInductionTests: XCTestCase {
         return value
     }
 
+    func testFirstRunPlanAndSafetyQuestionsRequireIntentionalAnswers() {
+        var firstRun = TrainingInduction.firstRunInput(startDate: "2026-01-05")
+        XCTAssertEqual(firstRun.inactivity, "")
+        XCTAssertEqual(firstRun.venue, "")
+        XCTAssertEqual(firstRun.sessionsPerWeek, 0)
+        XCTAssertFalse(TrainingInduction.canContinueRequiredStep(3, input: firstRun))
+
+        firstRun.baselineAnswers.activityPattern = "mixed_day"
+        XCTAssertFalse(TrainingInduction.canContinueRequiredStep(3, input: firstRun))
+        firstRun.inactivity = "under_three_months"
+        XCTAssertTrue(TrainingInduction.canContinueRequiredStep(3, input: firstRun))
+
+        XCTAssertFalse(TrainingInduction.canContinueRequiredStep(5, input: firstRun))
+        firstRun.venue = "home"
+        firstRun.sessionsPerWeek = 3
+        firstRun.availableMinutes = 45
+        XCTAssertTrue(TrainingInduction.canContinueRequiredStep(5, input: firstRun))
+
+        XCTAssertFalse(
+            TrainingInduction.canContinueRequiredStep(
+                6,
+                input: firstRun,
+                safetyAcknowledged: false
+            )
+        )
+        XCTAssertTrue(
+            TrainingInduction.canContinueRequiredStep(
+                6,
+                input: firstRun,
+                safetyAcknowledged: true
+            )
+        )
+    }
+
     func testDefaultAndRestoredTrainingGoalsUseCanonicalPersistedVocabulary() {
         XCTAssertEqual(input().goal, "rebuild")
 

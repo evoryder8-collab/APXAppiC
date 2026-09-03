@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { AmbientBackground } from './components/AmbientBackground'
 import { TopBar } from './components/TopBar'
 import { ProfileSwitcher } from './components/ProfileSwitcher'
+import { AccessRecovery } from './components/AccessRecovery'
 import { AppStoreProvider, useStore } from './store/AppStore'
 import { FoodStoreProvider } from './store/FoodStore'
 import { ProgressPhotoStoreProvider } from './store/ProgressPhotoStore'
@@ -13,7 +14,11 @@ import { ACCENTS } from './lib/theme'
 import { startReminderLoop } from './lib/notify'
 import { LanguageProvider } from './lib/i18n'
 import { uiModeFromSettings } from './lib/simpleMode'
-import { clientPolicyForAccount } from './lib/coachAccess'
+import {
+  accountAccessAllowsRoute,
+  accountAccessHasAppAccess,
+  clientPolicyForAccount,
+} from './lib/coachAccess'
 import type { CoachClientPolicy } from './lib/coachPlatform'
 import {
   clearEntryGrant,
@@ -54,8 +59,8 @@ const CoachInvitation = lazy(() => import('./pages/CoachInvitation').then((modul
 const CoachPlan = lazy(() => import('./pages/CoachPlan').then((module) => ({ default: module.CoachPlan })))
 
 function AccountFeature({ capability, children }: { capability: keyof CoachClientPolicy; children: ReactNode }) {
-  const { data, coachContext } = useStore()
-  return clientPolicyForAccount(data.profile, coachContext)[capability]
+  const { appAccess, coachContext } = useStore()
+  return clientPolicyForAccount(appAccess, coachContext)[capability]
     ? children
     : <Navigate to="/coach-plan" replace />
 }
@@ -90,7 +95,7 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<Page>{settingsOnly ? <WorkoutSection slug="transition" accent={ACCENTS.teal} title="Transition Phase" /> : simple ? <SimpleHome /> : <Portal />}</Page>} />
+        <Route path="/" element={<Page>{settingsOnly ? <AccountFeature capability="can_rebuild_fitness_plan"><WorkoutSection slug="transition" accent={ACCENTS.teal} title="Transition Phase" /></AccountFeature> : simple ? <SimpleHome /> : <Portal />}</Page>} />
         <Route path="/nutrition" element={<AccountFeature capability="can_use_nutrition"><Page><Nutrition /></Page></AccountFeature>} />
         <Route
           path="/transition"
@@ -155,7 +160,7 @@ function Reminders() {
 }
 
 function Shell() {
-  const { ready, authed, signOut, toasts } = useStore()
+  const { appAccess, coachContext, ready, authed, signOut, toasts } = useStore()
   const location = useLocation()
   const workoutPlayerOpen = location.pathname.startsWith('/player/')
   const [selectedPersona, setSelectedPersonaState] = useState<PersonaSlug | null>(() =>
@@ -233,6 +238,20 @@ function Shell() {
       </>
     )
   }
+  if (appAccess.status === 'pending') {
+    return <LoadingSurface />
+  }
+  const gracePlanOnly = clientPolicyForAccount(appAccess, coachContext).coach_plan_read_only
+  const appUnlocked = accountAccessHasAppAccess(appAccess)
+  if (!accountAccessAllowsRoute(appAccess, coachContext, location.pathname)) {
+    if (gracePlanOnly || appUnlocked) return <Navigate to="/coach-plan" replace />
+    return (
+      <>
+        <AccessRecovery />
+        <Toasts items={toasts} />
+      </>
+    )
+  }
   return (
     <>
       <TopBar />
@@ -253,8 +272,9 @@ function Shell() {
 }
 
 function PrivateStoreScope({ children }: { children: ReactNode }) {
-  const { data } = useStore()
-  const ownerKey = data.profile?.user_id ?? data.settings?.user_id ?? 'signed-out'
+  const { appAccess, data } = useStore()
+  if (!accountAccessHasAppAccess(appAccess)) return <>{children}</>
+  const ownerKey = appAccess.owner_user_id ?? data.profile?.user_id ?? data.settings?.user_id ?? 'signed-out'
   /* Food, photo and Orbit stores contain private owner-scoped state. Remount
      the complete subtree at the account boundary so React can never render a
      previous owner's rows while the next owner's IndexedDB hydration begins. */
