@@ -243,4 +243,8 @@ The focused strawberry flow reached Food Memory, selected **Strawberries, fresh*
 
 ## Completion gate
 
-This audit is not complete until every flow in the matrix is classified as passed, repaired, intentionally deferred with an owner-facing roadmap item, or blocked by a named external dependency. Each implemented repair must have a red-green regression, native/web parity where shared, account/date/offline coverage where applicable, and a focused simulator walkthrough. Physical iPhone/Watch installation is intentionally deferred while the owner is asleep.
+### September 8 bounded delivery update
+
+Tasks 2–7 repairs and their scoped evidence are recorded in REPAIR-NOTES. Build 389 was installed on the physical iPhone and Watch. Following the owner's newer request to avoid unnecessary regression work, final integrated testing was limited to two passing APEX-lane journeys: custom-workout lifecycle and Avatar/recovery-planning navigation. The remaining acceptance-matrix and human-discoverability branches stay open rather than being relabelled as passed. Existing unresolved plan-personalization/cadence findings and physical complication observation also remain open. This is a delivered repair release, not an exhaustive-audit completion claim.
+
+This audit is not complete until every flow in the matrix is classified as passed, repaired, intentionally deferred with an owner-facing roadmap item, or blocked by a named external dependency. The original comprehensive verification gate remains the audit's acceptance standard; the newer owner-directed bounded release does not imply that all its evidence lanes are complete. Physical installation, originally deferred during sleep, is now delivered as recorded above.
