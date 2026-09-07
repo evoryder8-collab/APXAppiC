@@ -10,6 +10,7 @@ struct VisualProgressView: View {
     @State private var showCamera = false
     @State private var pose = "front"
     @State private var note = ""
+    @State private var capturedWeightKG: Double?
     @State private var isSaving = false
     @State private var saveTask: Task<Void, Never>?
     @State private var saveOperationID: UUID?
@@ -244,6 +245,7 @@ struct VisualProgressView: View {
             selectedItem = nil
             selectedImage = nil
             note = ""
+            capturedWeightKG = nil
             saveError = nil
             showBriefing = false
             captureIntent = nil
@@ -306,6 +308,7 @@ struct VisualProgressView: View {
                         selectedImage = image
                         pose = resolved.pose
                         note = resolved.note
+                        capturedWeightKG = resolved.resolvedWeightKG
                         captureIntent = nil
                         captureOperation = nil
                         captureRequestID = nil
@@ -317,6 +320,7 @@ struct VisualProgressView: View {
             if let pair = comparisonPair {
                 ProgressComparisonView(
                     before: pair.before, after: pair.after,
+                    includeStats: includeStats,
                     onClose: { showComparison = false }
                 )
                 .environment(session)
@@ -381,6 +385,7 @@ struct VisualProgressView: View {
                   session.accountOperationIsCurrent(operation),
                   let image = UIImage(data: data) else { return }
             selectedImage = image
+            capturedWeightKG = nil
         } catch is CancellationError {
             return
         } catch {
@@ -417,6 +422,7 @@ struct VisualProgressView: View {
                 height: Int(normalized.size.height),
                 pose: pose,
                 note: note,
+                weightKG: capturedWeightKG,
                 operation: operation
             )
             guard saveOperationID == requestID,

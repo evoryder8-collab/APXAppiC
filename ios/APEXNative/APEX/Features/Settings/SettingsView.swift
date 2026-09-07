@@ -44,9 +44,6 @@ struct SettingsView: View {
                 recoveryCard
                 bodyProfileCard
                 playerCard
-                if session.coachClientPolicy.canViewVisualProgress {
-                    cameraCard
-                }
                 if session.coachClientPolicy.canRebuildFitnessPlan {
                     addOnCard
                 }
@@ -506,19 +503,6 @@ struct SettingsView: View {
                 Divider()
                 settingsToggle("Meal + stack reminders", icon: "bell", value: settings?.notificationsOn ?? false) { next in
                     mutateSettings { $0.notificationsOn = next }
-                }
-            }
-        }
-    }
-
-    private var cameraCard: some View {
-        GlassCard(radius: 31, padding: 20) {
-            VStack(alignment: .leading, spacing: 17) {
-                sectionTitle("Camera & comparison", subtitle: "Choose what appears on exported progress comparisons.")
-                settingGroup(title: "Comparison export stats", subtitle: "Minimal shows only APEX, Before/After, and each photo’s date and time.", tint: APEXColor.violet) {
-                    choiceRow(options: [("Minimal", "minimal"), ("Detailed", "detailed")], selected: addonString("comparison_export_mode", default: "detailed")) {
-                        setAddon("comparison_export_mode", .string($0))
-                    }
                 }
             }
         }

@@ -22,6 +22,7 @@ struct ProgressComparisonView: View {
 
     let before: ProgressPhoto
     let after: ProgressPhoto
+    var includeStats = true
     var onClose: () -> Void
 
     /* The screen loads its own photos. Passing them in was how it ended up
@@ -348,7 +349,7 @@ struct ProgressComparisonView: View {
             beforePose: language.text(before.pose.capitalized).uppercased(),
             afterPose: language.text(after.pose.capitalized).uppercased(),
             views: views,
-            content: ProgressComparison.posterContent(exportMode),
+            content: ProgressComparison.posterContent(exportMode, includeStats: includeStats),
             /* Torso pairs get a shorter photo block, so the card does not
                stretch two chest-height frames into a full-body shape. */
             torsoLayout: bothTorso,

@@ -115,7 +115,12 @@ struct OrbitHomeView: View {
                         }
                     } else {
                         ForEach(session.data.orbitRuns.prefix(3)) { run in
-                            RunHistoryRow(run: run)
+                            NavigationLink {
+                                HistoricalRunDebrief(run: run)
+                            } label: {
+                                RunHistoryRow(run: run)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                 }

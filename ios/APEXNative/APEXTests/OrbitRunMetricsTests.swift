@@ -3,6 +3,19 @@ import XCTest
 @testable import APEX
 
 final class OrbitRunMetricsTests: XCTestCase {
+    @MainActor
+    func testSelectedCampaignDurationSurvivesPreparationAndClearsAtAccountBoundary() {
+        let manager = OrbitLocationManager.shared
+        manager.releaseForAccountBoundary()
+        let owner = UUID()
+        let campaign = UUID()
+        manager.prepare(ownerID: owner, mission: "easy", routeID: nil, campaignSessionID: campaign, targetMinutes: 40)
+        XCTAssertEqual(manager.draftTargetMinutes, 40)
+        manager.prepare(ownerID: owner, mission: "easy", routeID: nil, campaignSessionID: campaign, targetMinutes: 26)
+        XCTAssertEqual(manager.draftTargetMinutes, 26)
+        manager.releaseForAccountBoundary()
+        XCTAssertNil(manager.draftTargetMinutes)
+    }
     func testRunMetricsGenerateHonestSplitsAndWebCompatibleKeys() {
         let start = Date(timeIntervalSince1970: 1_700_000_000)
         let samples = (0...11).map { index in

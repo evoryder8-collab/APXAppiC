@@ -38,7 +38,7 @@ struct RunDebriefView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        Group {
             ScrollView {
                 VStack(spacing: 18) {
                     ZStack(alignment: .bottomLeading) {

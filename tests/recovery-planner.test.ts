@@ -18,6 +18,16 @@ const main: Program = {
   description: '',
 }
 
+test('replacement planning ignores only the future rows it will deactivate', () => {
+  const input = { ownerId: owner, startDate: '2026-09-02', target: 'joint' as const, source: 'guided' as const, programs: [main], settings: null, existingDays: [] as ProgramDay[] }
+  const first = buildRecoveryPlan(input)
+  const replacement = buildRecoveryPlan({ ...input, existingDays: first.days })
+  assert.deepEqual(replacement.days.map(day => day.scheduled_date), first.days.map(day => day.scheduled_date))
+  const protectedDayIds = new Set([first.days[0].id])
+  const protectedReplacement = buildRecoveryPlan({ ...input, existingDays: first.days, protectedDayIds })
+  assert.notEqual(protectedReplacement.days[0].scheduled_date, first.days[0].scheduled_date)
+})
+
 function day(id: string, weekday: number, dayType: ProgramDay['day_type']): ProgramDay {
   return {
     id,

@@ -194,7 +194,14 @@ enum RecoveryPlanner {
         makeID: @escaping () -> UUID = { UUID() }
     ) -> Result {
         let planID = makeID()
-        let dates = scheduledDates(startDate: startDate, existingDays: data.programDays)
+        let protectedIDs = Set(data.workoutSessions.filter { $0.userID == ownerID }.map(\.programDayID))
+        let replacedIDs = Set(futureRowsToDeactivate(
+            data.programDays, ownerID: ownerID, target: target,
+            today: startDate, protectedDayIDs: protectedIDs
+        ).map(\.id))
+        let dates = scheduledDates(startDate: startDate, existingDays: data.programDays.filter {
+            $0.userID == ownerID && !replacedIDs.contains($0.id)
+        })
         var days: [ProgramDay] = []
         var exercises: [Exercise] = []
         for (index, scheduledDate) in dates.enumerated() {

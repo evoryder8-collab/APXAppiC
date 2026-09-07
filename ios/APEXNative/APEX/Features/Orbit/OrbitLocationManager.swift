@@ -79,6 +79,7 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
     var draftMission: String?
     var draftRouteID: UUID?
     var draftCampaignSessionID: UUID?
+    var draftTargetMinutes: Int?
     var draftShoeID: UUID?
 
     func hasRecoverableRun(for ownerID: UUID?) -> Bool {
@@ -144,6 +145,7 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
         draftMission = draft.mission
         draftRouteID = draft.routeID
         draftCampaignSessionID = draft.campaignSessionID
+        draftTargetMinutes = draft.targetMinutes
         draftShoeID = draft.shoeID
         startedAt = draft.startedAt
         samples = draft.samples
@@ -174,6 +176,7 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
         mission: String,
         routeID: UUID?,
         campaignSessionID: UUID? = nil,
+        targetMinutes: Int? = nil,
         shoeID: UUID? = nil
     ) {
         guard draftOwnerID == nil || draftOwnerID == ownerID,
@@ -182,6 +185,7 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
         draftMission = mission
         draftRouteID = routeID
         draftCampaignSessionID = campaignSessionID
+        draftTargetMinutes = targetMinutes
         draftShoeID = shoeID
     }
 
@@ -294,6 +298,7 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
         draftMission = nil
         draftRouteID = nil
         draftCampaignSessionID = nil
+        draftTargetMinutes = nil
         draftShoeID = nil
         state = .idle
         locationUpdatesRequested = false
@@ -326,6 +331,7 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
         draftMission = nil
         draftRouteID = nil
         draftCampaignSessionID = nil
+        draftTargetMinutes = nil
         draftShoeID = nil
         state = .idle
         if let ownerID { clearPersistedDraft(for: ownerID) }
@@ -342,6 +348,7 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
         draftMission = nil
         draftRouteID = nil
         draftCampaignSessionID = nil
+        draftTargetMinutes = nil
         draftShoeID = nil
         state = .idle
         locationUpdatesRequested = false
@@ -436,6 +443,7 @@ final class OrbitLocationManager: NSObject, @preconcurrency CLLocationManagerDel
             campaignSessionID: draftCampaignSessionID,
             shoeID: draftShoeID,
             startedAt: startedAt,
+            targetMinutes: draftTargetMinutes,
             samples: samples,
             elapsedSeconds: elapsedSeconds,
             movingSeconds: movingSeconds,
@@ -487,6 +495,7 @@ private struct OrbitRunDraft: Codable, Sendable {
     let campaignSessionID: UUID?
     let shoeID: UUID?
     let startedAt: Date
+    let targetMinutes: Int?
     let samples: [OrbitLocationSample]
     let elapsedSeconds: Double
     let movingSeconds: Double

@@ -32,9 +32,9 @@ enum ProgressComparison {
         return .detailed
     }
 
-    static func posterContent(_ mode: ExportMode) -> PosterContent {
+    static func posterContent(_ mode: ExportMode, includeStats: Bool = true) -> PosterContent {
         let detailed = mode == .detailed
-        return PosterContent(stats: detailed, athlete: detailed, pose: detailed, privateFooter: detailed)
+        return PosterContent(stats: detailed && includeStats, athlete: detailed, pose: detailed, privateFooter: detailed)
     }
 
     private static func logKey(_ log: WorkoutLog) -> String {

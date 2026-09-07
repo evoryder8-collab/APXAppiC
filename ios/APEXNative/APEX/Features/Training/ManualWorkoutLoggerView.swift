@@ -52,9 +52,6 @@ struct ManualWorkoutLoggerView: View {
                                 .font(APEXFont.display(19))
                                 .textInputAutocapitalization(.words)
                                 .accessibilityIdentifier("manual-workout-title")
-                            Text(language.text("Log what you actually did. Every saved workout becomes a reusable smart preset."))
-                                .font(APEXFont.body(11, weight: .medium))
-                                .foregroundStyle(APEXColor.secondaryInk)
                             DatePicker(
                                 language.text("Date"),
                                 selection: Binding(

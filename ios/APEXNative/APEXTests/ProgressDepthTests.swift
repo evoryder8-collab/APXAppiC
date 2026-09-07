@@ -7,6 +7,20 @@ import XCTest
 
 @MainActor
 final class ProgressDepthTests: XCTestCase {
+    func testCaptureWeightAndExportStatsRespectExplicitChoices() {
+        var intent = ProgressCaptureIntent()
+        XCTAssertNil(intent.resolvedWeightKG)
+        intent.weightKG = " 72,5 "
+        XCTAssertEqual(intent.resolvedWeightKG, 72.5)
+        for invalid in ["NaN", "-5", "0", "not a weight"] {
+            intent.weightKG = invalid
+            XCTAssertNil(intent.resolvedWeightKG)
+        }
+        XCTAssertFalse(ProgressComparison.posterContent(.detailed, includeStats: false).stats)
+        XCTAssertTrue(ProgressComparison.posterContent(.detailed, includeStats: true).stats)
+        XCTAssertFalse(ProgressComparison.posterContent(.minimal, includeStats: true).stats)
+        XCTAssertTrue(ProgressComparison.posterContent(.detailed, includeStats: false).athlete)
+    }
     func testPlacementRangeMatchesAFullBodyFrame() {
         let reading = ProgressDepthAnalyzer()
 

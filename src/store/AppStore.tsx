@@ -1487,7 +1487,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const cur = dataRef.current
     const latest = snapshots[snapshots.length - 1]
     const prev = cur.rpg_snapshots[cur.rpg_snapshots.length - 1]
-    if (!prev || prev.date !== latest.date || prev.overall !== latest.overall) {
+    if (!prev || (['date', 'user_id', 'overall', 'health', 'joint', 'flexibility', 'endurance', 'strength', 'strength_upper', 'strength_lower'] as const).some(key => prev[key] !== latest[key])) {
       persist({ ...cur, rpg_snapshots: snapshots })
       /* Persist only the newest snapshot remotely; history replays deterministically.
          Deterministic id per date makes the upsert idempotent. */

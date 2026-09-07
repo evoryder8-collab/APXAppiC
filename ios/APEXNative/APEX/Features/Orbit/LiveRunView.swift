@@ -14,6 +14,16 @@ struct LiveRunView: View {
     let mission: String
     var plannedRoute: OrbitRouteRecord? = nil
     var campaignSessionID: UUID? = nil
+    var minimumMinutes: Int? = nil
+
+    private var targetMinutes: Int? {
+        if location.draftOwnerID == session.profile?.userID,
+           location.state != .idle, location.state != .finished,
+           let value = location.draftTargetMinutes { return value }
+        if let minimumMinutes { return minimumMinutes }
+        return session.data.orbitCampaignSessions.first { $0.id == campaignSessionID }
+            .flatMap { $0.adapted["duration_min"]?.numberValue }.map(Int.init)
+    }
 
     private var activeRoute: OrbitRouteRecord? {
         if let plannedRoute { return plannedRoute }
@@ -62,6 +72,10 @@ struct LiveRunView: View {
                     Spacer()
                     VStack(spacing: 2) {
                         Text(language.text(effectiveMission).uppercased(with: language.language.locale)).font(APEXFont.mono(11)).tracking(1.4)
+                        if let targetMinutes {
+                            Text(language.text("PLANNED") + " · " + language.format("%d min", targetMinutes))
+                                .font(APEXFont.mono(10))
+                        }
                         if location.weakGPS { Text(language.text("WEAK GPS")).font(APEXFont.mono(8)).foregroundStyle(APEXColor.amber) }
                     }
                     Spacer()
@@ -180,6 +194,7 @@ struct LiveRunView: View {
                 mission: mission,
                 routeID: plannedRoute?.id,
                 campaignSessionID: campaignSessionID,
+                targetMinutes: targetMinutes,
                 shoeID: selectedShoeID
             )
         }
@@ -222,9 +237,11 @@ struct LiveRunView: View {
             Button(language.text("Keep run"), role: .cancel) {}
         }
         .fullScreenCover(item: $debriefRun) { run in
-            RunDebriefView(run: run) {
-                debriefRun = nil
-                dismiss()
+            NavigationStack {
+                RunDebriefView(run: run) {
+                    debriefRun = nil
+                    dismiss()
+                }
             }
         }
     }
@@ -243,6 +260,9 @@ struct LiveRunView: View {
             return language.format("Off route by about %d m. Return to the violet line when practical.", Int(offRouteDistance.rounded()))
         }
         guard location.state == .running || location.state == .paused else { return nil }
+        if let targetMinutes, location.movingSeconds >= Double(targetMinutes * 60) {
+            return "You have completed the useful planned stimulus. There is no need to extend today’s session."
+        }
         let normalized = effectiveMission.lowercased()
         if normalized.contains("recovery") {
             return "Keep this genuinely easy. Faster is not better for today’s mission."

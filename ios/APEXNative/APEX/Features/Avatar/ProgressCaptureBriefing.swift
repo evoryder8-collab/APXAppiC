@@ -7,6 +7,12 @@ struct ProgressCaptureIntent: Hashable, Sendable, Identifiable {
     var framing: ProgressPhotoEngine.FramingMode = .full
     var weightKG: String = ""
     var note: String = ""
+
+    var resolvedWeightKG: Double? {
+        guard let value = Double(weightKG.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: ".")),
+              value.isFinite, value > 0 else { return nil }
+        return value
+    }
 }
 
 /*

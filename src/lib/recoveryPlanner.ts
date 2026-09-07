@@ -18,6 +18,7 @@ interface BuildRecoveryPlanInput {
   programs: Program[]
   settings: Settings | null
   existingDays: ProgramDay[]
+  protectedDayIds?: ReadonlySet<string>
   makeId?: () => string
 }
 
@@ -177,7 +178,8 @@ function exerciseRows(
 export function buildRecoveryPlan(input: BuildRecoveryPlanInput): RecoveryPlanResult {
   const makeId = input.makeId ?? (() => crypto.randomUUID())
   const planId = makeId()
-  const dates = scheduledRecoveryDates(input.startDate, input.existingDays)
+  const replacedIds = new Set(futureRecoveryRowsToDeactivate(input.existingDays, input.ownerId, input.target, input.startDate, input.protectedDayIds).map(day => day.id))
+  const dates = scheduledRecoveryDates(input.startDate, input.existingDays.filter(day => day.user_id === input.ownerId && !replacedIds.has(day.id)))
   const days: ProgramDay[] = []
   const exercises: Exercise[] = []
   for (const [index, date] of dates.entries()) {

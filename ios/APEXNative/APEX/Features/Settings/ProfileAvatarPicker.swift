@@ -14,6 +14,7 @@ struct ProfileAvatarPicker: View {
     @State private var preview: UIImage?
     @State private var uploadTask: Task<Void, Never>?
     @State private var uploadID: UUID?
+    @State private var avatarURL: URL?
 
     private var profile: Profile? { session.profile }
 
@@ -42,6 +43,15 @@ struct ProfileAvatarPicker: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel(language.text("Change profile picture"))
+        .task(id: profile) {
+            avatarURL = nil
+            guard profile?.avatarPath != nil,
+                  let operation = session.accountOperationLease() else { return }
+            guard let url = try? await session.signedAvatarURL(operation: operation),
+                  !Task.isCancelled,
+                  session.accountOperationIsCurrent(operation) else { return }
+            avatarURL = url
+        }
         .onChange(of: picked) { _, item in
             guard let item,
                   let operation = session.accountOperationLease() else { return }
@@ -58,6 +68,7 @@ struct ProfileAvatarPicker: View {
                it at the same instant the visible identity changes instead of
                waiting for an in-flight upload to return. */
             preview = nil
+            avatarURL = nil
             picked = nil
             uploadTask?.cancel()
             uploadTask = nil
@@ -70,7 +81,19 @@ struct ProfileAvatarPicker: View {
     private var avatar: some View {
         if let preview {
             Image(uiImage: preview).resizable().scaledToFill()
-        } else if let persona = profile?.persona {
+        } else if let avatarURL {
+            AsyncImage(url: avatarURL) { phase in
+                if let image = phase.image { image.resizable().scaledToFill() }
+                else { fallbackAvatar }
+            }
+        } else {
+            fallbackAvatar
+        }
+    }
+
+    @ViewBuilder
+    private var fallbackAvatar: some View {
+        if let persona = profile?.persona {
             PortraitImage(name: persona.portraitName).scaledToFill()
         } else {
             ZStack {

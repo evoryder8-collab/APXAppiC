@@ -5,6 +5,17 @@ final class RecoveryPlannerTests: XCTestCase {
     private let owner = UUID(uuidString: "00000000-0000-0000-0000-000000000101")!
     private let programID = UUID(uuidString: "00000000-0000-0000-0000-000000000201")!
 
+    func testReplacementReusesDatesOfRowsItWillDeactivate() {
+        var input = data()
+        let first = RecoveryPlanner.build(data: input, ownerID: owner, startDate: "2026-09-02", target: .joint, source: .guided)
+        input.programDays = first.days
+        let replacement = RecoveryPlanner.build(data: input, ownerID: owner, startDate: "2026-09-02", target: .joint, source: .external)
+        XCTAssertEqual(replacement.days.map(\.scheduledDate), first.days.map(\.scheduledDate))
+        input.programDays[0].recoveryTarget = "flexibility"
+        let otherTarget = RecoveryPlanner.build(data: input, ownerID: owner, startDate: "2026-09-02", target: .joint, source: .guided)
+        XCTAssertNotEqual(otherTarget.days.first?.scheduledDate, first.days.first?.scheduledDate)
+    }
+
     private func data() -> DashboardData {
         var data = DashboardData.empty
         data.programs = [

@@ -443,7 +443,7 @@ private struct RouteEditorSheet: View {
     }
 }
 
-private struct HistoricalRunDebrief: View {
+struct HistoricalRunDebrief: View {
     @Environment(\.dismiss) private var dismiss
     let run: OrbitRunRecord
 

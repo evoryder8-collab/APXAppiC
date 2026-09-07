@@ -350,7 +350,7 @@ struct MarathonCampaignView: View {
 
                     if minimum > 0 {
                         NavigationLink {
-                            LiveRunView(mission: mission.replacingOccurrences(of: "_", with: " ").capitalized, campaignSessionID: item.id)
+                            LiveRunView(mission: mission.replacingOccurrences(of: "_", with: " ").capitalized, campaignSessionID: item.id, minimumMinutes: minimum)
                         } label: {
                             Text(language.format("%d-minute minimum", minimum))
                         }

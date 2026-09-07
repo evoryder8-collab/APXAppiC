@@ -39,7 +39,8 @@ export function RecoveryPlannerDialog({
     programs: data.programs,
     settings: data.settings,
     existingDays: data.program_days,
-  }) : null, [data.program_days, data.programs, data.settings, ownerId, source, startDate, target])
+    protectedDayIds: new Set(data.workout_sessions.filter(session => session.user_id === ownerId).map(session => session.program_day_id)),
+  }) : null, [data.program_days, data.programs, data.settings, data.workout_sessions, ownerId, source, startDate, target])
 
   useEffect(() => {
     closeButton.current?.focus()

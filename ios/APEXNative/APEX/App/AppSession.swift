@@ -1307,6 +1307,18 @@ final class AppSession {
         try requireCurrentAccountOperation(operation)
     }
 
+    func signedAvatarURL(operation: AccountOperationLease) async throws -> URL {
+        try requireCurrentAccountOperation(operation)
+        guard let profile, profile.userID == operation.ownerID,
+              let path = profile.avatarPath,
+              path.hasPrefix(operation.ownerID.uuidString.lowercased() + "/") else {
+            throw CancellationError()
+        }
+        let url = try await service.signedProgressURL(path: path)
+        try requireCurrentAccountOperation(operation)
+        return url
+    }
+
     /// Pull today's activity from Apple Health on open, without prompting.
     ///
     /// The phone records steps by itself, and a watch writes to the same place,
@@ -1771,7 +1783,7 @@ final class AppSession {
         brainRecomputing = false
 
         if let latest = rows.last,
-           previousLatest?.date != latest.date || previousLatest?.overall != latest.overall {
+           previousLatest != latest {
             #if DEBUG
             // UI automation runs an unauthenticated local fixture; a remote
             // persist would fail into the offline path and raise an alert
@@ -5128,6 +5140,7 @@ final class AppSession {
         height: Int,
         pose: String,
         note: String,
+        weightKG: Double? = nil,
         date: Date = .now,
         operation: AccountOperationLease
     ) async throws {
@@ -5155,7 +5168,7 @@ final class AppSession {
             cropY: 0.5,
             cropScale: 1,
             referencePhotoID: data.progressPhotos.first(where: { $0.pose == pose })?.id,
-            weightKG: profile.weightKG,
+            weightKG: weightKG,
             note: note.trimmingCharacters(in: .whitespacesAndNewlines),
             clientIdempotencyKey: "ios-progress-\(stem)"
         )
