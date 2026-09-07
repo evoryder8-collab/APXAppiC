@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { getISODay } from 'date-fns'
 import type { IntroLanguage } from '../lib/introLanguage'
 import { useLanguage } from '../lib/i18n'
@@ -18,12 +18,19 @@ import {
 import { GhostButton, GradientButton, Sheet } from './ui'
 import { followAlongFields, suggestedRestSeconds } from '../lib/sessionShape'
 import {
+  activeCustomWorkoutDays,
+  CustomWorkoutReplacementRequiredError,
+  customWorkoutDraftForDay,
   customWorkoutGroupAssignments,
+  customWorkoutReplacementDecision,
+  customWorkoutSaveDayID,
+  stageCustomWorkoutSave,
   customWorkoutTargetLabel,
   moveCustomWorkoutSelection,
   removeCustomWorkoutSelection,
   type CustomWorkoutSelection,
 } from '../lib/customWorkout'
+import { clientPolicyForAccount } from '../lib/coachAccess'
 
 const HologramStage = lazy(() =>
   import('./hologram/HologramStage').then((module) => ({ default: module.HologramStage })),
@@ -68,16 +75,19 @@ export function CustomWorkoutBuilder({
   open,
   onClose,
   onSaved,
+  editingDayId = null,
   accent = ACCENTS.violet,
 }: {
   open: boolean
   onClose: () => void
   onSaved: () => void
+  editingDayId?: string | null
   accent?: Accent
 }) {
-  const { data, upsert, bulkUpsert, remove, toast } = useStore()
+  const { appAccess, coachContext, commitOwnerBoundMutation, data, toast } = useStore()
   const t = useOrbitText()
   const { language } = useLanguage()
+  const policy = clientPolicyForAccount(appAccess, coachContext)
   const [name, setName] = useState('')
   /* A trainer building a plan for somebody else knows which of the two this
    * is meant to be. Guided paces the session and counts the reps aloud;
@@ -87,6 +97,12 @@ export function CustomWorkoutBuilder({
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<'all' | ExerciseCategory>('all')
   const [selected, setSelected] = useState<CustomWorkoutSelection[]>([])
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState<string | null>(null)
+  const [replacementDayIds, setReplacementDayIds] = useState<string[]>([])
+  const [unavailableSavedMovements, setUnavailableSavedMovements] = useState(0)
+  const loadedDraftKey = useRef<string | null>(null)
+  const savingInFlight = useRef(false)
 
   const byId = useMemo(() => new Map(EXERCISE_CATALOG.map((item) => [item.id, item])), [])
   const results = useMemo(
@@ -102,6 +118,17 @@ export function CustomWorkoutBuilder({
     () => customWorkoutGroupAssignments(selected, () => 'preview'),
     [selected],
   )
+  const replacementConflictDays = useMemo(() => {
+    const profile = data.profile
+    const program = profile
+      ? data.programs.find((candidate) => candidate.slug === 'custom' && candidate.user_id === profile.user_id)
+      : null
+    if (!profile || !program) return []
+    const conflicts = new Set(replacementDayIds)
+    return activeCustomWorkoutDays(data.program_days, profile.user_id, program.id)
+      .filter((day) => conflicts.has(day.id))
+      .sort((left, right) => left.id.localeCompare(right.id))
+  }, [data.profile, data.program_days, data.programs, replacementDayIds])
 
   const addExercise = (item: ExerciseCatalogItem): void => {
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
@@ -125,19 +152,67 @@ export function CustomWorkoutBuilder({
 
   const reset = (): void => {
     setName('')
+    setSessionMode('guided')
+    setWeekday(getISODay(new Date()))
     setQuery('')
     setCategory('all')
     setSelected([])
+    setSaving(false)
+    setMessage(null)
+    setReplacementDayIds([])
+    setUnavailableSavedMovements(0)
   }
 
-  const save = (): void => {
+  useEffect(() => {
+    if (!open) {
+      loadedDraftKey.current = null
+      return
+    }
+    const draftKey = `${data.profile?.user_id ?? 'signed-out'}:${editingDayId ?? 'new'}`
+    if (loadedDraftKey.current === draftKey) return
+    loadedDraftKey.current = draftKey
+    reset()
+    if (!editingDayId) return
     const profile = data.profile
+    const customProgram = profile
+      ? data.programs.find((program) => program.slug === 'custom' && program.user_id === profile.user_id)
+      : null
+    const editingDay = customProgram && profile
+      ? activeCustomWorkoutDays(data.program_days, profile.user_id, customProgram.id)
+          .find((day) => day.id === editingDayId)
+      : null
+    if (!editingDay) {
+      setMessage(t('This workout is no longer available.'))
+      return
+    }
+    const draft = customWorkoutDraftForDay(editingDay, data.exercises)
+    setName(draft.name)
+    setSessionMode(draft.sessionMode)
+    setWeekday(draft.weekday)
+    setSelected(draft.selected)
+    setUnavailableSavedMovements(draft.omittedExerciseCount)
+    if (draft.omittedExerciseCount > 0) {
+      setMessage(t('Some saved movements are no longer available in the exercise library.'))
+    }
+  }, [data.exercises, data.profile, data.program_days, data.programs, editingDayId, open, t])
+
+  const persistWorkout = async (confirmedReplacementDayIds: readonly string[] = []): Promise<void> => {
+    if (savingInFlight.current) return
+    const profile = data.profile
+    if (unavailableSavedMovements > 0) {
+      setMessage(t('Some saved movements are no longer available in the exercise library.'))
+      return
+    }
+    if (!policy.can_create_custom_workouts) {
+      toast(t('Your coach manages this plan. Custom workout creation is unavailable.'), 'error')
+      return
+    }
     if (!profile || !name.trim() || selected.length === 0) {
       toast(t('Add at least one exercise and give the workout a name.'))
       return
     }
 
-    const existingProgram = data.programs.find((program) => program.slug === 'custom')
+    const existingProgram = data.programs.find((program) => program.slug === 'custom' && program.user_id === profile.user_id)
     const program: Program = existingProgram ?? {
       id: crypto.randomUUID(),
       user_id: profile.user_id,
@@ -145,7 +220,25 @@ export function CustomWorkoutBuilder({
       name: 'Custom workouts',
       description: 'Your searchable exercise studio, saved privately.',
     }
-    const existingDay = data.program_days.find((day) => day.program_id === program.id && day.weekday === weekday)
+    const activeDays = activeCustomWorkoutDays(data.program_days, profile.user_id, program.id)
+    const editingDay = editingDayId
+      ? activeDays.find((day) => day.id === editingDayId)
+      : null
+    if (editingDayId && !editingDay) {
+      setMessage(t('This workout is no longer available.'))
+      return
+    }
+    const replacement = customWorkoutReplacementDecision(data.program_days, {
+      ownerID: profile.user_id,
+      programID: program.id,
+      weekday,
+      editingDayID: editingDay?.id ?? null,
+      confirmedReplacementDayIDs: confirmedReplacementDayIds,
+    })
+    if (replacement.kind === 'confirmation-required') {
+      setReplacementDayIds(replacement.replacingDayIDs)
+      return
+    }
   /* A custom workout was writing 2-0-1 onto everything the user picked, which
    * is the blanket cadence the movement library exists to replace. Where the
    * chosen exercise maps onto a known movement, its own timing is used; where
@@ -160,7 +253,7 @@ export function CustomWorkoutBuilder({
   })
 
     const day: ProgramDay = {
-      id: existingDay?.id ?? crypto.randomUUID(),
+      id: customWorkoutSaveDayID(editingDay?.id ?? null),
       user_id: profile.user_id,
       program_id: program.id,
       weekday,
@@ -170,42 +263,61 @@ export function CustomWorkoutBuilder({
       est_minutes: estimatedMinutes(selected, byId),
       warmup_note: 'Five minutes of pain-free joint preparation',
       sort_order: weekday,
+      is_active: true,
     }
 
-    for (const exercise of data.exercises.filter((item) => item.program_day_id === day.id)) {
-      remove('exercises', exercise.id)
-    }
-    upsert('programs', program)
-    upsert('program_days', day)
-    const workGroups = customWorkoutGroupAssignments(selected)
-    bulkUpsert<Exercise>('exercises', selected.map((selection, index) => {
-      const item = byId.get(selection.id)!
-      const workGroup = workGroups[index]
-      return {
-        id: crypto.randomUUID(),
-        user_id: profile.user_id,
-        program_day_id: day.id,
-        name: item.name,
-        sets: clamp(selection.sets, 1, 12),
-        rep_min: clamp(selection.target, 1, 600),
-        rep_max: clamp(selection.target, 1, 600),
-        rep_unit: item.unit,
-        work_group_id: workGroup.workGroupId,
-        work_group_position: workGroup.workGroupPosition,
-        ...(({ movement_id, tempo_up_s, tempo_down_s, tempo_pause_s, tempo_note, per_side, rest_sec }) => ({
-          movement_id, tempo_up_s, tempo_down_s, tempo_pause_s, tempo_note, per_side, rest_sec,
-        }))(followAlongFor(item, clamp(selection.rest, 0, 600))),
-        notes: `${item.equipment} · ${item.muscles.join(', ')}`,
-        increment_kg: item.incrementKG,
-        is_lite: false,
-        optional: false,
-        sort_order: index,
+    savingInFlight.current = true
+    const operationDraftKey = loadedDraftKey.current
+    setSaving(true)
+    setMessage(null)
+    setReplacementDayIds([])
+    try {
+      const workGroups = customWorkoutGroupAssignments(selected)
+      const exercises: Exercise[] = selected.map((selection, index) => {
+        const item = byId.get(selection.id)!
+        const workGroup = workGroups[index]
+        return {
+          id: crypto.randomUUID(),
+          user_id: profile.user_id,
+          program_day_id: day.id,
+          name: item.name,
+          sets: clamp(selection.sets, 1, 12),
+          rep_min: clamp(selection.target, 1, 600),
+          rep_max: clamp(selection.target, 1, 600),
+          rep_unit: item.unit,
+          work_group_id: workGroup.workGroupId,
+          work_group_position: workGroup.workGroupPosition,
+          ...(({ movement_id, tempo_up_s, tempo_down_s, tempo_pause_s, tempo_note, per_side, rest_sec }) => ({
+            movement_id, tempo_up_s, tempo_down_s, tempo_pause_s, tempo_note, per_side, rest_sec,
+          }))(followAlongFor(item, clamp(selection.rest, 0, 600))),
+          notes: `${item.equipment} · ${item.muscles.join(', ')}`,
+          increment_kg: item.incrementKG,
+          is_lite: false,
+          optional: false,
+          sort_order: index,
+        }
+      })
+      await commitOwnerBoundMutation(profile.user_id, (current) => stageCustomWorkoutSave(current, {
+        program, day, exercises,
+        editingDayID: editingDay?.id ?? null,
+        confirmedReplacementDayIDs: confirmedReplacementDayIds,
+      }))
+      if (loadedDraftKey.current !== operationDraftKey) return
+      toast(t(editingDay ? 'Custom workout updated' : 'Custom workout saved'), 'ok')
+      reset()
+      onClose()
+      onSaved()
+    } catch (error) {
+      if (loadedDraftKey.current !== operationDraftKey) return
+      if (error instanceof CustomWorkoutReplacementRequiredError) {
+        setReplacementDayIds(error.replacingDayIDs)
+      } else {
+        setMessage(t('Custom workout could not be saved.'))
       }
-    }))
-    toast(t('Custom workout saved'), 'ok')
-    reset()
-    onClose()
-    onSaved()
+    } finally {
+      savingInFlight.current = false
+      if (loadedDraftKey.current === operationDraftKey) setSaving(false)
+    }
   }
 
   const inputClass = 'w-full rounded-2xl border border-white/90 bg-white/72 px-4 py-3 text-sm font-bold text-ink shadow-[inset_0_1px_0_rgba(255,255,255,.9)] outline-none placeholder:text-ink-faint focus:border-violet-300 focus:ring-4 focus:ring-violet-200/25'
@@ -263,7 +375,7 @@ export function CustomWorkoutBuilder({
                 </button>
               ))}
             </div>
-            <p className="mt-1 text-[10px] leading-relaxed text-ink-faint">{t('Saving another workout on the same day replaces that day’s custom plan.')}</p>
+            <p className="mt-1 text-[10px] leading-relaxed text-ink-faint">{t('If that day already has a workout, APEX will ask before replacing it.')}</p>
           </div>
         </div>
         <Suspense fallback={<div className="h-[188px] animate-pulse rounded-3xl bg-slate-900" />}>
@@ -360,8 +472,26 @@ export function CustomWorkoutBuilder({
         )}
       </div>
 
-      <GradientButton accent={accent} className="mt-5 w-full py-4" onClick={save}>
-        {t('Save custom workout')}
+      {message && <p className="mt-4 rounded-2xl bg-rose-50 px-4 py-3 text-xs font-bold text-rose-800" role="alert">{message}</p>}
+
+      {replacementDayIds.length > 0 && (
+        <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4" role="alertdialog" aria-labelledby="replace-workout-title">
+          <h3 id="replace-workout-title" className="font-display text-lg font-bold text-ink">{t(replacementConflictDays.length > 1 ? 'Replace these workouts?' : 'Replace this workout?')}</h3>
+          <p className="mt-1 text-xs font-semibold leading-relaxed text-ink-soft">{t(replacementConflictDays.length > 1 ? 'These workouts already use this training day. Replace them only if that is what you intend.' : 'This training day already has a custom workout. Replace it only if that is what you intend.')}</p>
+          <ul className="mt-3 space-y-1" aria-label={t('Saved custom workouts')}>
+            {replacementConflictDays.map((day) => (
+              <li key={day.id} className="rounded-xl bg-white/75 px-3 py-2 text-xs font-black text-ink">{day.name}</li>
+            ))}
+          </ul>
+          <div className="mt-3 flex gap-2">
+            <button type="button" onClick={() => setReplacementDayIds([])} className="min-h-11 flex-1 rounded-xl bg-white px-3 text-xs font-black text-ink-soft">{t('Keep editing')}</button>
+            <button type="button" onClick={() => void persistWorkout(replacementDayIds)} className="min-h-11 flex-1 rounded-xl bg-amber-500 px-3 text-xs font-black text-white">{t('Save as replacement')}</button>
+          </div>
+        </div>
+      )}
+
+      <GradientButton accent={accent} className="mt-5 w-full py-4" disabled={saving || replacementDayIds.length > 0} onClick={() => void persistWorkout()}>
+        {t(saving ? 'Saving workout…' : editingDayId ? 'Save workout changes' : 'Save custom workout')}
       </GradientButton>
     </Sheet>
   )

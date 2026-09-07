@@ -63,13 +63,38 @@ enum SimpleHomeLogic {
     static func guidedProgramSlug(
         persona: Persona?,
         mainIsUsable: Bool,
-        transitionIsUsable: Bool
+        transitionIsUsable: Bool,
+        coachManaged: Bool = false,
+        coachIsUsable: Bool = false,
+        transitionInductionIsUsable: Bool = false,
+        mainInductionIsUsable: Bool = false
     ) -> String {
+        if coachManaged || coachIsUsable { return "coach" }
         let bespokeMain = persona == .constantine || persona == .june
-        if bespokeMain && mainIsUsable { return "main" }
-        if transitionIsUsable { return "transition" }
-        if mainIsUsable { return "main" }
-        return bespokeMain ? "main" : "transition"
+        let fallback: String
+        if bespokeMain && mainIsUsable { fallback = "main" }
+        else if transitionIsUsable { fallback = "transition" }
+        else if mainIsUsable { fallback = "main" }
+        else { fallback = bespokeMain ? "main" : "transition" }
+        if transitionInductionIsUsable { return "transition" }
+        if mainInductionIsUsable { return "main" }
+        return fallback
+    }
+
+    static func canPresentGuidedWorkout(
+        slug: String,
+        policy: CoachClientPolicy,
+        capabilities: CoachAccountCapabilities
+    ) -> Bool {
+        let destination: PortalDestination
+        switch slug {
+        case "coach": destination = .coachWorkouts
+        case "main": destination = .mainPhase
+        case "transition": destination = .transition
+        case "custom": destination = .customWorkouts
+        default: return false
+        }
+        return policy.allows(destination, accountCapabilities: capabilities)
     }
 
     static func completion(completed: Int, total: Int) -> Int {

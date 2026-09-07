@@ -52,14 +52,16 @@ struct AvatarView: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 20) {
-                APEXTopBar(profile: session.profile) { session.navigationPath.append(.settings) }
+                APEXTopBar(profile: session.profile) { session.openPortalDestination(.settings) }
                 pageHeader
                 /* Ordered by how often it is looked at, not by when it was
                    built. Who you are, then the index, then the shape of the
                    index, then the numbers behind it. The long prose blocks sit
                    below the things people open this page for. */
                 AvatarHero(profile: session.profile)
-                visualProgressLink
+                if session.coachClientPolicy.canViewVisualProgress {
+                    visualProgressLink
+                }
                 bodyIndexCard
                 radarCard
                 calibrationControl
@@ -302,7 +304,7 @@ struct AvatarView: View {
             if metrics.isEmpty {
                 Text(language.text("No supported Health data is available yet. Connect Apple Health in Settings to add VO₂ max and resting-heart-rate evidence. APEX will not invent missing recovery values."))
                     .font(APEXFont.body(13, weight: .medium)).foregroundStyle(.white.opacity(0.62)).lineSpacing(4)
-                Button(language.text("Open Settings")) { session.navigationPath.append(.settings) }
+                Button(language.text("Open Settings")) { session.openPortalDestination(.settings) }
                     .buttonStyle(.borderedProminent).tint(APEXColor.violet)
             } else {
                 Chart(metrics) { item in
@@ -564,9 +566,17 @@ struct AvatarView: View {
     private func navigate(for stat: AvatarStat) {
         if stat.key == "joint" { recoveryTarget = .joint }
         else if stat.key == "flexibility" { recoveryTarget = .flexibility }
-        else if stat.key == "health" { session.navigationPath.append(.nutrition) }
-        else if stat.key == "endurance" { session.navigationPath.append(.orbit) }
-        else { session.navigationPath.append(.mainPhase) }
+        else {
+            let destination: PortalDestination
+            if stat.key == "health" { destination = .nutrition }
+            else if stat.key == "endurance" { destination = .orbit }
+            else { destination = .mainPhase }
+            if session.portalDestinationIsAllowed(destination) {
+                session.openPortalDestination(destination)
+            } else {
+                session.openPortalDestination(.coachPlan)
+            }
+        }
     }
 
     private func isWithinDays(_ dateKey: String, days: Int) -> Bool {

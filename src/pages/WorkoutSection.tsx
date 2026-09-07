@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useRef, useState } from 'react'
 import { addMonths, format, subDays } from 'date-fns'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
@@ -34,6 +34,7 @@ import { timeZoneFromSettings } from '../lib/mealTiming'
 import { CompletedWorkoutHistoryCards } from '../components/workout/CompletedWorkoutHistoryCards'
 import { WorkoutInsightsCard } from '../components/workout/WorkoutInsightsCard'
 import { clientPolicyForAccount } from '../lib/coachAccess'
+import { activeCustomWorkoutDays, stageCustomWorkoutArchive } from '../lib/customWorkout'
 
 const CustomWorkoutBuilder = lazy(() =>
   import('../components/CustomWorkoutBuilder').then((module) => ({ default: module.CustomWorkoutBuilder })),
@@ -50,7 +51,7 @@ const EVENT_TYPES: Array<{ value: EventType; label: string }> = [
 ]
 
 export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; accent: Accent; title: string }) {
-  const { appAccess, coachContext, data, upsert, remove, toast } = useStore()
+  const { appAccess, coachContext, commitOwnerBoundMutation, data, upsert, remove, toast } = useStore()
   const canCreateCustomWorkouts = clientPolicyForAccount(appAccess, coachContext).can_create_custom_workouts
   const ownerId = data.profile?.user_id ?? data.settings?.user_id
   const foodStore = useFoodStore()
@@ -64,6 +65,12 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   const [showEventForm, setShowEventForm] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [showWorkoutBuilder, setShowWorkoutBuilder] = useState(false)
+  const [editingCustomDayId, setEditingCustomDayId] = useState<string | null>(null)
+  const [deletingCustomDayId, setDeletingCustomDayId] = useState<string | null>(null)
+  const [customMutationBusy, setCustomMutationBusy] = useState(false)
+  const customMutationInFlight = useRef(false)
+  const activeOwner = useRef(ownerId)
+  activeOwner.current = ownerId
   const [showManualWorkout, setShowManualWorkout] = useState(false)
   const [editingManualSessionId, setEditingManualSessionId] = useState<string | null>(null)
   const [editingManualExerciseId, setEditingManualExerciseId] = useState<string | null>(null)
@@ -72,6 +79,17 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
 
   const today = todayIso()
   const program = data.programs.find((candidate) => candidate.slug === slug)
+  const customProgram = useMemo(
+    () => data.programs.find((candidate) => candidate.slug === 'custom' && candidate.user_id === ownerId) ?? null,
+    [data.programs, ownerId],
+  )
+  const customDays = useMemo(
+    () => customProgram && ownerId
+      ? activeCustomWorkoutDays(data.program_days, ownerId, customProgram.id)
+          .sort((left, right) => left.weekday - right.weekday || left.sort_order - right.sort_order)
+      : [],
+    [customProgram, data.program_days, ownerId],
+  )
   const isIulianPhase = data.profile?.persona === 'iulian' && (slug === 'transition' || slug === 'main')
   const sectionTitle = isIulianPhase
     ? slug === 'transition' ? 'Transitional Training' : 'Main Training'
@@ -156,6 +174,34 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
 
   const input =
     'glass w-full rounded-xl px-3 py-2.5 text-sm font-semibold text-ink outline-none placeholder:text-ink-faint'
+
+  const deleteCustomWorkout = async (): Promise<void> => {
+    if (customMutationInFlight.current) return
+    if (!ownerId || !customProgram || !deletingCustomDayId || !canCreateCustomWorkouts) return
+    const deletingDay = customDays.find((day) => day.id === deletingCustomDayId && day.user_id === ownerId)
+    if (!deletingDay) {
+      setDeletingCustomDayId(null)
+      toast(planText('This workout is no longer available.'))
+      return
+    }
+    customMutationInFlight.current = true
+    setCustomMutationBusy(true)
+    try {
+      await commitOwnerBoundMutation(ownerId, (current) => stageCustomWorkoutArchive(current, {
+        ownerID: ownerId,
+        programID: customProgram.id,
+        dayID: deletingDay.id,
+      }))
+      if (activeOwner.current !== ownerId) return
+      toast(planText('Custom workout deleted'), 'ok')
+      setDeletingCustomDayId(null)
+    } catch {
+      if (activeOwner.current === ownerId) toast(planText('Custom workout could not be deleted.'))
+    } finally {
+      customMutationInFlight.current = false
+      setCustomMutationBusy(false)
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-3xl">
@@ -328,11 +374,43 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
                 <h2 className="mt-2 font-display text-2xl font-bold">{t('Create your own workout')}</h2>
                 {detailedInterface && <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-300">{t('Search machines, free weights, calisthenics, street training, HIIT and mobility. Your muscle map updates as you build.')}</p>}
               </div>
-              <button type="button" onClick={() => setShowWorkoutBuilder(true)} className="min-h-14 rounded-2xl bg-gradient-to-r from-violet-600 via-fuchsia-500 to-cyan-400 px-6 text-sm font-black text-white shadow-[0_18px_42px_-18px_rgba(168,85,247,.9)] transition active:scale-[.98]">
+              <button type="button" onClick={() => { setEditingCustomDayId(null); setShowWorkoutBuilder(true) }} className="min-h-14 rounded-2xl bg-gradient-to-r from-violet-600 via-fuchsia-500 to-cyan-400 px-6 text-sm font-black text-white shadow-[0_18px_42px_-18px_rgba(168,85,247,.9)] transition active:scale-[.98]">
                 {t('Build a workout')} →
               </button>
             </div>
           </div>
+        )}
+
+        {slug === 'custom' && canCreateCustomWorkouts && customDays.length > 0 && (
+          <GlassCard accent={ACCENTS.violet} className="p-5">
+            <h2 className="font-display text-lg font-bold text-ink">{planText('Saved custom workouts')}</h2>
+            <p className="mt-1 text-xs font-semibold text-ink-soft">{planText('Open a saved workout to adjust its name, day, style or movements.')}</p>
+            <div className="mt-4 space-y-2">
+              {customDays.map((day) => {
+                const exerciseCount = data.exercises.filter((exercise) =>
+                  exercise.user_id === ownerId && exercise.program_day_id === day.id,
+                ).length
+                return (
+                  <div key={day.id} data-custom-workout-id={day.id} className="rounded-2xl border border-violet-100 bg-white/70 p-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="break-words text-sm font-black text-ink">{day.name}</p>
+                        <p className="mt-0.5 text-[10px] font-semibold text-ink-soft">
+                          {new Intl.DateTimeFormat(language === 'ro' ? 'ro-RO' : language === 'th' ? 'th-TH' : 'en-GB', { weekday: 'long' }).format(new Date(2026, 0, 4 + day.weekday))}
+                          {' · '}{exerciseCount} {planText(exerciseCount === 1 ? 'exercise' : 'exercises')}
+                          {' · '}{planText(day.session_mode === 'tracked' ? 'Tracked' : 'Guided')}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 gap-2">
+                        <button type="button" onClick={() => { setEditingCustomDayId(day.id); setShowWorkoutBuilder(true) }} className="min-h-11 rounded-xl bg-violet-50 px-3 text-xs font-black text-violet-800">{planText('Edit workout')}</button>
+                        <button type="button" onClick={() => setDeletingCustomDayId(day.id)} className="min-h-11 rounded-xl bg-rose-50 px-3 text-xs font-black text-rose-700">{planText('Delete workout')}</button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </GlassCard>
         )}
 
         {/* Events */}
@@ -395,7 +473,8 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
         <Suspense fallback={null}>
           <CustomWorkoutBuilder
             open={showWorkoutBuilder}
-            onClose={() => setShowWorkoutBuilder(false)}
+            editingDayId={editingCustomDayId}
+            onClose={() => { setShowWorkoutBuilder(false); setEditingCustomDayId(null) }}
             onSaved={() => {
               if (slug !== 'custom') navigate('/custom-workouts')
             }}
@@ -403,6 +482,17 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           />
         </Suspense>
       )}
+
+      <Sheet open={Boolean(deletingCustomDayId)} onClose={() => { if (!customMutationBusy) setDeletingCustomDayId(null) }}>
+        <div role="alertdialog" aria-labelledby="delete-custom-workout-title">
+          <h2 id="delete-custom-workout-title" className="font-display text-xl font-bold text-ink">{planText('Delete this workout?')}</h2>
+          <p className="mt-2 text-sm font-semibold leading-relaxed text-ink-soft">{planText('This removes the saved custom workout from your active plan. Completed workout history and its prescription stay intact.')}</p>
+          <div className="mt-5 flex gap-2">
+            <button type="button" disabled={customMutationBusy} onClick={() => setDeletingCustomDayId(null)} className="min-h-12 flex-1 rounded-2xl bg-ink/5 px-4 text-sm font-black text-ink-soft disabled:opacity-45">{planText('Keep workout')}</button>
+            <button type="button" disabled={customMutationBusy} onClick={() => void deleteCustomWorkout()} className="min-h-12 flex-1 rounded-2xl bg-rose-600 px-4 text-sm font-black text-white disabled:opacity-45">{planText(customMutationBusy ? 'Deleting…' : 'Delete workout')}</button>
+          </div>
+        </div>
+      </Sheet>
 
       {canCreateCustomWorkouts && (
         <ManualWorkoutLogger

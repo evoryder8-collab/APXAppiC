@@ -2099,6 +2099,11 @@
 "Deep calorie deficit under a strength session. XP tempered -15%, recovery costs energy" = "Déficit calórico profundo numa sessão de força. XP temperado -15%, recuperação custa energia";
 "Delete this finished workout?" = "Apagar este treino terminado?";
 "Delete workout" = "Apagar treino";
+"That workout is no longer available." = "Este treino já não está disponível.";
+"Choose whether to replace the workout already planned for that day." = "Escolha se pretende substituir o treino já planeado para esse dia.";
+"Edit workout" = "Editar treino";
+"Save changes" = "Guardar alterações";
+"Replace workout" = "Substituir treino";
 "Deload day: two controlled sets per exercise, 3-4 RIR, lighter" = "Dia de carga: dois conjuntos controlados por exercício, 3-4 RIR, mais leve";
 "Deload honored. Joint Health banked the recovery" = "Descarregar honrado. A saúde conjunta bancou a recuperação";
 "Deload prescription: one fewer set, lighter load, 3 to 4 reps in reserve." = "Descarregar prescrição: um conjunto a menos, carga mais leve, 3 a 4 repetições em reserva.";
@@ -5568,3 +5573,9 @@
 "Access for this account has expired. Your account data has not been changed." = "O acesso desta conta expirou. Os dados da conta não foram alterados.";
 "This account does not currently have access. Your account data has not been changed." = "Esta conta não tem acesso neste momento. Os dados da conta não foram alterados.";
 "Access was restored, but APEX could not refresh your account yet. Try again when online." = "O acesso foi restabelecido, mas a APEX ainda não conseguiu atualizar a conta. Tenta novamente quando estiveres online.";
+"Could not update meal" = "Não foi possível atualizar a refeição";
+"Remove this saved meal?" = "Remover esta refeição guardada?";
+"It will be removed from this day. Your Food Memory and saved presets stay unchanged." = "Será removida deste dia. A Memória Alimentar e as predefinições guardadas não serão alteradas.";
+"Your meal was not changed. Check access and try again." = "A refeição não foi alterada. Verifica o acesso e tenta novamente.";
+"That meal changed before it could be removed. Refresh and try again." = "A refeição foi alterada antes de poder ser removida. Atualiza e tenta novamente.";
+"That meal could not be removed safely. Refresh and try again." = "Não foi possível remover a refeição em segurança. Atualiza e tenta novamente.";

@@ -10,8 +10,9 @@ struct TrainingProgramView: View {
     let slug: String
     let accent: Color
     @State private var lite = false
-    @State private var showBuilder = false
+    @State private var builderRequest: CustomWorkoutBuilderRequest?
     @State private var savedFromBuilder = false
+    @State private var pendingWorkoutDeletion: ProgramDay?
     @State private var selectedDay: CalendarDaySelection?
     @State private var showManualLogger = false
     @State private var exportURL: ExportedReport?
@@ -41,7 +42,8 @@ struct TrainingProgramView: View {
     /// installed, the panel stays mounted so it can present and reopen the
     /// plan briefing instead of disappearing during the commit transition.
     private var showInduction: Bool {
-        guard slug == "transition" || slug == "main" else { return false }
+        guard session.coachClientPolicy.canRebuildFitnessPlan,
+              slug == "transition" || slug == "main" else { return false }
         return TrainingInduction.shouldOfferPlanBuilder(in: session.data, slug: slug)
             || session.data.settings?.addons["training_induction"]?.objectValue != nil
     }
@@ -314,7 +316,7 @@ struct TrainingProgramView: View {
                same trap the nutrition page fell into. */
             VStack(spacing: 18) {
                 APEXTopBar(profile: session.profile) {
-                    session.navigationPath.append(.settings)
+                    session.openPortalDestination(.settings)
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
@@ -408,48 +410,53 @@ struct TrainingProgramView: View {
 
                 /* Web parity: the studio opens from any training screen, not
                    only from the custom one, so a first session is reachable. */
-                GlassCard(radius: 26, padding: 18) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text(language.text("APEX WORKOUT STUDIO"))
-                            .font(APEXFont.mono(9, weight: .bold))
-                            .tracking(1.6)
-                            .foregroundStyle(APEXColor.violet)
-                        Text(language.text("Create your own workout"))
-                            .font(APEXFont.display(22))
-                        Text(language.text("Search machines, free weights, calisthenics, street training, HIIT and mobility."))
-                            .font(APEXFont.body(12, weight: .medium))
-                            .foregroundStyle(APEXColor.secondaryInk)
-                        Button {
-                            showBuilder = true
-                        } label: {
-                            HStack(spacing: 9) {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 16, weight: .semibold))
-                                Text(language.text("Build a workout"))
-                                    .font(APEXFont.body(15, weight: .bold))
+                if session.coachClientPolicy.canCreateCustomWorkouts {
+                    GlassCard(radius: 26, padding: 18) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text(language.text("APEX WORKOUT STUDIO"))
+                                .font(APEXFont.mono(9, weight: .bold))
+                                .tracking(1.6)
+                                .foregroundStyle(APEXColor.violet)
+                            Text(language.text("Create your own workout"))
+                                .font(APEXFont.display(22))
+                            Text(language.text("Search machines, free weights, calisthenics, street training, HIIT and mobility."))
+                                .font(APEXFont.body(12, weight: .medium))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                            Button {
+                                builderRequest = CustomWorkoutBuilderRequest(editingDay: nil)
+                            } label: {
+                                HStack(spacing: 9) {
+                                    Image(systemName: "plus.circle.fill")
+                                        .font(.system(size: 16, weight: .semibold))
+                                    Text(language.text("Build a workout"))
+                                        .font(APEXFont.body(15, weight: .bold))
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 50)
+                                .foregroundStyle(.white)
+                                .background(APEXColor.violet.gradient, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
                             }
-                            .frame(maxWidth: .infinity, minHeight: 50)
-                            .foregroundStyle(.white)
-                            .background(APEXColor.violet.gradient, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+                            .buttonStyle(.plain)
+                            .disabled(session.customWorkoutMutationIsActive)
+                            .accessibilityIdentifier("custom-workout-build")
                         }
-                        .buttonStyle(.plain)
-                        .accessibilityIdentifier("custom-workout-build")
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
                 HStack(spacing: 10) {
-                    Button {
-                        showManualLogger = true
-                    } label: {
-                        Label(language.text("Quick log"), systemImage: "square.and.pencil")
-                            .font(APEXFont.body(13, weight: .bold))
-                            .frame(maxWidth: .infinity, minHeight: 46)
-                            .foregroundStyle(APEXColor.cyan)
-                            .background(APEXColor.cyan.opacity(0.12), in: RoundedRectangle(cornerRadius: 15))
+                    if session.coachClientPolicy.canCreateCustomWorkouts {
+                        Button {
+                            showManualLogger = true
+                        } label: {
+                            Label(language.text("Quick log"), systemImage: "square.and.pencil")
+                                .font(APEXFont.body(13, weight: .bold))
+                                .frame(maxWidth: .infinity, minHeight: 46)
+                                .foregroundStyle(APEXColor.cyan)
+                                .background(APEXColor.cyan.opacity(0.12), in: RoundedRectangle(cornerRadius: 15))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("training-quick-log")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("training-quick-log")
 
                     Button {
                         exportReport()
@@ -522,6 +529,20 @@ struct TrainingProgramView: View {
                        title, so the card needs to be addressable on its own. */
                     .accessibilityIdentifier("training-day-\(day.weekday)")
                     .contextMenu {
+                        if slug == "custom", session.coachClientPolicy.canCreateCustomWorkouts {
+                            Button {
+                                builderRequest = CustomWorkoutBuilderRequest(editingDay: day)
+                            } label: {
+                                Label(language.shortText("Edit workout"), systemImage: "pencil")
+                            }
+                            .disabled(session.customWorkoutMutationIsActive)
+                            Button(role: .destructive) {
+                                pendingWorkoutDeletion = day
+                            } label: {
+                                Label(language.text("Delete workout"), systemImage: "trash")
+                            }
+                            .disabled(session.customWorkoutMutationIsActive)
+                        }
                         if day.weekday == todayWeekday {
                             Button {
                                 toggleDeload()
@@ -531,6 +552,28 @@ struct TrainingProgramView: View {
                                     systemImage: todayIsDeload ? "gauge.with.dots.needle.67percent" : "gauge.with.dots.needle.33percent"
                                 )
                             }
+                        }
+                    }
+                    if slug == "custom", session.coachClientPolicy.canCreateCustomWorkouts {
+                        HStack(spacing: 10) {
+                            Button {
+                                builderRequest = CustomWorkoutBuilderRequest(editingDay: day)
+                            } label: {
+                                Label(language.shortText("Edit workout"), systemImage: "pencil")
+                                    .frame(maxWidth: .infinity, minHeight: 44)
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(session.customWorkoutMutationIsActive)
+                            .accessibilityIdentifier("custom-workout-edit-\(day.id.uuidString.lowercased())")
+                            Button(role: .destructive) {
+                                pendingWorkoutDeletion = day
+                            } label: {
+                                Label(language.text("Delete workout"), systemImage: "trash")
+                                    .frame(minWidth: 44, minHeight: 44)
+                            }
+                            .buttonStyle(.bordered)
+                            .disabled(session.customWorkoutMutationIsActive)
+                            .accessibilityIdentifier("custom-workout-delete-\(day.id.uuidString.lowercased())")
                         }
                     }
                 }
@@ -594,15 +637,37 @@ struct TrainingProgramView: View {
                 .environment(session)
                 .apexTransientSheet()
         }
-        .sheet(isPresented: $showBuilder, onDismiss: {
+        .sheet(item: $builderRequest, onDismiss: {
             guard savedFromBuilder else { return }
             savedFromBuilder = false
             /* Saving from a prescribed programme lands on the custom section,
                where the new session lives. */
-            if slug != "custom" { session.navigationPath.append(.customWorkouts) }
-        }) {
-            CustomWorkoutBuilder(didSave: $savedFromBuilder)
+            if slug != "custom" { session.openPortalDestination(.customWorkouts) }
+        }) { request in
+            CustomWorkoutBuilder(
+                didSave: $savedFromBuilder,
+                editingDay: request.editingDay,
+                data: session.data
+            )
                 .environment(session)
+        }
+        .confirmationDialog(
+            language.text("Remove from your plan?"),
+            isPresented: Binding(
+                get: { pendingWorkoutDeletion != nil },
+                set: { presented in if !presented { pendingWorkoutDeletion = nil } }
+            ),
+            titleVisibility: .visible,
+            presenting: pendingWorkoutDeletion
+        ) { day in
+            Button(language.text("Delete workout"), role: .destructive) {
+                archiveCustomWorkout(day)
+            }
+            .disabled(session.customWorkoutMutationIsActive)
+            .accessibilityIdentifier("custom-workout-delete-confirm")
+            Button(language.text("Keep"), role: .cancel) {}
+        } message: { _ in
+            Text(language.text("It stops appearing in your plan. Everything you have already logged is kept."))
         }
     }
 
@@ -611,6 +676,21 @@ struct TrainingProgramView: View {
         Task {
             do {
                 try await session.toggleDeload(operation: operation)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func archiveCustomWorkout(_ day: ProgramDay) {
+        pendingWorkoutDeletion = nil
+        guard let operation = session.accountOperationLease() else { return }
+        Task {
+            do {
+                _ = try await session.archiveCustomWorkout(dayID: day.id, operation: operation)
             } catch is CancellationError {
                 return
             } catch {
@@ -751,6 +831,11 @@ struct CalendarDaySelection: Identifiable, Hashable {
     let date: String
     let programDayID: UUID?
     var id: String { "\(date)|\(programDayID?.uuidString ?? "default")" }
+}
+
+private struct CustomWorkoutBuilderRequest: Identifiable {
+    let id = UUID()
+    let editingDay: ProgramDay?
 }
 
 /// The two ways to complete a planned day stay visible together. The tint only

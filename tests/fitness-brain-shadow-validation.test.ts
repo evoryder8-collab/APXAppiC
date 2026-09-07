@@ -114,7 +114,7 @@ test('Avatar presentation remains on legacy snapshots and cannot import the shad
     import.meta.url,
   ), 'utf8')
 
-  assert.match(webAvatar, /const \{ data, snapshots, synergies \} = useStore\(\)/)
+  assert.match(webAvatar, /const \{[^}]*\bdata\b[^}]*\bsnapshots\b[^}]*\bsynergies\b[^}]*\} = useStore\(\)/)
   assert.doesNotMatch(webAvatar, /fitnessBrainShadowValidation|composeFitnessBrainV2/)
   assert.match(nativeAvatar, /session\.data\.snapshots/)
   assert.doesNotMatch(nativeAvatar, /FitnessBrainShadow|FitnessBrainV2Semantics/)

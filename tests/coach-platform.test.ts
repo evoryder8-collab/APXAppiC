@@ -229,12 +229,10 @@ test('coach and sponsored-client surfaces expose the complete consented workflow
   assert.match(nativePlan, /activateCoachPlan/)
   assert.match(nativePlan, /updateCoachScopes/)
   assert.match(nativePlan, /endCoachRelationship/)
-  assert.match(
-    nativeShell,
-    /case \.coachWorkspace:\s+if session\.coachContext\.capabilities\.coachWorkspace \{ CoachWorkspaceView\(\) \}\s+else \{ CoachFeatureLockedView\(\) \}/,
-  )
+  assert.match(nativeShell, /if !session\.portalDestinationIsAllowed\(destination\) \{[\s\S]*?CoachFeatureLockedView\(\)/)
+  assert.match(nativeShell, /case \.coachWorkspace:\s+CoachWorkspaceView\(\)/)
   assert.match(nativeShell, /case \.coachPlan: CoachPlanView\(\)/)
-  assert.match(nativeShell, /case \.coachWorkouts:[\s\S]*canFollowCoachPlan/)
+  assert.match(nativeShell, /case \.coachWorkouts:\s+TrainingProgramView\(slug: "coach"/)
 })
 
 test('simple mode keeps every manual-workout entry behind the custom-workout policy', async () => {

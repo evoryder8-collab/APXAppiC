@@ -23,6 +23,238 @@ struct AccountOperationLease: Sendable, Equatable {
     fileprivate let generation: UInt64
 }
 
+enum StructuredMealDeletionError: LocalizedError, Equatable {
+    case targetChanged
+    case durabilityUnavailable
+
+    var errorDescription: String? {
+        switch self {
+        case .targetChanged:
+            "That meal changed before it could be removed. Refresh and try again."
+        case .durabilityUnavailable:
+            "That meal could not be removed safely. Refresh and try again."
+        }
+    }
+}
+
+enum ConfirmedMealDeletionPersistence {
+    enum Outcome: Equatable {
+        case remote
+        case queued
+    }
+
+    /// A confirmed destructive edit is complete only when its local snapshot
+    /// is durable and the server either accepted it or the outbox retained it.
+    @MainActor
+    static func persist(
+        local: @MainActor () async throws -> Void,
+        remote: @MainActor () async throws -> Void,
+        enqueue: @MainActor () async throws -> Void
+    ) async throws -> Outcome {
+        do {
+            try await local()
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            throw StructuredMealDeletionError.durabilityUnavailable
+        }
+
+        return try await synchronize(remote: remote, enqueue: enqueue)
+    }
+
+    @MainActor
+    static func synchronize(
+        remote: @MainActor () async throws -> Void,
+        enqueue: @MainActor () async throws -> Void
+    ) async throws -> Outcome {
+        do {
+            try await remote()
+            return .remote
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            do {
+                try await enqueue()
+                return .queued
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                throw StructuredMealDeletionError.durabilityUnavailable
+            }
+        }
+    }
+
+    @MainActor
+    static func persistMergedBeforePublishing(
+        snapshot: @MainActor () -> (revision: UInt64, dashboard: DashboardData),
+        merge: @MainActor (DashboardData) throws -> DashboardData,
+        persist: @MainActor (DashboardData) async throws -> Void
+    ) async throws -> DashboardData {
+        while true {
+            let base = snapshot()
+            let proposed = try merge(base.dashboard)
+            do {
+                try await persist(proposed)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch let error as StructuredMealDeletionError {
+                throw error
+            } catch {
+                throw StructuredMealDeletionError.durabilityUnavailable
+            }
+            guard snapshot().revision == base.revision else { continue }
+            return proposed
+        }
+    }
+}
+
+struct StructuredMealDeletionScope: Sendable, Equatable {
+    let ownerID: UUID
+    let mealID: UUID
+    let localDate: String
+
+    init?(meal: LoggedMeal, ownerID: UUID) {
+        guard meal.userID == ownerID else { return nil }
+        self.ownerID = ownerID
+        mealID = meal.id
+        localDate = meal.localDate
+    }
+
+    func removeConfirmedMeal(from data: inout DashboardData) throws {
+        let currentTargets = data.loggedMeals.filter { meal in
+            meal.id == mealID && meal.userID == ownerID
+        }
+        guard currentTargets.count == 1,
+              currentTargets[0].localDate == localDate else {
+            throw StructuredMealDeletionError.targetChanged
+        }
+        data.loggedMeals.removeAll { meal in
+            meal.id == mealID
+                && meal.userID == ownerID
+                && meal.localDate == localDate
+        }
+        data.loggedFoodEntries.removeAll { entry in
+            entry.mealID == mealID && entry.userID == ownerID
+        }
+    }
+}
+
+enum StructuredNutritionDayProjection {
+    static func apply(
+        date: String,
+        ownerID: UUID,
+        to data: inout DashboardData
+    ) {
+        let meals = data.loggedMeals.filter {
+            $0.userID == ownerID && $0.localDate == date
+        }
+        let existing = data.dailyLogs.first {
+            $0.userID == ownerID && $0.date == date
+        }
+        let manualKcal = existing?.nutritionSource == "manual" ? existing?.kcal : existing?.manualKcal
+        let manualProtein = existing?.nutritionSource == "manual" ? existing?.proteinG : existing?.manualProteinG
+        let manualFat = existing?.nutritionSource == "manual" ? existing?.fatG : existing?.manualFatG
+        let manualCarbs = existing?.nutritionSource == "manual" ? existing?.carbsG : existing?.manualCarbsG
+        let row = DailyLog(
+            id: existing?.id ?? APEXStableID.scopedUUID(
+                namespace: "daily-log",
+                date: date,
+                userID: ownerID
+            ),
+            userID: ownerID,
+            date: date,
+            kcal: meals.isEmpty ? manualKcal : Int(meals.reduce(0) { $0 + $1.totalKcal }.rounded()),
+            proteinG: meals.isEmpty ? manualProtein : Int(meals.reduce(0) { $0 + $1.totalProteinG }.rounded()),
+            fatG: meals.isEmpty ? manualFat : Int(meals.reduce(0) { $0 + $1.totalFatG }.rounded()),
+            carbsG: meals.isEmpty ? manualCarbs : Int(meals.reduce(0) { $0 + $1.totalCarbsG }.rounded()),
+            waterL: existing?.waterL ?? 0,
+            estimatedTDEE: existing?.estimatedTDEE,
+            computedPAL: existing?.computedPAL,
+            activityMode: existing?.activityMode ?? "quick",
+            weightKG: existing?.weightKG,
+            nutritionSource: meals.isEmpty ? "manual" : "structured",
+            manualKcal: manualKcal,
+            manualProteinG: manualProtein,
+            manualFatG: manualFat,
+            manualCarbsG: manualCarbs
+        )
+        data.dailyLogs.removeAll {
+            $0.userID == ownerID && $0.date == date
+        }
+        data.dailyLogs.append(row)
+    }
+}
+
+struct StructuredMealDeletionChange: Sendable {
+    let scope: StructuredMealDeletionScope
+    private let removedMeal: LoggedMeal
+    private let removedMealIndex: Int
+    private let removedEntries: [LoggedFoodEntry]
+
+    init(scope: StructuredMealDeletionScope, data: DashboardData) throws {
+        let matches = data.loggedMeals.enumerated().filter { _, meal in
+            meal.id == scope.mealID && meal.userID == scope.ownerID
+        }
+        guard matches.count == 1,
+              matches[0].element.localDate == scope.localDate else {
+            throw StructuredMealDeletionError.targetChanged
+        }
+        self.scope = scope
+        removedMeal = matches[0].element
+        removedMealIndex = matches[0].offset
+        removedEntries = data.loggedFoodEntries.filter {
+            $0.mealID == scope.mealID && $0.userID == scope.ownerID
+        }
+    }
+
+    func deleting(from base: DashboardData) throws -> DashboardData {
+        let currentMeals = base.loggedMeals.filter {
+            $0.id == scope.mealID && $0.userID == scope.ownerID
+        }
+        let currentEntries = base.loggedFoodEntries.filter {
+            $0.mealID == scope.mealID && $0.userID == scope.ownerID
+        }
+        guard currentMeals == [removedMeal],
+              Set(currentEntries) == Set(removedEntries) else {
+            throw StructuredMealDeletionError.targetChanged
+        }
+
+        var proposed = base
+        try scope.removeConfirmedMeal(from: &proposed)
+        StructuredNutritionDayProjection.apply(
+            date: scope.localDate,
+            ownerID: scope.ownerID,
+            to: &proposed
+        )
+        return proposed
+    }
+
+    /// Restores only this change's rows over the latest dashboard. Unrelated
+    /// nutrition, hydration, workout, and profile mutations stay intact.
+    func restoring(in base: DashboardData) -> DashboardData {
+        let targetExists = base.loggedMeals.contains {
+            $0.id == scope.mealID && $0.userID == scope.ownerID
+        }
+        let targetEntriesExist = base.loggedFoodEntries.contains {
+            $0.mealID == scope.mealID && $0.userID == scope.ownerID
+        }
+        guard targetExists == false, targetEntriesExist == false else { return base }
+
+        var restored = base
+        restored.loggedMeals.insert(
+            removedMeal,
+            at: min(removedMealIndex, restored.loggedMeals.endIndex)
+        )
+        restored.loggedFoodEntries.append(contentsOf: removedEntries)
+        StructuredNutritionDayProjection.apply(
+            date: scope.localDate,
+            ownerID: scope.ownerID,
+            to: &restored
+        )
+        return restored
+    }
+}
+
 private struct SyncAccountBoundaryError: Error, Sendable {}
 
 private enum AccountAccessValidationError: Error, Sendable {
@@ -39,6 +271,7 @@ typealias FoodSearchProvider = @Sendable (String) async throws -> FoodLookupEnve
 @MainActor
 @Observable
 final class AppSession {
+    @ObservationIgnored private var dashboardMutationRevision: UInt64 = 0
     var route: AppRoute = .launching
     var selectedPersona: Persona?
     /// Shown briefly after a bespoke account signs in by email.
@@ -49,7 +282,10 @@ final class AppSession {
     /// Debug only: opens access recovery straight away for visual checking.
     var previewAccessRecovery = false
     var data: DashboardData = .empty {
-        didSet { recomputeBrain() }
+        didSet {
+            dashboardMutationRevision &+= 1
+            recomputeBrain()
+        }
     }
     var coachContext: CoachAccountContext = .empty
     /* Receipts from the interconnection engine, for the Avatar feed */
@@ -76,6 +312,7 @@ final class AppSession {
     @ObservationIgnored private var workoutSyncTask: Task<Void, Never>?
     @ObservationIgnored private var accountGeneration = AccountGenerationGate()
     @ObservationIgnored private var authenticatedOwnerID: UUID?
+    private var customWorkoutMutationGate = CustomWorkoutMutationGate()
     @ObservationIgnored private var lastShadowObservationSignature: String?
     @ObservationIgnored private var suspendedAccessOwnerID: UUID?
     @ObservationIgnored private var accessServiceSuspensionTask: Task<Void, Never>?
@@ -129,10 +366,23 @@ final class AppSession {
         failedSyncCount = 0
         failedSyncOperations = []
         coachContext = .empty
+        customWorkoutMutationGate.reset()
         lastShadowObservationSignature = nil
         isBusy = false
         isRefreshing = false
         return accountGeneration.token
+    }
+
+    var customWorkoutMutationIsActive: Bool {
+        customWorkoutMutationGate.isActive
+    }
+
+    private func beginCustomWorkoutMutation() -> UUID? {
+        customWorkoutMutationGate.begin()
+    }
+
+    private func finishCustomWorkoutMutation(_ token: UUID) {
+        customWorkoutMutationGate.finish(token)
     }
 
     @discardableResult
@@ -236,6 +486,25 @@ final class AppSession {
             consentedScopes: coachContext.sponsorship?.consentedScopes ?? [],
             individualAccess: EntitlementStore.shared.hasIndividualAccess
         )
+    }
+
+    func portalDestinationIsAllowed(_ destination: PortalDestination) -> Bool {
+        coachClientPolicy.allows(
+            destination,
+            accountCapabilities: coachContext.capabilities
+        )
+    }
+
+    @discardableResult
+    func openPortalDestination(_ destination: PortalDestination) -> Bool {
+        guard portalDestinationIsAllowed(destination) else {
+            alertMessage = LanguageState.shared.text(
+                "Your sponsored account keeps nutrition, Avatar and the coach plan focused. An individual subscription restores personal builders and Orbit."
+            )
+            return false
+        }
+        navigationPath.append(destination)
+        return true
     }
 
     /// A person's last choice is local device preference, deliberately kept
@@ -4729,42 +4998,126 @@ final class AppSession {
         operation: AccountOperationLease
     ) async throws {
         try requireCurrentAccountOperation(operation)
-        guard meal.userID == operation.ownerID else { throw CancellationError() }
-        data.loggedMeals.removeAll { $0.id == meal.id && $0.userID == operation.ownerID }
-        data.loggedFoodEntries.removeAll {
-            $0.mealID == meal.id && $0.userID == operation.ownerID
+        guard let scope = StructuredMealDeletionScope(
+            meal: meal,
+            ownerID: operation.ownerID
+        ) else { throw CancellationError() }
+        let change = try StructuredMealDeletionChange(scope: scope, data: data)
+        let usesLocalFixture = APEXRuntimeEnvironment.usesLocalUITestFixture()
+        let offlineOperation: OfflineOperation?
+        if usesLocalFixture {
+            offlineOperation = nil
+        } else {
+            offlineOperation = try OfflineOperation.rpc(
+                "delete_structured_meal",
+                params: ["p_meal_id": scope.mealID.uuidString]
+            )
         }
-        try await recalculateLocalStructuredDay(meal.localDate, operation: operation)
-        try await saveLocalSnapshot(operation: operation)
-        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
-            try requireCurrentAccountOperation(operation)
-            lastSyncAt = .now
-            return
-        }
+
+        let committedDeletion: DashboardData
         do {
-            try await service.deleteStructuredMeal(meal.id)
+            committedDeletion = try await ConfirmedMealDeletionPersistence
+                .persistMergedBeforePublishing(
+                    snapshot: { (self.dashboardMutationRevision, self.data) },
+                    merge: { try change.deleting(from: $0) },
+                    persist: { proposed in
+                        try self.requireCurrentAccountOperation(operation)
+                        try await self.offlineStore.saveDashboard(
+                            proposed,
+                            for: operation.ownerID
+                        )
+                        try self.requireCurrentAccountOperation(operation)
+                    }
+                )
+        } catch {
+            let deletionError = error
+            guard accountOperationIsCurrent(operation) else {
+                throw CancellationError()
+            }
+            /* A previous merge attempt may already have reached disk before a
+               newer dashboard revision was detected. Restore the latest
+               observable state without publishing any stale snapshot. */
+            do {
+                try await persistStableMealDeletionSnapshot(operation: operation)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                /* The observable dashboard is still unchanged and authoritative. */
+            }
             try requireCurrentAccountOperation(operation)
-            try await refreshDashboard(expectedUserID: operation.ownerID)
+            throw deletionError
+        }
+
+        /* There is deliberately no suspension between the stable revision
+           check above and publishing the merged owner-scoped deletion. */
+        data = committedDeletion
+
+        let outcome: ConfirmedMealDeletionPersistence.Outcome
+        do {
+            if usesLocalFixture {
+                outcome = .remote
+            } else {
+                outcome = try await ConfirmedMealDeletionPersistence.synchronize(
+                    remote: {
+                        try self.requireCurrentAccountOperation(operation)
+                        try await self.service.deleteStructuredMeal(scope.mealID)
+                        try self.requireCurrentAccountOperation(operation)
+                    },
+                    enqueue: {
+                        guard let offlineOperation else {
+                            throw StructuredMealDeletionError.durabilityUnavailable
+                        }
+                        try self.requireCurrentAccountOperation(operation)
+                        try await self.offlineStore.enqueue(
+                            offlineOperation,
+                            for: operation.ownerID
+                        )
+                        try self.requireCurrentAccountOperation(operation)
+                    }
+                )
+            }
+        } catch {
+            let deletionError = error
+            guard accountOperationIsCurrent(operation) else {
+                throw CancellationError()
+            }
+            let restored = change.restoring(in: data)
+            data = restored
+            do {
+                try await persistStableMealDeletionSnapshot(operation: operation)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                /* The visible state is restored and the server never accepted
+                   the deletion. A later refresh therefore converges safely. */
+            }
             try requireCurrentAccountOperation(operation)
+            throw deletionError
+        }
+
+        try requireCurrentAccountOperation(operation)
+        switch outcome {
+        case .queued:
+            let pendingCount = try? await offlineStore.pendingOperations(for: operation.ownerID).count
+            try requireCurrentAccountOperation(operation)
+            pendingSyncCount = pendingCount ?? pendingSyncCount + 1
+            /* Queued, and silent for the same reason a queued save is. */
+        case .remote:
+            lastSyncAt = .now
+        }
+
+        try await reconcileStructuredDayHydration(
+            scope.localDate,
+            operation: operation
+        )
+        try requireCurrentAccountOperation(operation)
+        do {
+            try await persistStableMealDeletionSnapshot(operation: operation)
         } catch is CancellationError {
             throw CancellationError()
         } catch {
-            try requireCurrentAccountOperation(operation)
-            do {
-                let offlineOperation = try OfflineOperation.rpc(
-                    "delete_structured_meal",
-                    params: ["p_meal_id": meal.id.uuidString]
-                )
-                try await offlineStore.enqueue(offlineOperation, for: operation.ownerID)
-                try requireCurrentAccountOperation(operation)
-                let pendingCount = try? await offlineStore.pendingOperations(for: operation.ownerID).count
-                try requireCurrentAccountOperation(operation)
-                pendingSyncCount = pendingCount ?? pendingSyncCount + 1
-                /* Queued, and silent for the same reason a queued save is. */
-            } catch {
-                try requireCurrentAccountOperation(operation)
-                alertMessage = error.localizedDescription
-            }
+            /* The deletion and hydration convergence are already durable via
+               their server or outbox operations; this cache is recoverable. */
         }
     }
 
@@ -6081,106 +6434,156 @@ final class AppSession {
         estimatedMinutes: Int,
         sessionMode: WorkoutSessionMode,
         picks: [CustomWorkoutBuilder.Pick],
+        editingDayID: UUID? = nil,
+        confirmedReplacementDayIDs: Set<UUID> = [],
         operation: AccountOperationLease
-    ) async throws {
+    ) async throws -> CustomWorkoutLifecycle.SaveOutcome {
         try requireCurrentAccountOperation(operation)
         guard coachClientPolicy.canCreateCustomWorkouts else {
             if accountOperationIsCurrent(operation) {
                 alertMessage = LanguageState.shared.text("Coach-sponsored accounts follow the coach plan. An individual subscription keeps custom workouts available.")
             }
-            return
+            return .denied
         }
+        guard let mutationToken = beginCustomWorkoutMutation() else { return .denied }
+        defer { finishCustomWorkoutMutation(mutationToken) }
         guard let profile, profile.userID == operation.ownerID else {
             throw CancellationError()
         }
         let userID = operation.ownerID
 
-        let program = data.programs.first {
-            $0.userID == userID && $0.slug == "custom"
-        }
-            ?? Program(
-                id: UUID(),
-                userID: userID,
-                slug: "custom",
-                name: "Custom workouts",
-                description: "Your searchable exercise studio, saved privately."
-            )
-        let existingDay = data.programDays.first {
-            $0.userID == userID && $0.programID == program.id && $0.weekday == weekday
-        }
-        let day = ProgramDay(
-            id: existingDay?.id ?? UUID(),
-            userID: userID,
-            programID: program.id,
-            weekday: weekday,
-            name: name,
-            dayType: "custom",
-            estimatedMinutes: estimatedMinutes,
-            warmupNote: "Five minutes of pain-free joint preparation",
-            sortOrder: weekday,
-            sessionMode: sessionMode.rawValue
-        )
-
-        let replaced = data.exercises.filter {
-            $0.userID == userID && $0.programDayID == day.id
-        }
-        let rows = CustomWorkoutBuilder.exerciseRows(
-            userID: userID,
-            programDayID: day.id,
-            picks: picks
-        )
-
-        data.exercises.removeAll {
-            $0.userID == userID && $0.programDayID == day.id
-        }
-        if let index = data.programs.firstIndex(where: {
-            $0.id == program.id && $0.userID == userID
-        }) {
-            data.programs[index] = program
-        } else {
-            data.programs.append(program)
-        }
-        if let index = data.programDays.firstIndex(where: {
-            $0.id == day.id && $0.userID == userID
-        }) {
-            data.programDays[index] = day
-        } else {
-            data.programDays.append(day)
-        }
-        data.exercises.append(contentsOf: rows)
-
-        for exercise in replaced {
-            await persistDelete(
-                table: "exercises",
-                id: exercise.id,
+        let change: CustomWorkoutLifecycle.SaveChange
+        do {
+            change = try CustomWorkoutLifecycle.prepareSave(
+                in: data,
                 ownerID: userID,
-                expectedAccountToken: operation.generation
+                request: CustomWorkoutLifecycle.SaveRequest(
+                    name: name,
+                    weekday: weekday,
+                    estimatedMinutes: estimatedMinutes,
+                    sessionMode: sessionMode,
+                    picks: picks,
+                    editingDayID: editingDayID,
+                    confirmedReplacementDayIDs: confirmedReplacementDayIDs
+                )
             )
-            try requireCurrentAccountOperation(operation)
+        } catch CustomWorkoutLifecycle.Error.replacementConfirmationRequired(let dayIDs) {
+            return .replacementConfirmationRequired(dayIDs)
         }
-        await persistUpsert(
-            program,
-            table: "programs",
-            ownerID: userID,
-            expectedAccountToken: operation.generation
+
+        let remoteBundle: (parent: OfflineOperation, dependents: [OfflineOperation])?
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            remoteBundle = nil
+        } else {
+            let parent = try OfflineOperation.upsert(
+                change.program,
+                table: "programs",
+                onConflict: nil
+            )
+            var dependents = try change.deactivatedDays.map {
+                try OfflineOperation.upsert($0, table: "program_days", onConflict: nil)
+            }
+            dependents.append(
+                try OfflineOperation.upsert(change.day, table: "program_days", onConflict: nil)
+            )
+            dependents.append(contentsOf: try change.exercises.map {
+                try OfflineOperation.upsert($0, table: "exercises", onConflict: nil)
+            })
+            dependents.append(contentsOf: change.staleExerciseIDs.map {
+                OfflineOperation.delete(table: "exercises", id: $0)
+            })
+            remoteBundle = (parent, dependents)
+        }
+
+        /* Persist a delta merged over the latest observable dashboard. If an
+           unrelated same-account mutation lands while disk or outbox I/O is
+           suspended, repeat against that newer snapshot instead of publishing
+           stale nutrition, hydration, Health or Avatar state. */
+        let committed = try await CustomWorkoutLifecycle.persistMutation(
+            snapshot: { (self.dashboardMutationRevision, self.data) },
+            merge: { change.merging(into: $0) },
+            requireCurrent: { try self.requireCurrentAccountOperation(operation) },
+            saveDashboard: { proposed in
+                try await self.offlineStore.saveDashboard(proposed, for: userID)
+            },
+            enqueue: {
+                if let remoteBundle {
+                    try await self.offlineStore.enqueue(
+                        parent: remoteBundle.parent,
+                        dependents: remoteBundle.dependents,
+                        for: userID
+                    )
+                }
+            }
+        )
+        /* There is deliberately no suspension between the stable revision
+           check above and publication here. */
+        try requireCurrentAccountOperation(operation)
+        data = committed
+        let count = try? await offlineStore.pendingOperations(for: userID).count
+        if accountOperationIsCurrent(operation), let count {
+            pendingSyncCount = count
+        }
+        Task { @MainActor [weak self] in
+            guard let self, self.accountOperationIsCurrent(operation) else { return }
+            await self.flushPendingChanges(for: userID)
+        }
+        return .saved
+    }
+
+    @discardableResult
+    func archiveCustomWorkout(
+        dayID: UUID,
+        operation: AccountOperationLease
+    ) async throws -> Bool {
+        try requireCurrentAccountOperation(operation)
+        guard coachClientPolicy.canCreateCustomWorkouts else {
+            if accountOperationIsCurrent(operation) {
+                alertMessage = LanguageState.shared.text("Coach-sponsored accounts follow the coach plan. An individual subscription keeps custom workouts available.")
+            }
+            return false
+        }
+        guard let mutationToken = beginCustomWorkoutMutation() else { return false }
+        defer { finishCustomWorkoutMutation(mutationToken) }
+        let change = try CustomWorkoutLifecycle.prepareArchive(
+            dayID: dayID,
+            in: data,
+            ownerID: operation.ownerID
+        )
+        let remoteOperation: OfflineOperation?
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            remoteOperation = nil
+        } else {
+            remoteOperation = try OfflineOperation.upsert(
+                change.day,
+                table: "program_days",
+                onConflict: nil
+            )
+        }
+        let committed = try await CustomWorkoutLifecycle.persistMutation(
+            snapshot: { (self.dashboardMutationRevision, self.data) },
+            merge: { change.merging(into: $0) },
+            requireCurrent: { try self.requireCurrentAccountOperation(operation) },
+            saveDashboard: { proposed in
+                try await self.offlineStore.saveDashboard(proposed, for: operation.ownerID)
+            },
+            enqueue: {
+                if let remoteOperation {
+                    try await self.offlineStore.enqueue(remoteOperation, for: operation.ownerID)
+                }
+            }
         )
         try requireCurrentAccountOperation(operation)
-        await persistUpsert(
-            day,
-            table: "program_days",
-            ownerID: userID,
-            expectedAccountToken: operation.generation
-        )
-        try requireCurrentAccountOperation(operation)
-        for row in rows {
-            await persistUpsert(
-                row,
-                table: "exercises",
-                ownerID: userID,
-                expectedAccountToken: operation.generation
-            )
-            try requireCurrentAccountOperation(operation)
+        data = committed
+        let count = try? await offlineStore.pendingOperations(for: operation.ownerID).count
+        if accountOperationIsCurrent(operation), let count {
+            pendingSyncCount = count
         }
+        Task { @MainActor [weak self] in
+            guard let self, self.accountOperationIsCurrent(operation) else { return }
+            await self.flushPendingChanges(for: operation.ownerID)
+        }
+        return true
     }
 
     /*
@@ -6196,6 +6599,12 @@ final class AppSession {
         operation: AccountOperationLease
     ) async throws -> Bool {
         try requireCurrentAccountOperation(operation)
+        guard coachClientPolicy.canCreateCustomWorkouts else {
+            if accountOperationIsCurrent(operation) {
+                alertMessage = LanguageState.shared.text("Coach-sponsored accounts follow the coach plan. An individual subscription keeps custom workouts available.")
+            }
+            return false
+        }
         guard let profile, profile.userID == operation.ownerID else {
             throw CancellationError()
         }
@@ -6980,6 +7389,24 @@ final class AppSession {
         }
     }
 
+    private func persistStableMealDeletionSnapshot(
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        _ = try await ConfirmedMealDeletionPersistence.persistMergedBeforePublishing(
+            snapshot: { (self.dashboardMutationRevision, self.data) },
+            merge: { $0 },
+            persist: { latest in
+                try self.requireCurrentAccountOperation(operation)
+                try await self.offlineStore.saveDashboard(
+                    latest,
+                    for: operation.ownerID
+                )
+                try self.requireCurrentAccountOperation(operation)
+            }
+        )
+    }
+
     private func saveLocalSnapshot(operation: AccountOperationLease) async throws {
         try requireCurrentAccountOperation(operation)
         let snapshot = data
@@ -6992,41 +7419,19 @@ final class AppSession {
         operation: AccountOperationLease
     ) async throws {
         try requireCurrentAccountOperation(operation)
-        let userID = operation.ownerID
-        let meals = data.loggedMeals.filter {
-            $0.userID == operation.ownerID && $0.localDate == date
-        }
-        let existing = data.dailyLogs.first {
-            $0.userID == operation.ownerID && $0.date == date
-        }
-        let manualKcal = existing?.nutritionSource == "manual" ? existing?.kcal : existing?.manualKcal
-        let manualProtein = existing?.nutritionSource == "manual" ? existing?.proteinG : existing?.manualProteinG
-        let manualFat = existing?.nutritionSource == "manual" ? existing?.fatG : existing?.manualFatG
-        let manualCarbs = existing?.nutritionSource == "manual" ? existing?.carbsG : existing?.manualCarbsG
-        let row = DailyLog(
-            id: existing?.id ?? APEXStableID.scopedUUID(namespace: "daily-log", date: date, userID: userID),
-            userID: userID,
+        StructuredNutritionDayProjection.apply(
             date: date,
-            kcal: meals.isEmpty ? manualKcal : Int(meals.reduce(0) { $0 + $1.totalKcal }.rounded()),
-            proteinG: meals.isEmpty ? manualProtein : Int(meals.reduce(0) { $0 + $1.totalProteinG }.rounded()),
-            fatG: meals.isEmpty ? manualFat : Int(meals.reduce(0) { $0 + $1.totalFatG }.rounded()),
-            carbsG: meals.isEmpty ? manualCarbs : Int(meals.reduce(0) { $0 + $1.totalCarbsG }.rounded()),
-            waterL: existing?.waterL ?? 0,
-            estimatedTDEE: existing?.estimatedTDEE,
-            computedPAL: existing?.computedPAL,
-            activityMode: existing?.activityMode ?? "quick",
-            weightKG: existing?.weightKG,
-            nutritionSource: meals.isEmpty ? "manual" : "structured",
-            manualKcal: manualKcal,
-            manualProteinG: manualProtein,
-            manualFatG: manualFat,
-            manualCarbsG: manualCarbs
+            ownerID: operation.ownerID,
+            to: &data
         )
+        try await reconcileStructuredDayHydration(date, operation: operation)
+    }
+
+    private func reconcileStructuredDayHydration(
+        _ date: String,
+        operation: AccountOperationLease
+    ) async throws {
         try requireCurrentAccountOperation(operation)
-        data.dailyLogs.removeAll {
-            $0.userID == operation.ownerID && $0.date == date
-        }
-        data.dailyLogs.append(row)
         if let resolvedDate = ISO8601DateFormatter.apexDateOnly.date(from: date) {
             await syncFoodHydrationEvent(
                 on: resolvedDate,

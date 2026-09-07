@@ -29,7 +29,7 @@ struct PortalHomeView: View {
             LazyVStack(spacing: 16) {
                 APEXTopBar(
                     profile: session.profile,
-                    onSettings: { session.navigationPath.append(.settings) },
+                    onSettings: { session.openPortalDestination(.settings) },
                     nudges: nudges,
                     onOpenNudges: { showNudges = true }
                 )
@@ -305,12 +305,12 @@ private struct FitnessPlanDisclosure: View {
 
     private func openTransition() {
         state.selectInfo(nil)
-        session.navigationPath.append(.transition)
+        session.openPortalDestination(.transition)
     }
 
     private func openMainPhase() {
         state.selectInfo(nil)
-        session.navigationPath.append(.mainPhase)
+        session.openPortalDestination(.mainPhase)
     }
 }
 
@@ -462,7 +462,7 @@ private struct PortalTile: View {
     var body: some View {
         Button {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            session.navigationPath.append(destination)
+            session.openPortalDestination(destination)
         } label: {
             HStack(spacing: 17) {
                 Image(systemName: icon)
@@ -505,7 +505,7 @@ private struct ProfilePortalTile: View {
 
     var body: some View {
         Button {
-            session.navigationPath.append(.avatar)
+            session.openPortalDestination(.avatar)
         } label: {
             HStack(spacing: 17) {
                 ZStack {

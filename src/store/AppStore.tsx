@@ -17,7 +17,15 @@ import {
 } from 'react'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { createSessionBoundSupabase, isLocalMode, supabase } from '../lib/supabase'
-import { clearAllLocal, loadCache, loadQueue, saveCache, saveQueue, type SyncOp } from '../lib/local'
+import {
+  clearAllLocal,
+  loadCache,
+  loadQueue,
+  saveCache,
+  saveCacheAndQueueAtomically,
+  saveQueue,
+  type SyncOp,
+} from '../lib/local'
 import type {
   AccountAccessResolution,
   AppData,
@@ -110,6 +118,14 @@ import {
   saveCachedAccountAccess,
   validatedAccountAccessProgression,
 } from '../lib/coachAccess.ts'
+import {
+  OwnerBoundMutationAccountError,
+  OwnerBoundMutationCoordinator,
+  commitOwnerBoundMutationAtomically,
+  orderedOwnerMutationQueue,
+  validateOwnerBoundMutationWrites,
+  type OwnerBoundMutationWrite,
+} from '../lib/ownerBoundMutation.ts'
 
 const MAX_BROWSER_TIMEOUT_MS = 2_147_483_647
 
@@ -169,8 +185,18 @@ interface StoreValue {
   refresh: () => Promise<void>
   refreshAppAccess: (options?: RefreshAppAccessOptions) => Promise<void>
   refreshCoachContext: () => Promise<void>
+  commitOwnerBoundMutation: <TResult>(
+    expectedOwnerID: string,
+    stage: (current: AppData) => OwnerBoundStoreMutationPlan<TResult>,
+  ) => Promise<TResult>
   toast: (message: string, kind?: 'error' | 'ok') => void
   toasts: Array<{ id: number; message: string; kind: 'error' | 'ok' }>
+}
+
+export interface OwnerBoundStoreMutationPlan<TResult> {
+  data: AppData
+  writes: OwnerBoundMutationWrite[]
+  result: TResult
 }
 
 interface SyncWriteOptions {
@@ -449,16 +475,18 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const lastSyncErrorToastAt = useRef(0)
   const pendingCache = useRef<{ data: AppData; scope: string } | null>(null)
   const cacheSaveTimer = useRef<number | null>(null)
+  const queuePersistenceDurable = useRef(true)
+  const ownerBoundMutationCoordinator = useRef(new OwnerBoundMutationCoordinator())
   const shadowObservationSignatureRef = useRef<string | null>(null)
 
-  const flushPendingCache = useCallback(() => {
+  const flushPendingCache = useCallback((): boolean => {
     if (cacheSaveTimer.current !== null) {
       window.clearTimeout(cacheSaveTimer.current)
       cacheSaveTimer.current = null
     }
     const pending = pendingCache.current
     pendingCache.current = null
-    if (pending) saveCache(pending.data, pending.scope)
+    return pending ? saveCache(pending.data, pending.scope) : true
   }, [])
 
   const scheduleCacheSave = useCallback((next: AppData) => {
@@ -471,6 +499,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }, [flushPendingCache])
 
   const clearPrivateState = useCallback((): void => {
+    ownerBoundMutationCoordinator.current.reset()
     flushPendingCache()
     fetchGeneration.current += 1
     hydratedPrivateOwnerRef.current = null
@@ -611,7 +640,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           continue
         }
         queue = loadQueue(scope).filter((queued) => queued.id !== op.id)
-        saveQueue(queue, scope)
+        const durable = saveQueue(queue, scope)
+        if (scopeRef.current === scope) queuePersistenceDurable.current = durable
       }
       if (scopeRef.current === scope) setQueueLen(loadQueue(scope).length)
     } finally {
@@ -646,12 +676,71 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         ts: Date.now(),
         inFlightId: inFlightOperationId.current,
       }) as SyncOp[]
-      saveQueue(nextQueue, scopeRef.current)
+      queuePersistenceDurable.current = saveQueue(nextQueue, scopeRef.current)
       setQueueLen(nextQueue.length)
       void flush()
     },
     [flush],
   )
+
+  const commitOwnerBoundMutation = useCallback(async <TResult,>(
+    expectedOwnerID: string,
+    stage: (current: AppData) => OwnerBoundStoreMutationPlan<TResult>,
+  ): Promise<TResult> => {
+    let committedQueue: SyncOp[] | null = null
+    const result = await commitOwnerBoundMutationAtomically({
+      coordinator: ownerBoundMutationCoordinator.current,
+      expectedOwnerID,
+      currentOwnerID: () => {
+        const dataOwnerID = dataRef.current.profile?.user_id ?? dataRef.current.settings?.user_id ?? null
+        return scopeRef.current === expectedOwnerID && dataOwnerID === expectedOwnerID
+          ? expectedOwnerID
+          : null
+      },
+      stage: () => {
+        const plan = stage(dataRef.current)
+        const normalized = normalizeAppData(plan.data)
+        const resultOwnerID = normalized.profile?.user_id ?? normalized.settings?.user_id ?? null
+        if (resultOwnerID !== expectedOwnerID) throw new OwnerBoundMutationAccountError()
+        return { state: { ...plan, data: normalized }, result: plan.result }
+      },
+      persist: (staged) => {
+        validateOwnerBoundMutationWrites(expectedOwnerID, staged.state.writes)
+        const writes = (supabase ? staged.state.writes : []).map((write) => ({
+          ...write,
+          payload: write.type === 'upsert'
+            ? normalizeSyncPayload(write.table, write.payload)
+            : write.payload,
+        }))
+        const nextQueue = orderedOwnerMutationQueue(
+          loadQueue(expectedOwnerID),
+          writes,
+          `owner-mutation:${crypto.randomUUID()}`,
+          () => crypto.randomUUID(),
+          () => Date.now(),
+          inFlightOperationId.current,
+        )
+        const persisted = saveCacheAndQueueAtomically(staged.state.data, nextQueue, expectedOwnerID)
+        if (persisted) committedQueue = nextQueue
+        return persisted
+      },
+      publish: (plan) => {
+        if (!committedQueue) return
+        if (cacheSaveTimer.current !== null) {
+          window.clearTimeout(cacheSaveTimer.current)
+          cacheSaveTimer.current = null
+        }
+        pendingCache.current = null
+        mutationRevision.current += 1
+        dataRef.current = plan.data
+        setData(plan.data)
+        queuePersistenceDurable.current = true
+        setQueueLen(committedQueue.length)
+      },
+    })
+    void flush()
+    return result
+  }, [flush])
 
   /* ---------- writes ---------- */
   const upsert = useCallback(
@@ -831,6 +920,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   /* ---------- auth + initial fetch ---------- */
   const adoptSession = useCallback((nextSession: Session | null) => {
     /* Finish the previous account's cache write before changing the scope. */
+    ownerBoundMutationCoordinator.current.reset()
     flushPendingCache()
     checkpointAccountAccess()
     fetchGeneration.current += 1
@@ -838,6 +928,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     coachContextFetchGeneration.current += 1
     coachContextRef.current = EMPTY_COACH_ACCOUNT_CONTEXT
     setCoachContext(EMPTY_COACH_ACCOUNT_CONTEXT)
+    queuePersistenceDurable.current = true
     if (nextSession) {
       const scope = nextSession.user.id
       const currentAccess = appAccessRef.current
@@ -1502,11 +1593,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     refresh: fetchAll,
     refreshAppAccess,
     refreshCoachContext,
+    commitOwnerBoundMutation,
     toast,
     toasts,
   }), [
     bulkUpsert,
     coachContext,
+    commitOwnerBoundMutation,
     appAccess,
     data,
     engine.synergies,

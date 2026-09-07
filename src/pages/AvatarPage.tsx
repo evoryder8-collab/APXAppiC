@@ -24,6 +24,7 @@ import { RecoveryTrendPanel } from '../components/avatar/RecoveryTrendPanel'
 import { BaselineCalibrationDialog } from '../components/avatar/BaselineCalibrationDialog'
 import { RecoveryPlannerDialog } from '../components/avatar/RecoveryPlannerDialog'
 import type { RecoveryPlanTarget } from '../lib/recoveryPlanner'
+import { clientPolicyForAccount } from '../lib/coachAccess'
 
 const emerald = ACCENTS.emerald
 
@@ -77,7 +78,7 @@ function baselineNotes(profile: Profile) {
 }
 
 export function AvatarPage() {
-  const { data, snapshots, synergies } = useStore()
+  const { appAccess, coachContext, data, snapshots, synergies, toast } = useStore()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const navigate = useNavigate()
@@ -87,6 +88,7 @@ export function AvatarPage() {
   const [range, setRange] = useState<30 | 90>(30)
   const [expanded, setExpanded] = useState<string | null>(null)
   const reduceMotion = useReducedMotion()
+  const coachPolicy = clientPolicyForAccount(appAccess, coachContext)
 
   const now = snapshots[snapshots.length - 1] ?? null
   const before = snapshots[Math.max(0, snapshots.length - 15)] ?? now
@@ -134,7 +136,7 @@ export function AvatarPage() {
       <div className="space-y-5">
         {profile && <AvatarPortraitHero profile={profile} />}
 
-        <button type="button" onClick={() => navigate('/progress', { state: { from: '/avatar' } })} className="w-full text-left">
+        {coachPolicy.can_view_visual_progress && <button type="button" onClick={() => navigate('/progress', { state: { from: '/avatar' } })} className="w-full text-left">
           <GlassCard accent={ACCENTS.violet} className="p-4 sm:p-5">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -144,7 +146,7 @@ export function AvatarPage() {
               <span className="text-2xl text-ink">›</span>
             </div>
           </GlassCard>
-        </button>
+        </button>}
 
         {/* Performance identity + radar */}
         <div className="grid gap-4 sm:grid-cols-2">
@@ -206,9 +208,11 @@ export function AvatarPage() {
                             } else if (a.statKey === 'health') {
                               navigate('/nutrition')
                             } else if (a.statKey === 'endurance') {
-                              navigate('/orbit')
+                              if (coachPolicy.can_use_orbit) navigate('/orbit')
+                              else toast(t('Ask your coach to plan endurance work for you.'), 'error')
                             } else {
-                              navigate('/main')
+                              if (coachPolicy.can_rebuild_fitness_plan) navigate('/main-phase')
+                              else toast(t('Ask your coach to adjust your training plan.'), 'error')
                             }
                           }}
                         >

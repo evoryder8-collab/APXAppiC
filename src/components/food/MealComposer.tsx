@@ -297,6 +297,7 @@ export function MealComposer({
   const timeZone = timeZoneFromSettings(data.settings)
   const currentClock = zonedClock(new Date(), timeZone)
   const mealDate = date ?? currentClock.date
+  const activeOwnerId = data.profile?.user_id ?? data.settings?.user_id ?? null
   const replacedMeal = replaceMealId ? store.meals.find((meal) => meal.id === replaceMealId) : null
   const defaultFinishedTime = replacedMeal
     ? zonedClock(replacedMeal.logged_at, timeZone).time
@@ -323,6 +324,7 @@ export function MealComposer({
   const [selectedPresetDraft, setSelectedPresetDraft] = useState<{ title: string; subtitle: string } | null>(null)
   const [savingPreset, setSavingPreset] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [confirmEmptyMealDeletion, setConfirmEmptyMealDeletion] = useState(false)
   const [selection, setSelection] = useState<FoodSelectionDraft | null>(null)
   const [nutrientDetailFood, setNutrientDetailFood] = useState<FoodRecord | null>(null)
   const [addingSelection, setAddingSelection] = useState(false)
@@ -886,14 +888,24 @@ export function MealComposer({
   }
 
   const log = async () => {
+    if (replaceMealId && (!replacedMeal || !activeOwnerId || replacedMeal.user_id !== activeOwnerId || replacedMeal.local_date !== mealDate)) {
+      setMessage(t('This saved meal no longer belongs to this account and day.'))
+      setConfirmEmptyMealDeletion(false)
+      return
+    }
     if (replaceMealId && items.length === 0) {
+      if (!confirmEmptyMealDeletion) {
+        setConfirmEmptyMealDeletion(true)
+        return
+      }
       setSaving(true)
       try {
         await store.deleteMeal(replaceMealId)
+        setConfirmEmptyMealDeletion(false)
         onLogged?.()
         onClose()
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : 'Meal could not be logged.')
+      } catch {
+        setMessage(t('Meal could not be deleted.'))
       } finally {
         setSaving(false)
       }
@@ -1467,12 +1479,12 @@ export function MealComposer({
               onClick={() => void log()}
               whileTap={{ scale: 0.985 }}
               className="sticky bottom-[calc(.75rem+env(safe-area-inset-bottom))] z-20 w-full rounded-[1.35rem] px-5 py-4 text-base font-black text-white shadow-[0_20px_42px_-18px_rgba(245,158,11,.95)] ring-1 ring-white/55 disabled:opacity-50"
-              style={{ background: amber.gradient }}
+              style={{ background: items.length === 0 ? 'linear-gradient(135deg, #e11d48, #f97316)' : amber.gradient }}
             >
               {saving
                 ? t('Saving meal…')
                 : items.length === 0
-                  ? t('Save changes & close')
+                  ? t('Delete meal')
                   : `${t(replaceMealId ? 'Save changes & close' : planning ? 'Save to day & close' : 'Save meal & close')} · ${totals.kcal} ${t('kcal')}`}
             </motion.button>
           )}
@@ -1493,6 +1505,36 @@ export function MealComposer({
           <p className="text-center text-[10px] font-medium text-ink-faint">Logged entries are immutable snapshots. Editing a food later will never rewrite your history.</p>
         </div>
       </div>
+      <AnimatePresence>
+        {confirmEmptyMealDeletion && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[106] grid place-items-center bg-slate-950/48 px-4 backdrop-blur-md"
+            onPointerDown={(event) => { if (event.target === event.currentTarget && !saving) setConfirmEmptyMealDeletion(false) }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 14, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              role="alertdialog"
+              aria-modal="true"
+              aria-labelledby="empty-meal-delete-title"
+              className="w-full max-w-sm rounded-[1.75rem] border border-white/90 bg-canvas/98 p-5 shadow-[0_32px_90px_-32px_rgba(15,23,42,.78)]"
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              <p className="font-mono text-[9px] font-black tracking-[.16em] text-rose-700 uppercase">{t('Meal edit')}</p>
+              <h2 id="empty-meal-delete-title" className="mt-1 font-display text-xl font-black text-ink">{t('Delete saved meal?')}</h2>
+              <p className="mt-2 text-sm font-semibold leading-relaxed text-ink-soft">{t('Removing every food will delete this meal from this day.')}</p>
+              <div className="mt-5 flex gap-2">
+                <button type="button" disabled={saving} onClick={() => setConfirmEmptyMealDeletion(false)} className="min-h-12 flex-1 rounded-2xl bg-white/80 px-4 text-sm font-black text-ink-soft disabled:opacity-45">{t('Keep editing')}</button>
+                <button type="button" disabled={saving} onClick={() => void log()} className="min-h-12 flex-1 rounded-2xl bg-gradient-to-r from-rose-600 to-orange-500 px-4 text-sm font-black text-white disabled:opacity-45">{t(saving ? 'Deleting…' : 'Delete meal')}</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {presetReview && (
           <motion.div

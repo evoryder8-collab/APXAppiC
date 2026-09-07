@@ -90,6 +90,7 @@ struct NutritionView: View {
                             date: selectedDate,
                             targets: targets,
                             onEditTargets: { showTargetEditor = true },
+                            canEditTargets: session.coachClientPolicy.canRebuildFitnessPlan,
                             onOpenCalendar: { showCalendar = true }
                         )
                     }
@@ -226,7 +227,7 @@ struct NutritionView: View {
 
     private var nutritionHeader: some View {
         APEXTopBar(profile: session.profile) {
-            session.navigationPath.append(.settings)
+            session.openPortalDestination(.settings)
         }
     }
 

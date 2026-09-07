@@ -59,6 +59,37 @@ struct CoachClientPolicy: Equatable, Sendable {
             canViewVisualProgress: individualAccess || !relationshipExists
         )
     }
+
+    /// One policy boundary for every route prevents a stale or alternate
+    /// launcher from exposing a personal builder to a sponsored-only client.
+    func allows(
+        _ destination: PortalDestination,
+        accountCapabilities: CoachAccountCapabilities
+    ) -> Bool {
+        switch destination {
+        case .nutrition:
+            return canUseNutrition
+        case .transition, .mainPhase:
+            return canRebuildFitnessPlan
+        case .customWorkouts:
+            return canCreateCustomWorkouts
+        case .orbit:
+            return canUseOrbit
+        case .avatar:
+            return canUseAvatar
+        case .visualProgress:
+            return canViewVisualProgress
+        case .settings:
+            return true
+        case .coachWorkspace:
+            return accountCapabilities.coachWorkspace
+        case .coachPlan:
+            return accountCapabilities.sponsoredClient
+                && (canUseSponsoredApp || coachPlanReadOnly)
+        case .coachWorkouts:
+            return accountCapabilities.sponsoredClient && canFollowCoachPlan
+        }
+    }
 }
 
 struct CoachPlanChecklist: Codable, Hashable, Sendable {

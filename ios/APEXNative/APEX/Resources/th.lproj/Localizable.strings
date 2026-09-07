@@ -4474,6 +4474,11 @@
 "Date of birth" = "วัน เกิด";
 "Delete this finished workout?" = "ลบการทํางานเสร็จสมบูรณ์หรือไม่?";
 "Delete workout" = "ลบการออกกำลังกาย";
+"That workout is no longer available." = "ไม่มีการออกกำลังกายนี้แล้ว";
+"Choose whether to replace the workout already planned for that day." = "เลือกว่าต้องการแทนที่การออกกำลังกายที่วางแผนไว้สำหรับวันนั้นหรือไม่";
+"Edit workout" = "แก้ไขการออกกำลังกาย";
+"Save changes" = "บันทึกการเปลี่ยนแปลง";
+"Replace workout" = "แทนที่การออกกำลังกาย";
 "Deload ·  " = "ดาวน์โหลดข้อความ";
 "Drink type" = "ประเภทเครื่องดื่ม";
 "EST. WATER" = "STE. แอ่งน้ํา";
@@ -5550,3 +5555,9 @@
 "Access for this account has expired. Your account data has not been changed." = "สิทธิ์การเข้าถึงของบัญชีนี้หมดอายุแล้ว ข้อมูลบัญชีของคุณไม่ได้ถูกเปลี่ยนแปลง";
 "This account does not currently have access. Your account data has not been changed." = "ขณะนี้บัญชีนี้ไม่มีสิทธิ์เข้าถึง ข้อมูลบัญชีของคุณไม่ได้ถูกเปลี่ยนแปลง";
 "Access was restored, but APEX could not refresh your account yet. Try again when online." = "กู้คืนสิทธิ์การเข้าถึงแล้ว แต่ APEX ยังไม่สามารถรีเฟรชบัญชีของคุณได้ โปรดลองอีกครั้งเมื่อออนไลน์";
+"Could not update meal" = "อัปเดตมื้ออาหารไม่ได้";
+"Remove this saved meal?" = "นำมื้ออาหารที่บันทึกไว้นี้ออกหรือไม่";
+"It will be removed from this day. Your Food Memory and saved presets stay unchanged." = "มื้อนี้จะถูกนำออกจากวันนี้ โดย Food Memory และชุดอาหารที่บันทึกไว้จะไม่เปลี่ยนแปลง";
+"Your meal was not changed. Check access and try again." = "มื้ออาหารของคุณยังไม่ถูกเปลี่ยน โปรดตรวจสอบสิทธิ์การเข้าถึงแล้วลองอีกครั้ง";
+"That meal changed before it could be removed. Refresh and try again." = "มื้ออาหารถูกเปลี่ยนแปลงก่อนที่จะนำออกได้ โปรดรีเฟรชแล้วลองอีกครั้ง";
+"That meal could not be removed safely. Refresh and try again." = "ไม่สามารถนำมื้ออาหารออกได้อย่างปลอดภัย โปรดรีเฟรชแล้วลองอีกครั้ง";

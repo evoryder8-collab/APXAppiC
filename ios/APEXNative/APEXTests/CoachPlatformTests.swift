@@ -66,6 +66,92 @@ final class CoachPlatformTests: XCTestCase {
         XCTAssertFalse(policy.canViewVisualProgress)
     }
 
+    func testEveryPortalDestinationUsesTheSameSponsoredClientPolicy() {
+        let policy = CoachClientPolicy.resolve(
+            relationshipStatus: .active,
+            seatState: .active,
+            consentedScopes: [.nutrition, .workouts, .avatar],
+            individualAccess: false
+        )
+        let capabilities = CoachAccountCapabilities(
+            coachWorkspace: false,
+            sponsoredClient: true
+        )
+
+        for destination in [
+            PortalDestination.nutrition,
+            .avatar,
+            .settings,
+            .coachPlan,
+            .coachWorkouts,
+        ] {
+            XCTAssertTrue(
+                policy.allows(destination, accountCapabilities: capabilities),
+                "\(destination) should remain usable for a sponsored client"
+            )
+        }
+        for destination in [
+            PortalDestination.transition,
+            .mainPhase,
+            .customWorkouts,
+            .orbit,
+            .visualProgress,
+            .coachWorkspace,
+        ] {
+            XCTAssertFalse(
+                policy.allows(destination, accountCapabilities: capabilities),
+                "\(destination) must not bypass the sponsored-client restriction"
+            )
+        }
+    }
+
+    func testIndividualAccessRestoresPersonalDestinationsWithoutGrantingCoachWorkspace() {
+        let policy = CoachClientPolicy.resolve(
+            relationshipStatus: .active,
+            seatState: .active,
+            consentedScopes: [.nutrition, .workouts, .avatar],
+            individualAccess: true
+        )
+        let capabilities = CoachAccountCapabilities(
+            coachWorkspace: false,
+            sponsoredClient: true
+        )
+
+        for destination in [
+            PortalDestination.transition,
+            .mainPhase,
+            .customWorkouts,
+            .orbit,
+            .visualProgress,
+        ] {
+            XCTAssertTrue(policy.allows(destination, accountCapabilities: capabilities))
+        }
+        XCTAssertFalse(policy.allows(.coachWorkspace, accountCapabilities: capabilities))
+    }
+
+    func testNativeLaunchersAndScreensShareTheCentralSponsoredPolicy() throws {
+        let root = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        func source(_ path: String) throws -> String {
+            try String(contentsOf: root.appendingPathComponent(path))
+        }
+
+        XCTAssertTrue(try source("APEX/Features/Portal/PortalShellView.swift")
+            .contains("session.portalDestinationIsAllowed(destination)"))
+        XCTAssertTrue(try source("APEX/Features/Portal/SimpleHomeView.swift")
+            .contains("coachManaged: session.coachContext.capabilities.sponsoredClient"))
+        let settings = try source("APEX/Features/Settings/SettingsView.swift")
+        XCTAssertTrue(settings.contains("session.coachClientPolicy.canUseOrbit"))
+        XCTAssertTrue(settings.contains("session.coachClientPolicy.canCreateCustomWorkouts"))
+        XCTAssertTrue(settings.contains("session.coachClientPolicy.canRebuildFitnessPlan"))
+        XCTAssertTrue(settings.contains("session.coachClientPolicy.canViewVisualProgress"))
+        XCTAssertTrue(try source("APEX/Features/Avatar/AvatarView.swift")
+            .contains("session.coachClientPolicy.canViewVisualProgress"))
+        XCTAssertTrue(try source("APEX/Features/Training/TrainingProgramView.swift")
+            .contains("if session.coachClientPolicy.canCreateCustomWorkouts"))
+    }
+
     func testGraceIsReadOnlyAndIndividualAccessSurvivesIt() {
         let grace = CoachClientPolicy.resolve(
             relationshipStatus: .grace,

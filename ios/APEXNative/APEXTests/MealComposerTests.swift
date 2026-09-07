@@ -2,7 +2,267 @@ import XCTest
 import SwiftUI
 @testable import APEX
 
+private enum InjectedMealDeletionFailure: Error {
+    case local
+    case remote
+    case outbox
+}
+
 final class MealComposerTests: XCTestCase {
+    func testEmptySavedMealRequiresRemovalConfirmation() {
+        XCTAssertEqual(
+            MealComposerCommitPolicy.intent(itemCount: 0, existingMealID: UUID()),
+            .confirmRemoval
+        )
+    }
+
+    func testEmptyNewMealCannotBeCommitted() {
+        XCTAssertEqual(
+            MealComposerCommitPolicy.intent(itemCount: 0, existingMealID: nil),
+            .unavailable
+        )
+    }
+
+    func testNonemptyMealRetainsNormalSaveBehavior() {
+        XCTAssertEqual(
+            MealComposerCommitPolicy.intent(itemCount: 1, existingMealID: UUID()),
+            .save
+        )
+        XCTAssertEqual(
+            MealComposerCommitPolicy.intent(itemCount: 1, existingMealID: nil),
+            .save
+        )
+    }
+
+    func testConfirmedMealRemovalIsScopedToOwnerMealAndDate() throws {
+        let owner = UUID()
+        let anotherOwner = UUID()
+        let mealID = UUID()
+        let anotherMealID = UUID()
+        let target = loggedMeal(
+            id: mealID,
+            ownerID: owner,
+            localDate: "2026-08-29"
+        )
+        let otherDay = loggedMeal(
+            id: anotherMealID,
+            ownerID: owner,
+            localDate: "2026-08-30"
+        )
+        let collidingOtherOwner = loggedMeal(
+            id: mealID,
+            ownerID: anotherOwner,
+            localDate: "2026-08-29"
+        )
+        var dashboard = DashboardData.empty
+        dashboard.loggedMeals = [target, otherDay, collidingOtherOwner]
+        dashboard.loggedFoodEntries = [
+            loggedFoodEntry(id: UUID(), mealID: mealID, ownerID: owner),
+            loggedFoodEntry(id: UUID(), mealID: anotherMealID, ownerID: owner),
+            loggedFoodEntry(id: UUID(), mealID: mealID, ownerID: anotherOwner),
+        ]
+
+        let scope = try XCTUnwrap(StructuredMealDeletionScope(meal: target, ownerID: owner))
+        try scope.removeConfirmedMeal(from: &dashboard)
+
+        XCTAssertEqual(scope.localDate, "2026-08-29")
+        XCTAssertEqual(dashboard.loggedMeals.map(\.id), [anotherMealID, mealID])
+        XCTAssertEqual(dashboard.loggedMeals.map(\.userID), [owner, anotherOwner])
+        XCTAssertEqual(dashboard.loggedFoodEntries.map(\.mealID), [anotherMealID, mealID])
+        XCTAssertEqual(dashboard.loggedFoodEntries.map(\.userID), [owner, anotherOwner])
+    }
+
+    func testMealRemovalRejectsAnotherAccountsMeal() {
+        let meal = loggedMeal(
+            id: UUID(),
+            ownerID: UUID(),
+            localDate: "2026-08-29"
+        )
+
+        XCTAssertNil(StructuredMealDeletionScope(meal: meal, ownerID: UUID()))
+    }
+
+    func testMealRemovalRejectsSameOwnerAndIDWhenCapturedDateIsStale() throws {
+        let owner = UUID()
+        let mealID = UUID()
+        let staleTarget = loggedMeal(
+            id: mealID,
+            ownerID: owner,
+            localDate: "2026-08-29"
+        )
+        let currentMeal = loggedMeal(
+            id: mealID,
+            ownerID: owner,
+            localDate: "2026-08-30"
+        )
+        let currentEntry = loggedFoodEntry(id: UUID(), mealID: mealID, ownerID: owner)
+        var dashboard = DashboardData.empty
+        dashboard.loggedMeals = [currentMeal]
+        dashboard.loggedFoodEntries = [currentEntry]
+
+        let scope = try XCTUnwrap(
+            StructuredMealDeletionScope(meal: staleTarget, ownerID: owner)
+        )
+
+        XCTAssertThrowsError(try scope.removeConfirmedMeal(from: &dashboard)) { error in
+            XCTAssertEqual(error as? StructuredMealDeletionError, .targetChanged)
+        }
+        XCTAssertEqual(dashboard.loggedMeals.map(\.localDate), ["2026-08-30"])
+        XCTAssertEqual(dashboard.loggedFoodEntries.map(\.id), [currentEntry.id])
+    }
+
+    @MainActor
+    func testConfirmedMealDeletionRequiresDurableLocalSnapshotBeforeSync() async {
+        var calls: [String] = []
+
+        do {
+            _ = try await ConfirmedMealDeletionPersistence.persist(
+                local: {
+                    calls.append("local")
+                    throw InjectedMealDeletionFailure.local
+                },
+                remote: {
+                    calls.append("remote")
+                },
+                enqueue: {
+                    calls.append("enqueue")
+                }
+            )
+            XCTFail("Expected local durability failure")
+        } catch {
+            XCTAssertEqual(error as? StructuredMealDeletionError, .durabilityUnavailable)
+        }
+
+        XCTAssertEqual(calls, ["local"])
+    }
+
+    @MainActor
+    func testConfirmedMealDeletionThrowsWhenRemoteAndOutboxBothFail() async {
+        var calls: [String] = []
+
+        do {
+            _ = try await ConfirmedMealDeletionPersistence.persist(
+                local: {
+                    calls.append("local")
+                },
+                remote: {
+                    calls.append("remote")
+                    throw InjectedMealDeletionFailure.remote
+                },
+                enqueue: {
+                    calls.append("enqueue")
+                    throw InjectedMealDeletionFailure.outbox
+                }
+            )
+            XCTFail("Expected sync durability failure")
+        } catch {
+            XCTAssertEqual(error as? StructuredMealDeletionError, .durabilityUnavailable)
+        }
+
+        XCTAssertEqual(calls, ["local", "remote", "enqueue"])
+    }
+
+    @MainActor
+    func testConfirmedMealDeletionCanCompleteThroughDurableOutbox() async throws {
+        var calls: [String] = []
+
+        let outcome = try await ConfirmedMealDeletionPersistence.persist(
+            local: {
+                calls.append("local")
+            },
+            remote: {
+                calls.append("remote")
+                throw InjectedMealDeletionFailure.remote
+            },
+            enqueue: {
+                calls.append("enqueue")
+            }
+        )
+
+        XCTAssertEqual(outcome, .queued)
+        XCTAssertEqual(calls, ["local", "remote", "enqueue"])
+    }
+
+    @MainActor
+    func testMergedMealDeletionPreservesConcurrentNutritionChanges() async throws {
+        let owner = UUID()
+        let target = loggedMeal(
+            id: UUID(),
+            ownerID: owner,
+            localDate: "2026-08-29"
+        )
+        let concurrentMeal = loggedMeal(
+            id: UUID(),
+            ownerID: owner,
+            localDate: "2026-08-29"
+        )
+        var dashboard = DashboardData.empty
+        dashboard.loggedMeals = [target]
+        dashboard.loggedFoodEntries = [
+            loggedFoodEntry(id: UUID(), mealID: target.id, ownerID: owner),
+        ]
+        var revision: UInt64 = 0
+        var persistenceAttempts = 0
+        let scope = try XCTUnwrap(
+            StructuredMealDeletionScope(meal: target, ownerID: owner)
+        )
+        let change = try StructuredMealDeletionChange(scope: scope, data: dashboard)
+
+        let committed = try await ConfirmedMealDeletionPersistence
+            .persistMergedBeforePublishing(
+                snapshot: { (revision, dashboard) },
+                merge: { try change.deleting(from: $0) },
+                persist: { _ in
+                    persistenceAttempts += 1
+                    if persistenceAttempts == 1 {
+                        dashboard.loggedMeals.append(concurrentMeal)
+                        revision &+= 1
+                    }
+                }
+            )
+
+        XCTAssertEqual(persistenceAttempts, 2)
+        XCTAssertFalse(committed.loggedMeals.contains { $0.id == target.id })
+        XCTAssertTrue(committed.loggedMeals.contains { $0.id == concurrentMeal.id })
+        XCTAssertEqual(
+            committed.dailyLogs.first {
+                $0.userID == owner && $0.date == "2026-08-29"
+            }?.kcal,
+            420
+        )
+    }
+
+    func testMealDeletionRollbackRestoresOnlyItsOwnRows() throws {
+        let owner = UUID()
+        let target = loggedMeal(
+            id: UUID(),
+            ownerID: owner,
+            localDate: "2026-08-29"
+        )
+        let concurrentMeal = loggedMeal(
+            id: UUID(),
+            ownerID: owner,
+            localDate: "2026-08-30"
+        )
+        var original = DashboardData.empty
+        original.loggedMeals = [target]
+        original.loggedFoodEntries = [
+            loggedFoodEntry(id: UUID(), mealID: target.id, ownerID: owner),
+        ]
+        let scope = try XCTUnwrap(
+            StructuredMealDeletionScope(meal: target, ownerID: owner)
+        )
+        let change = try StructuredMealDeletionChange(scope: scope, data: original)
+        var latest = try change.deleting(from: original)
+        latest.loggedMeals.append(concurrentMeal)
+
+        let restored = change.restoring(in: latest)
+
+        XCTAssertTrue(restored.loggedMeals.contains { $0.id == target.id })
+        XCTAssertTrue(restored.loggedMeals.contains { $0.id == concurrentMeal.id })
+        XCTAssertTrue(restored.loggedFoodEntries.contains { $0.mealID == target.id })
+    }
+
     func testAPEXPopoverCardWidthPreservesSixteenPointGuttersOnCompactNotchedPhone() {
         let safeAreaInsets = EdgeInsets(top: 59, leading: 0, bottom: 34, trailing: 0)
 
@@ -533,6 +793,50 @@ final class MealComposerTests: XCTestCase {
             replaceMealID: id,
             loggedAs: "custom",
             items: []
+        )
+    }
+
+    private func loggedMeal(id: UUID, ownerID: UUID, localDate: String) -> LoggedMeal {
+        LoggedMeal(
+            id: id,
+            userID: ownerID,
+            localDate: localDate,
+            mealSlot: "lunch",
+            displayName: "Lunch",
+            sourcePresetID: nil,
+            sourcePlannedMealID: nil,
+            loggedAt: "\(localDate)T12:00:00Z",
+            clientIdempotencyKey: UUID().uuidString,
+            loggedAs: "custom",
+            totalKcal: 420,
+            totalProteinG: 30,
+            totalCarbsG: 45,
+            totalFatG: 12
+        )
+    }
+
+    private func loggedFoodEntry(id: UUID, mealID: UUID, ownerID: UUID) -> LoggedFoodEntry {
+        LoggedFoodEntry(
+            id: id,
+            mealID: mealID,
+            userID: ownerID,
+            foodID: nil,
+            sortOrder: 0,
+            snapshotName: "Oats",
+            snapshotBrand: nil,
+            snapshotPreparationState: "as_sold",
+            snapshotNutritionBasis: "per_100g",
+            snapshotKcal100: 100,
+            snapshotProtein100: 10,
+            snapshotCarbs100: 10,
+            snapshotFat100: 2,
+            quantity: 100,
+            unit: "g",
+            equivalentAmount: 100,
+            kcal: 100,
+            proteinG: 10,
+            carbsG: 10,
+            fatG: 2
         )
     }
 

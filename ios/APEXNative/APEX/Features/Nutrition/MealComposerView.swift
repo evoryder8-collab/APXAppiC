@@ -5,6 +5,19 @@ enum MealComposerCompactLayout {
     static let controlHeight: CGFloat = 40
 }
 
+enum MealComposerCommitIntent: Equatable {
+    case unavailable
+    case save
+    case confirmRemoval
+}
+
+enum MealComposerCommitPolicy {
+    static func intent(itemCount: Int, existingMealID: UUID?) -> MealComposerCommitIntent {
+        if itemCount > 0 { return .save }
+        return existingMealID == nil ? .unavailable : .confirmRemoval
+    }
+}
+
 struct MealComposerRequest: Identifiable, Hashable {
     let id = UUID()
     let date: Date
@@ -139,7 +152,8 @@ struct MealComposerView: View {
     @State private var showFoodPicker = false
     @State private var showBarcodeScanner = false
     @State private var showPresetCreator = false
-    @State private var showDeleteConfirmation = false
+    @State private var showDiscardConfirmation = false
+    @State private var showMealRemovalConfirmation = false
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var hydrated = false
@@ -297,7 +311,7 @@ struct MealComposerView: View {
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
             }
-            .alert("Could not save meal", isPresented: Binding(
+            .alert(language.text("Could not update meal"), isPresented: Binding(
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
             )) {
@@ -305,7 +319,7 @@ struct MealComposerView: View {
             } message: {
                 Text(language.text(errorMessage ?? "Please try again."))
             }
-            .confirmationDialog("Discard unsaved changes?", isPresented: $showDeleteConfirmation) {
+            .confirmationDialog(language.text("Discard unsaved changes?"), isPresented: $showDiscardConfirmation) {
                 Button(language.text("Discard"), role: .destructive) { dismiss() }
                 Button(language.text("Keep editing"), role: .cancel) {}
             }
@@ -741,7 +755,11 @@ struct MealComposerView: View {
     }
 
     private var saveBar: some View {
-        VStack(spacing: 0) {
+        let commitIntent = MealComposerCommitPolicy.intent(
+            itemCount: draft.items.count,
+            existingMealID: request.existingMeal?.id
+        )
+        return VStack(spacing: 0) {
             Divider().opacity(0.4)
             if let removedName = undoBuffer.removedName {
                 TimelineView(.periodic(from: .now, by: 0.25)) { context in
@@ -772,21 +790,47 @@ struct MealComposerView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
             Button {
-                guard let operation = session.accountOperationLease() else { return }
+                if commitIntent == .confirmRemoval {
+                    showMealRemovalConfirmation = true
+                    return
+                }
+                guard commitIntent == .save else { return }
+                guard let operation = session.accountOperationLease() else {
+                    errorMessage = "Your meal was not changed. Check access and try again."
+                    return
+                }
                 Task { await save(operation: operation) }
             } label: {
                 if isSaving {
                     ProgressView().tint(.white)
-                } else if draft.items.isEmpty {
+                } else if commitIntent == .confirmRemoval {
+                    Text(language.shortText("Remove meal"))
+                } else if commitIntent == .unavailable {
                     Text(language.text("Save changes & close"))
                 } else {
                     Text(language.format("Save changes & close · %d kcal", Int(draft.totals.kcal.rounded())))
                 }
             }
             .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.amber))
-            .disabled(isSaving || (draft.items.isEmpty && request.existingMeal == nil))
+            .disabled(isSaving || commitIntent == .unavailable)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
+            .confirmationDialog(
+                language.text("Remove this saved meal?"),
+                isPresented: $showMealRemovalConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(language.shortText("Remove meal"), role: .destructive) {
+                    guard let operation = session.accountOperationLease() else {
+                        errorMessage = "Your meal was not changed. Check access and try again."
+                        return
+                    }
+                    Task { await removeExistingMeal(operation: operation) }
+                }
+                Button(language.text("Keep editing"), role: .cancel) {}
+            } message: {
+                Text(language.text("It will be removed from this day. Your Food Memory and saved presets stay unchanged."))
+            }
         }
         .background(.ultraThinMaterial)
         .task(id: undoBuffer.removalToken) {
@@ -969,20 +1013,6 @@ struct MealComposerView: View {
                 isSaving = false
             }
         }
-        if draft.items.isEmpty, let existingMeal = request.existingMeal {
-            do {
-                try await session.deleteLoggedMeal(existingMeal, operation: operation)
-                guard session.accountOperationIsCurrent(operation) else { return }
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
-                dismiss()
-            } catch is CancellationError {
-                return
-            } catch {
-                guard session.accountOperationIsCurrent(operation) else { return }
-                errorMessage = error.localizedDescription
-            }
-            return
-        }
         do {
             try await session.saveStructuredMeal(draft, operation: operation)
             guard session.accountOperationIsCurrent(operation) else { return }
@@ -996,9 +1026,31 @@ struct MealComposerView: View {
         }
     }
 
+    @MainActor
+    private func removeExistingMeal(operation: AccountOperationLease) async {
+        guard let existingMeal = request.existingMeal else { return }
+        isSaving = true
+        defer {
+            if session.accountOperationIsCurrent(operation) {
+                isSaving = false
+            }
+        }
+        do {
+            try await session.deleteLoggedMeal(existingMeal, operation: operation)
+            guard session.accountOperationIsCurrent(operation) else { return }
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            dismiss()
+        } catch is CancellationError {
+            return
+        } catch {
+            guard session.accountOperationIsCurrent(operation) else { return }
+            errorMessage = error.localizedDescription
+        }
+    }
+
     private func close() {
-        if draft.items.isEmpty { dismiss() }
-        else { showDeleteConfirmation = true }
+        if draft.items.isEmpty, request.existingMeal == nil { dismiss() }
+        else { showDiscardConfirmation = true }
     }
 
     private static func defaultFinishedAt(on date: Date, slot: String) -> Date {

@@ -733,10 +733,13 @@ final class MealMemoryParityTests: XCTestCase {
 
         XCTAssertTrue(
             source.contains(
-                "guard let operation = session.accountOperationLease() else { return }\n"
+                "guard let operation = session.accountOperationLease() else {\n"
+                    + "                    errorMessage = \"Your meal was not changed. Check access and try again.\"\n"
+                    + "                    return\n"
+                    + "                }\n"
                     + "                Task { await save(operation: operation) }"
             ),
-            "the account lease must be captured synchronously in the button action, before the unstructured Task can adopt a later account"
+            "the account lease must be captured synchronously before the Task, and an unavailable lease must visibly preserve the meal"
         )
         XCTAssertTrue(
             source.contains("private func save(operation: AccountOperationLease) async"),
@@ -821,10 +824,16 @@ final class MealMemoryParityTests: XCTestCase {
             3,
             "recalculation must validate before local publication, after hydration-event sync, and after HealthKit sync"
         )
-        assertEveryPostAwaitMutationIsLeaseGuarded(
-            "data.dailyLogs.removeAll",
-            in: body,
-            message: "daily-log publication must belong to the account that initiated the meal save"
+        let projection = "StructuredNutritionDayProjection.apply( date: date, ownerID: operation.ownerID, to: &data )"
+        let hydration = "try await reconcileStructuredDayHydration(date, operation: operation)"
+        guard let projectionRange = compactBody.range(of: projection),
+              let hydrationRange = compactBody.range(of: hydration) else {
+            return XCTFail("the owner-bound day projection must complete before hydration can suspend")
+        }
+        XCTAssertLessThan(
+            projectionRange.lowerBound,
+            hydrationRange.lowerBound,
+            "daily-log publication must remain owner-bound and finish before the first await"
         )
     }
 

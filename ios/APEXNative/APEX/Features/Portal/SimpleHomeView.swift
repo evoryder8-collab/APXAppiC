@@ -124,30 +124,29 @@ struct SimpleHomeView: View {
         return weekday == 1 ? 7 : weekday - 1
     }
     private var guidedProgramSlug: String {
-        if session.coachClientPolicy.canFollowCoachPlan,
-           TrainingInduction.hasUsablePrescription(in: session.data, slug: "coach") {
-            return "coach"
-        }
-        let fallback = SimpleHomeLogic.guidedProgramSlug(
+        let hasInduction = session.data.settings?.addons["training_induction"]?.objectValue != nil
+        return SimpleHomeLogic.guidedProgramSlug(
             persona: profile?.persona,
             mainIsUsable: TrainingInduction.hasUsablePrescription(in: session.data, slug: "main"),
-            transitionIsUsable: TrainingInduction.hasUsablePrescription(in: session.data, slug: "transition")
+            transitionIsUsable: TrainingInduction.hasUsablePrescription(in: session.data, slug: "transition"),
+            coachManaged: session.coachContext.capabilities.sponsoredClient
+                && !session.coachClientPolicy.canCreateCustomWorkouts,
+            coachIsUsable: session.coachClientPolicy.canFollowCoachPlan
+                && TrainingInduction.hasUsablePrescription(in: session.data, slug: "coach"),
+            transitionInductionIsUsable: hasInduction
+                && TrainingPlanEngine.isInsideInductionWindow(session.data, slug: "transition", date: today)
+                && TrainingInduction.hasUsablePrescription(in: session.data, slug: "transition"),
+            mainInductionIsUsable: hasInduction
+                && TrainingPlanEngine.isInsideInductionWindow(session.data, slug: "main", date: today)
+                && TrainingInduction.hasUsablePrescription(in: session.data, slug: "main")
         )
-        guard session.data.settings?.addons["training_induction"]?.objectValue != nil else {
-            return fallback
-        }
-        if TrainingPlanEngine.isInsideInductionWindow(session.data, slug: "transition", date: today),
-           TrainingInduction.hasUsablePrescription(in: session.data, slug: "transition") {
-            return "transition"
-        }
-        if TrainingPlanEngine.isInsideInductionWindow(session.data, slug: "main", date: today),
-           TrainingInduction.hasUsablePrescription(in: session.data, slug: "main") {
-            return "main"
-        }
-        return fallback
     }
     private var guidedProgramRoute: PortalDestination {
-        guidedProgramSlug == "coach" ? .coachWorkouts : guidedProgramSlug == "main" ? .mainPhase : .transition
+        if guidedProgramSlug == "coach" {
+            return TrainingInduction.hasUsablePrescription(in: session.data, slug: "coach")
+                ? .coachWorkouts : .coachPlan
+        }
+        return guidedProgramSlug == "main" ? .mainPhase : .transition
     }
     private var hasUsableTrainingPlan: Bool {
         guard TrainingInduction.hasUsablePrescription(in: session.data, slug: guidedProgramSlug) else {
@@ -321,7 +320,7 @@ struct SimpleHomeView: View {
             VStack(spacing: 8) {
                 APEXTopBar(
                     profile: profile,
-                    onSettings: { session.navigationPath.append(.settings) },
+                    onSettings: { session.openPortalDestination(.settings) },
                     nudges: nudges,
                     onOpenNudges: { showNudges = true }
                 )
@@ -344,7 +343,7 @@ struct SimpleHomeView: View {
 
             if session.coachContext.capabilities.sponsoredClient {
                 Button {
-                    session.navigationPath.append(.coachPlan)
+                    session.openPortalDestination(.coachPlan)
                 } label: {
                     CoachSimpleShortcut(
                         title: language.text("Your coach plan"),
@@ -357,7 +356,7 @@ struct SimpleHomeView: View {
             }
             if session.coachContext.capabilities.coachWorkspace {
                 Button {
-                    session.navigationPath.append(.coachWorkspace)
+                    session.openPortalDestination(.coachWorkspace)
                 } label: {
                     CoachSimpleShortcut(
                         title: language.text("Coach workspace"),
@@ -384,6 +383,7 @@ struct SimpleHomeView: View {
                             date: selectedDate,
                             targets: targets,
                             onEditTargets: { showTargetEditor = true },
+                            canEditTargets: session.coachClientPolicy.canRebuildFitnessPlan,
                             onOpenCalendar: { showCalendar = true },
                             completion: completion
                         )
@@ -480,7 +480,11 @@ struct SimpleHomeView: View {
         .task { await session.refreshNudges() }
         .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(isPresented: $showWorkout) {
-            if let todayProgramDay {
+            if SimpleHomeLogic.canPresentGuidedWorkout(
+                slug: guidedProgramSlug,
+                policy: session.coachClientPolicy,
+                capabilities: session.coachContext.capabilities
+            ), let todayProgramDay {
                 WorkoutPlayerView(
                     day: todayProgramDay,
                     exercises: workoutExercises,
@@ -548,7 +552,7 @@ struct SimpleHomeView: View {
                     ) { lite in
                         quickPanel = nil
                         guard todayProgramDay != nil else {
-                            session.navigationPath.append(guidedProgramRoute)
+                            session.openPortalDestination(guidedProgramRoute)
                             return
                         }
                         workoutIsLite = lite
@@ -668,7 +672,7 @@ struct SimpleHomeView: View {
 
     private var orbitShortcut: some View {
         Button {
-            session.navigationPath.append(.orbit)
+            session.openPortalDestination(.orbit)
         } label: {
             SimpleShortcutCard(
                 icon: "figure.run",
@@ -683,7 +687,7 @@ struct SimpleHomeView: View {
 
     private var avatarShortcut: some View {
         Button {
-            session.navigationPath.append(.avatar)
+            session.openPortalDestination(.avatar)
         } label: {
             SimpleShortcutCard(
                 icon: "sparkles",
@@ -803,7 +807,7 @@ struct SimpleHomeView: View {
         case .water:
             addWater()
         case .progress:
-            session.navigationPath.append(.avatar)
+            session.openPortalDestination(.avatar)
         }
     }
 
@@ -2269,7 +2273,7 @@ private struct StatsQuickSheet: View {
             }
             Button(language.text("Open full Avatar")) {
                 onClose()
-                session.navigationPath.append(.avatar)
+                session.openPortalDestination(.avatar)
             }
             .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.green))
         }

@@ -4474,6 +4474,11 @@
 "Date of birth" = "Data nașterii";
 "Delete this finished workout?" = "Şterge acest antrenament terminat?";
 "Delete workout" = "Șterge antrenamentul";
+"That workout is no longer available." = "Acest antrenament nu mai este disponibil.";
+"Choose whether to replace the workout already planned for that day." = "Alege dacă vrei să înlocuiești antrenamentul deja planificat pentru acea zi.";
+"Edit workout" = "Editează antrenamentul";
+"Save changes" = "Salvează modificările";
+"Replace workout" = "Înlocuiește antrenamentul";
 "Deload ·  " = "Deload ·";
 "Drink type" = "Tipul de băutură";
 "EST. WATER" = "EST. APE";
@@ -5550,3 +5555,9 @@
 "Access for this account has expired. Your account data has not been changed." = "Accesul pentru acest cont a expirat. Datele contului nu au fost modificate.";
 "This account does not currently have access. Your account data has not been changed." = "Acest cont nu are acces în prezent. Datele contului nu au fost modificate.";
 "Access was restored, but APEX could not refresh your account yet. Try again when online." = "Accesul a fost restabilit, dar APEX nu a putut încă actualiza acest cont. Încearcă din nou când ești online.";
+"Could not update meal" = "Masa nu a putut fi actualizată";
+"Remove this saved meal?" = "Elimini această masă salvată?";
+"It will be removed from this day. Your Food Memory and saved presets stay unchanged." = "Va fi eliminată din această zi. Memoria alimentară și presetările salvate rămân neschimbate.";
+"Your meal was not changed. Check access and try again." = "Masa nu a fost modificată. Verifică accesul și încearcă din nou.";
+"That meal changed before it could be removed. Refresh and try again." = "Masa s-a modificat înainte de a putea fi eliminată. Reîmprospătează și încearcă din nou.";
+"That meal could not be removed safely. Refresh and try again." = "Masa nu a putut fi eliminată în siguranță. Reîmprospătează și încearcă din nou.";

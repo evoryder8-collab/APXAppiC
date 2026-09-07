@@ -2099,6 +2099,11 @@
 "Deep calorie deficit under a strength session. XP tempered -15%, recovery costs energy" = "deficit calorico profondo sotto una sessione di forza. XP temperato -15%, costi di recupero energia";
 "Delete this finished workout?" = "Eliminare questo allenamento finito?";
 "Delete workout" = "Elimina allenamento";
+"That workout is no longer available." = "Questo allenamento non è più disponibile.";
+"Choose whether to replace the workout already planned for that day." = "Scegli se sostituire l'allenamento già pianificato per quel giorno.";
+"Edit workout" = "Modifica allenamento";
+"Save changes" = "Salva modifiche";
+"Replace workout" = "Sostituisci allenamento";
 "Deload day: two controlled sets per exercise, 3-4 RIR, lighter" = "Giorno di scarico: due set controllati per esercizio, 3-4 RIR♪";
 "Deload honored. Joint Health banked the recovery" = "Deload onorato. Joint Health ha finanziato il recupero";
 "Deload prescription: one fewer set, lighter load, 3 to 4 reps in reserve." = "Prescrizione del carico: un meno set, carico più leggero, 3 a 4 reps in riserva.";
@@ -5569,3 +5574,9 @@
 "Access for this account has expired. Your account data has not been changed." = "L’accesso per questo account è scaduto. I dati dell’account non sono stati modificati.";
 "This account does not currently have access. Your account data has not been changed." = "Questo account al momento non dispone dell’accesso. I dati dell’account non sono stati modificati.";
 "Access was restored, but APEX could not refresh your account yet. Try again when online." = "L’accesso è stato ripristinato, ma APEX non ha ancora potuto aggiornare l’account. Riprova quando sei online.";
+"Could not update meal" = "Impossibile aggiornare il pasto";
+"Remove this saved meal?" = "Rimuovere questo pasto salvato?";
+"It will be removed from this day. Your Food Memory and saved presets stay unchanged." = "Verrà rimosso da questo giorno. Food Memory e i preset salvati resteranno invariati.";
+"Your meal was not changed. Check access and try again." = "Il pasto non è stato modificato. Verifica l’accesso e riprova.";
+"That meal changed before it could be removed. Refresh and try again." = "Il pasto è stato modificato prima che potesse essere rimosso. Aggiorna e riprova.";
+"That meal could not be removed safely. Refresh and try again." = "Non è stato possibile rimuovere il pasto in modo sicuro. Aggiorna e riprova.";

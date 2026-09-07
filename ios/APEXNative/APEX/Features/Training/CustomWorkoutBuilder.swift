@@ -1,28 +1,433 @@
 import SwiftUI
 
+struct CustomWorkoutMutationGate {
+    private(set) var activeToken: UUID?
+
+    var isActive: Bool { activeToken != nil }
+
+    mutating func begin() -> UUID? {
+        guard activeToken == nil else { return nil }
+        let token = UUID()
+        activeToken = token
+        return token
+    }
+
+    mutating func finish(_ token: UUID) {
+        guard activeToken == token else { return }
+        activeToken = nil
+    }
+
+    mutating func reset() {
+        activeToken = nil
+    }
+}
+
+/*
+ * Pure custom-workout mutations. Building the proposed dashboard separately
+ * lets AppSession durably save it before publishing any observable state, and
+ * makes an occupied weekday an explicit replacement instead of a silent one.
+ */
+enum CustomWorkoutLifecycle {
+    enum Error: Swift.Error, Equatable, LocalizedError {
+        case missingWorkout
+        case replacementConfirmationRequired(Set<UUID>)
+
+        var errorDescription: String? {
+            switch self {
+            case .missingWorkout:
+                return "That workout is no longer available."
+            case .replacementConfirmationRequired:
+                return "Choose whether to replace the workout already planned for that day."
+            }
+        }
+    }
+
+    struct EditorDraft {
+        let name: String
+        let weekday: Int
+        let sessionMode: WorkoutSessionMode
+        let picks: [CustomWorkoutBuilder.Pick]
+    }
+
+    struct SaveRequest {
+        let name: String
+        let weekday: Int
+        let estimatedMinutes: Int
+        let sessionMode: WorkoutSessionMode
+        let picks: [CustomWorkoutBuilder.Pick]
+        let editingDayID: UUID?
+        let confirmedReplacementDayIDs: Set<UUID>
+    }
+
+    struct SaveChange {
+        let dashboard: DashboardData
+        let program: Program
+        let day: ProgramDay
+        let exercises: [Exercise]
+        let staleExerciseIDs: [UUID]
+        let deactivatedDays: [ProgramDay]
+
+        @MainActor
+        func merging(into current: DashboardData) -> DashboardData {
+            var merged = current
+            merged.programs.removeAll {
+                $0.id == program.id && $0.userID == program.userID
+            }
+            merged.programs.append(program)
+
+            for changedDay in deactivatedDays + [day] {
+                merged.programDays.removeAll {
+                    $0.id == changedDay.id && $0.userID == changedDay.userID
+                }
+                merged.programDays.append(changedDay)
+            }
+
+            /* The gate serializes edits to this custom day, so replacing only
+               its exercise rows preserves every unrelated dashboard change
+               that may have arrived while the durable write was suspended. */
+            merged.exercises.removeAll {
+                $0.userID == day.userID && $0.programDayID == day.id
+            }
+            merged.exercises.append(contentsOf: exercises)
+            return merged
+        }
+    }
+
+    enum SaveOutcome: Equatable {
+        case saved
+        case replacementConfirmationRequired(Set<UUID>)
+        case denied
+    }
+
+    struct ArchiveChange {
+        let dashboard: DashboardData
+        let day: ProgramDay
+
+        @MainActor
+        func merging(into current: DashboardData) -> DashboardData {
+            var merged = current
+            merged.programDays.removeAll {
+                $0.id == day.id && $0.userID == day.userID
+            }
+            merged.programDays.append(day)
+            return merged
+        }
+    }
+
+    @MainActor
+    static func editorDraft(for day: ProgramDay, in data: DashboardData) -> EditorDraft? {
+        guard day.isActive,
+              data.programs.contains(where: {
+                  $0.id == day.programID && $0.userID == day.userID && $0.slug == "custom"
+              }) else { return nil }
+
+        let exercises = data.exercises
+            .filter { $0.userID == day.userID && $0.programDayID == day.id }
+            .sorted { left, right in
+                if left.sortOrder == right.sortOrder {
+                    return left.id.uuidString < right.id.uuidString
+                }
+                return left.sortOrder < right.sortOrder
+            }
+        let picks = exercises.enumerated().map { index, exercise in
+            let item = catalogItem(for: exercise)
+            let next = exercises.indices.contains(index + 1) ? exercises[index + 1] : nil
+            return CustomWorkoutBuilder.Pick(
+                item: item,
+                sets: exercise.sets,
+                reps: exercise.repMax,
+                rest: exercise.restSeconds,
+                linkedToNext: exercise.workGroupID != nil
+                    && exercise.workGroupID == next?.workGroupID
+            )
+        }
+        return EditorDraft(
+            name: day.name,
+            weekday: day.weekday,
+            sessionMode: WorkoutSessionMode(rawValue: day.sessionMode) ?? .guided,
+            picks: picks
+        )
+    }
+
+    @MainActor
+    static func prepareSave(
+        in data: DashboardData,
+        ownerID: UUID,
+        request: SaveRequest
+    ) throws -> SaveChange {
+        let editingDay: ProgramDay?
+        if let editingDayID = request.editingDayID {
+            guard let match = data.programDays.first(where: {
+                $0.id == editingDayID && $0.userID == ownerID && $0.isActive
+            }), data.programs.contains(where: {
+                $0.id == match.programID && $0.userID == ownerID && $0.slug == "custom"
+            }) else { throw Error.missingWorkout }
+            editingDay = match
+        } else {
+            editingDay = nil
+        }
+
+        let program = editingDay.flatMap { edited in
+            data.programs.first { $0.id == edited.programID && $0.userID == ownerID }
+        } ?? data.programs.first { $0.userID == ownerID && $0.slug == "custom" }
+            ?? Program(
+                id: UUID(),
+                userID: ownerID,
+                slug: "custom",
+                name: "Custom workouts",
+                description: "Your searchable exercise studio, saved privately."
+            )
+        let conflicts = data.programDays.filter {
+            $0.userID == ownerID
+                && $0.programID == program.id
+                && $0.isActive
+                && $0.weekday == request.weekday
+                && $0.id != request.editingDayID
+        }
+        let conflictIDs = Set(conflicts.map(\.id))
+        if !conflictIDs.isEmpty,
+           request.confirmedReplacementDayIDs != conflictIDs {
+            throw Error.replacementConfirmationRequired(conflictIDs)
+        }
+
+        /* Only an explicit edit may retain a day identity. Reusing an
+           occupied day's ID for a brand-new workout would make historical
+           receipts resolve to the new name and exercises. */
+        let dayID = request.editingDayID ?? UUID()
+        let day = ProgramDay(
+            id: dayID,
+            userID: ownerID,
+            programID: program.id,
+            weekday: min(max(request.weekday, 1), 7),
+            name: request.name,
+            dayType: "custom",
+            estimatedMinutes: request.estimatedMinutes,
+            warmupNote: "Five minutes of pain-free joint preparation",
+            sortOrder: min(max(request.weekday, 1), 7),
+            sessionMode: request.sessionMode.rawValue
+        )
+        let rows = CustomWorkoutBuilder.exerciseRows(
+            userID: ownerID,
+            programDayID: dayID,
+            picks: request.picks
+        )
+        let staleExercises = data.exercises.filter {
+            $0.userID == ownerID && $0.programDayID == dayID
+        }
+        let deactivatedIDs = conflictIDs
+        var deactivatedDays: [ProgramDay] = []
+        var dashboard = data
+        dashboard.programs.removeAll { $0.id == program.id && $0.userID == ownerID }
+        dashboard.programs.append(program)
+        dashboard.programDays = dashboard.programDays.map { existing in
+            guard existing.userID == ownerID else { return existing }
+            if existing.id == dayID { return day }
+            guard deactivatedIDs.contains(existing.id) else { return existing }
+            var archived = existing
+            archived.isActive = false
+            deactivatedDays.append(archived)
+            return archived
+        }
+        if !dashboard.programDays.contains(where: { $0.id == dayID && $0.userID == ownerID }) {
+            dashboard.programDays.append(day)
+        }
+        dashboard.exercises.removeAll {
+            $0.userID == ownerID && $0.programDayID == dayID
+        }
+        dashboard.exercises.append(contentsOf: rows)
+
+        return SaveChange(
+            dashboard: dashboard,
+            program: program,
+            day: day,
+            exercises: rows,
+            staleExerciseIDs: staleExercises.map(\.id),
+            deactivatedDays: deactivatedDays
+        )
+    }
+
+    @MainActor
+    static func prepareArchive(
+        dayID: UUID,
+        in data: DashboardData,
+        ownerID: UUID
+    ) throws -> ArchiveChange {
+        guard let existing = data.programDays.first(where: {
+            $0.id == dayID && $0.userID == ownerID && $0.isActive
+        }), data.programs.contains(where: {
+            $0.id == existing.programID && $0.userID == ownerID && $0.slug == "custom"
+        }) else { throw Error.missingWorkout }
+
+        var archived = existing
+        archived.isActive = false
+        var dashboard = data
+        guard let index = dashboard.programDays.firstIndex(where: {
+            $0.id == dayID && $0.userID == ownerID
+        }) else { throw Error.missingWorkout }
+        dashboard.programDays[index] = archived
+        return ArchiveChange(dashboard: dashboard, day: archived)
+    }
+
+    @MainActor
+    static func persistMutation(
+        snapshot: @MainActor () -> (revision: UInt64, dashboard: DashboardData),
+        merge: @MainActor (DashboardData) -> DashboardData,
+        requireCurrent: @MainActor () throws -> Void,
+        saveDashboard: @MainActor (DashboardData) async throws -> Void,
+        enqueue: @MainActor () async throws -> Void
+    ) async throws -> DashboardData {
+        var didCommit = false
+        do {
+            // Stabilize the cache before creating executable remote work.
+            var stableRevision: UInt64
+            var committed: DashboardData
+            while true {
+                try requireCurrent()
+                let base = snapshot()
+                committed = merge(base.dashboard)
+                try await saveDashboard(committed)
+                try requireCurrent()
+                if snapshot().revision == base.revision {
+                    stableRevision = base.revision
+                    break
+                }
+            }
+            try await enqueue()
+            didCommit = true
+            try requireCurrent()
+
+            // Enqueue is the durable commit point. A later cache refresh is
+            // best effort: its failure cannot turn replayable work into an
+            // "unsaved" result or undo the already committed cache contents.
+            while snapshot().revision != stableRevision {
+                let base = snapshot()
+                committed = merge(base.dashboard)
+                do {
+                    try await saveDashboard(committed)
+                } catch {
+                    try requireCurrent()
+                    return merge(snapshot().dashboard)
+                }
+                try requireCurrent()
+                stableRevision = base.revision
+            }
+            return committed
+        } catch {
+            // Never read another account's observable state for rollback.
+            try requireCurrent()
+            if !didCommit {
+                while true {
+                    let base = snapshot()
+                    do {
+                        try await saveDashboard(base.dashboard)
+                    } catch {
+                        try requireCurrent()
+                        break
+                    }
+                    try requireCurrent()
+                    if snapshot().revision == base.revision { break }
+                }
+            }
+            throw error
+        }
+    }
+
+    @MainActor
+    static func persistBeforePublishing(
+        _ proposed: DashboardData,
+        persist: @MainActor (DashboardData) async throws -> Void
+    ) async throws -> DashboardData {
+        try await persist(proposed)
+        return proposed
+    }
+
+    @MainActor
+    static func persistMergedBeforePublishing(
+        snapshot: @MainActor () -> (revision: UInt64, dashboard: DashboardData),
+        merge: @MainActor (DashboardData) -> DashboardData,
+        persist: @MainActor (DashboardData) async throws -> Void
+    ) async throws -> DashboardData {
+        while true {
+            let base = snapshot()
+            let proposed = merge(base.dashboard)
+            try await persist(proposed)
+            guard snapshot().revision != base.revision else { return proposed }
+        }
+    }
+
+    private static func catalogItem(for exercise: Exercise) -> ExerciseCatalogItem {
+        if let movementID = exercise.movementID,
+           let item = ExerciseCatalog.all.first(where: { $0.movementID == movementID || $0.id == movementID }) {
+            return item
+        }
+        let detail = exercise.notes.split(separator: "·", maxSplits: 1).map {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return ExerciseCatalogItem(
+            id: exercise.movementID ?? exercise.id.uuidString,
+            movementID: exercise.movementID ?? exercise.id.uuidString,
+            name: exercise.name,
+            category: "all",
+            categories: ["all"],
+            equipment: detail.first ?? "",
+            muscles: detail.count > 1 ? detail[1].split(separator: ",").map {
+                $0.trimmingCharacters(in: .whitespacesAndNewlines)
+            } : [],
+            dayType: "custom",
+            sets: exercise.sets,
+            reps: exercise.repMax,
+            rest: exercise.restSeconds,
+            unit: exercise.repUnit,
+            perSide: exercise.perSide,
+            loadable: exercise.incrementKG > 0,
+            incrementKG: exercise.incrementKG,
+            names: [:],
+            aliases: [:]
+        )
+    }
+}
+
 /*
  * Build a session from the movement library and save it as a custom day.
  *
  * Mirrors the web builder: name it, pick the weekday it belongs to, search
- * the catalogue, then tune sets, reps and rest per movement. Saving replaces
- * that weekday's custom day so editing is idempotent rather than additive.
+ * the catalogue, then tune sets, reps and rest per movement. Editing reuses
+ * its identity; a fresh save on an occupied weekday requires confirmation.
  */
 struct CustomWorkoutBuilder: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     @State private var language = LanguageState.shared
 
-    @State private var name = ""
-    @State private var weekday = CustomWorkoutBuilder.isoWeekdayToday()
-    @State private var sessionMode = WorkoutSessionMode.guided
+    @State private var name: String
+    @State private var weekday: Int
+    @State private var sessionMode: WorkoutSessionMode
     @State private var query = ""
     @State private var category = "all"
-    @State private var picks: [Pick] = []
+    @State private var picks: [Pick]
     @State private var showValidation = false
+    @State private var showReplacementConfirmation = false
+    @State private var pendingReplacementDayIDs: Set<UUID> = []
+    @State private var isSaving = false
     @FocusState private var searchFocused: Bool
+    private let editingDayID: UUID?
 
     /// Set as the sheet closes, so the presenter can react once it is gone.
     @Binding var didSave: Bool
+
+    init(
+        didSave: Binding<Bool>,
+        editingDay: ProgramDay? = nil,
+        data: DashboardData = .empty
+    ) {
+        _didSave = didSave
+        editingDayID = editingDay?.id
+        let draft = editingDay.flatMap { CustomWorkoutLifecycle.editorDraft(for: $0, in: data) }
+        _name = State(initialValue: draft?.name ?? "")
+        _weekday = State(initialValue: draft?.weekday ?? Self.isoWeekdayToday())
+        _sessionMode = State(initialValue: draft?.sessionMode ?? .guided)
+        _picks = State(initialValue: draft?.picks ?? [])
+    }
 
     struct Pick: Identifiable, Hashable {
         let item: ExerciseCatalogItem
@@ -330,20 +735,38 @@ struct CustomWorkoutBuilder: View {
                 .padding(18)
             }
             .background(APEXBackground())
-            .navigationTitle(language.text("Build a workout"))
+            .navigationTitle(language.text(editingDayID == nil ? "Build a workout" : "Edit workout"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(language.text("Cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(language.text("Save")) { save() }
+                    Button(language.shortText(editingDayID == nil ? "Save" : "Save changes")) { save() }
                         .fontWeight(.bold)
-                        .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty || picks.isEmpty)
+                        .disabled(
+                            isSaving
+                                || session.customWorkoutMutationIsActive
+                                || name.trimmingCharacters(in: .whitespaces).isEmpty
+                                || picks.isEmpty
+                        )
                 }
             }
             .alert(language.text("Name the workout and add at least one movement."), isPresented: $showValidation) {
                 Button(language.text("OK"), role: .cancel) {}
+            }
+            .confirmationDialog(
+                language.text("Saving another workout on the same weekday replaces that day's custom plan."),
+                isPresented: $showReplacementConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button(language.shortText("Replace workout"), role: .destructive) {
+                    save(confirming: pendingReplacementDayIDs)
+                }
+                .accessibilityIdentifier("custom-workout-replace-confirm")
+                Button(language.text("Keep"), role: .cancel) {
+                    pendingReplacementDayIDs = []
+                }
             }
         }
     }
@@ -470,26 +893,40 @@ struct CustomWorkoutBuilder: View {
         .background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 11))
     }
 
-    private func save() {
+    private func save(confirming replacementDayIDs: Set<UUID> = []) {
         let trimmed = name.trimmingCharacters(in: .whitespaces)
         guard !trimmed.isEmpty, !picks.isEmpty else {
             showValidation = true
             return
         }
         guard let operation = session.accountOperationLease() else { return }
+        isSaving = true
         Task {
+            defer {
+                if session.accountOperationIsCurrent(operation) { isSaving = false }
+            }
             do {
-                try await session.saveCustomWorkout(
+                let outcome = try await session.saveCustomWorkout(
                     name: trimmed,
                     weekday: weekday,
                     estimatedMinutes: estimatedMinutes,
                     sessionMode: sessionMode,
                     picks: picks,
+                    editingDayID: editingDayID,
+                    confirmedReplacementDayIDs: replacementDayIDs,
                     operation: operation
                 )
                 guard session.accountOperationIsCurrent(operation) else { return }
-                didSave = true
-                dismiss()
+                switch outcome {
+                case .saved:
+                    didSave = true
+                    dismiss()
+                case .replacementConfirmationRequired(let dayIDs):
+                    pendingReplacementDayIDs = dayIDs
+                    showReplacementConfirmation = true
+                case .denied:
+                    break
+                }
             } catch is CancellationError {
                 return
             } catch {

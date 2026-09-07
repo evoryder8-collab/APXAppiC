@@ -868,6 +868,101 @@ final class APEXSmokeUITests: XCTestCase {
         capture("custom-workout-sport-movement-selected")
     }
 
+    func testCustomWorkoutLifecycleCreatesReopensEditsDeliberatelyReplacesAndDeletes() {
+        let app = configuredApp()
+        app.launch()
+
+        func openBuilder() {
+            let build = app.buttons["custom-workout-build"]
+            if !isReachable(build) {
+                if build.exists && build.frame.midY < app.frame.midY {
+                    XCTAssertTrue(scrollUpUntilVisible(build, in: app, attempts: 14))
+                } else {
+                    XCTAssertTrue(scrollUntilVisible(build, in: app, attempts: 14))
+                }
+            }
+            XCTAssertTrue(isReachable(build))
+            tapClearOfDock(build)
+            XCTAssertTrue(app.textFields["custom-workout-name"].waitForExistence(timeout: 4))
+        }
+
+        func addPowerSnatch() {
+            let search = app.textFields["custom-workout-search"]
+            XCTAssertTrue(scrollUntilVisible(search, in: app, attempts: 6))
+            search.tap()
+            search.typeText("Power Snatch")
+            let result = app.buttons["custom-workout-item-power_snatch"]
+            XCTAssertTrue(result.waitForExistence(timeout: 3))
+            result.tap()
+            XCTAssertTrue(
+                app.descendants(matching: .any)["custom-workout-selected-power_snatch"]
+                    .waitForExistence(timeout: 3)
+            )
+        }
+
+        XCTAssertTrue(expandFitnessPlan(in: app))
+        let training = app.buttons["portal.transition"]
+        XCTAssertTrue(scrollUntilVisible(training, in: app))
+        tapClearOfDock(training)
+
+        openBuilder()
+        let firstName = app.textFields["custom-workout-name"]
+        firstName.tap()
+        firstName.typeText("Audit Strength")
+        addPowerSnatch()
+        app.buttons["Save"].tap()
+
+        XCTAssertTrue(app.staticTexts["Audit Strength"].waitForExistence(timeout: 5))
+        let edit = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "custom-workout-edit-")
+        ).firstMatch
+        XCTAssertTrue(scrollUntilVisible(edit, in: app, attempts: 14))
+        tapClearOfDock(edit)
+
+        let reopenedName = app.textFields["custom-workout-name"]
+        XCTAssertTrue(reopenedName.waitForExistence(timeout: 4))
+        XCTAssertEqual(reopenedName.value as? String, "Audit Strength")
+        XCTAssertTrue(
+            app.descendants(matching: .any)["custom-workout-selected-power_snatch"]
+                .waitForExistence(timeout: 3),
+            "reopening must preload the saved prescription"
+        )
+        reopenedName.tap()
+        reopenedName.typeText(" Revised")
+        app.buttons["Save"].tap()
+        XCTAssertTrue(app.staticTexts["Audit Strength Revised"].waitForExistence(timeout: 5))
+
+        openBuilder()
+        let replacementName = app.textFields["custom-workout-name"]
+        replacementName.tap()
+        replacementName.typeText("Replacement Session")
+        addPowerSnatch()
+        app.buttons["Save"].tap()
+        let replaceConfirm = app.buttons.matching(
+            identifier: "custom-workout-replace-confirm"
+        ).firstMatch
+        XCTAssertTrue(
+            replaceConfirm.waitForExistence(timeout: 3),
+            "a fresh workout on the occupied weekday must ask before replacing"
+        )
+        replaceConfirm.tap()
+        XCTAssertTrue(app.staticTexts["Replacement Session"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.staticTexts["Audit Strength Revised"].exists)
+
+        let delete = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "custom-workout-delete-")
+        ).firstMatch
+        XCTAssertTrue(scrollUntilVisible(delete, in: app, attempts: 14))
+        tapClearOfDock(delete)
+        let deleteConfirm = app.buttons.matching(
+            identifier: "custom-workout-delete-confirm"
+        ).firstMatch
+        XCTAssertTrue(deleteConfirm.waitForExistence(timeout: 3))
+        deleteConfirm.tap()
+        XCTAssertTrue(app.staticTexts["Replacement Session"].waitForNonExistence(timeout: 5))
+        capture("custom-workout-lifecycle-complete")
+    }
+
     func testMealComposerPreservesFoodMemoryAndPresetWorkflow() {
         let app = configuredApp()
         app.launch()

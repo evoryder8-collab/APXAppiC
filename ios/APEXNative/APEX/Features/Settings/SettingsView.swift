@@ -44,8 +44,12 @@ struct SettingsView: View {
                 recoveryCard
                 bodyProfileCard
                 playerCard
-                cameraCard
-                addOnCard
+                if session.coachClientPolicy.canViewVisualProgress {
+                    cameraCard
+                }
+                if session.coachClientPolicy.canRebuildFitnessPlan {
+                    addOnCard
+                }
                 membershipCard
                 healthCard
                 legalCard
@@ -188,11 +192,16 @@ struct SettingsView: View {
                     }
                 }
                 VStack(spacing: 0) {
-                    simpleToggle("Show APEX Orbit shortcut", key: "simple_show_orbit", default: true)
-                    Divider(); simpleToggle("Show Body Index shortcut", key: "simple_show_body_index", default: true)
+                    if session.coachClientPolicy.canUseOrbit {
+                        simpleToggle("Show APEX Orbit shortcut", key: "simple_show_orbit", default: true)
+                        Divider()
+                    }
+                    simpleToggle("Show Body Index shortcut", key: "simple_show_body_index", default: true)
                     Divider(); simpleToggle("Show guided workout card", key: "simple_show_guided_plan", default: true)
                     Divider(); simpleToggle("Show hydration reminder card", key: "simple_show_hydration_reminder", default: false)
-                    Divider(); simpleToggle("Show workout summary card", key: "simple_show_manual_workout", default: false)
+                    if session.coachClientPolicy.canCreateCustomWorkouts {
+                        Divider(); simpleToggle("Show workout summary card", key: "simple_show_manual_workout", default: false)
+                    }
                     Divider(); simpleToggle("Show next action card", key: "simple_show_next_action", default: false)
                 }
                 settingGroup(title: "ADHD mode", subtitle: "Only nutrition, four quick actions and your editable workout stay visible. Everything else is hidden from Simple Mode.", tint: APEXColor.violet) {
@@ -244,20 +253,22 @@ struct SettingsView: View {
                             value: addonBool("allow_front_camera_scanning", default: false)
                         ) { setAddon("allow_front_camera_scanning", .bool($0)) }
 
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(language.text("Comparison export stats"))
-                                .font(APEXFont.body(12, weight: .bold))
-                                .foregroundStyle(APEXColor.ink)
-                            choiceRow(
-                                options: [("Minimal", "minimal"), ("Detailed", "detailed")],
-                                selected: addonString("comparison_export_mode", default: "detailed")
-                            ) {
-                                setAddon("comparison_export_mode", .string($0))
+                        if session.coachClientPolicy.canViewVisualProgress {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(language.text("Comparison export stats"))
+                                    .font(APEXFont.body(12, weight: .bold))
+                                    .foregroundStyle(APEXColor.ink)
+                                choiceRow(
+                                    options: [("Minimal", "minimal"), ("Detailed", "detailed")],
+                                    selected: addonString("comparison_export_mode", default: "detailed")
+                                ) {
+                                    setAddon("comparison_export_mode", .string($0))
+                                }
+                                Text(language.text("Minimal exports show only APEX, Before/After, and each photo's date and time."))
+                                    .font(APEXFont.body(9))
+                                    .foregroundStyle(APEXColor.secondaryInk)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
-                            Text(language.text("Minimal exports show only APEX, Before/After, and each photo's date and time."))
-                                .font(APEXFont.body(9))
-                                .foregroundStyle(APEXColor.secondaryInk)
-                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
                 }
@@ -329,28 +340,30 @@ struct SettingsView: View {
                 /* Switching this on shows a generated beginner block instead
                    of the established programme. Nothing is deleted, but it
                    looks exactly like loss, so it asks first. */
-                settingToggle("I’m a newbie", subtitle: "Turn on the short induction in Transition and Main Phase.", value: addonBool("newbie_mode", default: false)) { enabled in
-                    if enabled {
-                        pendingNewbieMode = true
-                    } else {
-                        guard let operation = session.accountOperationLease() else { return }
-                        Task { await session.restoreOriginalProgramme(operation: operation) }
+                if session.coachClientPolicy.canRebuildFitnessPlan {
+                    settingToggle("I’m a newbie", subtitle: "Turn on the short induction in Transition and Main Phase.", value: addonBool("newbie_mode", default: false)) { enabled in
+                        if enabled {
+                            pendingNewbieMode = true
+                        } else {
+                            guard let operation = session.accountOperationLease() else { return }
+                            Task { await session.restoreOriginalProgramme(operation: operation) }
+                        }
                     }
-                }
-                .disabled(session.isBusy)
-
-                if canRestoreOriginalProgramme {
-                    Button {
-                        confirmRestorePlan = true
-                    } label: {
-                        Text(language.text("Restore my original programme"))
-                            .font(APEXFont.body(14, weight: .bold))
-                            .foregroundStyle(APEXColor.green)
-                            .frame(maxWidth: .infinity, minHeight: 46)
-                            .background(APEXColor.green.opacity(0.1), in: RoundedRectangle(cornerRadius: 15))
-                    }
-                    .buttonStyle(.plain)
                     .disabled(session.isBusy)
+
+                    if canRestoreOriginalProgramme {
+                        Button {
+                            confirmRestorePlan = true
+                        } label: {
+                            Text(language.text("Restore my original programme"))
+                                .font(APEXFont.body(14, weight: .bold))
+                                .foregroundStyle(APEXColor.green)
+                                .frame(maxWidth: .infinity, minHeight: 46)
+                                .background(APEXColor.green.opacity(0.1), in: RoundedRectangle(cornerRadius: 15))
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(session.isBusy)
+                    }
                 }
             }
         }

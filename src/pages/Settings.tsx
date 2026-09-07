@@ -13,6 +13,7 @@ import { canRestoreOriginalTrainingProgramme, isTrainingInductionEligible, resto
 import { mealBlockLabel, normalizeMealBlockSettings, type CustomMealBlock, type CustomMealBlockId, type MealBlock, type MealBlockKind } from '../lib/mealBlocks'
 import { MEAL_DAYLINE_DENSITY_OPTIONS, MEAL_TIMELINE_SNAP_OPTIONS, detectedTimeZone, normalizeMealDaylineDensity, normalizeMealTimelineSnap, searchTimeZoneOptions, timeZoneFromSettings, validTimeZone, zonedClock } from '../lib/mealTiming'
 import { NutritionTargetStatus } from '../components/nutrition/NutritionTargetStatus'
+import { clientPolicyForAccount } from '../lib/coachAccess'
 
 const violet = ACCENTS.violet
 const emerald = ACCENTS.emerald
@@ -24,7 +25,7 @@ type ImportState =
   | { phase: 'done'; result: ImportResult }
 
 export function Settings() {
-  const { data, setProfile, setSettings, signOut, toast, bulkUpsert } = useStore()
+  const { appAccess, coachContext, data, setProfile, setSettings, signOut, toast, bulkUpsert } = useStore()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const fileRef = useRef<HTMLInputElement>(null)
@@ -64,6 +65,7 @@ export function Settings() {
   }
   const profile = data.profile
   const settings = data.settings
+  const coachPolicy = clientPolicyForAccount(appAccess, coachContext)
   const restorableStarterAddons = restoreTrainingPlanAddons(data)
   const [birth, setBirth] = useState(profile?.birthdate ?? '1992-07-25')
   const [customBmrDraft, setCustomBmrDraft] = useState(profile?.custom_bmr == null ? '' : String(profile.custom_bmr))
@@ -562,10 +564,10 @@ export function Settings() {
             </div>
 
             <div className="mt-2 divide-y divide-ink/8">
-              <div className={row}>
+              {coachPolicy.can_use_orbit && <div className={row}>
                 <div><p className={label}>{t('Show APEX Orbit shortcut')}</p><p className={sub}>{t('Keep running intelligence on the Simple Mode home screen.')}</p></div>
                 <Toggle accent={ACCENTS.ice} label={t('Show APEX Orbit shortcut')} on={settings.addons.simple_show_orbit ?? true} onChange={(value) => setSettings({ addons: { ...settings.addons, simple_show_orbit: value } })} />
-              </div>
+              </div>}
               <div className={row}>
                 <div><p className={label}>{t('Show Body Index shortcut')}</p><p className={sub}>{t('Keep your body score shortcut on the Simple Mode home screen.')}</p></div>
                 <Toggle accent={ACCENTS.ice} label={t('Show Body Index shortcut')} on={settings.addons.simple_show_body_index ?? true} onChange={(value) => setSettings({ addons: { ...settings.addons, simple_show_body_index: value } })} />
@@ -578,10 +580,10 @@ export function Settings() {
                 <div><p className={label}>{t('Show hydration reminder card')}</p><p className={sub}>{t('Water remains available from the quick action even when this reminder is hidden.')}</p></div>
                 <Toggle accent={ACCENTS.ice} label={t('Show hydration reminder card')} on={settings.addons.simple_show_hydration_reminder ?? false} onChange={(value) => setSettings({ addons: { ...settings.addons, simple_show_hydration_reminder: value } })} />
               </div>
-              <div className={row}>
+              {coachPolicy.can_create_custom_workouts && <div className={row}>
                 <div><p className={label}>{t('Show workout summary card')}</p><p className={sub}>{t('Show the editable workout list and Add Workout card below the four quick actions.')}</p></div>
                 <Toggle accent={ACCENTS.teal} label={t('Show workout summary card')} on={settings.addons.simple_show_manual_workout ?? false} onChange={(value) => setSettings({ addons: { ...settings.addons, simple_show_manual_workout: value } })} />
-              </div>
+              </div>}
               <div className={row}>
                 <div><p className={label}>{t('Show next action card')}</p><p className={sub}>{t('Show the next meal or supplement shortcut below the four quick actions.')}</p></div>
                 <Toggle accent={ACCENTS.amber} label={t('Show next action card')} on={settings.addons.simple_show_next_action ?? false} onChange={(value) => setSettings({ addons: { ...settings.addons, simple_show_next_action: value } })} />
@@ -621,7 +623,7 @@ export function Settings() {
           </GlassCard>
         </div>}
 
-        {isTrainingInductionEligible(profile.persona) && (
+        {coachPolicy.can_rebuild_fitness_plan && isTrainingInductionEligible(profile.persona) && (
           <div data-no-translate>
             <GlassCard accent={emerald} className="p-5">
               <div className={row}>
@@ -909,7 +911,7 @@ export function Settings() {
           </div>
         </GlassCard>
 
-        {profile.persona === 'constantine' && <GlassCard accent={emerald} className="p-5">
+        {coachPolicy.can_rebuild_fitness_plan && profile.persona === 'constantine' && <GlassCard accent={emerald} className="p-5">
           <h2 className="font-display text-lg font-bold text-ink">Main Phase add-on protocols</h2>
           <p className={sub}>Off by default. They appear inside Main Phase sessions when on.</p>
           <div className="mt-2 divide-y divide-ink/8">

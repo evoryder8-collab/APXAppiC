@@ -2099,6 +2099,11 @@
 "Deep calorie deficit under a strength session. XP tempered -15%, recovery costs energy" = "Tiefes Kaloriendefizit unter einer Kraftsitzung. XP temperiert -15%, Erholung kostet Energie";
 "Delete this finished workout?" = "Löschen Sie dieses fertige Workout?";
 "Delete workout" = "Workout löschen";
+"That workout is no longer available." = "Das Workout isch nüme verfüegbar.";
+"Choose whether to replace the workout already planned for that day." = "Wähl, öb du s Workout, wo für dä Tag plant isch, ersetze wotsch.";
+"Edit workout" = "Workout bearbeite";
+"Save changes" = "Änderige speichere";
+"Replace workout" = "Workout ersetze";
 "Deload day: two controlled sets per exercise, 3-4 RIR, lighter" = "Deload-Tag: zwei kontrollierte Sätze pro Übung, 3-4 RIR, leichter";
 "Deload honored. Joint Health banked the recovery" = "Deload geehrt. Joint Health Banked die Erholung";
 "Deload prescription: one fewer set, lighter load, 3 to 4 reps in reserve." = "Deload Rezept: ein weniger Satz, leichtere Ladung, 3 bis 4 Wiederholungen in Reserve.";
@@ -5568,3 +5573,9 @@
 "Access for this account has expired. Your account data has not been changed." = "De Zuegang für das Konto isch abgloffe. Dini Kontodate sind nöd veränderet worde.";
 "This account does not currently have access. Your account data has not been changed." = "Das Konto het im Moment kei Zuegang. Dini Kontodate sind nöd veränderet worde.";
 "Access was restored, but APEX could not refresh your account yet. Try again when online." = "De Zuegang isch wiederhergstellt, aber APEX het dis Konto no nöd chöne aktualisiere. Probier's nomal, wenn du online bisch.";
+"Could not update meal" = "Mahlzit nöd aktualisiert";
+"Remove this saved meal?" = "Die gspeichereti Mahlzit entferne?";
+"It will be removed from this day. Your Food Memory and saved presets stay unchanged." = "Si wird vo dem Tag entfernt. Dis Food Memory und dini gspeicherete Vorlage blibed unveränderet.";
+"Your meal was not changed. Check access and try again." = "Dini Mahlzit isch nöd gänderet worde. Prüf de Zuegriff und probier’s nomal.";
+"That meal changed before it could be removed. Refresh and try again." = "Die Mahlzit isch gänderet worde, bevor si het chöne entfernt werde. Aktualisier d Aasicht und probier’s nomal.";
+"That meal could not be removed safely. Refresh and try again." = "Die Mahlzit het nöd sicher chöne entfernt werde. Aktualisier d Aasicht und probier’s nomal.";

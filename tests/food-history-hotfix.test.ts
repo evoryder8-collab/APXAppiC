@@ -21,11 +21,13 @@ test('Transition and Main phase receipts are scoped to today instead of all-time
   assert.doesNotMatch(nativeTraining, /CompletedWorkoutHistoryCards\(date: nil/)
 })
 
-test('saving an existing meal after removing every item deletes it and closes on both clients', () => {
+test('empty existing meals stay committable and native removal requires confirmation', () => {
   assert.match(webComposer, /if \(replaceMealId && items\.length === 0\)[\s\S]*?await store\.deleteMeal\(replaceMealId\)[\s\S]*?onClose\(\)/)
   assert.match(webComposer, /items\.length > 0 \|\| Boolean\(replaceMealId\)/)
-  assert.match(nativeComposer, /if draft\.items\.isEmpty, let existingMeal = request\.existingMeal[\s\S]*?await session\.deleteLoggedMeal\(existingMeal,\s*operation:\s*operation\)[\s\S]*?dismiss\(\)/)
-  assert.match(nativeComposer, /\.disabled\(isSaving \|\| \(draft\.items\.isEmpty && request\.existingMeal == nil\)\)/)
+  assert.match(nativeComposer, /if commitIntent == \.confirmRemoval \{\s*showMealRemovalConfirmation = true\s*return\s*\}/)
+  assert.match(nativeComposer, /\.confirmationDialog\(\s*language\.text\("Remove this saved meal\?"\),[\s\S]*?Button\(language\.shortText\("Remove meal"\), role: \.destructive\)[\s\S]*?Task \{ await removeExistingMeal\(operation: operation\) \}/)
+  assert.match(nativeComposer, /private func removeExistingMeal\(operation: AccountOperationLease\) async[\s\S]*?try await session\.deleteLoggedMeal\(existingMeal, operation: operation\)[\s\S]*?dismiss\(\)/)
+  assert.match(nativeComposer, /\.disabled\(isSaving \|\| commitIntent == \.unavailable\)/)
 })
 
 test('every hydrated web catalogue path resolves missing food water without overwriting source values', () => {

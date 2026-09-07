@@ -460,7 +460,8 @@ final class WorkoutSessionModeContractTests: XCTestCase {
         XCTAssertTrue(builder.contains("@State private var sessionMode"))
         XCTAssertTrue(builder.contains("sessionMode: sessionMode"))
         XCTAssertTrue(appSession.contains("sessionMode: WorkoutSessionMode"))
-        XCTAssertTrue(appSession.contains("sessionMode: sessionMode.rawValue"))
+        XCTAssertTrue(appSession.contains("sessionMode: sessionMode,"))
+        XCTAssertTrue(builder.contains("sessionMode: request.sessionMode.rawValue"))
     }
 }
 

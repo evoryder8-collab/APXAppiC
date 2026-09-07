@@ -328,6 +328,54 @@ final class LocalisationCoverageTests: XCTestCase {
         }
     }
 
+    func testMealDeletionSafetyCopyIsAuthoredInEveryOfferedLanguage() {
+        let changedKey = "That meal changed before it could be removed. Refresh and try again."
+        let durabilityKey = "That meal could not be removed safely. Refresh and try again."
+        let expected: [String: [String]] = [
+            "de": [
+                "Diese Mahlzeit wurde geändert, bevor sie entfernt werden konnte. Aktualisiere die Ansicht und versuche es erneut.",
+                "Diese Mahlzeit konnte nicht sicher entfernt werden. Aktualisiere die Ansicht und versuche es erneut.",
+            ],
+            "de-CH": [
+                "Die Mahlzit isch gänderet worde, bevor si het chöne entfernt werde. Aktualisier d Aasicht und probier’s nomal.",
+                "Die Mahlzit het nöd sicher chöne entfernt werde. Aktualisier d Aasicht und probier’s nomal.",
+            ],
+            "it": [
+                "Il pasto è stato modificato prima che potesse essere rimosso. Aggiorna e riprova.",
+                "Non è stato possibile rimuovere il pasto in modo sicuro. Aggiorna e riprova.",
+            ],
+            "es": [
+                "La comida cambió antes de que pudiera eliminarse. Actualiza y vuelve a intentarlo.",
+                "No se pudo eliminar la comida de forma segura. Actualiza y vuelve a intentarlo.",
+            ],
+            "pt": [
+                "A refeição foi alterada antes de poder ser removida. Atualiza e tenta novamente.",
+                "Não foi possível remover a refeição em segurança. Atualiza e tenta novamente.",
+            ],
+            "ja": [
+                "削除する前に食事内容が変更されました。更新して、もう一度お試しください。",
+                "食事を安全に削除できませんでした。更新して、もう一度お試しください。",
+            ],
+            "ro": [
+                "Masa s-a modificat înainte de a putea fi eliminată. Reîmprospătează și încearcă din nou.",
+                "Masa nu a putut fi eliminată în siguranță. Reîmprospătează și încearcă din nou.",
+            ],
+            "th": [
+                "มื้ออาหารถูกเปลี่ยนแปลงก่อนที่จะนำออกได้ โปรดรีเฟรชแล้วลองอีกครั้ง",
+                "ไม่สามารถนำมื้ออาหารออกได้อย่างปลอดภัย โปรดรีเฟรชแล้วลองอีกครั้ง",
+            ],
+        ]
+
+        for language in completeLanguages {
+            guard let translations = table(language), let values = expected[language] else {
+                XCTFail("Missing meal-deletion localization contract for \(language)")
+                continue
+            }
+            XCTAssertEqual(translations[changedKey], values[0])
+            XCTAssertEqual(translations[durabilityKey], values[1])
+        }
+    }
+
     /// A language may not be offered to users until its table is complete.
     ///
     /// This is the check that stops the readiness flag from being a claim. A
@@ -412,6 +460,23 @@ final class LocalisationCoverageTests: XCTestCase {
             "ro": ["Plan de antrenament", "Tranziție", "Principală", "Revii după o pauză lungă.", "Ești gata pentru etapa principală.", "Reia ritmul după o pauză lungă.", "Gata pentru forță și masă."],
             "th": ["แผนการฝึก", "ช่วงเปลี่ยนผ่าน", "ช่วงหลัก", "กลับมาฝึกหลังพักนาน", "พร้อมเริ่มช่วงหลัก", "เรียกพื้นฐานกลับมาหลังพักนาน", "พร้อมเพิ่มแรงและกล้ามเนื้อ"],
         ]
+        let expectedRemoveMealValues = [
+            "en": "Remove meal", "de": "Mahlzeit löschen", "de-CH": "Mahlzit lösche",
+            "it": "Rimuovi pasto", "es": "Eliminar comida", "pt": "Remover refeição",
+            "ja": "食事を削除", "ro": "Elimină masa", "th": "ลบมื้อ",
+        ]
+        let workoutEditingKeys = ["Edit workout", "Save changes", "Replace workout"]
+        let expectedWorkoutEditingValues: [String: [String]] = [
+            "en": ["Edit", "Save", "Replace"],
+            "de": ["Bearbeiten", "Speichern", "Ersetzen"],
+            "de-CH": ["Bearbeite", "Speichere", "Ersetze"],
+            "it": ["Modifica", "Salva", "Sostituisci"],
+            "es": ["Editar entreno", "Guardar", "Reemplazar"],
+            "pt": ["Editar treino", "Guardar", "Substituir"],
+            "ja": ["編集", "保存", "置き換える"],
+            "ro": ["Editează", "Salvează", "Înlocuiește"],
+            "th": ["แก้ไขการฝึก", "บันทึก", "แทนที่การฝึก"],
+        ]
         var expectedKeys: Set<String>?
 
         for language in languages {
@@ -426,8 +491,23 @@ final class LocalisationCoverageTests: XCTestCase {
             }
             let data = try Data(contentsOf: url)
             let table = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
-            XCTAssertEqual(table?.count, 89, "Unexpected compact-label count for \(language)")
+            XCTAssertEqual(table?.count, 93, "Unexpected compact-label count for \(language)")
             XCTAssertFalse(table?.values.contains(where: { $0.isEmpty }) ?? true)
+            XCTAssertEqual(
+                table?["Remove meal"],
+                expectedRemoveMealValues[language],
+                "Missing authored compact meal-removal label for \(language)"
+            )
+            for (key, expected) in zip(
+                workoutEditingKeys,
+                expectedWorkoutEditingValues[language] ?? []
+            ) {
+                XCTAssertEqual(
+                    table?[key],
+                    expected,
+                    "Unexpected compact workout-editing copy for \(language): \(key)"
+                )
+            }
             let keys = Set(table?.keys.map { $0 } ?? [])
             XCTAssertTrue(
                 Set(portalKeys).isSubset(of: keys),

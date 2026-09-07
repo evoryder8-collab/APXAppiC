@@ -1,5 +1,61 @@
 import XCTest
+import Testing
 @testable import APEX
+
+@MainActor
+struct SponsoredSimpleWorkoutTests {
+    @Test(arguments: [false, true], [false, true])
+    func retainedPersonalInductionCannotOverrideSponsoredSelection(transition: Bool, main: Bool) {
+        let policy = CoachClientPolicy.resolve(relationshipStatus: .active, seatState: .active,
+                                               consentedScopes: [.workouts], individualAccess: false)
+        let capabilities = CoachAccountCapabilities(coachWorkspace: false, sponsoredClient: true)
+        let slug = SimpleHomeLogic.guidedProgramSlug(
+            persona: .constantine, mainIsUsable: true, transitionIsUsable: true,
+            coachManaged: true, coachIsUsable: false,
+            transitionInductionIsUsable: transition, mainInductionIsUsable: main
+        )
+        #expect(slug == "coach")
+        for personalSlug in ["main", "transition", "custom"] {
+            #expect(SimpleHomeLogic.canPresentGuidedWorkout(slug: personalSlug, policy: policy,
+                                                          capabilities: capabilities) == false)
+        }
+        #expect(SimpleHomeLogic.canPresentGuidedWorkout(slug: "coach", policy: policy,
+                                                      capabilities: capabilities))
+    }
+
+    @Test
+    func personalSubscriberKeepsInductionAndCoachGraceCannotLaunchPlayer() {
+        let personal = CoachClientPolicy.resolve(relationshipStatus: .active, seatState: .active,
+                                                 consentedScopes: [.workouts], individualAccess: true)
+        let grace = CoachClientPolicy.resolve(relationshipStatus: .grace, seatState: .grace,
+                                              consentedScopes: [.workouts], individualAccess: false)
+        let capabilities = CoachAccountCapabilities(coachWorkspace: false, sponsoredClient: true)
+        let slug = SimpleHomeLogic.guidedProgramSlug(
+            persona: .constantine, mainIsUsable: true, transitionIsUsable: true,
+            coachManaged: false, transitionInductionIsUsable: true, mainInductionIsUsable: true
+        )
+        #expect(slug == "transition")
+        #expect(SimpleHomeLogic.canPresentGuidedWorkout(slug: slug, policy: personal, capabilities: capabilities))
+        #expect(SimpleHomeLogic.canPresentGuidedWorkout(slug: "coach", policy: grace, capabilities: capabilities) == false)
+    }
+
+    @Test
+    func simpleViewUsesCompleteSelectionAndChecksDirectPresentation() throws {
+        let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let source = try String(contentsOf: root.appendingPathComponent("APEX/Features/Portal/SimpleHomeView.swift"))
+        let start = try #require(source.range(of: "private var guidedProgramSlug: String"))
+        let end = try #require(source.range(of: "private var guidedProgramRoute", range: start.upperBound..<source.endIndex))
+        let selection = String(source[start.lowerBound..<end.lowerBound])
+        #expect(selection.contains("return SimpleHomeLogic.guidedProgramSlug("))
+        #expect(selection.contains("transitionInductionIsUsable:"))
+        #expect(selection.contains("mainInductionIsUsable:"))
+        #expect(selection.contains("return \"transition\"") == false)
+        #expect(selection.contains("return \"main\"") == false)
+        let cover = try #require(source.range(of: ".fullScreenCover(isPresented: $showWorkout)"))
+        let player = try #require(source.range(of: "WorkoutPlayerView(", range: cover.upperBound..<source.endIndex))
+        #expect(source[cover.upperBound..<player.lowerBound].contains("SimpleHomeLogic.canPresentGuidedWorkout("))
+    }
+}
 
 final class SimpleHomeLogicTests: XCTestCase {
     func testFitnessPlanIntroductionPersistsOnlyAfterBothPhaseSubtitlesAppear() {
@@ -220,6 +276,27 @@ final class SimpleHomeLogicTests: XCTestCase {
                 transitionIsUsable: false
             ),
             "main"
+        )
+    }
+
+    func testSponsoredOnlyClientNeverFallsBackToAPersonalWorkoutPlan() {
+        XCTAssertEqual(
+            SimpleHomeLogic.guidedProgramSlug(
+                persona: .constantine,
+                mainIsUsable: true,
+                transitionIsUsable: true,
+                coachManaged: true
+            ),
+            "coach"
+        )
+        XCTAssertEqual(
+            SimpleHomeLogic.guidedProgramSlug(
+                persona: .matthew,
+                mainIsUsable: false,
+                transitionIsUsable: true,
+                coachManaged: true
+            ),
+            "coach"
         )
     }
 

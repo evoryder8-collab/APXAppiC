@@ -26,6 +26,7 @@ struct NutritionGlanceCard: View {
     let date: Date
     let targets: NutritionTargets
     let onEditTargets: () -> Void
+    var canEditTargets: Bool = true
     var onOpenCalendar: (() -> Void)?
     var completion: Int? = nil
 
@@ -99,23 +100,15 @@ struct NutritionGlanceCard: View {
                             .font(APEXFont.mono(10))
                             .tracking(2)
                             .foregroundStyle(APEXColor.amberDeep)
-                        Button(action: onEditTargets) {
-                            HStack(spacing: 7) {
-                                Text(language.text("Nutrition at a glance"))
-                                    .font(APEXFont.display(26))
-                                    /* Wraps rather than truncates once the text
-                                       is large: a clipped heading tells the
-                                       reader less than a two-line one. */
-                                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
-                                    .lineLimit(2)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                Image(systemName: "arrow.up.right")
-                                    .font(.system(size: 16, weight: .bold))
-                                    .foregroundStyle(APEXColor.amberDeep)
+                        if canEditTargets {
+                            Button(action: onEditTargets) {
+                                glanceTitle(showsDisclosure: true)
                             }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(APEXColor.ink)
+                        } else {
+                            glanceTitle(showsDisclosure: false)
                         }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(APEXColor.ink)
                     }
                     /* The "private" badge said nothing: every screen in the app
                        is private, so a label claiming it on one card is noise.
@@ -154,45 +147,14 @@ struct NutritionGlanceCard: View {
                         }
                         .frame(maxWidth: .infinity)
 
-                        Button(action: onEditTargets) {
-                            ZStack {
-                                Circle()
-                                    .stroke(
-                                        calorieBalance.isOverTarget ? Color.red.opacity(0.13) : APEXColor.ink.opacity(0.07),
-                                        lineWidth: 15
-                                    )
-                                Circle()
-                                    .trim(from: 0, to: max(calorieProgress, 0.012))
-                                    .stroke(
-                                        AngularGradient(
-                                            colors: calorieBalance.isOverTarget
-                                                ? [Color.orange, Color.red, Color.orange]
-                                                : [APEXColor.amber, APEXColor.cyan, APEXColor.amber],
-                                            center: .center
-                                        ),
-                                        style: StrokeStyle(lineWidth: 15, lineCap: .round)
-                                    )
-                                    .rotationEffect(.degrees(-90))
-                                    .animation(.snappy, value: calorieProgress)
-                                VStack(spacing: 2) {
-                                    Text(language.text(calorieBalance.label))
-                                        .font(APEXFont.body(10, weight: .semibold))
-                                        .foregroundStyle(calorieBalance.isOverTarget ? Color.red : APEXColor.secondaryInk)
-                                    Text("\(calorieBalance.amount)")
-                                        .font(APEXFont.display(34))
-                                        .lineLimit(1)
-                                        .fixedSize(horizontal: true, vertical: false)
-                                        .foregroundStyle(calorieBalance.isOverTarget ? Color.red : APEXColor.ink)
-                                        .contentTransition(.numericText())
-                                    Text(language.format("of %d kcal", targets.targetCalories))
-                                        .font(APEXFont.mono(8))
-                                        .foregroundStyle(APEXColor.secondaryInk)
-                                }
+                        if canEditTargets {
+                            Button(action: onEditTargets) {
+                                calorieRing
                             }
-                            .frame(width: 164, height: 164)
-                            .contentShape(Circle())
+                            .buttonStyle(.plain)
+                        } else {
+                            calorieRing
                         }
-                        .buttonStyle(.plain)
 
                         VStack(spacing: 3) {
                             Text("\(resolvedBurnedCalories)")
@@ -243,6 +205,61 @@ struct NutritionGlanceCard: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("nutrition-glance-card")
+    }
+
+    private func glanceTitle(showsDisclosure: Bool) -> some View {
+        HStack(spacing: 7) {
+            Text(language.text("Nutrition at a glance"))
+                .font(APEXFont.display(26))
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+            if showsDisclosure {
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundStyle(APEXColor.amberDeep)
+            }
+        }
+        .foregroundStyle(APEXColor.ink)
+    }
+
+    private var calorieRing: some View {
+        ZStack {
+            Circle()
+                .stroke(
+                    calorieBalance.isOverTarget ? Color.red.opacity(0.13) : APEXColor.ink.opacity(0.07),
+                    lineWidth: 15
+                )
+            Circle()
+                .trim(from: 0, to: max(calorieProgress, 0.012))
+                .stroke(
+                    AngularGradient(
+                        colors: calorieBalance.isOverTarget
+                            ? [Color.orange, Color.red, Color.orange]
+                            : [APEXColor.amber, APEXColor.cyan, APEXColor.amber],
+                        center: .center
+                    ),
+                    style: StrokeStyle(lineWidth: 15, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .animation(.snappy, value: calorieProgress)
+            VStack(spacing: 2) {
+                Text(language.text(calorieBalance.label))
+                    .font(APEXFont.body(10, weight: .semibold))
+                    .foregroundStyle(calorieBalance.isOverTarget ? Color.red : APEXColor.secondaryInk)
+                Text("\(calorieBalance.amount)")
+                    .font(APEXFont.display(34))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .foregroundStyle(calorieBalance.isOverTarget ? Color.red : APEXColor.ink)
+                    .contentTransition(.numericText())
+                Text(language.format("of %d kcal", targets.targetCalories))
+                    .font(APEXFont.mono(8))
+                    .foregroundStyle(APEXColor.secondaryInk)
+            }
+        }
+        .frame(width: 164, height: 164)
+        .contentShape(Circle())
     }
 }
 

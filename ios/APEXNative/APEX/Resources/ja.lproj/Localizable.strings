@@ -2099,6 +2099,11 @@
 "Deep calorie deficit under a strength session. XP tempered -15%, recovery costs energy" = "強度のセッションの下で深いカロリーの欠損。 XP強化 -15%、回復コストエネルギー";
 "Delete this finished workout?" = "この完成したトレーニングを削除しますか?";
 "Delete workout" = "ワークアウトを削除";
+"That workout is no longer available." = "このワークアウトは利用できなくなりました。";
+"Choose whether to replace the workout already planned for that day." = "その日にすでに予定されているワークアウトを置き換えるか選んでください。";
+"Edit workout" = "ワークアウトを編集";
+"Save changes" = "変更を保存";
+"Replace workout" = "ワークアウトを置き換える";
 "Deload day: two controlled sets per exercise, 3-4 RIR, lighter" = "積み荷の日:演習ごとの2つの制御されたセット、3-4 RIR, ライター";
 "Deload honored. Joint Health banked the recovery" = "名誉を払います。 共同健康は回復を銀行しました";
 "Deload prescription: one fewer set, lighter load, 3 to 4 reps in reserve." = "処方をDeload: 1つの少数のセット、より軽い負荷、3から4つの予約購読します。";
@@ -5568,3 +5573,9 @@
 "Access for this account has expired. Your account data has not been changed." = "このアカウントのアクセス権は有効期限が切れています。アカウントデータは変更されていません。";
 "This account does not currently have access. Your account data has not been changed." = "このアカウントには現在アクセス権がありません。アカウントデータは変更されていません。";
 "Access was restored, but APEX could not refresh your account yet. Try again when online." = "アクセス権は復旧しましたが、APEXはまだアカウントを更新できませんでした。オンラインになってからもう一度お試しください。";
+"Could not update meal" = "食事を更新できませんでした";
+"Remove this saved meal?" = "保存済みのこの食事を削除しますか？";
+"It will be removed from this day. Your Food Memory and saved presets stay unchanged." = "この日の記録から削除されます。フードメモリーと保存済みプリセットは変更されません。";
+"Your meal was not changed. Check access and try again." = "食事は変更されていません。アクセス権を確認して、もう一度お試しください。";
+"That meal changed before it could be removed. Refresh and try again." = "削除する前に食事内容が変更されました。更新して、もう一度お試しください。";
+"That meal could not be removed safely. Refresh and try again." = "食事を安全に削除できませんでした。更新して、もう一度お試しください。";

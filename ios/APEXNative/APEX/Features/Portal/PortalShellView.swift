@@ -51,38 +51,32 @@ struct PortalShellView: View {
 
     @ViewBuilder
     private func destinationView(_ destination: PortalDestination) -> some View {
-        switch destination {
+        if !session.portalDestinationIsAllowed(destination) {
+            CoachFeatureLockedView()
+        } else {
+            switch destination {
         case .coachWorkspace:
-            if session.coachContext.capabilities.coachWorkspace { CoachWorkspaceView() }
-            else { CoachFeatureLockedView() }
+            CoachWorkspaceView()
         case .coachPlan: CoachPlanView()
         case .coachWorkouts:
-            if session.coachClientPolicy.canFollowCoachPlan { TrainingProgramView(slug: "coach", accent: APEXColor.violet) }
-            else { CoachFeatureLockedView() }
+            TrainingProgramView(slug: "coach", accent: APEXColor.violet)
         case .nutrition:
-            if session.coachClientPolicy.canUseNutrition { NutritionView() }
-            else { CoachFeatureLockedView() }
+            NutritionView()
         case .transition:
-            if session.coachClientPolicy.canRebuildFitnessPlan { TrainingProgramView(slug: "transition", accent: APEXColor.teal) }
-            else { CoachFeatureLockedView() }
+            TrainingProgramView(slug: "transition", accent: APEXColor.teal)
         case .mainPhase:
-            if session.coachClientPolicy.canRebuildFitnessPlan { TrainingProgramView(slug: "main", accent: APEXColor.violet) }
-            else { CoachFeatureLockedView() }
+            TrainingProgramView(slug: "main", accent: APEXColor.violet)
         /* Web parity: custom workouts are the same section with its own programme. */
         case .customWorkouts:
-            if session.coachClientPolicy.canCreateCustomWorkouts { TrainingProgramView(slug: "custom", accent: APEXColor.violet) }
-            else { CoachFeatureLockedView() }
+            TrainingProgramView(slug: "custom", accent: APEXColor.violet)
         case .orbit:
-            if session.coachClientPolicy.canUseOrbit { OrbitHomeView() }
-            else { CoachFeatureLockedView() }
+            OrbitHomeView()
         case .avatar:
-            if session.coachClientPolicy.canUseAvatar {
-                AvatarView { showBaselineCalibration = true }
-            } else { CoachFeatureLockedView() }
+            AvatarView { showBaselineCalibration = true }
         case .visualProgress:
-            if session.coachClientPolicy.canViewVisualProgress { VisualProgressView() }
-            else { CoachFeatureLockedView() }
+            VisualProgressView()
         case .settings: SettingsView()
+            }
         }
     }
 }
