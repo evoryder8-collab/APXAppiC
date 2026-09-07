@@ -13,6 +13,9 @@ import {
   finishedWorkoutHistoryForDate,
 } from '../src/lib/completedWorkoutHistory.ts'
 import { manualWorkoutNotes } from '../src/lib/manualWorkout.ts'
+import { activityLogId } from '../src/lib/ids.ts'
+import { buildSessionRecords } from '../src/lib/workoutSession.ts'
+import { explicitWearableLink } from '../src/lib/wearableWorkoutLinking.ts'
 
 function session(overrides: Partial<WorkoutSession> & Pick<WorkoutSession, 'id' | 'date' | 'program_day_id'>): WorkoutSession {
   return {
@@ -38,6 +41,61 @@ function log(id: string, sessionId: string, userId = 'owner'): WorkoutLog {
     skipped: false, override_flag: false, created_at: '2026-08-26T08:15:00.000Z',
   }
 }
+
+test('deletion removes exactly the receipt-owned generated contributions across clients', () => {
+  const receipt = session({ id: 'receipt', date: '2026-08-26', program_day_id: 'off-schedule-day' })
+  const primary = activityLogId(receipt.date, receipt.user_id, `workout:${receipt.id}`)
+  const focus = activityLogId(receipt.date, receipt.user_id, `workout:${receipt.id}:focus-t25`)
+  const activity = (id: string, user_id = 'owner', source = 'workout_module') => ({
+    id, user_id, source, date: receipt.date, type_id: 'apex-strength', quantity: 1,
+    duration_min: 30, distance_km: null, watch_kcal: null, computed_kcal: 150,
+    reconciled: false, created_at: receipt.completed_at!, updated_at: receipt.completed_at!,
+  })
+  const data: AppData = {
+    ...EMPTY_DATA, settings: { ...EMPTY_DATA.settings!, user_id: 'owner' },
+    workout_sessions: [receipt],
+    activity_logs: [activity(primary), activity(focus), activity(primary, 'foreign'),
+      activity(focus, 'owner', 'watch'), activity('unrelated'), activity('legacy-random')],
+  }
+  const plan = completedWorkoutDeletionPlan(data, receipt.id)
+  assert.deepEqual(plan?.activityLogIds, [primary, focus])
+  const remaining = data.activity_logs.filter((item) => !(item.user_id === 'owner'
+    && item.source === 'workout_module' && plan?.activityLogIds.includes(item.id)))
+  assert.deepEqual(remaining.map((item) => item.source), ['workout_module', 'watch', 'workout_module', 'workout_module'])
+})
+
+test('native guided and tracked completion retain the selected date at every call site', () => {
+  const source = readFileSync(new URL('../ios/APEXNative/APEX/Features/Training/TrainingProgramView.swift', import.meta.url), 'utf8')
+  const calls = [...source.matchAll(/try await session\.completeWorkout\(([\s\S]*?)operation: operation/g)]
+  assert.equal(calls.length, 3)
+  for (const call of calls) assert.match(call[1], /completionDate: date/)
+  for (const file of ['TrainingProgramView.swift', 'WorkoutDaySheet.swift']) {
+    const text = readFileSync(new URL(`../ios/APEXNative/APEX/Features/Training/${file}`, import.meta.url), 'utf8')
+    for (const call of text.matchAll(/TrackedWorkoutView\(([^\n]*)\)/g)) assert.match(call[1], /date: date/)
+  }
+})
+
+test('today and historical off-schedule receipts keep date ownership across timezone boundaries and wearable dedupe', () => {
+  for (const date of ['2026-09-07', '2026-08-26']) {
+    const { session: receipt } = buildSessionRecords({
+      sessionId: 'receipt', userId: 'owner', date, programDayId: 'retired-off-schedule-day',
+      isLite: false, isDeload: false, isEventRecovery: false, qualityScore: 1,
+      startedAt: '2026-09-07T23:40:00-07:00', completedAt: '2026-09-08T00:10:00-07:00', exercises: [],
+    })
+    assert.equal(receipt.date, date)
+    const health = externalWorkout({ id: 'health', date })
+    const linked = explicitWearableLink(health, receipt)!
+    const data: AppData = { ...EMPTY_DATA, settings: { ...EMPTY_DATA.settings!, user_id: 'owner' },
+      workout_sessions: [receipt], imported_activities: [linked] }
+    assert.deepEqual(finishedWorkoutHistoryForDate(data, date).map((item) => item.id), ['receipt'])
+    assert.deepEqual(finishedWorkoutHistoryForDate(data, '2026-09-08'), [])
+    const unlinked = { ...linked, apex_workout_session_id: null }
+    const after = { ...data, workout_sessions: [], imported_activities: [unlinked] }
+    assert.deepEqual(finishedWorkoutHistoryForDate(after, date).map((item) => item.id), ['health'])
+    assert.equal(unlinked.healthkit_workout_id, health.healthkit_workout_id)
+    assert.equal(unlinked.active_energy_kcal, health.active_energy_kcal)
+  }
+})
 
 function externalWorkout(overrides: Partial<ImportedActivity> & Pick<ImportedActivity, 'id'>): ImportedActivity {
   return {
@@ -396,6 +454,7 @@ test('deleting a finished workout targets the owned session and all of its owned
   assert.deepEqual(completedWorkoutDeletionPlan(data, 'owned'), {
     sessionId: 'owned',
     logIds: ['set-a', 'set-b'],
+    activityLogIds: [],
   })
   assert.equal(completedWorkoutDeletionPlan(data, 'foreign'), null)
 })

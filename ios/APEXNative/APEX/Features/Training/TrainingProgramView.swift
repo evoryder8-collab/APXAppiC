@@ -1095,6 +1095,7 @@ struct TrackedWorkoutView: View {
     let exercises: [Exercise]
     let accent: Color
     let lite: Bool
+    let date: String
     private let exerciseByID: [UUID: Exercise]
     private let descriptorByExerciseID: [UUID: ExerciseLoggingDescriptor]
     private let workGroupLabels: [UUID: String]
@@ -1109,11 +1110,12 @@ struct TrackedWorkoutView: View {
     @State private var watchWorkoutStartTask: Task<Void, Never>?
     @State private var watchWorkoutLaunchID: UUID?
 
-    init(day: ProgramDay, exercises: [Exercise], accent: Color, lite: Bool) {
+    init(day: ProgramDay, exercises: [Exercise], accent: Color, lite: Bool, date: String) {
         self.day = day
         self.exercises = exercises
         self.accent = accent
         self.lite = lite
+        self.date = date
         self.exerciseByID = Dictionary(
             exercises.map { ($0.id, $0) },
             uniquingKeysWith: { first, _ in first }
@@ -1349,6 +1351,7 @@ struct TrackedWorkoutView: View {
                     setInputs: setInputs,
                     lite: lite,
                     startedAt: startedAt,
+                    completionDate: date,
                     operation: operation
                 )
                 guard session.accountOperationIsCurrent(operation) else { return }
@@ -1562,7 +1565,7 @@ struct WorkoutDayView: View {
             )
         }
         .fullScreenCover(isPresented: $showTrackedWorkout) {
-            TrackedWorkoutView(day: day, exercises: sessionExercises, accent: accent, lite: lite)
+            TrackedWorkoutView(day: day, exercises: sessionExercises, accent: accent, lite: lite, date: date)
         }
     }
 
@@ -3087,6 +3090,7 @@ struct WorkoutPlayerView: View {
                     setInputs: setInputs,
                     lite: lite,
                     startedAt: startedAt,
+                    completionDate: date,
                     operation: operation
                 )
                 guard session.accountOperationIsCurrent(operation) else { return }

@@ -108,6 +108,7 @@ export function CompletedWorkoutHistoryCards({
       }
     }
     for (const logId of plan.logIds) remove('workout_logs', logId)
+    for (const activityLogId of plan.activityLogIds) remove('activity_logs', activityLogId)
     remove('workout_sessions', plan.sessionId)
     setExpanded((current) => {
       const next = new Set(current)

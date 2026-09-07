@@ -1,4 +1,5 @@
 import { manualWorkoutTitle } from './manualWorkout.ts'
+import { activityLogId } from './ids.ts'
 import type { IntroLanguage } from './introLanguage.ts'
 import { visibleImportedActivitiesForOwner } from './importedActivityVisibility.ts'
 import type { AppData, ImportedActivity, WorkoutSession } from './types.ts'
@@ -13,6 +14,7 @@ export interface CompletedWorkoutHistoryItem {
 export interface CompletedWorkoutDeletionPlan {
   sessionId: string
   logIds: string[]
+  activityLogIds: string[]
 }
 
 export type FinishedWorkoutHistoryItem =
@@ -113,7 +115,7 @@ export function collapsedWorkoutDeleteTrayVisible(isExpanded: boolean, revealOff
  * owner-checked so a malformed foreign row cannot be deleted with the workout.
  */
 export function completedWorkoutDeletionPlan(
-  data: Pick<AppData, 'profile' | 'settings' | 'workout_sessions' | 'workout_logs'>,
+  data: Pick<AppData, 'profile' | 'settings' | 'workout_sessions' | 'workout_logs'> & Partial<Pick<AppData, 'activity_logs'>>,
   sessionId: string,
 ): CompletedWorkoutDeletionPlan | null {
   const ownerId = data.profile?.user_id ?? data.settings?.user_id ?? null
@@ -124,10 +126,16 @@ export function completedWorkoutDeletionPlan(
     && candidate.completed
   ))
   if (!session) return null
+  const generatedIds = new Set(['', ':focus-t25'].map((suffix) => (
+    activityLogId(session.date, ownerId, `workout:${session.id}${suffix}`)
+  )))
   return {
     sessionId: session.id,
     logIds: data.workout_logs
       .filter((log) => log.session_id === session.id && log.user_id === ownerId)
+      .map((log) => log.id),
+    activityLogIds: (data.activity_logs ?? [])
+      .filter((log) => log.user_id === ownerId && log.source === 'workout_module' && generatedIds.has(log.id))
       .map((log) => log.id),
   }
 }

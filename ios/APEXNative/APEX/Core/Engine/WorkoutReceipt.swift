@@ -41,6 +41,16 @@ enum WorkoutReceipt {
     struct DeletionPlan: Equatable, Sendable {
         let sessionID: UUID
         let logIDs: [UUID]
+        var activityLogIDs: [UUID] = []
+    }
+
+    /// Shared with the web player; an exact persisted identity, not a date/source guess.
+    static func generatedActivityID(for session: WorkoutSession, suffix: String = "") -> UUID {
+        APEXStableID.scopedUUID(
+            namespace: "activity-log:workout:\(session.id.uuidString.lowercased())\(suffix)",
+            date: session.date,
+            userID: session.userID
+        )
     }
 
     /// A resting compact receipt has no destructive tray in its hierarchy.
@@ -55,16 +65,21 @@ enum WorkoutReceipt {
     static func deletionPlan(
         sessions: [WorkoutSession],
         logs: [WorkoutLog],
+        activities: [ActivityLog] = [],
         sessionID: UUID,
         ownerID: UUID
     ) -> DeletionPlan? {
         guard let session = sessions.first(where: {
             $0.id == sessionID && $0.userID == ownerID && $0.completed
         }) else { return nil }
+        let generatedIDs = Set([generatedActivityID(for: session), generatedActivityID(for: session, suffix: ":focus-t25")])
         return DeletionPlan(
             sessionID: session.id,
             logIDs: logs
                 .filter { $0.sessionID == session.id && $0.userID == ownerID }
+                .map(\.id),
+            activityLogIDs: activities
+                .filter { $0.userID == ownerID && $0.source == "workout_module" && generatedIDs.contains($0.id) }
                 .map(\.id)
         )
     }

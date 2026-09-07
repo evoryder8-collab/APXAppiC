@@ -209,7 +209,7 @@ struct WorkoutDaySheet: View {
             }
             .fullScreenCover(isPresented: $showTrackedWorkout) {
                 if let day = plan.programDay {
-                    TrackedWorkoutView(day: day, exercises: sessionExercises, accent: accent, lite: lite)
+                    TrackedWorkoutView(day: day, exercises: sessionExercises, accent: accent, lite: lite, date: date)
                 }
             }
         }

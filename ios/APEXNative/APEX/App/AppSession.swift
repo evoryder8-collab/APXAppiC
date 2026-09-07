@@ -5280,7 +5280,7 @@ final class AppSession {
            let activityType = data.activityTypes.first(where: { $0.id == "apex-strength" }) {
             let elapsed = max(1, Int(Date().timeIntervalSince(startedAt) / 60))
             let activity = ActivityLog(
-                id: UUID(),
+                id: WorkoutReceipt.generatedActivityID(for: workout),
                 userID: ownerID,
                 date: completedDate,
                 typeID: activityType.id,
@@ -5422,6 +5422,7 @@ final class AppSession {
         guard let plan = WorkoutReceipt.deletionPlan(
                 sessions: data.workoutSessions,
                 logs: data.workoutLogs,
+                activities: data.activityLogs,
                 sessionID: id,
                 ownerID: ownerID
               ) else {
@@ -5442,10 +5443,22 @@ final class AppSession {
             data.importedActivities.append(activity)
         }
         data.workoutLogs.removeAll { logIDs.contains($0.id) }
+        let activityLogIDs = Set(plan.activityLogIDs)
+        data.activityLogs.removeAll { $0.userID == ownerID && activityLogIDs.contains($0.id) }
         data.workoutSessions.removeAll { $0.id == plan.sessionID }
         recomputeBrain()
         try await saveLocalSnapshot(operation: operation)
 
+        for activityID in plan.activityLogIDs {
+            try requireCurrentAccountOperation(operation)
+            await persistDelete(
+                table: "activity_logs",
+                id: activityID,
+                ownerID: ownerID,
+                expectedAccountToken: operation.generation
+            )
+            try requireCurrentAccountOperation(operation)
+        }
         for logID in plan.logIDs {
             try requireCurrentAccountOperation(operation)
             await persistDelete(

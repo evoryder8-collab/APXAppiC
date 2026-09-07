@@ -9,6 +9,60 @@ import HealthKit
 @testable import APEX
 
 final class WorkoutReceiptTests: XCTestCase {
+    func testGeneratedContributionDeletionUsesOwnerScopedCrossClientIdentity() throws {
+        let owner = try XCTUnwrap(UUID(uuidString: "11111111-1111-4111-8111-111111111111"))
+        let sessionID = try XCTUnwrap(UUID(uuidString: "22222222-2222-4222-8222-222222222222"))
+        let receipt = workout(id: sessionID, userID: owner, dayID: UUID(), completedAt: "2026-09-07T23:50:00Z")
+        let primary = WorkoutReceipt.generatedActivityID(for: receipt)
+        let focus = WorkoutReceipt.generatedActivityID(for: receipt, suffix: ":focus-t25")
+        XCTAssertEqual(primary, APEXStableID.scopedUUID(
+            namespace: "activity-log:workout:22222222-2222-4222-8222-222222222222",
+            date: "2026-08-26", userID: owner
+        ))
+        func activity(_ id: UUID, userID: UUID? = nil, source: String = "workout_module") -> ActivityLog {
+            ActivityLog(id: id, userID: userID ?? owner, date: receipt.date,
+                typeID: "apex-strength", quantity: 1, computedKcal: 150, source: source,
+                reconciled: false, createdAt: receipt.completedAt!, updatedAt: receipt.completedAt!)
+        }
+        let unrelated = activity(UUID())
+        let external = activity(UUID(), source: "watch")
+        let logs = [activity(primary), activity(focus), activity(primary, userID: UUID()), unrelated, external]
+        let plan = try XCTUnwrap(WorkoutReceipt.deletionPlan(
+            sessions: [receipt], logs: [], activities: logs, sessionID: receipt.id, ownerID: owner
+        ))
+        XCTAssertEqual(plan.activityLogIDs, [primary, focus])
+        let remaining = logs.filter { !($0.userID == owner && plan.activityLogIDs.contains($0.id)) }
+        XCTAssertEqual(remaining.count, 3)
+        XCTAssertTrue(remaining.contains(unrelated))
+        XCTAssertTrue(remaining.contains(external))
+        XCTAssertNil(WorkoutReceipt.deletionPlan(
+            sessions: [receipt], logs: [], activities: logs, sessionID: receipt.id, ownerID: UUID()
+        ))
+    }
+
+    func testSelectedTodayAndHistoricalDatesOwnOffScheduleReceiptsAcrossTimezoneBoundaries() throws {
+        let owner = UUID()
+        for date in ["2026-09-07", "2026-08-26"] {
+            let receipt = workout(userID: owner, date: date, dayID: UUID(), completedAt: "2026-09-08T00:10:00-07:00")
+            let health = ImportedActivity(id: UUID(), userID: owner, date: date, kind: "strength",
+                activity: "Traditional Strength Training", durationMinutes: 30, source: "Apple Watch",
+                healthKitWorkoutID: UUID(), activeEnergyKcal: 210, sourceBundleIdentifier: "com.apple.health")
+            let linked = try XCTUnwrap(WearableWorkoutLinking.explicitLink(health, to: receipt))
+            XCTAssertEqual(WorkoutReceipt.finishedHistory(
+                sessions: [receipt], days: [], importedActivities: [linked], date: date, ownerID: owner, limit: nil
+            ).count, 1)
+            XCTAssertTrue(WorkoutReceipt.finishedHistory(
+                sessions: [receipt], days: [], importedActivities: [linked], date: "2026-09-08", ownerID: owner, limit: nil
+            ).isEmpty)
+            let unlinked = linked.linkingToAPEXSession(nil)
+            XCTAssertEqual(unlinked.healthKitWorkoutID, health.healthKitWorkoutID)
+            XCTAssertEqual(unlinked.activeEnergyKcal, 210)
+            XCTAssertEqual(WorkoutReceipt.finishedHistory(
+                sessions: [], days: [], importedActivities: [unlinked], date: date, ownerID: owner, limit: nil
+            ).count, 1)
+        }
+    }
+
     private func workout(
         id: UUID = UUID(), userID: UUID, date: String = "2026-08-26",
         dayID: UUID, completed: Bool = true, completedAt: String,
