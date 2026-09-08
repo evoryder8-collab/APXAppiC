@@ -27,6 +27,10 @@ struct InductionView: View {
     @State private var showEquipment = false
     @State private var showEstimateDetails = false
     @State private var safetyAcknowledged = false
+    @State private var validationPrompt: String?
+    @State private var validationTarget = "induction-content"
+    @State private var validationRequest = 0
+    @AccessibilityFocusState private var validationFocused: Bool
     /* Drives the per-question entrance. Keyed on the step so each question
        assembles itself rather than the whole screen blinking. */
     @State private var shown = false
@@ -41,6 +45,7 @@ struct InductionView: View {
 
             VStack(spacing: 0) {
                 progress
+                ScrollViewReader { proxy in
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
                         InductionIllustration(step: step)
@@ -57,36 +62,38 @@ struct InductionView: View {
                                 .rise(shown, delay: 0.08)
                         }
                         content
+                            .id("induction-content")
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(22)
                 }
                 .scrollBounceBehavior(.basedOnSize)
                 .scrollDismissesKeyboard(.interactively)
+                .id(step)
+                .onChange(of: validationRequest) { _, _ in
+                    withAnimation(reduceMotion ? nil : .easeInOut(duration: 0.25)) {
+                        proxy.scrollTo(validationTarget, anchor: .top)
+                    }
+                }
+                }
                 footer
             }
         }
         .onAppear { shown = true }
         .onChange(of: step) { _, _ in
+            validationPrompt = nil
+            validationFocused = false
             /* Off, then on again, so the incoming question runs the same
                staggered entrance the first one did. */
             shown = false
             withAnimation(.smooth(duration: 0.5)) { shown = true }
         }
+        .onChange(of: input) { _, _ in
+            validationPrompt = nil
+            validationFocused = false
+        }
         .sheet(item: $legalDocument) { document in
             OnboardingLegalDocumentView(document: document)
-        }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Button(language.text("Previous")) { moveBaselineFocus(by: -1) }
-                    .disabled(baselineField == .weight)
-                    .accessibilityIdentifier("induction-baseline-keyboard-previous")
-                Spacer()
-                Button(language.text(baselineField == .birthYear ? "Done" : "Next")) {
-                    moveBaselineFocus(by: 1)
-                }
-                .accessibilityIdentifier("induction-baseline-keyboard-next")
-            }
         }
         .alert(
             language.text(
@@ -134,6 +141,28 @@ struct InductionView: View {
 
     private var footer: some View {
         VStack(spacing: 8) {
+            if let validationPrompt {
+                Label(validationPrompt, systemImage: "info.circle")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(APEXColor.amberDeep)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityFocused($validationFocused)
+                    .accessibilityIdentifier("induction-required-answer")
+            }
+            if step == 1, baselineField != nil {
+                HStack {
+                    Button(language.text("Previous")) { moveBaselineFocus(by: -1) }
+                        .disabled(baselineField == .weight)
+                        .accessibilityIdentifier("induction-baseline-keyboard-previous")
+                    Spacer()
+                    Button(language.text(baselineField == .birthYear ? "Done" : "Next")) {
+                        moveBaselineFocus(by: 1)
+                    }
+                    .accessibilityIdentifier("induction-baseline-keyboard-next")
+                }
+                .font(.body.weight(.semibold))
+                .frame(minHeight: 44)
+            }
             HStack(spacing: 12) {
                 if step > 0 {
                     Button(language.text(.back)) {
@@ -145,6 +174,10 @@ struct InductionView: View {
                 }
                 Spacer()
                 Button {
+                    guard canContinue else {
+                        revealRequiredAnswer()
+                        return
+                    }
                     if step == 0 {
                         input.dataConsent = TrainingInduction.DataConsent(
                             termsVersion: TrainingInduction.currentTermsVersion,
@@ -170,7 +203,7 @@ struct InductionView: View {
                 }
                 .buttonStyle(APEXPrimaryButtonStyle())
                 .frame(maxWidth: 220)
-                .disabled(session.isBusy || !canContinue)
+                .disabled(session.isBusy || (step < 3 && !canContinue))
                 .accessibilityIdentifier("induction-next")
             }
 
@@ -204,6 +237,45 @@ struct InductionView: View {
             )
         default: true
         }
+    }
+
+    /// Continue guides to the missing answer without inventing one or skipping validation.
+    private func revealRequiredAnswer() {
+        validationTarget = "induction-content"
+        switch step {
+        case 3:
+            if OnboardingActivityPattern(rawValue: input.baselineAnswers.activityPattern) == nil {
+                validationPrompt = language.text("Most days, I am…")
+                validationTarget = "induction-activity-question"
+            } else {
+                validationPrompt = language.text("When did you last train regularly?")
+                validationTarget = "induction-recency-question"
+            }
+        case 4:
+            if let missing = OnboardingBaselineAssessment.movementDomains.firstIndex(where: {
+                OnboardingMovementAnswer(rawValue: movementBinding($0).wrappedValue) == nil
+            }) {
+                pulsePage = missing
+                validationPrompt = movementQuestionTitle(OnboardingBaselineAssessment.movementDomains[missing])
+            }
+        case 5:
+            if !["gym", "home", "outdoors"].contains(input.venue) {
+                validationPrompt = language.text("Where will you train?")
+                validationTarget = "induction-venue-question"
+            } else if !(2...7).contains(input.sessionsPerWeek) {
+                validationPrompt = language.text("How many training days fit a normal week?")
+                validationTarget = "induction-frequency-question"
+            } else {
+                validationPrompt = language.text("How much time fits most sessions?")
+                validationTarget = "induction-time-question"
+            }
+        case 6:
+            validationPrompt = language.text("Select any concerns, or choose None.")
+            validationTarget = "induction-safety-answer"
+        default: return
+        }
+        validationRequest += 1
+        validationFocused = true
     }
 
     // MARK: - Questions
@@ -517,6 +589,7 @@ struct InductionView: View {
     private var normalWeek: some View {
         VStack(alignment: .leading, spacing: 16) {
             onboardingSection("Most days, I am…")
+                .id("induction-activity-question")
             choices(
                 [("mostly_seated", "Mostly seated, with short walks"),
                  ("mixed_day", "A mix of sitting and moving"),
@@ -527,6 +600,7 @@ struct InductionView: View {
             )
 
             onboardingSection("When did you last train regularly?")
+                .id("induction-recency-question")
             choices(
                 [("under_three_months", "I train now, or stopped recently"),
                  ("three_to_six_months", "Three to six months ago"),
@@ -683,15 +757,18 @@ struct InductionView: View {
     private var setup: some View {
         VStack(alignment: .leading, spacing: 16) {
             onboardingSection("Where will you train?")
+                .id("induction-venue-question")
             choices(
                 [("gym", "A gym"), ("home", "At home"), ("outdoors", "Outdoors")],
                 selection: $input.venue
             )
 
             onboardingSection("How many training days fit a normal week?")
+                .id("induction-frequency-question")
             sessions
 
             onboardingSection("How much time fits most sessions?")
+                .id("induction-time-question")
             VStack(spacing: 9) {
                 ForEach([(30, "About 30 minutes"), (45, "About 45 minutes"),
                          (60, "About 60 minutes"), (75, "75 minutes or more")], id: \.0) { minutes, label in
@@ -920,6 +997,7 @@ struct InductionView: View {
                 input.clearHealthConcerns()
             }
             .accessibilityIdentifier("induction-health-none")
+            .id("induction-safety-answer")
         }
     }
 

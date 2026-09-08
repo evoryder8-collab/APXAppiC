@@ -28,12 +28,15 @@ final class APEXSmokeUITests: XCTestCase {
     }
 
     func testFirstRunDistillsAnswersIntoBroadStartingMapBeforePlanCreation() {
-        let app = XCUIApplication()
-        app.launchArguments = [
-            "-apex-preview", "induction", "-apex-ui-test-first-run", "-AppleLanguages", "(en)",
-        ]
-        app.launchEnvironment["APEX_UI_TESTING"] = "1"
+        let app = configuredApp()
+        app.launchArguments.append("-apex-ui-test-developer-mode")
         app.launch()
+        app.buttons["portal.settings"].tap()
+        let modes = app.buttons["developer-mode-selector"]
+        XCTAssertTrue(scrollUntilVisible(modes, in: app, attempts: 8))
+        modes.tap()
+        app.buttons["Individual subscriber"].tap()
+        XCTAssertTrue(app.buttons["induction-terms-consent"].waitForExistence(timeout: 5))
 
         app.buttons["induction-terms-consent"].tap()
         app.buttons["induction-privacy-consent"].tap()
@@ -56,29 +59,40 @@ final class APEXSmokeUITests: XCTestCase {
         app.buttons["induction-choice-rebuild"].tap()
         app.buttons["induction-next"].tap()
         app.buttons["induction-choice-mixed_day"].tap()
+        capture("normal-week-after-activity-choice")
+        XCTAssertTrue(app.buttons["induction-next"].isEnabled, "Continue must guide the user to the missing question, not silently disable itself")
+        app.buttons["induction-next"].tap()
+        let recency = app.buttons["induction-choice-six_to_twelve_months"]
+        XCTAssertTrue(recency.isHittable)
+        XCTAssertLessThan(recency.frame.maxY, app.buttons["induction-next"].frame.minY)
+        capture("normal-week-training-recency-guidance")
         app.buttons["induction-choice-six_to_twelve_months"].tap()
         app.buttons["induction-next"].tap()
 
         app.buttons["induction-movement-cardiorespiratory-capable"].tap()
-        app.buttons["induction-movement-upper-strength"].tap()
+        app.buttons["induction-next"].tap()
+        XCTAssertTrue(app.buttons["induction-movement-upper_strength-developing"].isHittable)
         app.buttons["induction-movement-upper_strength-developing"].tap()
-        app.buttons["induction-movement-lower-strength"].tap()
+        app.buttons["induction-next"].tap()
         app.buttons["induction-movement-lower_strength-strong"].tap()
-        app.buttons["induction-movement-mobility"].tap()
+        app.buttons["induction-next"].tap()
         app.buttons["induction-movement-mobility-not_tested"].tap()
         app.buttons["induction-next"].tap()
 
         app.buttons["induction-choice-home"].tap()
+        app.buttons["induction-next"].tap()
         let sessions = app.buttons["induction-sessions-3"]
-        XCTAssertTrue(scrollUntilVisible(sessions, in: app, attempts: 5))
+        XCTAssertTrue(sessions.isHittable)
         sessions.tap()
+        app.buttons["induction-next"].tap()
         let timeChoice = app.buttons["induction-time-45"]
-        XCTAssertTrue(scrollUntilVisible(timeChoice, in: app, attempts: 5))
+        XCTAssertTrue(timeChoice.isHittable)
         timeChoice.tap()
         app.buttons["induction-next"].tap()
 
+        app.buttons["induction-next"].tap()
         let noConcerns = app.buttons["induction-health-none"]
-        XCTAssertTrue(scrollUntilVisible(noConcerns, in: app, attempts: 8))
+        XCTAssertTrue(noConcerns.isHittable)
         tapClearOfDock(noConcerns)
         app.buttons["induction-next"].tap()
 
@@ -87,6 +101,14 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Building your baseline"].exists)
         XCTAssertEqual(app.buttons["induction-next"].label, "Build my plan")
         capture("distilled-onboarding-starting-map")
+        app.buttons["induction-next"].tap()
+        let permissionsDone = app.buttons["consent-finish"]
+        XCTAssertTrue(permissionsDone.waitForExistence(timeout: 8))
+        permissionsDone.tap()
+        XCTAssertTrue(app.buttons["portal.settings"].waitForExistence(timeout: 8))
+        capture("new-subscriber-generated-plan-home")
+        app.buttons["developer-sandbox-return"].tap()
+        XCTAssertTrue(modes.waitForExistence(timeout: 5))
     }
 
     func testInductionRequiresConsentBodyAndGoalBeforeSkipAndNoPlanAccountCanReturnToTheBuilder() {
