@@ -614,6 +614,34 @@ final class APEXSmokeUITests: XCTestCase {
         capture("simple-bespoke-main-workout")
     }
 
+    func testSimpleWorkoutInsightsStartsCollapsedBelowWearableActivity() {
+        let app = configuredApp()
+        app.launch()
+
+        let simpleMode = app.buttons["SIMPLE"]
+        XCTAssertTrue(simpleMode.waitForExistence(timeout: 4))
+        tapClearOfDock(simpleMode)
+        let syncAlert = app.alerts["APEX"]
+        if syncAlert.waitForExistence(timeout: 2) { syncAlert.buttons["OK"].tap() }
+
+        let insights = app.buttons["Workout insights"]
+        XCTAssertTrue(scrollUntilVisible(insights, in: app, attempts: 40))
+        let wearable = app.descendants(matching: .any)["wearable-activity-toggle"]
+        XCTAssertTrue(wearable.exists)
+        XCTAssertLessThan(wearable.frame.minY, insights.frame.minY)
+        XCTAssertEqual(insights.value as? String, "Collapsed")
+        let export = app.buttons["Export PNG"]
+        XCTAssertFalse(export.exists)
+
+        tapClearOfDock(insights)
+        XCTAssertTrue(export.waitForExistence(timeout: 3))
+        XCTAssertEqual(insights.value as? String, "Expanded")
+
+        insights.tap()
+        XCTAssertTrue(export.waitForNonExistence(timeout: 3))
+        XCTAssertEqual(insights.value as? String, "Collapsed")
+    }
+
     func testFinishedWorkoutDeletionIsHiddenAtRestAndCardCanExpand() {
         let app = configuredApp()
         app.launch()
@@ -1071,6 +1099,20 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(scrollUntilVisible(workout, in: app))
         XCTAssertEqual(workout.label, "Workout completed")
         capture("nutrition-dayline-workout-recovery")
+    }
+
+    func testNutritionDaylineShowsCurvedRoutesForCollidingMeals() {
+        let app = configuredApp()
+        app.launchArguments.append("-apex-ui-test-close-dayline-meals")
+        app.launch()
+
+        XCTAssertTrue(app.buttons["portal.nutrition"].waitForExistence(timeout: 4))
+        app.buttons["portal.nutrition"].tap()
+
+        let breakfast = app.staticTexts["meal-dayline-title-breakfast"]
+        XCTAssertTrue(scrollUntilVisible(breakfast, in: app))
+        XCTAssertTrue(app.staticTexts["meal-dayline-title-lunch"].exists)
+        capture("nutrition-dayline-collision-cables")
     }
 
     func testCompactMealMillilitreUnitStaysOnOneLineInsideItsCard() {

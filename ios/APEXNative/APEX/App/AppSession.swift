@@ -564,6 +564,16 @@ final class AppSession {
             }
             LanguageState.shared.language = .english
             data = APEXDebugFixture.dashboard()
+            if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-close-dayline-meals"),
+               var settings = data.settings {
+                settings.addons["meal_blocks"] = .object([
+                    "blocks": .array([
+                        .object(["id": .string("breakfast"), "time": .string("07:00"), "enabled": .bool(true)]),
+                        .object(["id": .string("lunch"), "time": .string("07:10"), "enabled": .bool(true)]),
+                    ]),
+                ])
+                data.settings = settings
+            }
             if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-installed-plan"),
                var settings = data.settings {
                 let generated = TrainingInduction.generate(

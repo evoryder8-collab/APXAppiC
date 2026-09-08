@@ -26,7 +26,7 @@ import { aggregateConsumedMeals, displayFoodName, reconcileConsumedMeals, type C
 import { GlassCard, GradientButton } from '../components/ui'
 import { AvatarIcon, DropletIcon, DumbbellIcon, OrbitIcon } from '../components/Icons'
 import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
-import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, simpleActivityProgress, simpleDailyProgress, simpleDaySwipeOffset, simpleGuidedProgramSlug, simpleWaterTargetComplete, weightFromKg, weightToKg, weightUnitFromSettings, type SimpleMacroKey } from '../lib/simpleMode'
+import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, simpleActivityProgress, simpleDailyProgress, simpleDaySwipeOffset, simpleGuidedProgramSlug, simpleWaterTargetComplete, simpleWorkoutEvidenceOrder, weightFromKg, weightToKg, weightUnitFromSettings, type SimpleMacroKey } from '../lib/simpleMode'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { useOrbitStore } from '../orbit/store/OrbitStore'
 import { missionLabel } from '../orbit/domain/analysis'
@@ -1195,11 +1195,13 @@ export function SimpleHome() {
                   />
                   <SimpleMetric icon={<DumbbellIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${fullWorkoutMinutes}m` : t('Rest')} label={t('Training')} done={workoutDone} onClick={() => { setTrainingPreviewMode('full'); setQuickPanel('training') }} ariaLabel={t('Preview training')} />
                 </div>
-                <CompletedWorkoutHistoryCards date={selectedDate} accent={ACCENTS.teal} />
-                <WorkoutInsightsCard anchorDate={selectedDate} accent={ACCENTS.teal} />
               </div>
             ) : blockId === 'activity' ? (
-              <div className={`${selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') ? 'grid grid-cols-[minmax(0,1fr)_5.25rem]' : 'flex justify-end'} items-stretch gap-2`} data-simple-local-gesture>
+              <div className="space-y-3" data-simple-local-gesture>
+              {simpleWorkoutEvidenceOrder().map((section) => section === 'finished-workouts' ? (
+                <CompletedWorkoutHistoryCards key={section} date={selectedDate} accent={ACCENTS.teal} />
+              ) : section === 'wearable-activity' ? (
+              <div key={section} className={`${selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') ? 'grid grid-cols-[minmax(0,1fr)_5.25rem]' : 'flex justify-end'} items-stretch gap-2`}>
                 {selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') && (
                   <WatchActivityCheckin
                     compact
@@ -1219,6 +1221,10 @@ export function SimpleHome() {
                   accent={emerald}
                   onSaved={() => setSettings({ addons: { ...settings.addons, simple_show_manual_workout: true } })}
                 />}
+              </div>
+              ) : (
+                <WorkoutInsightsCard key={section} anchorDate={selectedDate} accent={ACCENTS.teal} collapsedInitially />
+              ))}
               </div>
             ) : blockId === 'manual-workout' ? (
               canCreateManualWorkouts && hasManualWorkout && (adhdMode || showManualWorkoutCard) ? <TodayManualWorkoutCard compact date={selectedDate} onAdd={openNewManualWorkout} onEdit={openManualWorkout} /> : null

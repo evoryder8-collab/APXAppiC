@@ -409,8 +409,12 @@ struct SimpleHomeView: View {
 
                     metrics
                     CompletedWorkoutHistoryCards(date: selectedDate.apexDateKey, accent: APEXColor.teal)
-                    WorkoutInsightsCard(anchorDate: selectedDate.apexDateKey, accent: APEXColor.teal)
                     WearableActivityCard(date: selectedDate)
+                    WorkoutInsightsCard(
+                        anchorDate: selectedDate.apexDateKey,
+                        accent: APEXColor.teal,
+                        collapsedInitially: true
+                    )
 
                     if showGuidedPlan {
                         ForEach(workoutPlans.compactMap(\.programDay)) { day in

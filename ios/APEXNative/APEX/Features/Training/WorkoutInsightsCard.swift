@@ -26,6 +26,7 @@ private struct WorkoutInsightMetric: Identifiable {
 
 struct WorkoutInsightsCard: View {
     @Environment(AppSession.self) private var session
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var language = LanguageState.shared
     @State private var mode: WorkoutInsightRangeMode = .week
     @State private var customFrom = Calendar.current.date(byAdding: .year, value: -1, to: .now) ?? .now
@@ -33,9 +34,18 @@ struct WorkoutInsightsCard: View {
     @State private var renderedURL: URL?
     @State private var rendering = false
     @State private var errorMessage: String?
+    @State private var expanded: Bool
 
     let anchorDate: String
-    var accent: Color = APEXColor.violet
+    let accent: Color
+    let collapsedInitially: Bool
+
+    init(anchorDate: String, accent: Color = APEXColor.violet, collapsedInitially: Bool = false) {
+        self.anchorDate = anchorDate
+        self.accent = accent
+        self.collapsedInitially = collapsedInitially
+        _expanded = State(initialValue: !collapsedInitially)
+    }
 
     private var ownerID: UUID? {
         session.profile?.userID ?? session.data.settings?.userID
@@ -86,15 +96,34 @@ struct WorkoutInsightsCard: View {
 
     var body: some View {
         GlassCard(radius: 28, padding: 18) {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: expanded ? 14 : 0) {
+                Button(action: toggleExpanded) {
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(language.text("APEX WORKOUT INSIGHTS"))
+                                .font(APEXFont.mono(9, weight: .bold))
+                                .tracking(1.5)
+                                .foregroundStyle(accent)
+                            Text(language.text("Workout insights"))
+                                .font(APEXFont.display(20))
+                                .foregroundStyle(APEXColor.ink)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                            .rotationEffect(.degrees(expanded ? 180 : 0))
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("workout-insights-toggle")
+                .accessibilityLabel(language.text("Workout insights"))
+                .accessibilityValue(language.text(expanded ? "Expanded" : "Collapsed"))
+
+                if expanded {
                 HStack(alignment: .top, spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(language.text("APEX WORKOUT INSIGHTS"))
-                            .font(APEXFont.mono(9, weight: .bold))
-                            .tracking(1.5)
-                            .foregroundStyle(accent)
-                        Text(language.text("Workout insights"))
-                            .font(APEXFont.display(23))
                         Text(localizedRange(summary.from, summary.to))
                             .font(APEXFont.body(11, weight: .semibold))
                             .foregroundStyle(APEXColor.secondaryInk)
@@ -185,12 +214,22 @@ struct WorkoutInsightsCard: View {
                         .foregroundStyle(APEXColor.danger)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                }
             }
         }
         .accessibilityIdentifier("workout-insights-card")
         .onAppear(perform: useOldestEvidenceForCustomRange)
         .onChange(of: customFrom) { _, _ in renderedURL = nil }
         .onChange(of: customTo) { _, _ in renderedURL = nil }
+        .onChange(of: ownerID) { _, _ in expanded = !collapsedInitially }
+    }
+
+    private func toggleExpanded() {
+        if reduceMotion {
+            expanded.toggle()
+        } else {
+            withAnimation(.easeInOut(duration: 0.2)) { expanded.toggle() }
+        }
     }
 
     private func rangeButton(_ option: WorkoutInsightRangeMode) -> some View {

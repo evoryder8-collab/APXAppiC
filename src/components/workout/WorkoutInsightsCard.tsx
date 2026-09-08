@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 import type { Accent } from '../../lib/theme'
 import { ACCENTS, accentVars } from '../../lib/theme'
@@ -43,9 +43,11 @@ function durationText(minutes: number, locale: string): string {
 export function WorkoutInsightsCard({
   anchorDate = todayIso(),
   accent = ACCENTS.violet,
+  collapsedInitially = false,
 }: {
   anchorDate?: string
   accent?: Accent
+  collapsedInitially?: boolean
 }) {
   const { data, toast } = useStore()
   const { language } = useLanguage()
@@ -60,6 +62,8 @@ export function WorkoutInsightsCard({
   const [customFrom, setCustomFrom] = useState(earliest)
   const [customTo, setCustomTo] = useState(anchorDate)
   const [exporting, setExporting] = useState(false)
+  const [expanded, setExpanded] = useState(!collapsedInitially)
+  useEffect(() => setExpanded(!collapsedInitially), [collapsedInitially, ownerID])
   const range = useMemo(() => {
     switch (mode) {
     case 'day': return { from: anchorDate, to: anchorDate }
@@ -134,12 +138,22 @@ export function WorkoutInsightsCard({
   }
 
   return <GlassCard accent={accent} className="overflow-hidden p-5" style={accentVars(accent)}>
-    <div className="flex items-start justify-between gap-4">
+    <button
+      type="button"
+      aria-expanded={expanded}
+      onClick={() => setExpanded((value) => !value)}
+      className="flex min-h-11 w-full items-center justify-between gap-4 text-left"
+    >
       <div>
         <p className="font-mono text-[9px] font-black tracking-[.2em] uppercase" style={{ color: accent.deep }}>{t('APEX WORKOUT INSIGHTS')}</p>
         <h2 className="mt-1 font-display text-2xl font-bold text-ink">{t('Workout insights')}</h2>
-        <p className="mt-1 text-xs font-semibold text-ink-soft">{localizedRange(summary.from, summary.to, language)}</p>
       </div>
+      <span aria-hidden="true" className={`text-sm font-black text-ink-soft transition-transform motion-reduce:transition-none ${expanded ? 'rotate-180' : ''}`}>⌄</span>
+    </button>
+
+    {expanded && <>
+    <div className="mt-3 flex items-start justify-between gap-4">
+      <p className="text-xs font-semibold text-ink-soft">{localizedRange(summary.from, summary.to, language)}</p>
       <button type="button" onClick={() => { void exportPNG() }} disabled={exporting} className="min-h-11 shrink-0 rounded-2xl px-4 text-xs font-black text-white shadow-sm disabled:opacity-60" style={{ background: accent.gradient }}>
         {exporting ? t('Rendering...') : t('Export PNG')}
       </button>
@@ -167,5 +181,6 @@ export function WorkoutInsightsCard({
       </div>)}
     </div>
     <p className="mt-4 text-[10px] font-semibold leading-relaxed text-ink-faint">{t('Only recorded workout facts. Linked wearable energy is counted once.')}</p>
+    </>}
   </GlassCard>
 }

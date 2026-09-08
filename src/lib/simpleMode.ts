@@ -5,6 +5,12 @@ export type UiMode = 'simple' | 'advanced'
 export type WeightUnit = 'kg' | 'lb'
 export type SimpleMacroKey = 'protein_g' | 'carbs_g' | 'fat_g'
 
+export type SimpleWorkoutEvidenceSection = 'finished-workouts' | 'wearable-activity' | 'workout-insights'
+
+export function simpleWorkoutEvidenceOrder(): SimpleWorkoutEvidenceSection[] {
+  return ['finished-workouts', 'wearable-activity', 'workout-insights']
+}
+
 export interface SimpleMacroEntry {
   snapshot_name: string
   protein_g: number

@@ -1215,6 +1215,38 @@ struct APEXDaylineView: View {
                             height: timelineHeight
                         )
                         ForEach(visibleEntries) { entry in
+                            let actualY = yPosition(
+                                for: lineMinute(dragPreview[entry.id] ?? entry.minute),
+                                height: timelineHeight
+                            )
+                            let rowY = laidOut[entry.id] ?? actualY
+                            daylineCable(
+                                from: CGPoint(x: railX, y: actualY),
+                                to: CGPoint(x: 93, y: rowY),
+                                color: entry.recorded ? Color.cyan.opacity(0.48) : Color.white.opacity(0.2),
+                                dashed: !entry.recorded
+                            )
+                            daylineActualTimePin(
+                                at: CGPoint(x: railX, y: actualY),
+                                color: entry.recorded ? Color.cyan : Color.white.opacity(0.52)
+                            )
+                        }
+
+                        ForEach(workoutEntries) { workout in
+                            let key = "workout-\(workout.id)"
+                            let shownMinute = workoutDragPreview[workout.id] ?? workout.minute
+                            let actualY = yPosition(for: lineMinute(shownMinute), height: timelineHeight)
+                            let rowY = laidOut[key] ?? actualY
+                            daylineCable(
+                                from: CGPoint(x: railX, y: actualY),
+                                to: CGPoint(x: 93, y: rowY),
+                                color: APEXColor.violet.opacity(0.55),
+                                dashed: false
+                            )
+                            daylineActualTimePin(at: CGPoint(x: railX, y: actualY), color: APEXColor.violet)
+                        }
+
+                        ForEach(visibleEntries) { entry in
                             let y = laidOut[entry.id] ?? yPosition(
                                 for: lineMinute(dragPreview[entry.id] ?? entry.minute),
                                 height: timelineHeight
@@ -1333,6 +1365,30 @@ struct APEXDaylineView: View {
         .overlay(RoundedRectangle(cornerRadius: 34).stroke(Color.white.opacity(0.12)))
         .shadow(color: APEXColor.teal.opacity(0.18), radius: 24, y: 12)
         .accessibilityIdentifier("nutrition-dayline")
+    }
+
+    private func daylineCable(from start: CGPoint, to end: CGPoint, color: Color, dashed: Bool) -> some View {
+        Path { path in
+            path.move(to: start)
+            path.addCurve(
+                to: end,
+                control1: CGPoint(x: start.x + 5, y: start.y),
+                control2: CGPoint(x: end.x - 5, y: end.y)
+            )
+        }
+        .stroke(color, style: StrokeStyle(lineWidth: 1.5, dash: dashed ? [3, 4] : []))
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+
+    private func daylineActualTimePin(at point: CGPoint, color: Color) -> some View {
+        Circle()
+            .fill(Color(red: 0.025, green: 0.09, blue: 0.11))
+            .frame(width: 9, height: 9)
+            .overlay(Circle().stroke(color, lineWidth: 2))
+            .position(point)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
     }
 
     @ViewBuilder

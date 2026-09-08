@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, floatingActiveDateVisible, isPrimaryDailySupplement, parseWaterAmountToLitres, planBriefingExit, rankSimpleMacroContributors, selectNextSimpleAction, settingsForUiMode, simpleActivityProgress, simpleCompletion, simpleDailyProgress, simpleDaySwipeOffset, simpleGuidedProgramSlug, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings, weightFromKg, weightToKg, weightUnitFromSettings } from '../src/lib/simpleMode.ts'
+import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, floatingActiveDateVisible, isPrimaryDailySupplement, parseWaterAmountToLitres, planBriefingExit, rankSimpleMacroContributors, selectNextSimpleAction, settingsForUiMode, simpleActivityProgress, simpleCompletion, simpleDailyProgress, simpleDaySwipeOffset, simpleGuidedProgramSlug, simpleWaterTargetComplete, simpleWorkoutEvidenceOrder, toggleSimpleWaterTarget, uiModeFromSettings, weightFromKg, weightToKg, weightUnitFromSettings } from '../src/lib/simpleMode.ts'
 import type { Settings } from '../src/lib/types.ts'
 import { seedSettings } from '../src/data/seed.ts'
 
@@ -33,6 +33,14 @@ test('new Simple Mode profiles keep optional secondary cards hidden', () => {
   assert.equal(seeded.addons.simple_show_hydration_reminder, false)
   assert.equal(seeded.addons.simple_show_manual_workout, false)
   assert.equal(seeded.addons.simple_show_next_action, false)
+})
+
+test('Simple workout evidence keeps finished work before wearable activity and insights', () => {
+  assert.deepEqual(simpleWorkoutEvidenceOrder(), [
+    'finished-workouts',
+    'wearable-activity',
+    'workout-insights',
+  ])
 })
 
 test('Simple Mode projects bespoke main phases without changing ordinary accounts', () => {
