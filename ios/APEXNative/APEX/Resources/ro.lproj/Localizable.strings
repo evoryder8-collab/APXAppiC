@@ -5561,3 +5561,17 @@
 "Your meal was not changed. Check access and try again." = "Masa nu a fost modificată. Verifică accesul și încearcă din nou.";
 "That meal changed before it could be removed. Refresh and try again." = "Masa s-a modificat înainte de a putea fi eliminată. Reîmprospătează și încearcă din nou.";
 "That meal could not be removed safely. Refresh and try again." = "Masa nu a putut fi eliminată în siguranță. Reîmprospătează și încearcă din nou.";
+"Developer Mode" = "Mod dezvoltator";
+"Explore with disposable sample data. Your account, purchases and Apple Health stay unchanged." = "Explorează cu date de probă temporare. Contul, achizițiile și Apple Health rămân neschimbate.";
+"My account" = "Contul meu";
+"Individual subscriber" = "Abonat individual";
+"Invited client" = "Client invitat";
+"Sample mode: device connections, photos, purchases and notifications are unavailable. Changes stay in this preview." = "Mod de probă: conexiunile cu dispozitivele, fotografiile, achizițiile și notificările nu sunt disponibile. Modificările rămân în această previzualizare.";
+"Sample" = "Exemplu";
+"Sample coach" = "Antrenor de probă";
+"Foundation strength" = "Forță de bază";
+"Build rhythm, strength and confidence." = "Dezvoltă ritm, forță și încredere.";
+"Keep two good repetitions in reserve." = "Păstrează două repetări corecte în rezervă.";
+"Full body foundation" = "Bază pentru întregul corp";
+"Move smoothly and stay pain-free." = "Mișcă-te controlat, fără durere.";
+"Stop if form changes." = "Oprește-te dacă tehnica se schimbă.";

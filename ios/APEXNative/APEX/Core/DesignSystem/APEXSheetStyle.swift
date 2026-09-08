@@ -17,6 +17,7 @@ extension View {
     /// A glanceable sheet: part height, dismissible, context still visible.
     func apexTransientSheet(_ smallest: PresentationDetent = .medium) -> some View {
         self
+            .modifier(DeveloperSandboxSheetClearance())
             .presentationDetents([smallest, .large])
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(30)
@@ -26,6 +27,7 @@ extension View {
     /// A sheet that is the task itself and wants the whole screen.
     func apexTaskSheet() -> some View {
         self
+            .modifier(DeveloperSandboxSheetClearance())
             .presentationDetents([.large])
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(30)

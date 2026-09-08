@@ -42,10 +42,11 @@ struct ProfileAvatarPicker: View {
             }
         }
         .buttonStyle(.plain)
+        .disabled(session.isDeveloperSandbox)
         .accessibilityLabel(language.text("Change profile picture"))
         .task(id: profile) {
             avatarURL = nil
-            guard profile?.avatarPath != nil,
+            guard !session.isDeveloperSandbox, profile?.avatarPath != nil,
                   let operation = session.accountOperationLease() else { return }
             guard let url = try? await session.signedAvatarURL(operation: operation),
                   !Task.isCancelled,
@@ -53,7 +54,7 @@ struct ProfileAvatarPicker: View {
             avatarURL = url
         }
         .onChange(of: picked) { _, item in
-            guard let item,
+            guard !session.isDeveloperSandbox, let item,
                   let operation = session.accountOperationLease() else { return }
             let requestID = UUID()
             uploadTask?.cancel()
@@ -93,7 +94,7 @@ struct ProfileAvatarPicker: View {
 
     @ViewBuilder
     private var fallbackAvatar: some View {
-        if let persona = profile?.persona {
+        if !session.isDeveloperSandbox, let persona = profile?.persona {
             PortraitImage(name: persona.portraitName).scaledToFill()
         } else {
             ZStack {

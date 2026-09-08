@@ -80,7 +80,7 @@ struct BarcodeScannerView: View {
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            if scannerPhase.shouldRunCamera {
+            if !session.isDeveloperSandbox && scannerPhase.shouldRunCamera {
                 CameraBarcodeScanner(
                     code: $code,
                     permissionDenied: $permissionDenied,
@@ -94,6 +94,7 @@ struct BarcodeScannerView: View {
                 .allowsHitTesting(false)
 
             VStack {
+                if session.isDeveloperSandbox { DeveloperSandboxNotice().foregroundStyle(.white) }
                 HStack {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark")

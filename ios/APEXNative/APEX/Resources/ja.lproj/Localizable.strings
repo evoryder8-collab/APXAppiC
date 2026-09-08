@@ -5579,3 +5579,17 @@
 "Your meal was not changed. Check access and try again." = "食事は変更されていません。アクセス権を確認して、もう一度お試しください。";
 "That meal changed before it could be removed. Refresh and try again." = "削除する前に食事内容が変更されました。更新して、もう一度お試しください。";
 "That meal could not be removed safely. Refresh and try again." = "食事を安全に削除できませんでした。更新して、もう一度お試しください。";
+"Developer Mode" = "開発者モード";
+"Explore with disposable sample data. Your account, purchases and Apple Health stay unchanged." = "一時的なサンプルデータで試せます。アカウント、購入内容、Apple Healthは変更されません。";
+"My account" = "自分のアカウント";
+"Individual subscriber" = "個人メンバー";
+"Invited client" = "招待されたクライアント";
+"Sample mode: device connections, photos, purchases and notifications are unavailable. Changes stay in this preview." = "サンプルモードでは、デバイス接続、写真、購入、通知は利用できません。変更はこのプレビュー内にのみ保存されます。";
+"Sample" = "サンプル";
+"Sample coach" = "サンプルコーチ";
+"Foundation strength" = "筋力の基礎";
+"Build rhythm, strength and confidence." = "リズム、筋力、自信を育てましょう。";
+"Keep two good repetitions in reserve." = "正しいフォームであと2回できる余力を残しましょう。";
+"Full body foundation" = "全身の基礎";
+"Move smoothly and stay pain-free." = "なめらかに、痛みのない範囲で動きましょう。";
+"Stop if form changes." = "フォームが崩れたら止めましょう。";

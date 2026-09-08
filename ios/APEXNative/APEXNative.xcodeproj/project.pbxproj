@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        E50908000000000000000002 /* DeveloperSandboxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50908000000000000000001 /* DeveloperSandboxView.swift */; };
+		D50908000000000000000004 /* DeveloperSandboxTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D50908000000000000000003 /* DeveloperSandboxTests.swift */; };
+		D50908000000000000000002 /* DeveloperSandbox.swift in Sources */ = {isa = PBXBuildFile; fileRef = D50908000000000000000001 /* DeveloperSandbox.swift */; };
 		A04700000000000000000001 /* RecoveryPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A04700000000000000000002 /* RecoveryPlanner.swift */; };
 		A04700000000000000000003 /* RecoveryPlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A04700000000000000000004 /* RecoveryPlannerView.swift */; };
 		A04700000000000000000005 /* RecoveryPlannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A04700000000000000000006 /* RecoveryPlannerTests.swift */; };
@@ -339,6 +342,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+        E50908000000000000000001 /* DeveloperSandboxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperSandboxView.swift; sourceTree = "<group>"; };
+		D50908000000000000000003 /* DeveloperSandboxTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperSandboxTests.swift; sourceTree = "<group>"; };
+		D50908000000000000000001 /* DeveloperSandbox.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeveloperSandbox.swift; sourceTree = "<group>"; };
 		A04700000000000000000002 /* RecoveryPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPlanner.swift; sourceTree = "<group>"; };
 		A04700000000000000000004 /* RecoveryPlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPlannerView.swift; sourceTree = "<group>"; };
 		A04700000000000000000006 /* RecoveryPlannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPlannerTests.swift; sourceTree = "<group>"; };
@@ -888,6 +894,7 @@
 				AA25C0DE0000000000000002 /* SupabasePayloadContractTests.swift */,
 				08E9E5DC16B951C102E971DA /* SyncRepairTests.swift */,
 				A11000000000000000000003 /* SessionBriefingKnowledgeTests.swift */,
+				D50908000000000000000003 /* DeveloperSandboxTests.swift */,
 				3512C30BD201A945F5BD6E98 /* TrainingAdjustmentEngineTests.swift */,
 				32F40FC581B939F39F52C99D /* TrainingCalendarDayTests.swift */,
 				823ED9B3330B37611FD366A2 /* TrainingPlanParityTests.swift */,
@@ -979,6 +986,7 @@
 				2CD5EA29A6CF5B32C5C07DA6 /* AccessRecoveryView.swift */,
 				30E466A7F4101C8729453FCE /* ProfileAvatarPicker.swift */,
 				E95C814C0119931140528180 /* SettingsView.swift */,
+                E50908000000000000000001 /* DeveloperSandboxView.swift */,
 			);
 			path = Settings;
 			sourceTree = "<group>";
@@ -1140,6 +1148,7 @@
 			children = (
 				D9FBDEA4D4FF01D5982D51AE /* APEXApp.swift */,
 				1AA785FB8ED5CCCEA551C98B /* APEXDebugFixture.swift */,
+				D50908000000000000000001 /* DeveloperSandbox.swift */,
 				4B49E8F5F785351C11F1E042 /* AppRootView.swift */,
 				135C463AB8CEF57FA521CD01 /* AppRoute.swift */,
 				60170C01AE471FFE7A710F8E /* AppSession.swift */,
@@ -1415,6 +1424,7 @@
 				7844717B06A0968147BE2154 /* APEXApp.swift in Sources */,
 				B9308BBF59D1E8E81559AA3D /* APEXConfiguration.swift in Sources */,
 				DB36DC6830D491E7D91EC4CB /* APEXDebugFixture.swift in Sources */,
+				D50908000000000000000002 /* DeveloperSandbox.swift in Sources */,
 				B4DEFD97649C463825AECC4E /* APEXLocalization.swift in Sources */,
 				1EDB0BA3C3FE40F5B256B247 /* APEXModels.swift in Sources */,
 				FA1100000000000000000002 /* ProfileIntegrityPolicy.swift in Sources */,
@@ -1532,6 +1542,7 @@
 				A11000000000000000000002 /* SessionBriefingKnowledge.swift in Sources */,
 				FF6E7B8235214E585BC86A80 /* SessionBriefingSheet.swift in Sources */,
 				E56AE4DFDCB1970EE8214CFE /* SettingsView.swift in Sources */,
+                E50908000000000000000002 /* DeveloperSandboxView.swift in Sources */,
 				FDA000000000000000000001 /* FoodDataAcknowledgementsView.swift in Sources */,
 				4E8109D8E62DD0784BBFDF3A /* SimpleHomeView.swift in Sources */,
 				8F8F28A4C1D48840624E3517 /* StrengthProgress.swift in Sources */,
@@ -1623,6 +1634,7 @@
 				AA25C0DE0000000000000001 /* SupabasePayloadContractTests.swift in Sources */,
 				1EDD5879AA2D530AA5356283 /* SyncRepairTests.swift in Sources */,
 				A11000000000000000000004 /* SessionBriefingKnowledgeTests.swift in Sources */,
+				D50908000000000000000004 /* DeveloperSandboxTests.swift in Sources */,
 				EBF350EC7ADE89A83BCF504D /* TrainingAdjustmentEngineTests.swift in Sources */,
 				14B60F8165A9807C89051EF1 /* TrainingCalendarDayTests.swift in Sources */,
 				83AB7CCD99EF5B25A515E9C3 /* TrainingPlanParityTests.swift in Sources */,

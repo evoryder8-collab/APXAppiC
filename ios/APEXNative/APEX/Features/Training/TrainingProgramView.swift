@@ -1848,8 +1848,8 @@ struct WorkoutPlayerView: View {
         return language.format("APEX paces you: %@s up, %@s down", up, down)
     }
 
-    private var voiceOn: Bool { session.data.settings?.voiceOn ?? true }
-    private var ticksOn: Bool { session.data.settings?.ticksOn ?? true }
+    private var voiceOn: Bool { !session.isDeveloperSandbox && (session.data.settings?.voiceOn ?? true) }
+    private var ticksOn: Bool { !session.isDeveloperSandbox && (session.data.settings?.ticksOn ?? true) }
 
     var body: some View {
         ZStack {

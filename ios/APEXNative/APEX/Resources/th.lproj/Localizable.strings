@@ -5561,3 +5561,17 @@
 "Your meal was not changed. Check access and try again." = "มื้ออาหารของคุณยังไม่ถูกเปลี่ยน โปรดตรวจสอบสิทธิ์การเข้าถึงแล้วลองอีกครั้ง";
 "That meal changed before it could be removed. Refresh and try again." = "มื้ออาหารถูกเปลี่ยนแปลงก่อนที่จะนำออกได้ โปรดรีเฟรชแล้วลองอีกครั้ง";
 "That meal could not be removed safely. Refresh and try again." = "ไม่สามารถนำมื้ออาหารออกได้อย่างปลอดภัย โปรดรีเฟรชแล้วลองอีกครั้ง";
+"Developer Mode" = "โหมดนักพัฒนา";
+"Explore with disposable sample data. Your account, purchases and Apple Health stay unchanged." = "ลองใช้ด้วยข้อมูลตัวอย่างชั่วคราว บัญชี การซื้อ และ Apple Health ของคุณจะไม่เปลี่ยนแปลง";
+"My account" = "บัญชีของฉัน";
+"Individual subscriber" = "สมาชิกบุคคล";
+"Invited client" = "ลูกค้าที่ได้รับเชิญ";
+"Sample mode: device connections, photos, purchases and notifications are unavailable. Changes stay in this preview." = "โหมดตัวอย่าง: ไม่รองรับการเชื่อมต่ออุปกรณ์ รูปภาพ การซื้อ และการแจ้งเตือน การเปลี่ยนแปลงจะอยู่ในตัวอย่างนี้เท่านั้น";
+"Sample" = "ตัวอย่าง";
+"Sample coach" = "โค้ชตัวอย่าง";
+"Foundation strength" = "พื้นฐานความแข็งแรง";
+"Build rhythm, strength and confidence." = "สร้างความสม่ำเสมอ ความแข็งแรง และความมั่นใจ";
+"Keep two good repetitions in reserve." = "เหลือแรงไว้ทำอีกสองครั้งด้วยท่าที่ถูกต้อง";
+"Full body foundation" = "พื้นฐานทั่วร่างกาย";
+"Move smoothly and stay pain-free." = "เคลื่อนไหวอย่างนุ่มนวลโดยไม่เจ็บ";
+"Stop if form changes." = "หยุดเมื่อท่าเริ่มผิด";

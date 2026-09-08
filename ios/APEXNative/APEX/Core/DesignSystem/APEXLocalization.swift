@@ -416,6 +416,7 @@ enum LocalizedKey: CaseIterable {
 }
 
 struct PortalLanguagePicker: View {
+    @Environment(AppSession.self) private var session
     @State private var state = LanguageState.shared
 
     /* Finished languages, plus the unfinished ones once a beta code is in play,
@@ -426,7 +427,7 @@ struct PortalLanguagePicker: View {
         AppLanguage.allCases.filter {
             $0.isReleaseReady
                 || $0 == state.language
-                || EntitlementStore.shared.access == .beta
+                || (!session.isDeveloperSandbox && EntitlementStore.shared.access == .beta)
         }
     }
 
@@ -434,6 +435,7 @@ struct PortalLanguagePicker: View {
         Menu {
             ForEach(offered) { language in
                 Button {
+                    guard !session.isDeveloperSandbox else { return }
                     withAnimation(.easeInOut(duration: 0.25)) { state.language = language }
                 } label: {
                     Text("\(language.flag)  \(language.nativeName)")

@@ -321,7 +321,7 @@ struct SimpleHomeView: View {
                 APEXTopBar(
                     profile: profile,
                     onSettings: { session.openPortalDestination(.settings) },
-                    nudges: nudges,
+                    nudges: session.isDeveloperSandbox ? nil : nudges,
                     onOpenNudges: { showNudges = true }
                 )
 
@@ -364,6 +364,7 @@ struct SimpleHomeView: View {
                         icon: "person.2.badge.gearshape"
                     )
                 }
+                .accessibilityIdentifier("portal.coach-workspace")
                 .buttonStyle(.plain)
                 .padding(.horizontal, 18)
             }
@@ -721,7 +722,7 @@ struct SimpleHomeView: View {
     }
 
     private var orbitSubtitle: String {
-        if OrbitLocationManager.shared.hasRecoverableRun(for: session.profile?.userID) {
+        if !session.isDeveloperSandbox && OrbitLocationManager.shared.hasRecoverableRun(for: session.profile?.userID) {
             return language.text("Continue interrupted run")
         }
         if let campaign = session.data.orbitCampaigns.first(where: { $0.status == "active" }),
@@ -2636,6 +2637,8 @@ private struct WearableActivityCard: View {
                         }
                     }
                         .buttonStyle(.borderedProminent).tint(APEXColor.cyan)
+                } else if session.isDeveloperSandbox {
+                    DeveloperSandboxNotice()
                 } else if date.apexDateKey == Date().apexDateKey {
                     Button(
                         session.healthImportIsEnabledForCurrentAccount
@@ -2800,7 +2803,7 @@ private struct RecoveryMorningCard: View {
                 } else {
                     /* No score or measured sleep fact yet. Say so in one word
                        rather than opening a form nobody asked for. */
-                    Text(language.text(health.isAuthorized ? "Waiting" : "Tap to add"))
+                    Text(language.text(!session.isDeveloperSandbox && health.isAuthorized ? "Waiting" : "Tap to add"))
                         .font(APEXFont.mono(8))
                         .tracking(0.9)
                         .foregroundStyle(APEXColor.secondaryInk)

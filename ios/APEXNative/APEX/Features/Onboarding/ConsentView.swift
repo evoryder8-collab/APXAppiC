@@ -38,7 +38,7 @@ struct ConsentView: View {
                         buttonTitle: healthAsked ? language.text("Asked") : language.text("Allow Health access"),
                         done: healthAsked
                     ) {
-                        guard let operation = session.accountOperationLease() else { return }
+                        guard !session.isDeveloperSandbox, let operation = session.accountOperationLease() else { return }
                         healthAsked = true
                         Task { _ = await session.connectHealth(operation: operation) }
                     }
@@ -50,7 +50,7 @@ struct ConsentView: View {
                         buttonTitle: notificationsAsked ? language.text("Asked") : language.text("Allow reminders"),
                         done: notificationsAsked
                     ) {
-                        guard let operation = session.accountOperationLease() else { return }
+                        guard !session.isDeveloperSandbox, let operation = session.accountOperationLease() else { return }
                         notificationsAsked = true
                         Task {
                             guard session.accountOperationIsCurrent(operation) else { return }
@@ -60,7 +60,9 @@ struct ConsentView: View {
                         }
                     }
                 }
+                .disabled(session.isDeveloperSandbox)
                 .padding(22)
+                if session.isDeveloperSandbox { DeveloperSandboxNotice() }
             }
 
             Button {

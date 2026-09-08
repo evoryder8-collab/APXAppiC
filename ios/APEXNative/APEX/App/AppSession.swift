@@ -300,11 +300,55 @@ final class AppSession {
     var failedSyncOperations: [FailedOfflineOperation] = []
     var navigationPath: [PortalDestination] = []
 
-    private let service = SupabaseService.shared
+
+    private func updateSandboxPlanReceipt(planVersionID: UUID, activate: Bool, ownerID: UUID) throws {
+        guard let plan = coachContext.currentPlan, plan.id == planVersionID,
+              coachClientPolicy.canFollowCoachPlan else { throw CancellationError() }
+        let updated = CoachCurrentPlan(id: plan.id, relationshipID: plan.relationshipID,
+            version: plan.version, status: plan.status, title: plan.title,
+            objective: plan.objective, coachNote: plan.coachNote, reviewDate: plan.reviewDate,
+            checklist: plan.checklist, plan: plan.plan, publishedAt: plan.publishedAt,
+            acknowledgedAt: plan.acknowledgedAt ?? Date().ISO8601Format(),
+            activatedAt: activate ? Date().ISO8601Format() : plan.activatedAt)
+        coachContext = CoachAccountContext(coach: coachContext.coach,
+            sponsorship: coachContext.sponsorship, currentPlan: updated,
+            capabilities: coachContext.capabilities)
+        guard activate else { return }
+        let slug = "coach"
+        let previousIDs = Set(data.programs.filter { $0.slug == slug }.map(\.id))
+        let previousDays = Set(data.programDays.filter { previousIDs.contains($0.programID) }.map(\.id))
+        data.exercises.removeAll { previousDays.contains($0.programDayID) }
+        data.programDays.removeAll { previousIDs.contains($0.programID) }
+        data.programs.removeAll { previousIDs.contains($0.id) }
+        let program = Program(id: UUID(), userID: ownerID, slug: slug, name: plan.title, description: plan.objective)
+        data.programs.append(program)
+        for (index, template) in plan.plan.sessions.enumerated() {
+            let day = ProgramDay(id: template.id, userID: ownerID, programID: program.id,
+                weekday: template.weekday, name: template.name, dayType: "coach",
+                estimatedMinutes: template.estimatedMinutes, warmupNote: template.warmupNote, sortOrder: index)
+            data.programDays.append(day)
+            for (order, item) in template.exercises.enumerated() {
+                data.exercises.append(Exercise(id: item.id, userID: ownerID, programDayID: day.id,
+                    name: item.name, movementID: item.movementID, workGroupID: item.groupID,
+                    workGroupPosition: item.groupPosition, sets: item.sets,
+                    repMin: item.targetMin, repMax: item.targetMax, repUnit: item.unit, perSide: item.perSide,
+                    restSeconds: item.restSeconds, tempoUp: item.tempoUpSeconds,
+                    tempoDown: item.tempoDownSeconds, tempoPause: item.tempoPauseSeconds,
+                    tempoNote: "", notes: item.notes, incrementKG: 1, isLite: false,
+                    optional: item.optional, sortOrder: order))
+            }
+        }
+    }
+
+    private let service: SupabaseService
+    let developerSandboxRole: DeveloperSandboxRole?
+    var isDeveloperSandbox: Bool { developerSandboxRole != nil }
+    @ObservationIgnored private let sandboxSamples: DeveloperSandboxSamples?
     @ObservationIgnored private let foodSearchProvider: FoodSearchProvider
-    private let offlineStore = OfflineStore.shared
-    private let defaults = UserDefaults.standard
-    @ObservationIgnored private let hydrationConnectivity = HydrationPhoneConnectivity()
+    private let offlineStore: OfflineStore
+    let defaults: UserDefaults
+    @ObservationIgnored private let sandboxDefaultsSuiteName: String?
+    @ObservationIgnored private let hydrationConnectivity: HydrationPhoneConnectivity?
     @ObservationIgnored private let hydrationMutationQueue = HydrationMutationQueue()
     @ObservationIgnored private var hydrationMutationsInFlight: Set<UUID> = []
     private var bootstrapped = false
@@ -324,21 +368,52 @@ final class AppSession {
     #endif
 
     init(
+        developerSandboxRole: DeveloperSandboxRole? = nil,
         foodSearchProvider: @escaping FoodSearchProvider = { query in
             try await SupabaseService.shared.searchFoods(query: query)
         }
     ) {
-        self.foodSearchProvider = foodSearchProvider
+        self.developerSandboxRole = developerSandboxRole
+        let isSandbox = developerSandboxRole != nil
+        service = isSandbox ? SupabaseService(localOnly: true) : .shared
+        offlineStore = isSandbox ? OfflineStore(memoryOnly: true) : .shared
+        let suiteName = isSandbox ? "apex.developer-sandbox.\(UUID().uuidString)" : nil
+        sandboxDefaultsSuiteName = suiteName
+        defaults = suiteName.map { UserDefaults(suiteName: $0)! } ?? .standard
+        hydrationConnectivity = isSandbox ? nil : HydrationPhoneConnectivity()
+        sandboxSamples = isSandbox ? DeveloperSandboxSamples() : nil
+        self.foodSearchProvider = isSandbox ? { @Sendable query in
+            let matches = DeveloperSandboxSamples.catalogue.filter { query.isEmpty || $0.name.localizedCaseInsensitiveContains(query) }
+            return FoodLookupEnvelope(state: "ok", source: "sample", food: nil, results: matches, message: nil)
+        } : foodSearchProvider
+        if let developerSandboxRole {
+            let ownerID = UUID()
+            authenticatedOwnerID = ownerID
+            data = DeveloperSandboxSamples.dashboard(ownerID: ownerID, name: "Sample")
+            if developerSandboxRole == .individual {
+                data = .empty
+                route = .induction
+            } else {
+                coachContext = developerSandboxRole == .coach
+                    ? sandboxSamples!.coachWorkspaceContext() : sandboxSamples!.coachPlanContext()
+                route = .portal
+            }
+            return
+        }
         EntitlementStore.shared.setAccessDeniedHandler { [weak self] ownerID in
             self?.routeToAccessRecoveryBoundary(for: ownerID)
         }
-        hydrationConnectivity.mutationHandler = { [weak self] mutation in
+        hydrationConnectivity?.mutationHandler = { [weak self] mutation in
             await self?.handleHydrationMutation(mutation)
         }
     }
 
     @discardableResult
     func beginAccountBoundary() -> UInt64 {
+        if isDeveloperSandbox {
+            invalidateDeveloperSandbox()
+            return accountGeneration.token
+        }
         accountGeneration.advance()
         authenticatedOwnerID = nil
         suspendedAccessOwnerID = nil
@@ -357,7 +432,7 @@ final class AppSession {
         greetingPersona = nil
         awaitingConfirmationFor = nil
         alertMessage = nil
-        hydrationConnectivity.publishDisconnected()
+        hydrationConnectivity?.publishDisconnected()
         realtimeDebounceTask?.cancel()
         realtimeDebounceTask = nil
         workoutSyncTask?.cancel()
@@ -427,16 +502,18 @@ final class AppSession {
     }
 
     var healthImportIsEnabledForCurrentAccount: Bool {
+        if isDeveloperSandbox { return false }
         guard let ownerID = authenticatedOwnerID ?? verifiedPersistenceOwnerID() else { return false }
         return defaults.bool(forKey: Self.healthImportOptInKey(ownerID: ownerID))
     }
 
     private func healthImportIsEnabled(operation: AccountOperationLease) -> Bool {
-        accountOperationIsCurrent(operation)
+        !isDeveloperSandbox && accountOperationIsCurrent(operation)
             && defaults.bool(forKey: Self.healthImportOptInKey(ownerID: operation.ownerID))
     }
 
     private func enableHealthImport(operation: AccountOperationLease) throws {
+        guard !isDeveloperSandbox else { throw CancellationError() }
         try requireCurrentAccountOperation(operation)
         defaults.set(true, forKey: Self.healthImportOptInKey(ownerID: operation.ownerID))
     }
@@ -444,7 +521,36 @@ final class AppSession {
     var profile: Profile? { data.profile }
     var isAuthenticated: Bool { authenticatedOwnerID != nil }
 
+    var canOpenDeveloperSandbox: Bool {
+        guard !isDeveloperSandbox, let owner = authenticatedOwnerID,
+              let profile = data.profile, profile.userID == owner else { return false }
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["APEX_UI_TESTING"] == "1",
+           ProcessInfo.processInfo.arguments.contains("-apex-ui-test-developer-mode") { return true }
+        #endif
+        return ProfileIntegrityPolicy.authorizedProtocol(for: profile) == .constantineV85
+    }
+
+    var developerSandboxHasExternalDependencies: Bool {
+        service.client != nil || hydrationConnectivity != nil
+    }
+
+    func invalidateDeveloperSandbox() {
+        guard isDeveloperSandbox else { return }
+        accountGeneration.advance()
+        authenticatedOwnerID = nil
+        realtimeDebounceTask?.cancel()
+        workoutSyncTask?.cancel()
+        data = .empty
+        coachContext = .empty
+        navigationPath = []
+        if let sandboxDefaultsSuiteName {
+            defaults.removePersistentDomain(forName: sandboxDefaultsSuiteName)
+        }
+    }
+
     private func accountAccessAllowsPrivateWork(for ownerID: UUID) -> Bool {
+        if isDeveloperSandbox { return false }
         let entitlements = EntitlementStore.shared
         return authenticatedOwnerID == ownerID
             && entitlements.resolvedUserID == ownerID
@@ -460,7 +566,7 @@ final class AppSession {
             accountGeneration.advance()
             OrbitLocationManager.shared.releaseForAccountBoundary()
             HealthKitManager.shared.suspendPrivateWorkForAccessDenial()
-            hydrationConnectivity.publishDisconnected()
+            hydrationConnectivity?.publishDisconnected()
             realtimeDebounceTask?.cancel()
             realtimeDebounceTask = nil
             workoutSyncTask?.cancel()
@@ -484,7 +590,8 @@ final class AppSession {
             relationshipStatus: coachContext.sponsorship?.relationshipStatus,
             seatState: coachContext.sponsorship?.seatState,
             consentedScopes: coachContext.sponsorship?.consentedScopes ?? [],
-            individualAccess: EntitlementStore.shared.hasIndividualAccess
+            individualAccess: developerSandboxRole.map { $0 != .invitedClient }
+                ?? EntitlementStore.shared.hasIndividualAccess
         )
     }
 
@@ -523,6 +630,7 @@ final class AppSession {
     }
 
     func bootstrap() async {
+        if isDeveloperSandbox { return }
         guard !bootstrapped else { return }
         let accountToken = accountGeneration.token
         bootstrapped = true
@@ -767,6 +875,7 @@ final class AppSession {
     }
 
     func signIn(email: String, password: String) async {
+        if isDeveloperSandbox { return }
         var accountToken = beginAccountBoundary()
         var boundaryCompleted = false
         EntitlementStore.shared.resetAccount()
@@ -834,6 +943,7 @@ final class AppSession {
     /// all six questions and then discarded the answers at the end, because
     /// saving them needs an authenticated request.
     func signUp(email: String, password: String) async {
+        if isDeveloperSandbox { return }
         var accountToken = beginAccountBoundary()
         var boundaryCompleted = false
         EntitlementStore.shared.resetAccount()
@@ -875,6 +985,7 @@ final class AppSession {
     }
 
     func signInWithApple(idToken: String, nonce: String) async {
+        if isDeveloperSandbox { return }
         var accountToken = beginAccountBoundary()
         var boundaryCompleted = false
         EntitlementStore.shared.resetAccount()
@@ -942,6 +1053,29 @@ final class AppSession {
         _ submission: TrainingInduction.Submission,
         operation: AccountOperationLease
     ) async {
+        if isDeveloperSandbox {
+            guard accountOperationIsCurrent(operation) else { return }
+            let baseline = DeveloperSandboxSamples.dashboard(ownerID: operation.ownerID, name: "Sample")
+            var settings = data.settings ?? baseline.settings!
+            let plan = submission.generatedPlan(userID: operation.ownerID, existingPrograms: data.programs)
+            settings = submission.applyingAccountMetadata(to: settings, plan: plan, existingData: data)
+            data.foods = baseline.foods
+            data.profile = submission.requiresProfile ? baseline.profile : nil
+            if let goal = submission.profileGoal.flatMap(Goal.init(rawValue:)) { data.profile?.goal = goal }
+            if let facts = submission.profileBaseline {
+                data.profile?.sex = facts.sex
+                data.profile?.weightKG = facts.weightKG
+                data.profile?.heightCM = facts.heightCM
+                data.profile?.birthdate = facts.birthdate
+            }
+            if let activity = submission.profileActivityLevel { data.profile?.activityLevel = activity }
+            data.settings = settings
+            if let plan { applyInductionPlan(plan, settings: settings) }
+            await persistInductionEvidence(submission, operation: operation)
+            guard accountOperationIsCurrent(operation) else { return }
+            route = .consent
+            return
+        }
         do { try requireCurrentAccountOperation(operation) }
         catch { return }
         guard !isBusy else { return }
@@ -1101,6 +1235,7 @@ final class AppSession {
     }
 
     func signOut() async {
+        if isDeveloperSandbox { invalidateDeveloperSandbox(); route = .welcome; return }
         var accountToken = beginAccountBoundary()
         accountToken = completeAccountBoundary()
         route = .welcome
@@ -1122,6 +1257,7 @@ final class AppSession {
         expectedUserID: UUID? = nil,
         refreshAccess: Bool = true
     ) async throws {
+        if isDeveloperSandbox { return }
         let accountToken = accountGeneration.token
         isRefreshing = true
         defer {
@@ -1292,6 +1428,7 @@ final class AppSession {
     /// never stored would show a broken picture on every device the account
     /// opens on.
     func setAvatar(data: Data, operation: AccountOperationLease) async throws {
+        if isDeveloperSandbox { throw CancellationError() }
         try requireCurrentAccountOperation(operation)
         guard verifiedPersistenceOwnerID(operation.ownerID) == operation.ownerID,
               var profile,
@@ -1318,6 +1455,7 @@ final class AppSession {
     }
 
     func signedAvatarURL(operation: AccountOperationLease) async throws -> URL {
+        if isDeveloperSandbox { throw CancellationError() }
         try requireCurrentAccountOperation(operation)
         guard let profile, profile.userID == operation.ownerID,
               let path = profile.avatarPath,
@@ -1335,6 +1473,7 @@ final class AppSession {
     /// so there is nothing to wait for and no reason to make anyone press a
     /// button for data the system already has.
     func importHealthQuietly(operation: AccountOperationLease) async {
+        if isDeveloperSandbox { return }
         guard accountAccessAllowsPrivateWork(for: operation.ownerID),
               healthImportIsEnabled(operation: operation) else { return }
         await HealthKitManager.shared.requestNewReadAccessIfNeeded()
@@ -1357,6 +1496,7 @@ final class AppSession {
     }
 
     func connectHealth(operation: AccountOperationLease) async -> Bool {
+        if isDeveloperSandbox { return false }
         do {
             try enableHealthImport(operation: operation)
         } catch {
@@ -1373,6 +1513,7 @@ final class AppSession {
     }
 
     func reconnectHealthWaterAccess(operation: AccountOperationLease) async {
+        if isDeveloperSandbox { return }
         do { try enableHealthImport(operation: operation) }
         catch { return }
         await HealthKitManager.shared.reconnectWaterAccess()
@@ -1385,6 +1526,7 @@ final class AppSession {
         launchID: UUID,
         operation: AccountOperationLease
     ) async {
+        if isDeveloperSandbox { return }
         guard Task.isCancelled == false,
               accountOperationIsCurrent(operation),
               TrainingInduction.workoutOwnerID(in: data, day: day) == operation.ownerID,
@@ -1408,7 +1550,7 @@ final class AppSession {
         // The Watch queues an early HKWorkoutConfiguration until this identity
         // arrives. Sending only after a successful handoff also prevents a
         // failed launch intent from consuming a later configuration.
-        hydrationConnectivity.send(launchCommand)
+        hydrationConnectivity?.send(launchCommand)
         guard Task.isCancelled == false,
               accountOperationIsCurrent(operation) else {
             /* Stop may have been sent while HealthKit was still launching the
@@ -1423,10 +1565,11 @@ final class AppSession {
         launchID: UUID,
         operation: AccountOperationLease
     ) {
+        if isDeveloperSandbox { return }
         /* Disappearance can be caused by an account boundary. Owner plus launch
            identity means a delayed stop cannot terminate a newer session for
            that same owner. */
-        hydrationConnectivity.send(.stopping(
+        hydrationConnectivity?.send(.stopping(
             ownerID: operation.ownerID,
             launchID: launchID
         ))
@@ -1447,6 +1590,7 @@ final class AppSession {
     /// This keeps a profileless first run and a slow/failed dashboard fetch
     /// from being misreported as an access denial.
     func refreshAccountAccess(expectedUserID: UUID? = nil) async throws {
+        if isDeveloperSandbox { return }
         let accountToken = accountGeneration.token
         guard let ownerID = expectedUserID ?? authenticatedOwnerID,
               authenticatedOwnerID == ownerID else {
@@ -1473,6 +1617,7 @@ final class AppSession {
     }
 
     func resolveEntitlements() async {
+        if isDeveloperSandbox { return }
         guard let ownerID = authenticatedOwnerID else { return }
         do {
             try await refreshAccountAccess(expectedUserID: ownerID)
@@ -1513,6 +1658,7 @@ final class AppSession {
     }
 
     func refreshCoachContext(expectedUserID: UUID? = nil) async {
+        if isDeveloperSandbox { return }
         guard let ownerID = verifiedPersistenceOwnerID(), expectedUserID == nil || expectedUserID == ownerID else {
             return
         }
@@ -1533,9 +1679,13 @@ final class AppSession {
         query: String = "",
         operation: AccountOperationLease
     ) async throws -> [CoachRosterEntry] {
+        if let sandboxSamples {
+            try requireCurrentAccountOperation(operation)
+            return sandboxSamples.coachRoster().filter { query.isEmpty || $0.displayName.localizedCaseInsensitiveContains(query) }
+        }
         try requireCurrentAccountOperation(operation)
         #if DEBUG
-        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+        if isDeveloperSandbox || APEXRuntimeEnvironment.usesLocalUITestFixture() {
             let roster = APEXDebugFixture.coachRoster()
             let result = query.isEmpty
                 ? roster
@@ -1560,6 +1710,11 @@ final class AppSession {
         visualProgressRequested: Bool,
         operation: AccountOperationLease
     ) async throws -> CoachInvitationReceipt {
+        if isDeveloperSandbox {
+            try requireCurrentAccountOperation(operation)
+            return CoachInvitationReceipt(invitationID: UUID(), token: "sample-only-\(UUID().uuidString)",
+                expiresAt: Date().addingTimeInterval(86400).ISO8601Format())
+        }
         try requireCurrentAccountOperation(operation)
         do {
             let receipt = try await service.createCoachInvitation(
@@ -1579,6 +1734,13 @@ final class AppSession {
         token: String,
         operation: AccountOperationLease
     ) async throws -> CoachInvitationPreview {
+        if isDeveloperSandbox {
+            try requireCurrentAccountOperation(operation)
+            guard token.hasPrefix("sample-only-") else { throw CancellationError() }
+            return CoachInvitationPreview(coachDisplayName: LanguageState.shared.text("Sample coach"),
+                requestedScopes: [.nutrition, .workouts, .hydration, .avatar],
+                visualProgressRequested: false, expiresAt: Date().addingTimeInterval(86400).ISO8601Format())
+        }
         try requireCurrentAccountOperation(operation)
         do {
             let preview = try await service.previewCoachInvitation(token: token)
@@ -1596,6 +1758,14 @@ final class AppSession {
         visualProgressConsent: Bool,
         operation: AccountOperationLease
     ) async throws {
+        if let sandboxSamples {
+            try requireCurrentAccountOperation(operation)
+            guard token.hasPrefix("sample-only-") else { throw CancellationError() }
+            coachContext = sandboxSamples.coachPlanContext()
+            try await updateCoachScopes(relationshipID: sandboxSamples.relationshipID, scopes: scopes,
+                visualProgressConsent: false, operation: operation)
+            return
+        }
         try requireCurrentAccountOperation(operation)
         let context: CoachAccountContext
         do {
@@ -1618,6 +1788,11 @@ final class AppSession {
         relationshipID: UUID,
         operation: AccountOperationLease
     ) async throws -> CoachClientOverview {
+        if let sandboxSamples {
+            try requireCurrentAccountOperation(operation)
+            guard let overview = sandboxSamples.coachClientOverview(), overview.relationshipID == relationshipID else { throw CancellationError() }
+            return overview
+        }
         try requireCurrentAccountOperation(operation)
         #if DEBUG
         if APEXRuntimeEnvironment.usesLocalUITestFixture(),
@@ -1643,6 +1818,10 @@ final class AppSession {
         expectedVersion: Int,
         operation: AccountOperationLease
     ) async throws -> CoachPlanVersionReceipt {
+        if let sandboxSamples {
+            try requireCurrentAccountOperation(operation)
+            return try sandboxSamples.save(plan: plan, relationshipID: relationshipID, expectedVersion: expectedVersion, publish: false)
+        }
         try requireCurrentAccountOperation(operation)
         do {
             let receipt = try await service.saveCoachPlan(
@@ -1665,6 +1844,10 @@ final class AppSession {
         expectedVersion: Int,
         operation: AccountOperationLease
     ) async throws -> CoachPlanVersionReceipt {
+        if let sandboxSamples {
+            try requireCurrentAccountOperation(operation)
+            return try sandboxSamples.save(plan: plan, relationshipID: relationshipID, expectedVersion: expectedVersion, publish: true)
+        }
         try requireCurrentAccountOperation(operation)
         do {
             let receipt = try await service.saveCoachPlan(
@@ -1685,6 +1868,11 @@ final class AppSession {
         planVersionID: UUID,
         operation: AccountOperationLease
     ) async throws {
+        if isDeveloperSandbox {
+            try requireCurrentAccountOperation(operation)
+            try updateSandboxPlanReceipt(planVersionID: planVersionID, activate: false, ownerID: operation.ownerID)
+            return
+        }
         try requireCurrentAccountOperation(operation)
         do {
             _ = try await service.acknowledgeCoachPlan(planVersionID: planVersionID)
@@ -1701,6 +1889,11 @@ final class AppSession {
         planVersionID: UUID,
         operation: AccountOperationLease
     ) async throws {
+        if isDeveloperSandbox {
+            try requireCurrentAccountOperation(operation)
+            try updateSandboxPlanReceipt(planVersionID: planVersionID, activate: true, ownerID: operation.ownerID)
+            return
+        }
         try requireCurrentAccountOperation(operation)
         do {
             _ = try await service.activateCoachPlan(planVersionID: planVersionID)
@@ -1730,6 +1923,18 @@ final class AppSession {
         visualProgressConsent: Bool,
         operation: AccountOperationLease
     ) async throws {
+        if isDeveloperSandbox {
+            try requireCurrentAccountOperation(operation)
+            guard let sponsorship = coachContext.sponsorship, sponsorship.relationshipID == relationshipID else { throw CancellationError() }
+            let updated = CoachSponsorshipSummary(relationshipID: relationshipID,
+                coachDisplayName: sponsorship.coachDisplayName,
+                relationshipStatus: sponsorship.relationshipStatus, seatState: sponsorship.seatState,
+                offeredScopes: sponsorship.offeredScopes, consentedScopes: scopes.intersection(sponsorship.offeredScopes),
+                graceEndsAt: sponsorship.graceEndsAt)
+            coachContext = CoachAccountContext(coach: coachContext.coach, sponsorship: updated,
+                currentPlan: coachContext.currentPlan, capabilities: coachContext.capabilities)
+            return
+        }
         try requireCurrentAccountOperation(operation)
         let context: CoachAccountContext
         do {
@@ -1750,6 +1955,13 @@ final class AppSession {
         relationshipID: UUID,
         operation: AccountOperationLease
     ) async throws {
+        if isDeveloperSandbox {
+            try requireCurrentAccountOperation(operation)
+            guard coachContext.sponsorship?.relationshipID == relationshipID else { throw CancellationError() }
+            coachContext = .empty
+            route = .welcome
+            return
+        }
         try requireCurrentAccountOperation(operation)
         do {
             _ = try await service.endCoachRelationship(relationshipID: relationshipID)
@@ -1792,6 +2004,7 @@ final class AppSession {
         brainSynergies = result.synergies
         brainRecomputing = false
 
+        if isDeveloperSandbox { return }
         if let latest = rows.last,
            previousLatest != latest {
             #if DEBUG
@@ -1817,6 +2030,7 @@ final class AppSession {
     }
 
     private func scheduleFitnessBrainShadowObservation() {
+        if isDeveloperSandbox { return }
         #if DEBUG
         let processInfo = ProcessInfo.processInfo
         if processInfo.environment["APEX_UI_TESTING"] == "1"
@@ -1872,10 +2086,12 @@ final class AppSession {
     }
 
     func refresh() async {
+        if isDeveloperSandbox { return }
         await refresh(includeAccess: true)
     }
 
     private func refresh(includeAccess: Bool) async {
+        if isDeveloperSandbox { return }
         if includeAccess { await resolveEntitlements() }
         guard let ownerID = authenticatedOwnerID else { return }
         guard accountAccessAllowsPrivateWork(for: ownerID) else {
@@ -1923,6 +2139,7 @@ final class AppSession {
     }
 
     func handleAuthCallback(_ url: URL) async {
+        if isDeveloperSandbox { return }
         var accountToken = beginAccountBoundary()
         var switchedAccounts = false
         route = .launching
@@ -2250,7 +2467,7 @@ final class AppSession {
         )
         try requireCurrentAccountOperation(operation)
 
-        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+        if isDeveloperSandbox || APEXRuntimeEnvironment.usesLocalUITestFixture() {
             try requireCurrentAccountOperation(operation)
             lastSyncAt = .now
             return
@@ -2423,6 +2640,7 @@ final class AppSession {
     /// on a stale reading. Being told you are short on protein an hour after
     /// hitting the target is the failure people actually notice.
     func refreshNudges(operation: AccountOperationLease) async throws {
+        if isDeveloperSandbox { return }
         try requireCurrentAccountOperation(operation)
         guard let profile, profile.userID == operation.ownerID else { throw CancellationError() }
         NudgeCenter.shared.activate(ownerID: operation.ownerID)
@@ -2462,6 +2680,7 @@ final class AppSession {
     }
 
     func refreshNudges() async {
+        if isDeveloperSandbox { return }
         guard let operation = accountOperationLease() else { return }
         try? await refreshNudges(operation: operation)
     }
@@ -3473,6 +3692,7 @@ final class AppSession {
     }
 
     private func publishHydrationState() {
+        if isDeveloperSandbox { return }
         guard let ownerID = verifiedPersistenceOwnerID() else { return }
         let date = Date()
         let day = date.apexDateKey
@@ -3491,7 +3711,7 @@ final class AppSession {
             revision: HydrationComplicationRefreshPolicy.revision(),
             acknowledgedDeleteIDs: acknowledgedHydrationDeleteIDs(ownerID: ownerID)
         )
-        hydrationConnectivity.publish(snapshot)
+        hydrationConnectivity?.publish(snapshot)
     }
 
     private func beginHydrationMutation(_ mutation: HydrationCompanionMutation) -> Bool {
@@ -4092,6 +4312,10 @@ final class AppSession {
         barcode: String,
         operation: AccountOperationLease
     ) async throws -> FoodLookupEnvelope {
+        if isDeveloperSandbox {
+            try requireCurrentAccountOperation(operation)
+            return FoodLookupEnvelope(state: "not_found", source: "sample", food: nil, results: [], message: nil)
+        }
         try requireCurrentAccountOperation(operation)
         let envelope = try await service.lookupFood(barcode: barcode)
         try requireCurrentAccountOperation(operation)
@@ -4288,7 +4512,7 @@ final class AppSession {
         try await recalculateLocalStructuredDay(draft.localDate, operation: operation)
         try await saveLocalSnapshot(operation: operation)
 
-        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+        if isDeveloperSandbox || APEXRuntimeEnvironment.usesLocalUITestFixture() {
             try requireCurrentAccountOperation(operation)
             lastSyncAt = .now
             return
@@ -4703,7 +4927,7 @@ final class AppSession {
         }
         try await saveLocalSnapshot(operation: operation)
 
-        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+        if isDeveloperSandbox || APEXRuntimeEnvironment.usesLocalUITestFixture() {
             try requireCurrentAccountOperation(operation)
             lastSyncAt = .now
             return presetID
@@ -4754,7 +4978,7 @@ final class AppSession {
             $0.presetID == preset.id && $0.userID == operation.ownerID
         }
         try await saveLocalSnapshot(operation: operation)
-        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+        if isDeveloperSandbox || APEXRuntimeEnvironment.usesLocalUITestFixture() {
             try requireCurrentAccountOperation(operation)
             lastSyncAt = .now
             return
@@ -4967,7 +5191,7 @@ final class AppSession {
         try await recalculateLocalStructuredDay(date.apexDateKey, operation: operation)
         try await saveLocalSnapshot(operation: operation)
 
-        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+        if isDeveloperSandbox || APEXRuntimeEnvironment.usesLocalUITestFixture() {
             try requireCurrentAccountOperation(operation)
             lastSyncAt = .now
             return
@@ -5025,7 +5249,7 @@ final class AppSession {
             ownerID: operation.ownerID
         ) else { throw CancellationError() }
         let change = try StructuredMealDeletionChange(scope: scope, data: data)
-        let usesLocalFixture = APEXRuntimeEnvironment.usesLocalUITestFixture()
+        let usesLocalFixture = isDeveloperSandbox || APEXRuntimeEnvironment.usesLocalUITestFixture()
         let offlineOperation: OfflineOperation?
         if usesLocalFixture {
             offlineOperation = nil
@@ -5154,6 +5378,7 @@ final class AppSession {
         date: Date = .now,
         operation: AccountOperationLease
     ) async throws {
+        if isDeveloperSandbox { throw CancellationError() }
         try requireCurrentAccountOperation(operation)
         guard let profile,
               profile.userID == operation.ownerID else { throw CancellationError() }
@@ -5201,6 +5426,7 @@ final class AppSession {
         thumbnail: Bool,
         operation: AccountOperationLease
     ) async throws -> URL {
+        if isDeveloperSandbox { throw CancellationError() }
         try requireCurrentAccountOperation(operation)
         guard photo.userID == operation.ownerID else { throw CancellationError() }
         let url = try await service.signedProgressURL(
@@ -5334,7 +5560,7 @@ final class AppSession {
            offline-aware sync path drain in the background. */
         try await saveLocalSnapshot(operation: operation)
         try requireCurrentAccountOperation(operation)
-        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+        if isDeveloperSandbox || APEXRuntimeEnvironment.usesLocalUITestFixture() {
             try requireCurrentAccountOperation(operation)
             lastSyncAt = .now
             return workout.id
@@ -5575,6 +5801,7 @@ final class AppSession {
     }
 
     func exportOrbitData() throws -> URL {
+        if isDeveloperSandbox { throw CancellationError() }
         guard let profile else { throw APEXServiceError.configurationMissing }
         return try OrbitPrivateArchive
             .ownerScoped(from: data, userID: profile.userID)
@@ -5605,7 +5832,7 @@ final class AppSession {
         data.orbitInductions.removeAll { $0.userID == ownerID }
         data.orbitRoutes.removeAll { $0.userID == ownerID }
         data.orbitShoes.removeAll { $0.userID == ownerID }
-        OrbitLocationManager.shared.cancel()
+        if !isDeveloperSandbox { OrbitLocationManager.shared.cancel() }
         try await saveLocalSnapshot(operation: operation)
 
         let deletions: [(String, UUID)] =
@@ -6508,7 +6735,7 @@ final class AppSession {
         }
 
         let remoteBundle: (parent: OfflineOperation, dependents: [OfflineOperation])?
-        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+        if isDeveloperSandbox || APEXRuntimeEnvironment.usesLocalUITestFixture() {
             remoteBundle = nil
         } else {
             let parent = try OfflineOperation.upsert(
@@ -6587,7 +6814,7 @@ final class AppSession {
             ownerID: operation.ownerID
         )
         let remoteOperation: OfflineOperation?
-        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+        if isDeveloperSandbox || APEXRuntimeEnvironment.usesLocalUITestFixture() {
             remoteOperation = nil
         } else {
             remoteOperation = try OfflineOperation.upsert(
@@ -6807,6 +7034,20 @@ final class AppSession {
         _ input: TrainingInduction.Input,
         operation: AccountOperationLease
     ) async {
+        if isDeveloperSandbox {
+            guard accountOperationIsCurrent(operation), var settings = data.settings else { return }
+            settings = TrainingInduction.protectingOriginalProgramme(settings, in: data)
+            if TrainingInduction.hasRestorableOverlay(in: data) {
+                settings = TrainingInduction.invalidatingPlanMetadata(settings,
+                    additionalDayIDs: TrainingInduction.legacyGeneratedDayIDs(in: data, userID: operation.ownerID))
+            }
+            let plan = TrainingInduction.generate(userID: operation.ownerID, input: input,
+                existingPrograms: data.programs, generationRevision: TrainingInduction.generationRevision(settings))
+            settings = TrainingInduction.markingPendingPlan(settings, plan: plan)
+            settings = TrainingInduction.Submission.answered(input).applyingAccountMetadata(to: settings, plan: plan)
+            applyInductionPlan(plan, settings: settings)
+            return
+        }
         guard accountOperationIsCurrent(operation) else { return }
         guard !isBusy else { return }
         isBusy = true
@@ -6933,6 +7174,12 @@ final class AppSession {
         }
         #endif
 
+        if isDeveloperSandbox {
+            var sample = DeveloperSandboxSamples.dashboard(ownerID: bootstrap.userID, name: "Sample").profile!
+            sample.goal = Goal(rawValue: bootstrap.goal) ?? .maintain
+            data.profile = sample
+            return true
+        }
         guard let authenticatedUserID = await service.currentUserID(),
               authenticatedUserID == bootstrap.userID,
               authenticatedUserID == operation.ownerID,
@@ -6980,7 +7227,7 @@ final class AppSession {
               let restoration = TrainingInduction.restoration(in: data, userID: userID),
               let restoredSettings = restoration.dashboard.settings else { return }
         do {
-            try await service.upsert(restoredSettings, table: "settings", onConflict: "user_id")
+            if !isDeveloperSandbox { try await service.upsert(restoredSettings, table: "settings", onConflict: "user_id") }
             try requireCurrentAccountOperation(operation)
             data = restoration.dashboard
             data.settings = restoredSettings
@@ -7046,11 +7293,15 @@ final class AppSession {
             throw FitnessEvidenceRecordingError.trustedSourceRequiresIngestion
         }
 
+        if isDeveloperSandbox {
+            mergeFitnessEvidenceRecord(localFitnessEvidenceRecord(evidence, ownerID: ownerID))
+            return
+        }
         let params = RecordUserFitnessEvidenceParameters(evidence)
         let offlineOperation = try OfflineOperation.rpc("record_user_fitness_evidence", params: params)
 
         #if DEBUG
-        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+        if isDeveloperSandbox || APEXRuntimeEnvironment.usesLocalUITestFixture() {
             try requireCurrentAccountOperation(operation)
             mergeFitnessEvidenceRecord(localFitnessEvidenceRecord(evidence, ownerID: ownerID))
             try await saveLocalSnapshot(operation: operation)
@@ -7212,7 +7463,8 @@ final class AppSession {
     }
 
     func connectHealthForBaselineCalibration(operation: AccountOperationLease) async -> Bool {
-        await connectHealth(operation: operation)
+        if isDeveloperSandbox { return false }
+        return await connectHealth(operation: operation)
     }
 
     private func mergeFitnessEvidenceRecord(_ record: FitnessEvidenceRecord) {
@@ -7254,6 +7506,7 @@ final class AppSession {
         expectedAccountToken: UInt64? = nil,
         surfacePermanentFailure: Bool = true
     ) async {
+        if isDeveloperSandbox { return }
         let persistenceOwnerID = verifiedPersistenceOwnerID(ownerID)
         if let expectedAccountToken {
             guard accountGeneration.accepts(expectedAccountToken),
@@ -7266,7 +7519,7 @@ final class AppSession {
            Health-derived defaults; allowing those calls to reach Supabase
            both violates the fixture boundary and covers the recovered screen
            with an irrelevant network alert. */
-        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+        if isDeveloperSandbox || APEXRuntimeEnvironment.usesLocalUITestFixture() {
             lastSyncAt = .now
             return
         }
@@ -7347,6 +7600,7 @@ final class AppSession {
         ownerID: UUID? = nil,
         expectedAccountToken: UInt64? = nil
     ) async {
+        if isDeveloperSandbox { return }
         let persistenceOwnerID = verifiedPersistenceOwnerID(ownerID)
         if let expectedAccountToken {
             guard accountGeneration.accepts(expectedAccountToken),
@@ -7354,7 +7608,7 @@ final class AppSession {
                   persistenceOwnerID != nil else { return }
         }
         #if DEBUG
-        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+        if isDeveloperSandbox || APEXRuntimeEnvironment.usesLocalUITestFixture() {
             lastSyncAt = .now
             return
         }
@@ -7428,6 +7682,7 @@ final class AppSession {
     private func persistStableMealDeletionSnapshot(
         operation: AccountOperationLease
     ) async throws {
+        if isDeveloperSandbox { return }
         try requireCurrentAccountOperation(operation)
         _ = try await ConfirmedMealDeletionPersistence.persistMergedBeforePublishing(
             snapshot: { (self.dashboardMutationRevision, self.data) },
@@ -7444,6 +7699,7 @@ final class AppSession {
     }
 
     private func saveLocalSnapshot(operation: AccountOperationLease) async throws {
+        if isDeveloperSandbox { return }
         try requireCurrentAccountOperation(operation)
         let snapshot = data
         try? await offlineStore.saveDashboard(snapshot, for: operation.ownerID)
@@ -7562,6 +7818,7 @@ final class AppSession {
     }
 
     func refreshFailedSyncOperations() async {
+        if isDeveloperSandbox { return }
         guard let profile else {
             failedSyncOperations = []
             failedSyncCount = 0
@@ -7577,6 +7834,7 @@ final class AppSession {
     }
 
     private func flushPendingChanges(for userID: UUID) async {
+        if isDeveloperSandbox { return }
         let accountToken = accountGeneration.token
         guard accountAccessAllowsPrivateWork(for: userID),
               accountGeneration.accepts(accountToken),
@@ -7642,6 +7900,7 @@ final class AppSession {
     }
 
     private func bindHealthBackgroundMonitoring(operation: AccountOperationLease) {
+        if isDeveloperSandbox { return }
         guard accountAccessAllowsPrivateWork(for: operation.ownerID),
               healthImportIsEnabled(operation: operation) else { return }
         HealthKitManager.shared.startBackgroundMonitoring(
@@ -7676,6 +7935,7 @@ final class AppSession {
     }
 
     private func startRealtimeSync(operation: AccountOperationLease) async {
+        if isDeveloperSandbox { return }
         if let accessServiceSuspensionTask {
             await accessServiceSuspensionTask.value
             self.accessServiceSuspensionTask = nil
@@ -7722,6 +7982,7 @@ final class AppSession {
     }
 
     func refreshExternalWorkouts(operation: AccountOperationLease) async {
+        if isDeveloperSandbox { return }
         guard healthImportIsEnabled(operation: operation) else { return }
         await importHealthWorkoutChanges(operation: operation)
     }
@@ -7729,6 +7990,7 @@ final class AppSession {
     private func importHealthWorkoutChanges(
         operation: AccountOperationLease
     ) async {
+        if isDeveloperSandbox { return }
         guard healthImportIsEnabled(operation: operation) else { return }
         let ownerID = operation.ownerID
         guard let changes = try? await HealthKitManager.shared.workoutChanges(ownerID: ownerID) else {

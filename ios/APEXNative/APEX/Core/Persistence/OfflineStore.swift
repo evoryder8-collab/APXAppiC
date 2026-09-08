@@ -471,8 +471,10 @@ actor OfflineStore {
 
     private let fileManager = FileManager.default
     private let rootURL: URL
+    private let memoryOnly: Bool
 
-    init(rootURL: URL? = nil) {
+    init(rootURL: URL? = nil, memoryOnly: Bool = false) {
+        self.memoryOnly = memoryOnly
         if let rootURL {
             self.rootURL = rootURL
         } else {
@@ -483,12 +485,14 @@ actor OfflineStore {
     }
 
     func loadDashboard(for userID: UUID) throws -> DashboardData? {
+        if memoryOnly { return nil }
         let url = dashboardURL(for: userID)
         guard fileManager.fileExists(atPath: url.path) else { return nil }
         return try JSONDecoder.apex.decode(DashboardData.self, from: Data(contentsOf: url))
     }
 
     func saveDashboard(_ dashboard: DashboardData, for userID: UUID) throws {
+        if memoryOnly { return }
         try prepareDirectory(for: userID)
         let url = dashboardURL(for: userID)
         var migratedDashboard = dashboard
@@ -497,6 +501,7 @@ actor OfflineStore {
     }
 
     func loadAccountAccess(for userID: UUID) throws -> CachedAccountAccess? {
+        if memoryOnly { return nil }
         let url = accountAccessURL(for: userID)
         guard fileManager.fileExists(atPath: url.path) else { return nil }
         let cached = try JSONDecoder.apex.decode(
@@ -514,6 +519,7 @@ actor OfflineStore {
         systemUptime: TimeInterval = ProcessInfo.processInfo.systemUptime
     ) throws {
         guard envelope.userID == userID else { throw APEXServiceError.configurationMissing }
+        if memoryOnly { return }
         try prepareDirectory(for: userID)
         let cached = CachedAccountAccess(
             envelope: envelope,
@@ -561,6 +567,7 @@ actor OfflineStore {
     }
 
     func pendingOperations(for userID: UUID) throws -> [OfflineOperation] {
+        if memoryOnly { return [] }
         let url = outboxURL(for: userID)
         guard fileManager.fileExists(atPath: url.path) else { return [] }
         return try JSONDecoder.apex.decode([OfflineOperation].self, from: Data(contentsOf: url))
@@ -586,6 +593,7 @@ actor OfflineStore {
     }
 
     func failedOperations(for userID: UUID) throws -> [FailedOfflineOperation] {
+        if memoryOnly { return [] }
         let url = failedOutboxURL(for: userID)
         guard fileManager.fileExists(atPath: url.path) else { return [] }
         return try JSONDecoder.apex.decode([FailedOfflineOperation].self, from: Data(contentsOf: url))
@@ -699,6 +707,7 @@ actor OfflineStore {
     }
 
     private func saveOperations(_ operations: [OfflineOperation], for userID: UUID) throws {
+        if memoryOnly { return }
         try prepareDirectory(for: userID)
         try JSONEncoder.apex.encode(operations).write(
             to: outboxURL(for: userID),
@@ -707,6 +716,7 @@ actor OfflineStore {
     }
 
     private func saveFailures(_ failures: [FailedOfflineOperation], for userID: UUID) throws {
+        if memoryOnly { return }
         try prepareDirectory(for: userID)
         try JSONEncoder.apex.encode(failures).write(
             to: failedOutboxURL(for: userID),

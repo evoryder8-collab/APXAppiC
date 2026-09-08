@@ -122,7 +122,11 @@ actor SupabaseService {
     private var realtimeTasks: [Task<Void, Never>] = []
     private var realtimeChannel: RealtimeChannelV2?
 
-    init() {
+    init(localOnly: Bool = false) {
+        if localOnly {
+            client = nil
+            return
+        }
         if let url = APEXConfiguration.supabaseURL, let key = APEXConfiguration.supabaseKey {
             client = SupabaseClient(
                 supabaseURL: url,

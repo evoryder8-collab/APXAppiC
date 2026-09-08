@@ -98,6 +98,7 @@ struct CoachWorkspaceView: View {
         }
         .sheet(isPresented: $invitePresented) {
             CoachInvitationSheet()
+                .modifier(DeveloperSandboxSheetClearance())
                 .environment(session)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)

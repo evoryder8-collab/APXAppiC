@@ -16,6 +16,7 @@ enum ProfileIdentityPresentation {
 }
 
 struct SettingsView: View {
+    @State private var previewRole: DeveloperSandboxRole?
     @Environment(AppSession.self) private var session
     @State private var health = HealthKitManager.shared
     @State private var language = LanguageState.shared
@@ -38,7 +39,8 @@ struct SettingsView: View {
             LazyVStack(spacing: 18) {
                 APEXTopBar(profile: profile)
                 pageHeader
-                identityCard
+                    identityCard
+                    if session.canOpenDeveloperSandbox { developerModeCard }
                 simpleModeCard
                 daylineCard
                 recoveryCard
@@ -47,10 +49,14 @@ struct SettingsView: View {
                 if session.coachClientPolicy.canRebuildFitnessPlan {
                     addOnCard
                 }
-                membershipCard
-                healthCard
+                    if session.isDeveloperSandbox {
+                        DeveloperSandboxNotice()
+                    } else {
+                        membershipCard
+                        healthCard
+                    }
                 legalCard
-                accountCard
+                    if !session.isDeveloperSandbox { accountCard }
             }
             .padding(18)
             .padding(.bottom, 30)
@@ -71,6 +77,31 @@ struct SettingsView: View {
             Button(language.text(.cancel), role: .cancel) {}
         }
         .sheet(isPresented: $showFoodDataAcknowledgements, content: FoodDataAcknowledgementsView.init)
+        .fullScreenCover(item: $previewRole) { role in
+            DeveloperSandboxView(role: role, owner: session) { previewRole = nil }
+        }
+    }
+
+    private var developerModeCard: some View {
+        GlassCard(radius: 31, padding: 20) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(language.text("Developer Mode")).font(APEXFont.display(22))
+                Text(language.text("Explore with disposable sample data. Your account, purchases and Apple Health stay unchanged."))
+                    .font(.footnote).foregroundStyle(.secondary)
+                Menu {
+                    Button(language.text("My account")) { previewRole = nil }
+                    ForEach(DeveloperSandboxRole.allCases) { role in
+                        Button(language.text(role.titleKey)) { previewRole = role }
+                    }
+                } label: {
+                    Label(language.text("My account") + " — " + (profile?.displayName ?? ""), systemImage: "chevron.up.chevron.down")
+                        .font(.subheadline.weight(.semibold))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.vertical, 10)
+                }
+                .accessibilityIdentifier("developer-mode-selector")
+            }
+        }
     }
 
     /// What this account is entitled to, in plain words, with a truthful route

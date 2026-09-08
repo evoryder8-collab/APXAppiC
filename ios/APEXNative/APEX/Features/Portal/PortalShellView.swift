@@ -51,7 +51,9 @@ struct PortalShellView: View {
 
     @ViewBuilder
     private func destinationView(_ destination: PortalDestination) -> some View {
-        if !session.portalDestinationIsAllowed(destination) {
+        if session.isDeveloperSandbox && (destination == .orbit || destination == .visualProgress) {
+            DeveloperSandboxNotice()
+        } else if !session.portalDestinationIsAllowed(destination) {
             CoachFeatureLockedView()
         } else {
             switch destination {

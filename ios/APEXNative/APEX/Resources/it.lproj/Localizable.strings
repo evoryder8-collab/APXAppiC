@@ -5580,3 +5580,17 @@
 "Your meal was not changed. Check access and try again." = "Il pasto non è stato modificato. Verifica l’accesso e riprova.";
 "That meal changed before it could be removed. Refresh and try again." = "Il pasto è stato modificato prima che potesse essere rimosso. Aggiorna e riprova.";
 "That meal could not be removed safely. Refresh and try again." = "Non è stato possibile rimuovere il pasto in modo sicuro. Aggiorna e riprova.";
+"Developer Mode" = "Modalità sviluppatore";
+"Explore with disposable sample data. Your account, purchases and Apple Health stay unchanged." = "Esplora con dati di esempio temporanei. Account, acquisti e Apple Health restano invariati.";
+"My account" = "Il mio account";
+"Individual subscriber" = "Abbonato individuale";
+"Invited client" = "Cliente invitato";
+"Sample mode: device connections, photos, purchases and notifications are unavailable. Changes stay in this preview." = "Modalità di esempio: collegamenti ai dispositivi, foto, acquisti e notifiche non sono disponibili. Le modifiche restano in questa anteprima.";
+"Sample" = "Esempio";
+"Sample coach" = "Coach di esempio";
+"Foundation strength" = "Forza di base";
+"Build rhythm, strength and confidence." = "Sviluppa ritmo, forza e fiducia.";
+"Keep two good repetitions in reserve." = "Tieni due ripetizioni ben eseguite in riserva.";
+"Full body foundation" = "Base per tutto il corpo";
+"Move smoothly and stay pain-free." = "Muoviti con controllo e senza dolore.";
+"Stop if form changes." = "Fermati se la tecnica cambia.";

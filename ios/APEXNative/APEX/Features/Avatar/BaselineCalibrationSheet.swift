@@ -616,8 +616,9 @@ struct BaselineCalibrationSheet: View {
             .buttonStyle(.borderedProminent)
             .tint(APEXColor.cyan)
             .frame(minHeight: 48)
-            .disabled(saveState == .saving || !HealthKitManager.shared.isAvailable)
+            .disabled(session.isDeveloperSandbox || saveState == .saving || !HealthKitManager.shared.isAvailable)
             .accessibilityIdentifier("calibration.connect-health")
+            if session.isDeveloperSandbox { DeveloperSandboxNotice() }
         }
     }
 

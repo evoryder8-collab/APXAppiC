@@ -491,7 +491,10 @@ final class LocalisationCoverageTests: XCTestCase {
             }
             let data = try Data(contentsOf: url)
             let table = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
-            XCTAssertEqual(table?.count, 93, "Unexpected compact-label count for \(language)")
+            XCTAssertEqual(table?.count, 96, "Unexpected compact-label count for \(language)")
+            for key in ["My account", "Individual subscriber", "Invited client"] {
+                XCTAssertFalse((table?[key] as? String ?? "").isEmpty, "Missing sandbox label: \(key) in \(language)")
+            }
             XCTAssertFalse(table?.values.contains(where: { $0.isEmpty }) ?? true)
             XCTAssertEqual(
                 table?["Remove meal"],

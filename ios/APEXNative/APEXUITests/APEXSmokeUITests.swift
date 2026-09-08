@@ -369,6 +369,38 @@ final class APEXSmokeUITests: XCTestCase {
         capture("settings-active-identity")
     }
 
+    func testDeveloperPreviewReturnsToBespokeAccountFromSetupAndCoachSheet() {
+        let app = configuredApp()
+        app.launchArguments.append("-apex-ui-test-developer-mode")
+        app.launch()
+        app.buttons["portal.settings"].tap()
+        let selector = app.buttons["developer-mode-selector"]
+        XCTAssertTrue(scrollUntilVisible(selector, in: app, attempts: 18))
+        selector.tap()
+        app.buttons["Individual subscriber"].tap()
+        let back = app.buttons["developer-sandbox-return"]
+        XCTAssertTrue(back.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["I don't accept"].waitForExistence(timeout: 4))
+        back.tap()
+        XCTAssertTrue(selector.waitForExistence(timeout: 4))
+        selector.tap()
+        app.buttons["Coach"].tap()
+        XCTAssertTrue(back.waitForExistence(timeout: 5))
+        let workspace = app.buttons["portal.coach-workspace"].firstMatch
+        XCTAssertTrue(scrollUntilVisible(workspace, in: app, attempts: 12))
+        workspace.tap()
+        let invite = app.buttons["Invite a client"].firstMatch
+        XCTAssertTrue(invite.waitForExistence(timeout: 4))
+        invite.tap()
+        let reachable = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: back)
+        XCTAssertEqual(XCTWaiter.wait(for: [reachable], timeout: 5), .completed, "return must remain reachable above the invitation sheet")
+        capture("developer-preview-coach-sheet-return")
+        back.tap()
+        XCTAssertTrue(selector.waitForExistence(timeout: 5))
+        XCTAssertTrue(scrollUpUntilVisible(app.staticTexts["settings-active-identity-name"], in: app, attempts: 8))
+        XCTAssertEqual(app.staticTexts["settings-active-identity-name"].label, "Constantine")
+    }
+
     func testAvatarCalibrationControlSitsAboveStatsAndResumesProgress() {
         let app = configuredApp()
         app.launch()

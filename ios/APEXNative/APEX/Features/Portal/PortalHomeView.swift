@@ -30,7 +30,7 @@ struct PortalHomeView: View {
                 APEXTopBar(
                     profile: session.profile,
                     onSettings: { session.openPortalDestination(.settings) },
-                    nudges: nudges,
+                    nudges: session.isDeveloperSandbox ? nil : nudges,
                     onOpenNudges: { showNudges = true }
                 )
 
@@ -74,6 +74,7 @@ struct PortalHomeView: View {
                         color: APEXColor.violet,
                         destination: .coachWorkspace
                     )
+                    .accessibilityIdentifier("portal.coach-workspace")
                 }
                 if session.coachContext.capabilities.sponsoredClient {
                     PortalTile(
