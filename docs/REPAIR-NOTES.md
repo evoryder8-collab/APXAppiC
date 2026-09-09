@@ -2094,3 +2094,8 @@ Verification:
 - Closed the documented guard mismatch: native only prevented repeat calibration on the same date; web waited seven calendar days. Both now use seven local calendar days, accept fractional ISO timestamps, and fail closed for malformed or future history. No change to calorie formulas, learning rates, eligibility thresholds, owner leases or the explicit bespoke-protocol bypass.
 - Extracted the old guards for focused reproduction: native test failed for six-day/future/invalid history; web failed for invalid history. After repair the native boundary test passed 1/1 and all 18 tests in the affected web activity module passed. Production web build and diff checks passed. An independent scoped review found no critical/important issues; no broad regression suite was run.
 - Release 393 builds from the retained cache. Goal-specific workout prescription improvements remain a separate open task; no claim that the entire calorie engine or coach platform has been exhaustively audited.
+
+### Release 393 delivery
+
+- Coach fix `1ad0ab32f62dd7c4d1eba10108d715a23e5ccc82` and calibration fix `d3508fc03c5dbbb3c53fc7ea432f7249a14ef6a7` pushed separately to both refs. Pages runs `34353836462` and `34353975257` succeeded; live entry `assets/index-bFzgupF-.js` confirmed.
+- Signed Release 393 build and strict deep signature verification succeeded. Both physical iPhone and Apple Watch confirmed successful installation over existing apps. No account reset or Health sample creation. The coach fix is already active server-side; no additional client build is needed to resolve its crypto error.
