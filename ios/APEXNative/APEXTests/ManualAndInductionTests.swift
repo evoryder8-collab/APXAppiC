@@ -1011,6 +1011,27 @@ final class TrainingInductionTests: XCTestCase {
         XCTAssertEqual(skipped.addons[TrainingInduction.skippedMarkerKey], .bool(true))
     }
 
+    func testAvailableTimeConstrainsGeneratedSessionsWithoutShorteningRest() {
+        for venue in ["home", "gym"] {
+            var answers = input { $0.venue = venue }
+            let original = TrainingInduction.generate(userID: user, input: answers)
+            answers.availableMinutes = 15
+            let short = TrainingInduction.generate(userID: user, input: answers)
+            XCTAssertTrue(short.programDays.allSatisfy { $0.estimatedMinutes <= 15 }, venue)
+            XCTAssertFalse(short.exercises.isEmpty)
+            XCTAssertLessThan(short.exercises.reduce(0) { $0 + $1.sets }, original.exercises.reduce(0) { $0 + $1.sets })
+            for exercise in short.exercises {
+                let source = original.exercises.first { $0.id == exercise.id }
+                XCTAssertEqual(exercise.restSeconds, source?.restSeconds)
+                XCTAssertEqual(exercise.tempoDown, source?.tempoDown)
+            }
+            answers.availableMinutes = 180
+            let generous = TrainingInduction.generate(userID: user, input: answers)
+            XCTAssertEqual(generous.exercises.map(\.sets), original.exercises.map(\.sets))
+            XCTAssertEqual(generous.exercises.map(\.id), original.exercises.map(\.id))
+        }
+    }
+
     func testRebuildDraftRoundTripsEveryPersistedAnswer() {
         let answers = input {
             $0.startDate = "2026-04-03"

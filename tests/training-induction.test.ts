@@ -48,6 +48,29 @@ const baseInput: TrainingInductionInput = {
   goal: 'rebuild',
 }
 
+test('available session time constrains runnable generated workouts without shortening rest', () => {
+  for (const venue of ['home', 'gym'] as const) {
+    const original = generateTrainingPlan(userId, { ...baseInput, venue })
+    const short = generateTrainingPlan(userId, { ...baseInput, venue, available_minutes: 15 })
+    assert.ok(short.program_days.every(day => day.est_minutes <= 15), venue)
+    assert.ok(short.exercises.length > 0)
+    assert.ok(short.exercises.reduce((sum, e) => sum + e.sets, 0)
+      < original.exercises.reduce((sum, e) => sum + e.sets, 0))
+    for (const exercise of short.exercises) {
+      const source = original.exercises.find(e => e.id === exercise.id)!
+      assert.ok(source)
+      assert.equal(exercise.rest_sec, source.rest_sec)
+      assert.equal(exercise.tempo_down_s, source.tempo_down_s)
+      if (!exercise.is_lite && exercise.work_group_id) {
+        assert.equal(short.exercises.filter(e => !e.is_lite && e.work_group_id === exercise.work_group_id).length,
+          original.exercises.filter(e => !e.is_lite && e.work_group_id === exercise.work_group_id).length)
+      }
+    }
+    const generous = generateTrainingPlan(userId, { ...baseInput, venue, available_minutes: 180 })
+    assert.deepEqual(generous.exercises, original.exercises)
+  }
+})
+
 test('every offered language authors the required-answer prompt', () => {
   assert.deepEqual(
     (['en', 'ro', 'th'] as const).map((language) => trainingInductionAnswerRequiredText(language)),

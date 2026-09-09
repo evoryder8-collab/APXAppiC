@@ -922,6 +922,32 @@ export function activeTrainingProgramDays(data: AppData): ProgramDay[] {
       && !pending.has(day.id))
 }
 
+/** Trim newly generated prescriptions, never stored plans. Keep rest/tempo and
+ * paired movements intact; spare time is not a reason to add more work. */
+function fitGeneratedSession(exercises: Exercise[], minutes: number | undefined): Exercise[] {
+  if (minutes == null || !Number.isFinite(minutes) || minutes < 15 || minutes > 180) return exercises
+  let result = exercises.map(exercise => ({ ...exercise }))
+  const group = (exercise: Exercise) => exercise.work_group_id ?? exercise.id
+  while (result.length > 0 && estimateSessionSeconds(result, 180) > minutes * 60) {
+    const optional = [...result].reverse().find(e => e.optional
+      && result.filter(other => group(other) === group(e)).every(other => other.optional))
+    if (optional && result.some(e => group(e) !== group(optional))) {
+      result = result.filter(e => group(e) !== group(optional))
+      continue
+    }
+    const reducible = [...result].reverse().find(e => e.sets > 1)
+    if (reducible) {
+      const key = group(reducible)
+      result = result.map(e => group(e) === key ? { ...e, sets: Math.max(1, e.sets - 1) } : e)
+      continue
+    }
+    const last = group(result[result.length - 1])
+    if (!result.some(e => group(e) !== last)) break
+    result = result.filter(e => group(e) !== last)
+  }
+  return result
+}
+
 export function generateTrainingPlan(
   userId: string,
   input: TrainingInductionInput,
@@ -1052,7 +1078,18 @@ export function generateTrainingPlan(
       session.exercises.forEach((exercise, index) => addExercise(exercise, index, false))
       session.exercises.slice(0, 3).forEach((exercise, index) => addExercise(exercise, index, true))
 
-      const dayExercises = exercises.filter((e) => e.program_day_id === dayId && !e.is_lite)
+      const dayExercises = fitGeneratedSession(
+        exercises.filter((e) => e.program_day_id === dayId && !e.is_lite), input.available_minutes,
+      )
+      const fullByOrder = new Map(dayExercises.map(e => [e.sort_order, e]))
+      for (let index = exercises.length - 1; index >= 0; index -= 1) {
+        const exercise = exercises[index]
+        if (exercise.program_day_id !== dayId) continue
+        const full = fullByOrder.get(exercise.sort_order)
+        if (!full) exercises.splice(index, 1)
+        else exercises[index] = exercise.is_lite
+          ? { ...exercise, sets: Math.min(exercise.sets, full.sets) } : full
+      }
       const dayIndex = program_days.findIndex((d) => d.id === dayId)
       if (dayIndex >= 0 && dayExercises.length > 0) {
         program_days[dayIndex] = {

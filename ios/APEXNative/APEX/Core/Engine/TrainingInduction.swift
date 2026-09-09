@@ -1329,6 +1329,37 @@ enum TrainingInduction {
         let induction: [String: JSONValue]
     }
 
+    /// Only fits newly generated sessions. Preserve authored rest, tempo and
+    /// whole work groups; do not fill a larger budget with invented volume.
+    private static func fitGeneratedSession(_ original: [Exercise], day: ProgramDay, minutes: Int) -> [Exercise] {
+        guard (15...180).contains(minutes) else { return original }
+        var result = original
+        func key(_ exercise: Exercise) -> UUID { exercise.workGroupID ?? exercise.id }
+        func estimate() -> Int {
+            PlayerTimeline.estimatedMinutes(PlannedDay(
+                programDay: day,
+                exercises: result.map { PlannedExercise(exercise: $0, plannedSets: $0.sets, swapped: false) },
+                warmup: day.warmupNote, warmupDuration: 180
+            ))
+        }
+        while !result.isEmpty && estimate() > minutes {
+            if let optional = result.reversed().first(where: { candidate in
+                candidate.optional && result.filter { key($0) == key(candidate) }.allSatisfy(\.optional)
+            }), result.contains(where: { key($0) != key(optional) }) {
+                result.removeAll { key($0) == key(optional) }
+            } else if let reducible = result.reversed().first(where: { $0.sets > 1 }) {
+                for index in result.indices where key(result[index]) == key(reducible) {
+                    result[index].sets = max(1, result[index].sets - 1)
+                }
+            } else if let last = result.last, result.contains(where: { key($0) != key(last) }) {
+                result.removeAll { key($0) == key(last) }
+            } else {
+                break
+            }
+        }
+        return result
+    }
+
     static func generate(
         userID: UUID,
         input: Input,
@@ -1456,6 +1487,19 @@ enum TrainingInduction {
                 for (index, exercise) in spec.exercises.enumerated() { add(exercise, index: index, lite: false) }
                 for (index, exercise) in spec.exercises.prefix(3).enumerated() { add(exercise, index: index, lite: true) }
 
+                let fitted = fitGeneratedSession(
+                    exercises.filter { $0.programDayID == dayID && !$0.isLite },
+                    day: programDays[programDays.count - 1], minutes: input.availableMinutes
+                )
+                let fullByOrder = Dictionary(uniqueKeysWithValues: fitted.map { ($0.sortOrder, $0) })
+                exercises = exercises.compactMap { exercise in
+                    guard exercise.programDayID == dayID else { return exercise }
+                    guard let full = fullByOrder[exercise.sortOrder] else { return nil }
+                    guard exercise.isLite else { return full }
+                    var lite = exercise
+                    lite.sets = min(lite.sets, full.sets)
+                    return lite
+                }
                 let full = exercises
                     .filter { $0.programDayID == dayID && !$0.isLite }
                     .map { PlannedExercise(exercise: $0, plannedSets: $0.sets, swapped: false) }
