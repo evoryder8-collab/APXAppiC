@@ -209,6 +209,7 @@ private struct CoachInvitationSheet: View {
     @State private var visualProgress = false
     @State private var receipt: CoachInvitationReceipt?
     @State private var busy = false
+    @FocusState private var emailFocused: Bool
 
     private var inviteLink: String? {
         receipt.map { "https://evoryder8-collab.github.io/APXAppiC/#/coach/invite/\($0.token)" }
@@ -218,6 +219,29 @@ private struct CoachInvitationSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
+                    if let inviteLink {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 48))
+                            .foregroundStyle(APEXColor.violet)
+                            .accessibilityHidden(true)
+                        Text(language.text("Invitation ready"))
+                            .font(APEXFont.display(31))
+                            .foregroundStyle(APEXColor.ink)
+                        Text(email.trimmingCharacters(in: .whitespacesAndNewlines))
+                            .font(APEXFont.body(17, weight: .semibold))
+                            .textSelection(.enabled)
+                        Text(language.text("Share this private link with your client. No email has been sent automatically."))
+                            .font(APEXFont.body(16))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                        ShareLink(item: inviteLink) {
+                            Label(language.text("Share private invite"), systemImage: "square.and.arrow.up")
+                                .font(APEXFont.body(15, weight: .bold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .foregroundStyle(.white)
+                                .background(APEXColor.violet, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                        }
+                    } else {
                     Text(language.text("Invite a client"))
                         .font(APEXFont.display(31))
                         .foregroundStyle(APEXColor.ink)
@@ -225,6 +249,10 @@ private struct CoachInvitationSheet: View {
                         .textInputAutocapitalization(.never)
                         .keyboardType(.emailAddress)
                         .autocorrectionDisabled()
+                        .focused($emailFocused)
+                        .submitLabel(.done)
+                        .onSubmit { emailFocused = false }
+                        .disabled(busy)
                         .padding(14)
                         .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 17, style: .continuous))
 
@@ -234,6 +262,7 @@ private struct CoachInvitationSheet: View {
                         offered: Set(CoachConsentScope.allCases),
                         visualProgressOffered: true
                     )
+                    .disabled(busy)
 
                     Button {
                         guard let operation = session.accountOperationLease() else { return }
@@ -249,19 +278,11 @@ private struct CoachInvitationSheet: View {
                     .background(APEXColor.violet, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                     .disabled(busy || !email.contains("@"))
 
-                    if let inviteLink {
-                        ShareLink(item: inviteLink) {
-                            Label(language.text("Share private invite"), systemImage: "square.and.arrow.up")
-                                .font(APEXFont.body(15, weight: .bold))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 14)
-                                .foregroundStyle(APEXColor.violet)
-                                .background(APEXColor.violet.opacity(0.09), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-                        }
                     }
                 }
                 .padding(20)
             }
+            .id(receipt?.invitationID)
             .background(APEXBackground())
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -275,6 +296,7 @@ private struct CoachInvitationSheet: View {
     private func createInvite(operation: AccountOperationLease) async {
         guard session.accountOperationIsCurrent(operation) else { return }
         busy = true
+        emailFocused = false
         defer {
             if session.accountOperationIsCurrent(operation) { busy = false }
         }

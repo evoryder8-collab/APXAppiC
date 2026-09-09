@@ -414,6 +414,16 @@ final class APEXSmokeUITests: XCTestCase {
         let invite = app.buttons["Invite a client"].firstMatch
         XCTAssertTrue(invite.waitForExistence(timeout: 4))
         invite.tap()
+        let email = app.textFields["Client email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 3))
+        email.tap()
+        email.typeText("invitation-check@example.invalid\n")
+        let create = app.buttons["Create private invite"]
+        XCTAssertTrue(scrollUntilVisible(create, in: app, attempts: 8))
+        create.tap()
+        XCTAssertTrue(app.staticTexts["Invitation ready"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.buttons["Share private invite"].isHittable)
+        XCTAssertFalse(app.buttons["Create private invite"].exists, "success must not leave a second create action that revokes the first token")
         let reachable = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: back)
         XCTAssertEqual(XCTWaiter.wait(for: [reachable], timeout: 5), .completed, "return must remain reachable above the invitation sheet")
         capture("developer-preview-coach-sheet-return")
