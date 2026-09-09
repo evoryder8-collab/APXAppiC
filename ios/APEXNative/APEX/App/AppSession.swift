@@ -7763,7 +7763,7 @@ final class AppSession {
            authored calorie tables in the background. */
         guard EnergyEngine.usesPersonalProtocol(profile) == false else { return }
         let today = Date().apexDateKey
-        guard profile.calibrationHistory.last?.appliedAt.hasPrefix(today) != true else { return }
+        guard EnergyEngine.isWeeklyCalibrationDue(lastAppliedAt: profile.calibrationHistory.last?.appliedAt) else { return }
         let cutoff = Calendar.current.date(byAdding: .day, value: -13, to: .now)?.apexDateKey ?? today
         let samples = data.dailyLogs
             .filter {

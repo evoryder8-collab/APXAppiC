@@ -2,6 +2,21 @@ import XCTest
 @testable import APEX
 
 final class EnergyEngineTests: XCTestCase {
+    func testWeeklyCalibrationWaitsSevenCalendarDaysAndRejectsInvalidHistory() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(secondsFromGMT: 0))
+        let now = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-09-09T12:00:00Z"))
+        let cases: [(String?, Bool)] = [
+            (nil, true), ("2026-09-09T01:00:00Z", false),
+            ("2026-09-03T12:00:00Z", false), ("2026-09-02T23:59:59Z", true),
+            ("2026-09-02T23:59:59.123Z", true), ("2026-09-10T12:00:00Z", false),
+            ("invalid", false)
+        ]
+        for (last, expected) in cases {
+            XCTAssertEqual(EnergyEngine.isWeeklyCalibrationDue(lastAppliedAt: last, now: now, calendar: calendar), expected, last ?? "no history")
+        }
+    }
+
     func testNutritionBalanceReportsActualExcessInsteadOfZeroRemaining() {
         let balance = NutritionCalorieBalance.resolve(target: 1_685, consumed: 2_119)
 

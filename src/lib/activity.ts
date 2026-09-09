@@ -1,4 +1,5 @@
 import type { ActivityLevel, ActivityLog, Goal, Profile } from './types'
+import { differenceInCalendarDays } from 'date-fns'
 import {
   ACTIVITY_MULTIPLIERS,
   GOALS,
@@ -589,6 +590,13 @@ function ema(values: number[], span: number): number[] {
     output.push(alpha * values[index] + (1 - alpha) * output[index - 1])
   }
   return output
+}
+
+export function isWeeklyCalibrationDue(lastAppliedAt: string | undefined, now = new Date()): boolean {
+  if (!Number.isFinite(now.getTime())) return false
+  if (lastAppliedAt == null) return true
+  const elapsed = differenceInCalendarDays(now, new Date(lastAppliedAt))
+  return Number.isFinite(elapsed) && elapsed >= 7
 }
 
 export function calibrateActivityK(days: CalibrationDay[], currentK: number): CalibrationResult {

@@ -2,7 +2,7 @@ import { estimateWaterContent, inferredHydrationTargetMode, resolveHydrationTarg
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { addDays, differenceInCalendarDays, format, parseISO, startOfMonth, subDays } from 'date-fns'
+import { addDays, format, parseISO, startOfMonth, subDays } from 'date-fns'
 import { useStore } from '../store/AppStore'
 import { ACCENTS } from '../lib/theme'
 import {
@@ -25,6 +25,7 @@ import {
   blockFromActivityLog,
   blockSummary,
   calibrateActivityK,
+  isWeeklyCalibrationDue,
   estimateActivityDay,
   PAL_LABELS,
   resolveActivityAdjustedTargets,
@@ -658,13 +659,7 @@ export function Nutrition() {
     if (usesWholeDayProtocol || !profile || !calibration?.eligible || calibration.observedTdee == null || calibration.predictedTdee == null) return
     if (Math.abs(calibration.nextK - profile.calibration_k) < 0.0005) return
     const last = profile.calibration_history.at(-1)
-    if (last) {
-      const elapsed = differenceInCalendarDays(
-        new Date(`${today}T12:00:00`),
-        new Date(last.applied_at),
-      )
-      if (elapsed < 7) return
-    }
+    if (!isWeeklyCalibrationDue(last?.applied_at, new Date(`${today}T12:00:00`))) return
     setProfile({
       calibration_k: calibration.nextK,
       calibration_history: [

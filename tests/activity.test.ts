@@ -6,6 +6,7 @@ import {
   activityBmr,
   activityLevelForPal,
   calibrateActivityK,
+  isWeeklyCalibrationDue,
   championshipPrefill,
   emptyActivityBlock,
   estimateActivityDay,
@@ -26,6 +27,16 @@ const baseProfile = {
   goal: 'recomp' as const,
   calibration_k: 1,
 }
+
+test('weekly calibration waits seven calendar days and rejects invalid history', () => {
+  const now = new Date(2026, 8, 9, 12)
+  for (const [last, expected] of [
+    [undefined, true], [new Date(2026, 8, 9, 1).toISOString(), false],
+    [new Date(2026, 8, 3, 12).toISOString(), false],
+    [new Date(2026, 8, 2, 23, 59, 59).toISOString(), true],
+    [new Date(2026, 8, 10, 12).toISOString(), false], ['invalid', false],
+  ] as const) assert.equal(isWeeklyCalibrationDue(last, now), expected, last)
+})
 
 function closeTo(actual: number, expected: number, tolerance = 0.01): void {
   assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} was not within ${tolerance} of ${expected}`)

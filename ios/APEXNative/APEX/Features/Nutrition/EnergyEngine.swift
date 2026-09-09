@@ -810,6 +810,19 @@ enum EnergyEngine {
 
     /// Learns only a conservative correction to activity-block expenditure.
     /// Weight change is converted to a daily energy balance after smoothing.
+    static func isWeeklyCalibrationDue(lastAppliedAt: String?, now: Date = .now, calendar: Calendar = .current) -> Bool {
+        guard now.timeIntervalSinceReferenceDate.isFinite else { return false }
+        guard let lastAppliedAt else { return true }
+        let formatter = ISO8601DateFormatter()
+        let standard = formatter.date(from: lastAppliedAt)
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let last = standard ?? formatter.date(from: lastAppliedAt),
+              let elapsed = calendar.dateComponents(
+                [.day], from: calendar.startOfDay(for: last), to: calendar.startOfDay(for: now)
+              ).day else { return false }
+        return elapsed >= 7
+    }
+
     static func calibratedK(
         currentK: Double,
         meanDailyIntake: Double,
