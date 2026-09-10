@@ -1,4 +1,5 @@
 import { estimateWaterContent } from '../../lib/hydration.ts'
+import { yesterdayMealItems } from '../../lib/mealYesterday.ts'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ACCENTS } from '../../lib/theme'
@@ -305,6 +306,7 @@ export function MealComposer({
       ? targetTime ?? currentClock.time
       : currentClock.time
   const [items, setItems] = useState<ComposerFoodItem[]>(initialItems)
+  const yesterdayItems = useMemo(() => yesterdayMealItems(mealDate, slot, activeOwnerId, store.meals, store.entries), [mealDate, slot, activeOwnerId, store.meals, store.entries])
   const [name, setName] = useState(title ?? slotLabel)
   const [finishedTime, setFinishedTime] = useState(defaultFinishedTime)
   const [query, setQuery] = useState('')
@@ -951,6 +953,11 @@ export function MealComposer({
         </div>
 
         <div className="mt-4 space-y-4">
+          {!replaceMealId && items.length === 0 && (
+            <button type="button" disabled={!yesterdayItems.length} onClick={() => setItems(current => current.length ? current : yesterdayItems)} className="w-full rounded-2xl bg-amber-100 px-4 py-3 font-bold text-amber-900 disabled:opacity-40">
+              {t('Same as yesterday')}
+            </button>
+          )}
           <GlassCard accent={amber} className="p-4">
             <div className="flex items-start gap-3">
               <label className="min-w-0 flex-1">

@@ -9,6 +9,26 @@ private enum InjectedMealDeletionFailure: Error {
 }
 
 final class MealComposerTests: XCTestCase {
+    func testYesterdayCopyUsesPreviousCalendarDayOwnerAndFreshItems() throws {
+        let owner = UUID(), mealID = UUID()
+        let meal = loggedMeal(id: mealID, ownerID: owner, localDate: "2026-08-31")
+        let entry = loggedFoodEntry(id: UUID(), mealID: mealID, ownerID: owner)
+        let date = try XCTUnwrap(ISO8601DateFormatter.apexDateOnly.date(from: "2026-09-01"))
+        let copied = MealYesterdayCopy.items(date: date, slot: "lunch", ownerID: owner, meals: [meal], entries: [entry])
+        XCTAssertEqual(copied.count, 1)
+        XCTAssertNotEqual(copied.first?.id, entry.id)
+        XCTAssertEqual(copied.first?.quantity, entry.quantity)
+        XCTAssertEqual(copied.first?.equivalentAmount, entry.equivalentAmount)
+        var portion = try XCTUnwrap(copied.first)
+        portion.unit = "serving"
+        let previousCalories = portion.nutrients.kcal
+        portion.setQuantity(entry.quantity * 2)
+        XCTAssertEqual(portion.equivalentAmount, entry.equivalentAmount * 2)
+        XCTAssertEqual(portion.nutrients.kcal, previousCalories * 2)
+        XCTAssertTrue(MealYesterdayCopy.items(date: date, slot: "breakfast", ownerID: owner, meals: [meal], entries: [entry]).isEmpty)
+        XCTAssertTrue(MealYesterdayCopy.items(date: date, slot: "lunch", ownerID: UUID(), meals: [meal], entries: [entry]).isEmpty)
+    }
+
     func testEmptySavedMealRequiresRemovalConfirmation() {
         XCTAssertEqual(
             MealComposerCommitPolicy.intent(itemCount: 0, existingMealID: UUID()),

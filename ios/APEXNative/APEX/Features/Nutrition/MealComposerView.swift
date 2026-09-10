@@ -1,5 +1,25 @@
 import SwiftUI
 
+enum MealYesterdayCopy {
+    static func items(date: Date, slot: String, ownerID: UUID?, meals: [LoggedMeal], entries: [LoggedFoodEntry]) -> [MealComposerItem] {
+        guard let ownerID, let previous = Calendar.current.date(byAdding: .day, value: -1, to: date) else { return [] }
+        let candidates = meals.filter { $0.userID == ownerID && $0.localDate == previous.apexDateKey && $0.mealSlot == slot }
+            .sorted { $0.loggedAt == $1.loggedAt ? $0.id.uuidString > $1.id.uuidString : $0.loggedAt > $1.loggedAt }
+        for meal in candidates {
+            let rows = entries.filter { $0.userID == ownerID && $0.mealID == meal.id }.sorted { $0.sortOrder < $1.sortOrder }
+            if !rows.isEmpty {
+                return rows.map { entry in
+                    var item = MealComposerItem(entry: entry)
+                    item.id = UUID()
+                    item.recordedPortionMass = entry.quantity > 0 ? entry.equivalentAmount / entry.quantity : nil
+                    return item
+                }
+            }
+        }
+        return []
+    }
+}
+
 enum MealComposerCompactLayout {
     static let unitControlWidth: CGFloat = 72
     static let controlHeight: CGFloat = 40
@@ -211,6 +231,18 @@ struct MealComposerView: View {
                    them. The same trap the nutrition and training pages hit. */
                 VStack(spacing: 18) {
                     mealSummary
+                    if request.existingMeal == nil && draft.items.isEmpty {
+                        Button {
+                            guard draft.items.isEmpty else { return }
+                            draft.items = yesterdayItems
+                        } label: {
+                            Label(language.text("Same as yesterday"), systemImage: "arrow.uturn.backward")
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(yesterdayItems.isEmpty)
+                    }
                     guideCard
                     discoveryCard
                     presetsCard
@@ -993,6 +1025,11 @@ struct MealComposerView: View {
             draft.displayName = preset.name
             draft.sourcePresetID = preset.id
         }
+    }
+
+    private var yesterdayItems: [MealComposerItem] {
+        MealYesterdayCopy.items(date: request.date, slot: request.mealSlot, ownerID: session.profile?.userID,
+                                meals: session.data.loggedMeals, entries: session.data.loggedFoodEntries)
     }
 
     private func hydrateExistingMeal() {

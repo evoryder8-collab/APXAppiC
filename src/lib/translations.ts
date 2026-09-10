@@ -3,6 +3,7 @@ import type { IntroLanguage } from './introLanguage'
 type Translation = Record<Exclude<IntroLanguage, 'en'>, string>
 
 const rows: Array<[string, string, string]> = [
+  ['Same as yesterday', 'La fel ca ieri', 'เหมือนเมื่อวาน'],
   // Global navigation, actions and states
   ['Portal', 'Portal', 'หน้าหลัก'],
   ['APEX ORBIT', 'APEX ORBIT', 'APEX ORBIT'],

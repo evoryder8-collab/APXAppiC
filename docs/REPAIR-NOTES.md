@@ -2111,3 +2111,10 @@ Verification:
 
 - Implementation `cab3d96abef8fab7087833b0d481a0364b31693b` pushed to both refs. Pages run `34359081980` succeeded; live URL returned HTTP 200.
 - Signed Release 394 and strict deep signature verification passed. iPhone installation succeeded. Watch installation timed out establishing its connection; build 393 remains its last confirmed installed version. This change is the iPhone coach sheet only.
+
+## 2026-09-10 — Same as yesterday meal shortcut
+
+- Added a full-width Same as yesterday shortcut to empty new native/web meal editors. It selects the most recently logged nonempty meal in the same slot on the previous calendar day relative to the editor date, scoped to the current owner. Disabled when none exists; disappears once items are present. Normal save remains required; yesterday's record and today's meal time/identity are untouched.
+- Copies food snapshots, micronutrient evidence, units and quantities with fresh item IDs, without substituting refreshed provider nutrition. Web fractional servings preserve their original equivalent mass. Existing entered items are never overwritten. Authored copy for all nine native and three web languages; the button can wrap rather than truncate.
+- Focused native test first failed with the missing helper, then passed 1/1. Web boundary/owner/fractional-portion test passed 1/1; production web build and whitespace checks passed. No broad regression suite or Health samples. Signed release 395 and publication verification follow.
+- Scoped review caught the existing native quantity setter calculating its fallback portion mass after mutating quantity. Fixed the ordering and pinned copied portion mass so provider changes cannot alter yesterday's serving definition; extended the test to assert doubled weight/calories. Unit changes release that original-unit override.

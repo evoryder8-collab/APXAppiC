@@ -1192,6 +1192,7 @@ struct StructuredMealRPCPayload: Codable, Sendable {
 /// through `log_structured_meal`, which atomically replaces the meal and
 /// recalculates the shared daily nutrition row.
 struct MealComposerItem: Identifiable, Hashable, Sendable {
+    var recordedPortionMass: Double?
     var id: UUID
     var foodID: UUID?
     var name: String
@@ -1237,15 +1238,17 @@ struct MealComposerItem: Identifiable, Hashable, Sendable {
     }
 
     mutating func setQuantity(_ value: Double, food: Food? = nil) {
+        let recordedMass = equivalentAmountPerUnit
         quantity = max(0, value)
         switch unit {
-        case "piece": equivalentAmount = quantity * (food?.pieceGramsOrML ?? equivalentAmountPerUnit)
-        case "serving": equivalentAmount = quantity * (food?.servingGramsOrML ?? equivalentAmountPerUnit)
+        case "piece": equivalentAmount = quantity * (recordedPortionMass ?? food?.pieceGramsOrML ?? recordedMass)
+        case "serving": equivalentAmount = quantity * (recordedPortionMass ?? food?.servingGramsOrML ?? recordedMass)
         default: equivalentAmount = quantity
         }
     }
 
     mutating func setUnit(_ value: String, food: Food? = nil) {
+        if value != unit { recordedPortionMass = nil }
         unit = value
         setQuantity(quantity, food: food)
     }
