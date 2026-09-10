@@ -2118,3 +2118,8 @@ Verification:
 - Copies food snapshots, micronutrient evidence, units and quantities with fresh item IDs, without substituting refreshed provider nutrition. Web fractional servings preserve their original equivalent mass. Existing entered items are never overwritten. Authored copy for all nine native and three web languages; the button can wrap rather than truncate.
 - Focused native test first failed with the missing helper, then passed 1/1. Web boundary/owner/fractional-portion test passed 1/1; production web build and whitespace checks passed. No broad regression suite or Health samples. Signed release 395 and publication verification follow.
 - Scoped review caught the existing native quantity setter calculating its fallback portion mass after mutating quantity. Fixed the ordering and pinned copied portion mass so provider changes cannot alter yesterday's serving definition; extended the test to assert doubled weight/calories. Unit changes release that original-unit override.
+
+### Release 395 delivery
+
+- Final focused native portion test passed 1/1. Signed Release 395 and strict deep signature verification passed; physical iPhone installation succeeded. No Watch-specific change or Watch install was required for this meal-editor feature.
+- Implementation `2d40bd53be1eae5bcef6266bbc1bdc447d5a2f4c` pushed to both required refs. GitHub Pages run `34518149882` succeeded; live URL https://evoryder8-collab.github.io/APXAppiC/ returned HTTP 200 with `assets/index-nw-DsKmY.js`.
