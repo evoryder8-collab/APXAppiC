@@ -17,17 +17,33 @@ struct DeveloperSandboxView: View {
 
     var body: some View {
         Group {
-            switch preview.route {
-            case .induction: InductionView()
-            case .consent: ConsentView()
-            case .portal: PortalShellView()
-            default: ProgressView().task { leavePreview() }
+            if !preview.isAuthenticated || preview.route == .welcome {
+                ProgressView().task { leavePreview() }
+            } else if !Entitlement.isUnlocked(preview.interfaceAccess) {
+                AccessRecoveryView()
+            } else {
+                switch preview.route {
+                case .induction: InductionView()
+                case .consent: ConsentView()
+                case .portal: PortalShellView()
+                default: ProgressView().task { leavePreview() }
+                }
             }
         }
         .environment(preview)
         .environment(\.developerSandboxPreview, true)
         .defaultAppStorage(preview.defaults)
-        .safeAreaInset(edge: .top) { Color.clear.frame(height: 48) }
+        .alert("APEX", isPresented: Binding(
+            get: { preview.alertMessage != nil },
+            set: { if !$0 { preview.alertMessage = nil } }
+        )) {
+            Button(LanguageState.shared.text("OK"), role: .cancel) { preview.alertMessage = nil }
+        } message: {
+            Text(LanguageState.shared.text(preview.alertMessage ?? ""))
+        }
+        // Reserve space outside NavigationStack so its Back button stays below
+        // the persistent preview strip, not underneath its separate window.
+        .padding(.top, 48)
         .background(DeveloperSandboxChrome(role: role, exit: leavePreview))
         .onChange(of: owner.canOpenDeveloperSandbox) { _, allowed in
             if !allowed { leavePreview() }
@@ -64,9 +80,7 @@ extension EnvironmentValues {
 struct DeveloperSandboxSheetClearance: ViewModifier {
     @Environment(\.developerSandboxPreview) private var preview
     func body(content: Content) -> some View {
-        content.safeAreaInset(edge: .top, spacing: 0) {
-            if preview { Color.clear.frame(height: 48) }
-        }
+        content.padding(.top, preview ? 48 : 0)
     }
 }
 

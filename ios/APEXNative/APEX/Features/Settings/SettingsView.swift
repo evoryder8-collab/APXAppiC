@@ -20,7 +20,6 @@ struct SettingsView: View {
     @Environment(AppSession.self) private var session
     @State private var health = HealthKitManager.shared
     @State private var language = LanguageState.shared
-    @State private var entitlements = EntitlementStore.shared
     @State private var showAccessRecovery = false
     @State private var showLogout = false
     @State private var showFoodDataAcknowledgements = false
@@ -39,7 +38,10 @@ struct SettingsView: View {
             LazyVStack(spacing: 18) {
                 APEXTopBar(profile: profile)
                 pageHeader
-                    identityCard
+                identityCard
+                if session.isDeveloperSandbox {
+                    membershipCard
+                }
                     if session.canOpenDeveloperSandbox { developerModeCard }
                 simpleModeCard
                 daylineCard
@@ -85,13 +87,15 @@ struct SettingsView: View {
     private var developerModeCard: some View {
         GlassCard(radius: 31, padding: 20) {
             VStack(alignment: .leading, spacing: 12) {
-                Text(language.text("Developer Mode")).font(APEXFont.display(22))
+                Text(language.text("Developer Mode")).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                Text(language.text("UI Mode")).font(APEXFont.display(22))
                 Text(language.text("Explore with disposable sample data. Your account, purchases and Apple Health stay unchanged."))
                     .font(.footnote).foregroundStyle(.secondary)
                 Menu {
                     Button(language.text("My account")) { previewRole = nil }
                     ForEach(DeveloperSandboxRole.allCases) { role in
                         Button(language.text(role.titleKey)) { previewRole = role }
+                            .accessibilityIdentifier("developer-mode-\(role.rawValue)")
                     }
                 } label: {
                     Label(language.text("My account") + " — " + (profile?.displayName ?? ""), systemImage: "chevron.up.chevron.down")
@@ -115,7 +119,7 @@ struct SettingsView: View {
                     .font(APEXFont.body(13))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)
-                if entitlements.access == .locked || entitlements.access == .updateRequired {
+                if session.interfaceAccess == .locked || session.interfaceAccess == .updateRequired {
                     Button(language.shortText("Review access")) { showAccessRecovery = true }
                         .font(APEXFont.body(14, weight: .bold))
                 }
@@ -128,7 +132,10 @@ struct SettingsView: View {
     }
 
     private var membershipStatus: String {
-        switch entitlements.access {
+        if session.developerSandboxRole == .trial {
+            return language.text("Trial preview. No subscription or payment is created.")
+        }
+        return switch session.interfaceAccess {
         case .founding:
             language.text("Founding account. Full access, permanently, with nothing to pay.")
         case .beta:
@@ -175,7 +182,7 @@ struct SettingsView: View {
                             .truncationMode(.tail)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .accessibilityIdentifier("settings-active-identity-name")
-                        if ProfileIdentityPresentation.showsPersona(
+                        if !session.isDeveloperSandbox && ProfileIdentityPresentation.showsPersona(
                             displayName: displayName,
                             personaName: personaName
                         ) {

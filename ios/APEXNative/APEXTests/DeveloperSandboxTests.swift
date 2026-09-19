@@ -3,6 +3,23 @@ import XCTest
 
 @MainActor
 final class DeveloperSandboxTests: XCTestCase {
+    func testTrialAndUnsubscribedPreviewsKeepDistinctAccessWithoutChangingRealOwner() throws {
+        let realOwner = EntitlementStore.shared.resolvedUserID
+        let trialRole = try XCTUnwrap(DeveloperSandboxRole(rawValue: "trial"))
+        let lockedRole = try XCTUnwrap(DeveloperSandboxRole(rawValue: "unsubscribed"))
+        let trial = AppSession(developerSandboxRole: trialRole)
+        let locked = AppSession(developerSandboxRole: lockedRole)
+        XCTAssertEqual(trial.route, .induction)
+        XCTAssertEqual(trial.interfaceAccess, .beta)
+        XCTAssertEqual(locked.interfaceAccess, .locked)
+        XCTAssertNil(locked.coachContext.sponsorship)
+        XCTAssertFalse(locked.portalDestinationIsAllowed(.customWorkouts))
+        XCTAssertFalse(locked.portalDestinationIsAllowed(.nutrition))
+        XCTAssertEqual(EntitlementStore.shared.resolvedUserID, realOwner)
+        XCTAssertFalse(trial.developerSandboxHasExternalDependencies)
+        XCTAssertFalse(locked.developerSandboxHasExternalDependencies)
+    }
+
     func testSandboxConstructionDoesNotReplaceRealEntitlementOwner() async throws {
         let entitlementOwner = EntitlementStore.shared.resolvedUserID
         let first = AppSession(developerSandboxRole: .individual)
@@ -29,6 +46,11 @@ final class DeveloperSandboxTests: XCTestCase {
         first.navigationPath = [.settings]
         XCTAssertEqual(second.data.profile, before)
         XCTAssertFalse(second.coachClientPolicy.canRebuildFitnessPlan)
+        XCTAssertEqual(first.interfaceAccess, .subscribed(.coach))
+        XCTAssertEqual(second.interfaceAccess, .sponsored)
+        XCTAssertTrue(second.portalDestinationIsAllowed(.nutrition))
+        XCTAssertTrue(second.portalDestinationIsAllowed(.avatar))
+        XCTAssertFalse(second.portalDestinationIsAllowed(.coachWorkspace))
         XCTAssertTrue(second.navigationPath.isEmpty)
     }
 
@@ -85,6 +107,17 @@ final class DeveloperSandboxTests: XCTestCase {
         XCTAssertEqual(client.data.programs.first?.slug, "coach")
         XCTAssertFalse(client.data.exercises.isEmpty)
         XCTAssertFalse(client.coachClientPolicy.canCreateCustomWorkouts)
+    }
+
+    func testUnsubscribedPreviewCanAcceptSampleSponsorshipWithoutBuyingIndividualAccess() async throws {
+        let session = AppSession(developerSandboxRole: .unsubscribed)
+        let operation = try XCTUnwrap(session.accountOperationLease())
+        try await session.acceptCoachInvitation(token: "sample-only-test", scopes: [.workouts], visualProgressConsent: false, operation: operation)
+        XCTAssertEqual(session.interfaceAccess, .sponsored)
+        XCTAssertTrue(session.coachClientPolicy.canFollowCoachPlan)
+        XCTAssertFalse(session.coachClientPolicy.canRebuildFitnessPlan)
+        XCTAssertFalse(session.coachClientPolicy.canCreateCustomWorkouts)
+        XCTAssertFalse(session.developerSandboxHasExternalDependencies)
     }
 
     func testSkippedIndividualCanBuildAndRebuildAnActualPlan() async throws {

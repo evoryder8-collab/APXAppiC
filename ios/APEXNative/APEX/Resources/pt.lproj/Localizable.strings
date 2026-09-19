@@ -5597,3 +5597,11 @@
 "Invitation ready" = "Convite pronto";
 "Share this private link with your client. No email has been sent automatically." = "Partilhe este link privado com o seu cliente. Nenhum email foi enviado automaticamente.";
 "Same as yesterday" = "Igual a ontem";
+"UI Mode" = "Modo da interface";
+"Individual subscribed user" = "Utilizador individual com subscrição";
+"Coach/PT Interface" = "Interface do treinador/PT";
+"Coach's client" = "Cliente do treinador";
+"Trial (active)" = "Período de teste ativo";
+"Non-subscribed (no access)" = "Sem subscrição (sem acesso)";
+"Trial preview. No subscription or payment is created." = "Pré-visualização de teste. Não é criada nenhuma subscrição nem efetuado qualquer pagamento.";
+"Preview only. Access stays unchanged; no server request was sent." = "Apenas pré-visualização. O acesso mantém-se; não foi enviado nenhum pedido ao servidor.";

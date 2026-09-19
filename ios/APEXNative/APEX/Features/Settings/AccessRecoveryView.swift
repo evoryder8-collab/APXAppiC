@@ -32,7 +32,7 @@ struct AccessRecoveryView: View {
 
                 headline
                 recoveryActions
-                if showingCoachInvitation && entitlements.access != .updateRequired {
+                if showingCoachInvitation && session.interfaceAccess != .updateRequired {
                     CoachInvitationAcceptanceCard {
                         Task { await resumeAfterGrant() }
                     }
@@ -44,6 +44,7 @@ struct AccessRecoveryView: View {
                     .foregroundStyle(secondaryInk)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
+                if session.isDeveloperSandbox { DeveloperSandboxNotice() }
             }
             .padding(20)
         }
@@ -82,7 +83,10 @@ struct AccessRecoveryView: View {
     }
 
     private var recoveryBody: String {
-        switch entitlements.recoveryReason {
+        if session.isDeveloperSandbox {
+            return "This account does not currently have access. Your account data has not been changed."
+        }
+        return switch entitlements.recoveryReason {
         case .updateRequired:
             "This version of APEX needs an update before it can open this account. Your account data has not been changed."
         case .revoked:
@@ -115,7 +119,7 @@ struct AccessRecoveryView: View {
                 .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.teal))
                 .disabled(checking)
 
-                if entitlements.access != .updateRequired {
+                if session.interfaceAccess != .updateRequired {
                     Button {
                         withAnimation(reduceMotion ? nil : .snappy) {
                             showingCoachInvitation.toggle()
@@ -159,6 +163,10 @@ struct AccessRecoveryView: View {
     @MainActor
     private func checkAccess(operation: AccountOperationLease) async {
         guard session.accountOperationIsCurrent(operation) else { return }
+        if session.isDeveloperSandbox {
+            statusMessage = language.text("Preview only. Access stays unchanged; no server request was sent.")
+            return
+        }
         checking = true
         statusMessage = nil
         defer {
@@ -186,6 +194,10 @@ struct AccessRecoveryView: View {
 
     @MainActor
     private func resumeAfterGrant() async {
+        if session.isDeveloperSandbox {
+            if Entitlement.isUnlocked(session.interfaceAccess) { session.route = .portal }
+            return
+        }
         guard let operation = session.accountOperationLease(),
               entitlements.resolvedUserID == operation.ownerID,
               entitlements.isUnlocked else { return }

@@ -390,12 +390,15 @@ final class AppSession {
             let ownerID = UUID()
             authenticatedOwnerID = ownerID
             data = DeveloperSandboxSamples.dashboard(ownerID: ownerID, name: "Sample")
-            if developerSandboxRole == .individual {
+            if developerSandboxRole.startsWithOnboarding {
                 data = .empty
                 route = .induction
             } else {
-                coachContext = developerSandboxRole == .coach
-                    ? sandboxSamples!.coachWorkspaceContext() : sandboxSamples!.coachPlanContext()
+                switch developerSandboxRole {
+                case .coach: coachContext = sandboxSamples!.coachWorkspaceContext()
+                case .invitedClient: coachContext = sandboxSamples!.coachPlanContext()
+                default: coachContext = .empty
+                }
                 route = .portal
             }
             return
@@ -585,18 +588,31 @@ final class AppSession {
     }
 
     var interfaceMode: PortalUIMode { PortalUIMode.current(from: data.settings) }
+    /// Presentation-only sample access never changes the server-owned entitlement store.
+    var interfaceAccess: Entitlement.Access {
+        guard let developerSandboxRole else { return EntitlementStore.shared.access }
+        switch developerSandboxRole {
+        case .individual: return .subscribed(.premium)
+        case .coach: return .subscribed(.coach)
+        case .trial: return .beta
+        case .invitedClient, .unsubscribed:
+            return coachContext.sponsorship?.relationshipStatus == .active
+                && coachContext.sponsorship?.seatState == .active ? .sponsored : .locked
+        }
+    }
     var coachClientPolicy: CoachClientPolicy {
         CoachClientPolicy.resolve(
             relationshipStatus: coachContext.sponsorship?.relationshipStatus,
             seatState: coachContext.sponsorship?.seatState,
             consentedScopes: coachContext.sponsorship?.consentedScopes ?? [],
-            individualAccess: developerSandboxRole.map { $0 != .invitedClient }
+            individualAccess: developerSandboxRole.map(\.hasIndividualAccess)
                 ?? EntitlementStore.shared.hasIndividualAccess
         )
     }
 
     func portalDestinationIsAllowed(_ destination: PortalDestination) -> Bool {
-        coachClientPolicy.allows(
+        if isDeveloperSandbox && !Entitlement.isUnlocked(interfaceAccess) { return false }
+        return coachClientPolicy.allows(
             destination,
             accountCapabilities: coachContext.capabilities
         )

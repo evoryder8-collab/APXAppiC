@@ -5579,3 +5579,11 @@
 "Invitation ready" = "Invitația este gata";
 "Share this private link with your client. No email has been sent automatically." = "Trimite acest link privat clientului tău. Nu s-a trimis automat niciun e-mail.";
 "Same as yesterday" = "La fel ca ieri";
+"UI Mode" = "Mod interfață";
+"Individual subscribed user" = "Utilizator individual abonat";
+"Coach/PT Interface" = "Interfață antrenor/PT";
+"Coach's client" = "Clientul antrenorului";
+"Trial (active)" = "Perioadă de probă activă";
+"Non-subscribed (no access)" = "Fără abonament (fără acces)";
+"Trial preview. No subscription or payment is created." = "Previzualizare de probă. Nu se creează niciun abonament și nu se efectuează nicio plată.";
+"Preview only. Access stays unchanged; no server request was sent." = "Doar previzualizare. Accesul rămâne neschimbat; nu s-a trimis nicio cerere către server.";

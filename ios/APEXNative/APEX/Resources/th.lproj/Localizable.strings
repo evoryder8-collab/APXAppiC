@@ -5579,3 +5579,11 @@
 "Invitation ready" = "คำเชิญพร้อมแล้ว";
 "Share this private link with your client. No email has been sent automatically." = "แชร์ลิงก์ส่วนตัวนี้ให้ลูกค้าของคุณ ระบบยังไม่ได้ส่งอีเมลโดยอัตโนมัติ";
 "Same as yesterday" = "เหมือนเมื่อวาน";
+"UI Mode" = "โหมดหน้าจอ";
+"Individual subscribed user" = "ผู้ใช้ส่วนบุคคลที่สมัครสมาชิก";
+"Coach/PT Interface" = "หน้าจอโค้ช/เทรนเนอร์";
+"Coach's client" = "ลูกค้าของโค้ช";
+"Trial (active)" = "ช่วงทดลองใช้งานที่เปิดอยู่";
+"Non-subscribed (no access)" = "ไม่ได้สมัครสมาชิก (ไม่มีสิทธิ์เข้าใช้)";
+"Trial preview. No subscription or payment is created." = "ตัวอย่างช่วงทดลองใช้งาน ไม่มีการสมัครสมาชิกหรือเรียกเก็บเงิน";
+"Preview only. Access stays unchanged; no server request was sent." = "เป็นเพียงตัวอย่าง สิทธิ์เข้าใช้ยังเหมือนเดิมและไม่ได้ส่งคำขอไปยังเซิร์ฟเวอร์";

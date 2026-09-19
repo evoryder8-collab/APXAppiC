@@ -5597,3 +5597,11 @@
 "Invitation ready" = "招待の準備ができました";
 "Share this private link with your client. No email has been sent automatically." = "この専用リンクをクライアントに共有してください。メールは自動送信されていません。";
 "Same as yesterday" = "昨日と同じ";
+"UI Mode" = "画面モード";
+"Individual subscribed user" = "個人の有料会員";
+"Coach/PT Interface" = "コーチ・トレーナー画面";
+"Coach's client" = "コーチのクライアント";
+"Trial (active)" = "体験期間中";
+"Non-subscribed (no access)" = "未契約（アクセス不可）";
+"Trial preview. No subscription or payment is created." = "体験版のプレビューです。契約や支払いは発生しません。";
+"Preview only. Access stays unchanged; no server request was sent." = "プレビューのみです。アクセス権は変わらず、サーバーへのリクエストも送信されていません。";

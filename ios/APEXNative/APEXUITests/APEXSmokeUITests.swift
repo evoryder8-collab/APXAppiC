@@ -35,7 +35,7 @@ final class APEXSmokeUITests: XCTestCase {
         let modes = app.buttons["developer-mode-selector"]
         XCTAssertTrue(scrollUntilVisible(modes, in: app, attempts: 8))
         modes.tap()
-        app.buttons["Individual subscriber"].tap()
+        app.buttons["developer-mode-individual"].tap()
         XCTAssertTrue(app.buttons["induction-terms-consent"].waitForExistence(timeout: 5))
 
         app.buttons["induction-terms-consent"].tap()
@@ -399,14 +399,14 @@ final class APEXSmokeUITests: XCTestCase {
         let selector = app.buttons["developer-mode-selector"]
         XCTAssertTrue(scrollUntilVisible(selector, in: app, attempts: 18))
         selector.tap()
-        app.buttons["Individual subscriber"].tap()
+        app.buttons["developer-mode-individual"].tap()
         let back = app.buttons["developer-sandbox-return"]
         XCTAssertTrue(back.waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["I don't accept"].waitForExistence(timeout: 4))
         back.tap()
         XCTAssertTrue(selector.waitForExistence(timeout: 4))
         selector.tap()
-        app.buttons["Coach"].tap()
+        app.buttons["developer-mode-coach"].tap()
         XCTAssertTrue(back.waitForExistence(timeout: 5))
         let workspace = app.buttons["portal.coach-workspace"].firstMatch
         XCTAssertTrue(scrollUntilVisible(workspace, in: app, attempts: 12))
@@ -426,7 +426,69 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertFalse(app.buttons["Create private invite"].exists, "success must not leave a second create action that revokes the first token")
         let reachable = XCTNSPredicateExpectation(predicate: NSPredicate(format: "hittable == true"), object: back)
         XCTAssertEqual(XCTWaiter.wait(for: [reachable], timeout: 5), .completed, "return must remain reachable above the invitation sheet")
+        let close = app.buttons["Close"].firstMatch
+        XCTAssertTrue(close.isHittable)
+        XCTAssertGreaterThanOrEqual(close.frame.minY, back.frame.maxY)
         capture("developer-preview-coach-sheet-return")
+        back.tap()
+        XCTAssertTrue(selector.waitForExistence(timeout: 5))
+        XCTAssertTrue(scrollUpUntilVisible(app.staticTexts["settings-active-identity-name"], in: app, attempts: 8))
+        XCTAssertEqual(app.staticTexts["settings-active-identity-name"].label, "Constantine")
+    }
+
+    func testDeveloperClientAndTrialAccessJourneys() throws {
+        let app = configuredApp()
+        app.launchArguments.append("-apex-ui-test-developer-mode")
+        app.launch()
+        app.buttons["portal.settings"].tap()
+        let selector = app.buttons["developer-mode-selector"]
+        let back = app.buttons["developer-sandbox-return"]
+        XCTAssertTrue(scrollUntilVisible(selector, in: app, attempts: 12))
+        selector.tap()
+        app.buttons["developer-mode-invitedClient"].tap()
+        XCTAssertTrue(back.waitForExistence(timeout: 5))
+        let visibleSettings = try XCTUnwrap(app.buttons.matching(identifier: "portal.settings")
+            .allElementsBoundByIndex.first { $0.isHittable })
+        visibleSettings.tap()
+        XCTAssertTrue(scrollUntilVisible(app.staticTexts["Access provided by your coach."], in: app, attempts: 15))
+        XCTAssertTrue(app.staticTexts.matching(identifier: "Founding account. Full access, permanently, with nothing to pay.")
+            .allElementsBoundByIndex.allSatisfy { !$0.isHittable })
+        capture("ui-mode-client-membership")
+        try XCTUnwrap(app.navigationBars.buttons.allElementsBoundByIndex.first { $0.isHittable }).tap()
+        let plan = app.buttons["portal.coach-plan"].firstMatch
+        XCTAssertTrue(scrollUntilVisible(plan, in: app, attempts: 12))
+        plan.tap()
+        let acknowledge = app.buttons["Acknowledge plan"]
+        XCTAssertTrue(scrollUntilVisible(acknowledge, in: app, attempts: 12))
+        acknowledge.tap()
+        let activate = app.buttons["Activate plan"]
+        XCTAssertTrue(activate.waitForExistence(timeout: 4))
+        activate.tap()
+        let workouts = app.buttons["Open coach workouts"]
+        XCTAssertTrue(scrollUntilVisible(workouts, in: app, attempts: 8))
+        capture("ui-mode-client-activated-plan")
+        workouts.tap()
+        let publishedWorkout = app.buttons["training-day-2"].firstMatch
+        XCTAssertTrue(scrollUntilVisible(publishedWorkout, in: app, attempts: 20))
+        XCTAssertTrue(publishedWorkout.label.contains("Full body foundation"))
+        publishedWorkout.tap()
+        XCTAssertTrue(scrollUntilVisible(app.buttons["workout-start-session"], in: app, attempts: 12))
+        capture("ui-mode-client-workouts")
+        back.tap()
+        XCTAssertTrue(selector.waitForExistence(timeout: 5))
+        selector.tap()
+        app.buttons["developer-mode-trial"].tap()
+        XCTAssertTrue(app.buttons["I don't accept"].waitForExistence(timeout: 5))
+        capture("ui-mode-trial-onboarding")
+        back.tap()
+        XCTAssertTrue(selector.waitForExistence(timeout: 5))
+        selector.tap()
+        app.buttons["developer-mode-unsubscribed"].tap()
+        XCTAssertTrue(app.staticTexts["Access needs attention"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons.matching(identifier: "portal.settings").allElementsBoundByIndex.allSatisfy { !$0.isHittable })
+        app.buttons["Check access again"].tap()
+        XCTAssertTrue(app.staticTexts["Preview only. Access stays unchanged; no server request was sent."].waitForExistence(timeout: 4))
+        capture("ui-mode-unsubscribed-retry")
         back.tap()
         XCTAssertTrue(selector.waitForExistence(timeout: 5))
         XCTAssertTrue(scrollUpUntilVisible(app.staticTexts["settings-active-identity-name"], in: app, attempts: 8))

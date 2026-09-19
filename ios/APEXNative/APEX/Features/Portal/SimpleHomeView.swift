@@ -352,6 +352,7 @@ struct SimpleHomeView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("portal.coach-plan")
                 .padding(.horizontal, 18)
             }
             if session.coachContext.capabilities.coachWorkspace {

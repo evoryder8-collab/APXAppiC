@@ -5597,3 +5597,11 @@
 "Invitation ready" = "D Iiladig isch parat";
 "Share this private link with your client. No email has been sent automatically." = "Teil de privat Link mit dim Chund. Es isch nöd automatisch es E-Mail verschickt worde.";
 "Same as yesterday" = "Wie geschter";
+"UI Mode" = "UI-Modus";
+"Individual subscribed user" = "Einzelperson mit Abo";
+"Coach/PT Interface" = "Coach/PT-Aasicht";
+"Coach's client" = "Chund vom Coach";
+"Trial (active)" = "Testzuegang (aktiv)";
+"Non-subscribed (no access)" = "Ohni Abo (kei Zuegang)";
+"Trial preview. No subscription or payment is created." = "Testvorschau. Es wird keis Abo erstellt und nüt verrechnet.";
+"Preview only. Access stays unchanged; no server request was sent." = "Nur Vorschau. De Zuegang bliibt gliich; es isch kei Aafrag a de Server gange.";

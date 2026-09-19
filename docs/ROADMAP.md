@@ -657,6 +657,8 @@ Calm and professional, not a wall of widgets: today's priorities, client roster,
 list, recently completed plans, missing plan pillars, upcoming reviews, client status summaries,
 search, filters, templates, reports.
 
+Owner priority (19 September): polish and verify both the coach and sponsored-only client journeys independently. A coach-invited client must not need an individual subscription for the agreed client features. Verify invitation/consent, plan edit→publish→acknowledge→activate→follow, nutrition/Avatar access, restricted personal builders, sharing revocation, and sponsorship ending without loss of history. Temporary Settings → UI Mode previews support this work but are not proof of production email delivery, billing, backend permissions or cross-device sync. Include active-trial and no-access previews without inventing a commercial trial offer; retain a reliable return to the real bespoke account. Remove the developer selector before public launch.
+
 ### 6.5 Per-client plan checklist
 Nutrition ✅ / Workouts ✅ / Supplements ✅ / Hydration ✅ / Schedule ✅ / Review date ✅. The coach marks
 a section complete; the client gets a concise notification when a section is ready or materially

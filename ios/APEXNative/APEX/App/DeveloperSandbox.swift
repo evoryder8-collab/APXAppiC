@@ -1,15 +1,19 @@
 import Foundation
 
 enum DeveloperSandboxRole: String, CaseIterable, Identifiable, Sendable {
-    case individual, coach, invitedClient
+    case individual, coach, invitedClient, trial, unsubscribed
     var id: String { rawValue }
     var titleKey: String {
         switch self {
-        case .individual: "Individual subscriber"
-        case .coach: "Coach"
-        case .invitedClient: "Invited client"
+        case .individual: "Individual subscribed user"
+        case .coach: "Coach/PT Interface"
+        case .invitedClient: "Coach's client"
+        case .trial: "Trial (active)"
+        case .unsubscribed: "Non-subscribed (no access)"
         }
     }
+    var hasIndividualAccess: Bool { self == .individual || self == .coach || self == .trial }
+    var startsWithOnboarding: Bool { self == .individual || self == .trial }
 }
 
 /// Each session receives an entirely new sample identity graph.
