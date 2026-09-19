@@ -323,6 +323,40 @@ actor SupabaseService {
         return settings
     }
 
+    /// Stage complete, owner-scoped PDF definitions before making them runnable.
+    func installBespokeProgramme(_ installation: BespokeProgrammeUpgrade.Installation) async throws {
+        assertRemoteMutationAllowed()
+        guard let client else { throw APEXServiceError.configurationMissing }
+        try await BespokeProgrammeUpgrade.deliver { phase in
+            guard try await client.auth.session.user.id == installation.ownerID else {
+                throw CancellationError()
+            }
+            switch phase {
+            case .stagedDays:
+                if !installation.stagedDays.isEmpty {
+                    // A competing or retried installation may already have
+                    // activated these IDs. Never turn a working card off.
+                    try await client.from("program_days").upsert(
+                        installation.stagedDays, onConflict: "id", ignoreDuplicates: true
+                    ).execute()
+                }
+            case .exercises:
+                try await client.from("exercises").upsert(installation.exercises, onConflict: "id").execute()
+            case .activeDays:
+                // One database statement activates complete cards and retires
+                // their predecessors. Historical rows are never deleted.
+                try await client.from("program_days").upsert(installation.days, onConflict: "id").execute()
+            case .program:
+                try await client.from("programs").upsert(installation.program, onConflict: "id").execute()
+            case .settings:
+                try await client.from("settings").upsert(installation.settings, onConflict: "user_id").execute()
+            case .version:
+                try await client.from("profile").update(["seed_version": 8])
+                    .eq("user_id", value: installation.ownerID).execute()
+            }
+        }
+    }
+
     /// Write the generated first twelve weeks.
     func saveInductionPlan(_ plan: TrainingInduction.GeneratedPlan) async throws {
         assertRemoteMutationAllowed()

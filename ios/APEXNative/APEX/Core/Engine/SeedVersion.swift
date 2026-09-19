@@ -4,21 +4,14 @@ import Foundation
  * Seed definitions carry a version, and an account created before a bump
  * needs its programme, meals and supplements repaired to the current one.
  *
- * The repair itself is deliberately NOT ported. It is driven entirely by
- * src/data/seed.ts, the authored programmes for each persona, so porting the
- * logic without that data would repair nothing, and porting the data too
- * would duplicate roughly twelve hundred lines whose only job is to be
- * identical on both sides. Worse, the web already writes its repair back to
- * Supabase, definition rows first and the version marker last, precisely so
- * a second device can resume an interrupted one. A second implementation
- * racing the first is a way to corrupt that, not a way to help.
- *
- * What native owes the user is honesty: notice that definitions are behind,
- * say so, and never present a stale plan as if it were current.
+ * Constantine's V7 -> V8 programme delivery is handled by
+ * BespokeProgrammeUpgrade using a manifest generated from src/data/seed.ts.
+ * Other legacy repairs remain web-owned; a native release must not mistake
+ * an old account version for a successfully installed programme.
  */
 enum SeedVersion {
     /// Mirrors CURRENT_SEED_VERSION in src/lib/seedRepair.ts.
-    static let current = 7
+    static let current = 8
 
     enum State: Equatable, Sendable {
         case current

@@ -586,7 +586,7 @@ export function seedPrograms(userId: string): {
       user_id: userId,
       slug: 'main',
       name: 'Main Phase',
-      description: 'Elite V6 full version, for after the transition. Every session opens with Band Pull-Aparts 3x20.',
+      description: 'Morning circles, strength and Focus T25, with planned deload weeks.',
     },
   ]
   const program_days: ProgramDay[] = []
@@ -610,8 +610,16 @@ export function seedPrograms(userId: string): {
         warmup_note: d.warmup ?? '',
         sort_order: d.weekday * 10 + (d.slot === 'morning' ? 0 : d.slot === 't25' ? 2 : 1),
       })
-      d.full.forEach((s, i) => exercises.push(ex(s, dayId, userId, false, i)))
-      d.lite.forEach((s, i) => exercises.push(ex(s, dayId, userId, true, i)))
+      const append = (s: ExSpec, i: number, lite: boolean) => {
+        const row = ex(s, dayId, userId, lite, i)
+        if (d.name === 'AM · Morning circle') {
+          row.work_group_id = dayId
+          row.work_group_position = i + 1
+        }
+        exercises.push(row)
+      }
+      d.full.forEach((s, i) => append(s, i, false))
+      d.lite.forEach((s, i) => append(s, i, true))
     })
   }
   return { programs, program_days, exercises }

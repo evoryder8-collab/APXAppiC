@@ -688,6 +688,19 @@ final class AppSession {
             }
             LanguageState.shared.language = .english
             data = APEXDebugFixture.dashboard()
+            if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-bespoke-v85") {
+                let owner = UUID(uuidString: "9a0fffbc-bb02-40ac-834a-d4e339b32574")!
+                data = APEXDebugFixture.dashboard(userID: owner)
+                data.profile?.profileKind = .bespoke
+                data.profile?.bespokeProtocolID = .constantineV85
+                data.profile?.seedVersion = 7
+                data.settings?.addons["training_protocol"] = .object([
+                    "version": .number(83), "start_date": .string(Date().apexDateKey)
+                ])
+                if let upgrade = try? BespokeProgrammeUpgrade.prepare(in: data, authenticatedOwnerID: owner) {
+                    data = upgrade.dashboard
+                }
+            }
             if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-close-dayline-meals"),
                var settings = data.settings {
                 settings.addons["meal_blocks"] = .object([
@@ -1330,6 +1343,12 @@ final class AppSession {
         if let authenticatedUserID {
             EntitlementStore.shared.prepareForAccount(authenticatedUserID)
             next.settings = next.settings?.rebound(to: authenticatedUserID)
+        }
+        if let authenticatedUserID,
+           let installation = try BespokeProgrammeUpgrade.prepare(in: next, authenticatedOwnerID: authenticatedUserID) {
+            try await service.installBespokeProgramme(installation)
+            guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
+            next = installation.dashboard
         }
         var cachedDashboardForLegacyMigration: DashboardData?
         var pendingAfterReconciliation: [OfflineOperation]?

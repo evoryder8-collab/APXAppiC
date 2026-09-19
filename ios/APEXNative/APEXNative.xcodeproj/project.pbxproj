@@ -63,6 +63,8 @@
 		218AAD6781C51180219C39F5 /* MovementTiming.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5956DD731E5551C014950E65 /* MovementTiming.swift */; };
 		22113A8279C4CE646779A26D /* iulian.webp in Resources */ = {isa = PBXBuildFile; fileRef = 16EDB23CA552311D34D8B188 /* iulian.webp */; };
 		2219AE8253847A3B5DE9AB77 /* SeedVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 907EAF0468F87EDC2E82AE50 /* SeedVersion.swift */; };
+		A18500000000000000000001 /* BespokeProgrammeUpgrade.swift in Sources */ = {isa = PBXBuildFile; fileRef = A18500000000000000000002 /* BespokeProgrammeUpgrade.swift */; };
+		A18500000000000000000003 /* constantine-v85.json in Resources */ = {isa = PBXBuildFile; fileRef = A18500000000000000000004 /* constantine-v85.json */; };
 		22A8AD7876D6B713C2E13474 /* HydrationGaugeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 687976EA3575F155FEE0785C /* HydrationGaugeTests.swift */; };
 		25CC1981309BC016EA45490C /* WelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 180B92195815221640138114 /* WelcomeView.swift */; };
 		25DF001AE05828C7E4EBCF64 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = FD49362405FAA18E4A7D242C /* Localizable.strings */; };
@@ -526,6 +528,8 @@
 		8DB9D0F9717D60CDE4E68290 /* ja */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/LocalizableShort.strings; sourceTree = "<group>"; };
 		8EE97A8306A6C3FB997D296B /* ro */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ro; path = ro.lproj/LocalizableShort.strings; sourceTree = "<group>"; };
 		907EAF0468F87EDC2E82AE50 /* SeedVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedVersion.swift; sourceTree = "<group>"; };
+		A18500000000000000000002 /* BespokeProgrammeUpgrade.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BespokeProgrammeUpgrade.swift; sourceTree = "<group>"; };
+		A18500000000000000000004 /* constantine-v85.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "APEX/Resources/constantine-v85.json"; sourceTree = SOURCE_ROOT; };
 		91D36C2E80B56012F830D74B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		92640F4E6CC6ACF928E89B7A /* JewelBackdrop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JewelBackdrop.swift; sourceTree = "<group>"; };
 		946DC4125357F8D2D3ACEFE8 /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
@@ -953,6 +957,7 @@
 				30B06C160134CB27687F7B35 /* APEXIcon.svg */,
 				FC1E568F9FFFF6AD4CC7A7DB /* Assets.xcassets */,
 				C0DE02000000000000000003 /* natural-food-evidence.json */,
+				A18500000000000000000004 /* constantine-v85.json */,
 				116EADF08A0352441607F57F /* constantine.png */,
 				48785B712B6C1FBAD4D945AE /* exercise-catalog.json */,
 				4CC9F7269E0FB7B2956A9322 /* InfoPlist.strings */,
@@ -1112,6 +1117,7 @@
 				F7C1B48D78D9A7D0C7F3551A /* RecoveryAssessment.swift */,
 				A04700000000000000000002 /* RecoveryPlanner.swift */,
 				907EAF0468F87EDC2E82AE50 /* SeedVersion.swift */,
+				A18500000000000000000002 /* BespokeProgrammeUpgrade.swift */,
 				CC50357C443CEF634FC6E37B /* SessionBriefing.swift */,
 				A11000000000000000000001 /* SessionBriefingKnowledge.swift */,
 				5190A21466A8A95661FAA6BA /* StrengthProgress.swift */,
@@ -1327,6 +1333,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				C0DE02000000000000000001 /* natural-food-evidence.json in Resources */,
+				A18500000000000000000003 /* constantine-v85.json in Resources */,
 				623DEDE52B70C8DFA651E1D4 /* APEXIcon.svg in Resources */,
 				C30A5C4E317B88881A38DF5F /* Assets.xcassets in Resources */,
 				E4036F21EDE6CE6179EA150B /* InfoPlist.strings in Resources */,
@@ -1538,6 +1545,7 @@
 				93D6192DFFA8B8A5BFB274F1 /* RunDebriefView.swift in Sources */,
 				47B1968835CB764AAE8CB866 /* RunningShoesView.swift in Sources */,
 				2219AE8253847A3B5DE9AB77 /* SeedVersion.swift in Sources */,
+				A18500000000000000000001 /* BespokeProgrammeUpgrade.swift in Sources */,
 				200467799EA2B648011E9307 /* SessionBriefing.swift in Sources */,
 				A11000000000000000000002 /* SessionBriefingKnowledge.swift in Sources */,
 				FF6E7B8235214E585BC86A80 /* SessionBriefingSheet.swift in Sources */,

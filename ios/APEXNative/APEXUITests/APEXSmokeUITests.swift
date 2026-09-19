@@ -1427,6 +1427,36 @@ final class APEXSmokeUITests: XCTestCase {
         capture("nutrient-patterns-month")
     }
 
+    func testV85MorningCardOpensItsOwnGuidedFiveSetWorkout() {
+        let app = configuredApp()
+        app.launchArguments.append("-apex-ui-test-bespoke-v85")
+        app.launch()
+        XCTAssertTrue(expandFitnessPlan(in: app))
+        let main = app.buttons["portal.main"]
+        XCTAssertTrue(scrollUntilVisible(main, in: app, attempts: 5))
+        tapClearOfDock(main)
+        let today = app.buttons["training-today-open"]
+        XCTAssertTrue(scrollUntilVisible(today, in: app, attempts: 8))
+        XCTAssertTrue(app.staticTexts["AM · Morning circle"].firstMatch.exists)
+        capture("v85-morning-and-official-cards")
+        tapClearOfDock(today)
+        // Open today presents the calendar preview, whose guided action starts
+        // this selected morning session directly (not the programme-day page).
+        XCTAssertTrue(app.navigationBars["Calendar"].waitForExistence(timeout: 5))
+        app.swipeUp()
+        let start = app.buttons.matching(NSPredicate(
+            format: "identifier == %@ AND label CONTAINS %@", "day-sheet-start", "Follow along"
+        )).firstMatch
+        XCTAssertTrue(scrollUntilVisible(start, in: app, attempts: 24))
+        capture("v85-morning-prescription")
+        tapClearOfDock(start)
+        XCTAssertTrue(app.descendants(matching: .any)["workout-phase-warmup"].waitForExistence(timeout: 6))
+        app.buttons["workout-skip-warmup"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["workout-phase-active"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["workout-pause-set"].exists)
+        capture("v85-morning-live-follow-along")
+    }
+
     func testWorkoutPlayerGuidesAndRecordsActualSet() {
         let app = configuredApp()
         app.launch()

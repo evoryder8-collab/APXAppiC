@@ -260,7 +260,7 @@ enum PlayerTimeline {
         if sameGroup, current.setNumber == next.setNumber {
             return BreakPlan(
                 kind: .groupTransition,
-                duration: 15,
+                duration: exercise.notes.hasPrefix("Morning circle · ") ? exercise.restSeconds : 15,
                 nextLabel: nextLabel(next, exercise: nextExercise)
             )
         }

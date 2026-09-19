@@ -231,7 +231,7 @@ export function buildTimeline(plan: PlannedDay): Block[] {
         const sameExercise = exIdx === nextPosition.exIdx
         const reviewExercise = setNo === e.planned_sets && !sameExercise
         const duration = withinRound
-          ? 15
+          ? e.notes.startsWith('Morning circle · ') ? e.rest_sec : 15
           : betweenRounds
             ? workGroupRecovery(plan.exercises, position.groupId!)
             : sameExercise

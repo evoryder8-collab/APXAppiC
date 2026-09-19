@@ -3,6 +3,7 @@ import type { IntroLanguage } from './introLanguage'
 type Translation = Record<Exclude<IntroLanguage, 'en'>, string>
 
 const rows: Array<[string, string, string]> = [
+  ['Morning circles, strength and Focus T25, with planned deload weeks.', 'Circuite matinale, forță și Focus T25, cu săptămâni de descărcare planificate.', 'วงจรฝึกตอนเช้า เวทเทรนนิง และ Focus T25 พร้อมสัปดาห์ลดภาระการฝึกที่วางแผนไว้'],
   ['Same as yesterday', 'La fel ca ieri', 'เหมือนเมื่อวาน'],
   // Global navigation, actions and states
   ['Portal', 'Portal', 'หน้าหลัก'],
