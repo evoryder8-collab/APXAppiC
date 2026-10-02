@@ -1195,9 +1195,19 @@ function catalogAliases(food: FoodRecord): string[] {
   const cached = catalogAliasCache.get(food)
   if (cached) return cached
   const aliases = food.provider_product_id ? FOOD_CATALOG_ALIASES[food.provider_product_id] ?? [] : []
+  // Lookup responses carry corpus synonyms outside the persisted foods schema.
+  // Keep those matches when the web client ranks the server results again.
+  const providerAliases = (food as FoodRecord & { search_aliases?: string[] | null }).search_aliases
+  // Sirloin is a beef-steak cut. Keep the precise cut/preparation on the card;
+  // these common search names do not substitute its nutrition for other cuts.
+  const steakAliases = /^apex-protocol:[^:]+:beef-sirloin-/.test(food.provider_product_id ?? '')
+    ? ['steak', 'beef steak', 'sirloin steak', 'Rindersteak', 'Rindsteak', 'steak de bœuf', 'bistecca di manzo', 'friptură de vită', 'สเต๊กเนื้อ', 'สเต็กเนื้อ']
+    : []
   const compactThai = food.names_i18n.th?.replace(/\s+/g, '')
   const result = [...new Set([
     ...aliases,
+    ...(Array.isArray(providerAliases) ? providerAliases.filter((alias): alias is string => typeof alias === 'string') : []),
+    ...steakAliases,
     ...retailerReferenceAliases(food),
     ...simplifiedCatalogAliases(food),
     ...(compactThai ? [compactThai] : []),
