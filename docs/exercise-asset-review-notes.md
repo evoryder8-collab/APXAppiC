@@ -1,6 +1,8 @@
 # Exercise asset review notes
 
-All 549 catalog entries have a transparent PNG. This is a complete first generation pass, not a declaration that every illustration is ready for instructional use. 444 generated images passed visual inspection; 104 have the concerns below. The supplied goblet squat is retained.
+**2026-10-04 update: earlier visual clearances withdrawn. Four corrected selections passed targeted checks; 544 other generated assets require a stronger anatomy audit. See [exercise-asset-quality-recovery.md](exercise-asset-quality-recovery.md).**
+
+All 549 catalog entries have a transparent PNG. The first pass marked 444 images reviewed and flagged 104 with the historical concerns below. That inspection missed anatomical errors, so its clearances were withdrawn. The original reverse pec deck and cable external rotation findings now have selected corrections recorded in the recovery document. The supplied goblet squat is retained.
 
 Transparency was checked from PNG alpha data. A maximum alpha of 254 remains valid. Preview background appearance is not a reason to regenerate an asset. Saved originals are retained.
 

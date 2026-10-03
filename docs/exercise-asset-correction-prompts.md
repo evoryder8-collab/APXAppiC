@@ -1,0 +1,334 @@
+# Exercise correction prompt ledger — 2026-10-04
+
+Generated with the built-in GPT Image tool. The tool does not expose the exact model version. All requests use true transparent output; original PNG alpha is preserved. Current selected paths are authoritative in `public/exercise-assets/manifest.json`.
+
+The manifest retains the original generation prompt plus every correction attempt, source, checksum, selection status and review. This ledger records the correction prompts for this quality recovery. A preparation reference is not a deliverable.
+
+## Handstand Push-Up (`handstand_push_up`)
+
+Selected: `public/exercise-assets/corrections/handstand_push_up-v13.png`.
+
+Targeted visual checks passed: chest, face and knee fronts face right toward wall; buttocks and back face left away; horizontal shoes point right with toe tips touching wall and heels clear; palms face down and fingers point left away from wall in both poses. Same side view and anatomy across top/lowered positions.
+
+Final production specification: Chest-to-wall, same side view in both poses. Wall on right. Face, chest, anterior pelvis, knees and toes toward wall. Back, buttocks and heels away on left. Horizontal trainers point right with toe-tip wall contact and heels clear. Palms flat down, fingers point left away from wall. Left straight-arm hold, right lowered push-up. Preserve coherent anatomy, fitted black top/leggings, dark ponytail, white trainers and transparent background.
+
+### handstand_push_up-v2.png — rejected correction
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v2.png`.
+
+User rejected. Arch and lower-limb alignment not resolved. Superseded by coaching-reference base-pose workflow.
+
+```text
+Use case: scientific-educational. Correct the wall-supported strict handstand push-up illustration supplied as image 1. Preserve adult woman identity, dark ponytail, fitted opaque black long-sleeve top and full-length leggings, white trainers, photo realism. Goblet image is additional face/style reference only.
+Two full-body positions using EXACT SAME left-facing SIDE CAMERA with a slight three-quarter angle only enough to see both hands. Wall is on viewer RIGHT in each panel. The athlete's BACK faces the wall, chest and face face viewer LEFT in both panels. Same hands placed on implied floor shoulder-width apart, fingers spread and pointing forward toward viewer LEFT; palms fully flat and visibly connected to the forearms. Right and left hands must remain the SAME exact position and direction in both panels. Anatomically normal five-finger hands, neutral load-bearing wrists.
+LEFT top: arms fully straight, shoulders stacked above wrists, hips stacked above shoulders, both knees straight, core controlled, legs vertical, two normal ankles and shoe heels touch the wall. Feet are side view, toes point away from wall toward viewer LEFT, depict natural ankle alignment with the fronts of the shoes on the same side as the kneecaps and chest. No rotated calf, reversed shin or twisted foot.
+RIGHT lower: ONLY elbows bend to lower shoulders and head toward floor; forearms remain vertical over same palms, elbows move toward viewer RIGHT and outward slightly, head near floor slightly in front of hands toward viewer LEFT. Straight legs and stable pelvis; heels slide down the SAME wall, toes maintain exact same direction as left panel. No leg switching, knee bend, lumbar collapse or wrist reversal.
+Include complete figures, hands, feet and narrow isolated wall slabs with margin. Wall is essential equipment only, all remaining background genuinely transparent. No text, arrows, logos, scenery, shadows or glow.
+```
+
+### handstand_push_up-v3.png — rejected correction
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v3.png`.
+
+Rejected base: torso/abdomen and lower-limb front/back directions conflict. User identified mangled orientation.
+
+Input images: `/private/tmp/apex-handstand-top-reference.png`, `/Users/jaxoncorrey/Downloads/goblet squat.png`.
+
+```text
+Use case: scientific-educational. Create ONE single anatomically correct TOP LOCKOUT of a back-to-wall HANDSTAND PUSH-UP. Image 1 is a coaching reference page; use ONLY the far-left photo labeled CORRECT in its bottom row for straight body alignment. Do not copy any photo labeled Incorrect, any text, male identity, red wall, or scene. Image 2 supplies adult woman identity and photographic style only.
+Single adult dark-ponytail athletic woman wearing opaque fitted black full-length leggings and long-sleeve top with white trainers. Exact SIDE PROFILE facing viewer LEFT, narrow gray wall slab on viewer RIGHT. Her chest, nose, kneecaps, shin fronts and shoe toes all point consistently toward viewer LEFT. Her back, buttocks, CALF MUSCLE BULGES and heels face viewer RIGHT toward wall. Correct calf anatomy: posterior calf fullness belongs on the WALL SIDE, never the front of the shin. No backward leg or 180-degree rotated ankles.
+She is upside down, straight knees, legs together, pointed toes naturally upward/away from wall, heel side lightly touches wall. Shoulder-to-hip-to-ankle line is upright and straight, core held, no hollowed/sagging lumbar arch, no butt resting on wall. Arms locked straight overhead in inverted position; shoulders over wrists, head neutral between arms with eyes toward hands. Both palms flat on implied floor, normal five finger hands pointing viewer LEFT and slightly outward, thumbs toward one another, wrists connected naturally, both arms in matching orientation. Side view slightly offset to reveal both palms without changing leg orientation.
+ONE TOP POSITION only. Full body all hands feet plus isolated wall, clean photo realistic cutout and genuinely transparent background. Generous empty margin. No scenery floor graphics text arrows logos or glow.
+```
+
+### handstand_push_up-v4.png — rejected correction
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v4.png`.
+
+Rejected: rebuilding from inconsistent base preserved the torso/leg front-back conflict. Not selected.
+
+Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-5dee93de-35d6-4dbb-b5f8-7e0c15b77fcc.png`.
+
+```text
+Build an anatomically corrected TWO-POSE wall handstand push-up from the attached single top-position athlete. Same adult woman, clothing, wall, exact side camera facing LEFT in BOTH poses. Preserve normal calf, knee and foot direction from the attached image: chest, shin fronts and shoe toes LEFT; back, calf fullness and heels toward wall RIGHT. Do not rotate or switch any limb.
+Correct the TOP pose in LEFT panel by ALIGNING the whole athlete in a straight handstand line: wrists -> shoulders -> pelvis -> straight knees -> ankles. Move hips AWAY from wall so there is NO buttocks or back pressed against wall and NO lumbar banana arch. Only heel sides of shoes lightly touch wall. Shoulders raised to ears, head NEUTRAL between upper arms, not pushed forward; palms flat, five normal fingers point LEFT and slightly outward. Keep both feet together, straight knees, same hand positions.
+RIGHT panel: duplicate that corrected athlete and wall. Change ONLY arm bend / vertical lowering for bottom of strict handstand push-up. Same palms stay in exact place and direction, forearms stay vertical over wrists, elbows flex backward toward viewer RIGHT. Head crown near implied floor slightly LEFT of hand line. Whole trunk stays firm, no lumbar arch or hip fold, legs straight same direction, heels slide lower against same wall. No bent knees, rotated ankles, backward knees, changing hand direction or body viewpoint.
+Both complete poses head to shoes including fingertips and whole wall with margin. Genuine transparent alpha, essential isolated wall only, no text arrows labels scenery logos glow or shadows. Athletic professional photographic instruction asset.
+```
+
+### handstand_push_up-v5.png — preparation reference
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v5.png`.
+
+Preparation only: upright source with coherent face/chest/abdomen/kneecap/toe direction. One hand reverses; corrected during rotation.
+
+Input images: `/Users/jaxoncorrey/Downloads/goblet squat.png`.
+
+```text
+Create an UPRIGHT anatomical source photograph for a later handstand edit, NOT the final handstand yet. Use attached image only for same adult athletic woman's face, dark ponytail, realistic physique and photographic style. One full-body adult woman in fitted black opaque leggings, black long-sleeve athletic crop top, white trainers, viewed from exact LEFT-FACING side profile with a tiny offset to reveal both arms/hands.
+She is STANDING UPRIGHT with legs straight together and both arms extended straight above her head. Both palms are flat and facing UP toward an imaginary ceiling, wrists extended naturally; fingers point toward viewer LEFT, same forward direction as her face and chest. Shoulders elevated, elbows locked, arms by ears, head neutral.
+Most important: coherent whole-body profile. Face/nose, breasts, ABDOMEN and BELLY BUTTON, kneecaps, shin fronts and shoe toes all on the viewer LEFT side. Back/spine, buttocks, back of knees, posterior CALF MUSCLE BULGES and heels on viewer RIGHT side. The exposed belly button and abdominal contour are visibly on the FRONT viewer LEFT, never on the back. Both left/right legs share same forward direction, normal ankles and flat standing shoes. No twisted hips or feet. Tight straight body alignment from hands through shoulders/hips to ankles.
+No wall, dumbbell, squat, or other exercise equipment. Full figure including all raised fingers and both shoes with margin. True transparent background. Natural professional sports photograph cutout, no text arrows labels shadows glow or scene. This source photo MUST stay upright for anatomy checking.
+```
+
+### handstand_push_up-v6.png — preparation reference
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v6.png`.
+
+Preparation only: coherent inverted base. Face, abdomen, knees and shoe toes viewer right; back, calf muscles and heels viewer left. Both fingers viewer right. Not a two-phase app asset yet.
+
+Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-215b3de4-a745-4e2b-9f75-1da3ca62a035.png`.
+
+```text
+Use case: precise-object-edit. Rotate the entire attached UPRIGHT adult athlete photograph exactly 180 degrees in the image plane, as though rotating a photograph upside down. DO NOT re-pose, mirror, turn, rebuild or separately rotate her torso, hips or legs. Preserve her coherent anatomy and identity as a single rigid human body.
+After rotation she is upside down and faces viewer RIGHT: nose, breasts, exposed FRONT ABDOMEN, knees and shoe toes ALL viewer RIGHT. Her spine/back, buttocks, posterior calves and heels ALL viewer LEFT. The abdomen must remain on the SAME FRONT side as her face, never on her back. Both legs stay exactly consistent with this rotation.
+Add a narrow vertical gray wall slab on viewer LEFT, placed against the HEEL/BACK sides of both shoes. Do not put wall in front of toes or abdomen. Arms straight, hands at implied floor. Correct the source's ONE backward-facing hand so BOTH hands have flat palms on implied floor and all fingers point forward toward viewer RIGHT and slightly outward, same direction as face/toes. Normal opposite thumbs toward each other. No detached forearms, no flipped palms.
+Full upside-down figure with generous margin and full isolated wall, photo realism preserved, true transparent alpha everywhere else. ONE top handstand position only, no second pose yet. No text arrows logos scene glow or shadows.
+```
+
+### handstand_push_up-v7.png — rejected correction
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v7.png`.
+
+User rejected palm orientation: palms appear upward-facing. Coherent torso/leg direction improved but hand surface not correct.
+
+Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-39eee479-8fdc-4f2a-809d-a4ba43755763.png`.
+
+```text
+Use case: precise-object-edit. Produce the final two-position handstand push-up PNG using the attached COHERENT inverted athlete photograph. It has the correct front/back anatomy; preserve that as the master figure.
+In BOTH panels wall is viewer LEFT, the athlete faces viewer RIGHT. Nose, breasts, ABDOMEN/belly button, kneecaps/shin fronts and shoe toes must ALL stay viewer RIGHT. Back/spine, buttocks, back of knees, CALF MUSCLES and heels must ALL stay viewer LEFT toward wall. DO NOT mirror or turn a torso, pelvis, leg, ankle or foot. The abdomen may never migrate to the back or wall-facing side. Preserve the attached same coherent torso/leg silhouette.
+LEFT panel: keep attached TOP handstand pose, both arms straight, palms flat with fingers viewer RIGHT, straight knees and feet, heel backs at wall. Maintain firm aligned core, minimize standing pelvic arch without changing anatomy.
+RIGHT panel: duplicate the SAME athlete at same scale and angle. Bend ONLY both elbows to illustrate lowered strict handstand push-up. Keep palms at same locations/direction, forearms vertical with elbows directly above wrists. Elbows track backward toward viewer LEFT, shoulders move slightly viewer RIGHT so top of head is near the implied floor in front of palms. Trunk and pelvis remain firm and connected, no lumbar sag or body twisting. The SAME straight legs and correctly oriented feet move DOWN together so heels slide down the SAME wall. Shoe toes still point RIGHT in both poses. Only bending elbows, moving shoulders and lowering the body may change. Head can tilt slightly to gaze toward palms but keep natural face orientation.
+Full head-to-toe figures, fingers and feet, identical full wall slabs with 8 percent empty transparent margins top bottom sides, equal scale, no overlapping panels. Copy athlete's clothing and photo realism. Transparent background, no scenery, no text arrows logos extra limbs shadows or glow.
+```
+
+### handstand_push_up-v8.png — rejected correction
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v8.png`.
+
+Palm surfaces corrected to dorsal/fingernail view. Lowered press still needs head/shoulder alignment correction before selection.
+
+Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-0dd61219-e380-4de1-93ab-2cbab22281c5.png`.
+
+```text
+Precise anatomy edit: correct ONLY the FOUR HANDS and their wrist connections in the attached two-pose handstand PNG. Do not change the adult woman's head, torso, abdomen, legs, feet, elbows, clothing, wall, camera or pose positions. The current hands show an upward-facing palm surface, which is WRONG for weight bearing.
+Each hand must be PRONATED with its PALM pressed flat DOWN against the implied floor. From this camera we should see the BACK OF THE HAND, the metacarpal tendons/knuckles, and the FINGERNAILS on the top surface. HIDE palm creases and palm pads on the underside against the floor. Do not depict a palm facing up, a cupped supinated hand, or open palm facing camera.
+Both palms support the athlete's weight, four fingers and one thumb each, fingers spread naturally. Fingers continue pointing toward viewer RIGHT and slightly outward, consistent in both poses. Both thumbs face inward toward the other hand; near/far hands have correct opposite handedness. Wrists are naturally extended for a flat palm, forearms connect to dorsal wrists, no detached hand or elbow changes. Both palm heels and finger pads CONTACT the same implied floor plane. Show fingernails on TOP of fingers unmistakably to confirm dorsal view.
+Image 2 is a verified real gymnast reference for PALM-DOWN floor contact only: observe the correct handstands in its bottom photo row; do not copy text, male identity, body positions, red wall or floor. The target athlete and transparency remain exactly unchanged apart from corrected hand anatomy. No text or arrows or other additions. Preserve transparent background.
+```
+
+### handstand_push_up-v9.png — rejected correction
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v9.png`.
+
+Rejected: uses a back-to-wall setup. User explicitly requires chest-to-wall.
+
+Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-a63f1f53-b8db-445f-8d4b-00917fb38774.png`.
+
+```text
+Make ONE targeted biomechanics correction to the RIGHT / LOWERED panel of this transparent handstand push-up image. Preserve LEFT / TOP panel pixel-for-pixel if possible. Preserve BOTH palm-down hands in both panels: visible backs, knuckles and fingernails on top, palm pads against implied floor, same rightward fingers. Do NOT change foot, calf, hip, abdomen front/back directions or turn any limb.
+RIGHT panel's bottom press currently places the head behind the hands. Correct ONLY the shoulder/upper-arm/head placement in that RIGHT panel:
+Wall remains viewer LEFT, her FACE/CHEST/ABDOMEN and shoe toes stay viewer RIGHT. Palms and wrists STAY at existing exact positions. Forearms extend vertically upward from those wrists and ELBOWS remain directly above wrists. Move both SHOULDER JOINTS and upper torso farther FORWARD toward viewer RIGHT than the wrists/elbows, so upper arms run diagonally backward viewer LEFT from shoulders to elbows. This makes the elbows track backward toward wall, not forward in front of chest. Head CROWN descends to just above the floor in FRONT of the wrists toward viewer RIGHT, making the head/hand triangle. The head must NOT descend on the wall side behind the wrists.
+Keep neck neutral with gaze toward floor, chin slightly tucked; chest/abdomen stay on same front side as nose/knees/toes. Trunk and pelvis stay firm, knees straight, heels still on wall. A small whole-body lean away from wall is fine while heel contact remains; do not bend hips or twist torso to accomplish it. No kipping. Enough transparent margin to right for forward shoulder/head position.
+Same woman, full equipment, black clothing, photographic style, original transparent alpha. No text arrows labels or extras. This is a right-panel-only shoulder/elbow/head geometry correction, NOT a new athlete or new pose pair.
+```
+
+### handstand_push_up-v10.png — rejected correction
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v10.png`.
+
+Rejected by user: fingers point toward wall; feet and pelvis remain reversed despite chest facing wall.
+
+Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9e9288a7-d914-4c00-b5d5-aaedbe35a740.png`.
+
+```text
+Correct the attached handstand exercise into the user's EXACT CHEST-TO-WALL setup. The attached athlete now has coherent anatomy and palm-down hands; keep those. The WALL is on viewer RIGHT in BOTH panels, never on viewer left. Athlete's FRONT faces that wall on the RIGHT in BOTH poses.
+Every anatomical direction is locked: her NOSE/FACE, CHEST/BREASTS, FRONT ABDOMEN, KNEECAPS, SHIN FRONTS and SHOE TOES ALL face viewer RIGHT TOWARD WALL. Her BACK/SPINE, BUTTOCKS, posterior CALF MUSCLES and HEELS ALL face viewer LEFT AWAY FROM WALL. The TIP / FRONT of both SHOES touches the wall on RIGHT; neither heel touches it. Do NOT rotate individual legs, torso or feet to make heel contact. Do NOT use back-to-wall handstand. Both legs together, knees straight, natural pointed ankles with toe-tip contact on the wall.
+LEFT TOP POSITION: palms press flat DOWN on implied floor near the wall, backs of hands and fingernails visible above, fingers point RIGHT toward wall and slightly outward, correct opposite thumbs inward. Arms straight, shoulders elevated by ears. Shoulders, ribcage, pelvis, knees, ankles form a STRAIGHT hollow handstand body line, ribs tucked and butt away from wall, no lumbar arch. Align whole body to fit wall while keeping coherent front/back anatomy. Front of head and chest face wall with small clear gap, no body penetrating wall. Only shoe tips lightly contact wall.
+RIGHT LOWER POSITION: duplicate exactly the same body orientation, clothing, feet and camera. Same palms stay in same place facing DOWN, fingers RIGHT. Bend elbows to lower into chest-to-wall handstand push-up, forearms vertical, elbows directly above wrists, shoulders move slightly RIGHT toward wall so upper arms point backward LEFT to elbows. Head crown nears floor in front of hand line toward the wall, face still toward wall. Trunk firm, back and butt stay away from wall, knees straight, same shoe tips slide lower down wall. Never turn the chest, face, knees, feet or palms the other way.
+Same adult woman's identity, dark ponytail, fitted black crop top and full leggings, white trainers. Fixed SIDE VIEW facing RIGHT in both panels, equal scale. Both whole figures and wall slabs fully visible with empty transparent margins. Truly transparent background, no text arrows labels logos scenery effects shadows or glow. Correct BOTH panels to chest-to-wall, not just relocating wall while leaving incompatible posture.
+```
+
+### handstand_push_up-v11.png — rejected correction
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v11.png`.
+
+Rejected: hand direction and pelvis corrected, but shoe toes still point away from wall.
+
+Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-5b8c16ea-ed33-4451-992e-4aa290fae11f.png`.
+
+```text
+Use case: precise-object-edit.
+Edit target: the attached two-pose transparent handstand PNG.
+Primary request: correct the reversed PELVIS, LEGS, FEET and HAND DIRECTION in BOTH poses. This is a CHEST-TO-WALL handstand, not back-to-wall.
+
+The wall is on image RIGHT in each panel. The entire woman has ONE coherent front facing RIGHT: face, chest, abdomen, front of pelvis, kneecaps, shin fronts and TOE TIPS. Her entire rear faces LEFT: spine, buttocks, back of thighs, calves and HEELS. Rebuild the pelvis and legs so the rounded BUTTOCKS protrude on LEFT, away from the wall. The current buttocks bulge toward the wall and the current trainers point left; those are wrong and must be replaced. Both WHITE SHOES point RIGHT, with their rounded forefoot/toe ends touching the wall on RIGHT and their heels on LEFT away from it. Do not merely move the wall. No twisting of individual body segments.
+
+Hands: PALMS flat DOWN on the floor, fingers extending LEFT, AWAY FROM THE WALL. Show backs of hands above with natural wrists; heels of palms are on RIGHT nearer wall. Both hands must have fingers pointing LEFT in both poses. Rebuild the wrists and hands accordingly.
+
+Keep the existing face/chest facing RIGHT, the two-panel arrangement, woman identity, dark ponytail, fitted black top and leggings, white trainers, side camera, scale, and wall slabs. Left pose straight arms; right pose bent elbows with crown near floor. Keep a firm straight trunk and legs, shoulders connected naturally, elbows and wrists aligned. Small gap between anterior torso and wall; buttocks never touch wall. Shoe TOE ENDS are the contact points.
+
+All parts of the human must share the same anterior/posterior orientation. True transparent PNG background. No labels, arrows, text, extra objects or shadows.
+```
+
+### handstand_push_up-v12.png — rejected correction
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v12.png`.
+
+Rejected: shoes are vertical with entire soles against wall; user requires toe-tip contact with heels away.
+
+Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-f7651d06-42b5-49a1-8d0d-8f8a504ef5bf.png`.
+
+```text
+Use case: precise-object-edit.
+Edit ONLY the shoes and their ankle connections in this transparent PNG. The hands now point LEFT away from the wall and the buttocks now face LEFT away from the wall; preserve those, and preserve the torso, face, two poses, walls, identity, framing and transparency exactly.
+
+Both current shoe silhouettes still have their long rounded TOES extending LEFT. That is WRONG. In BOTH panels, horizontally reverse the white shoe silhouettes so the long rounded TOE/FOREFOOT ends extend RIGHT into the wall, and the HEEL COUNTERS sit LEFT, away from the wall. Their appearance must unmistakably be RIGHT-POINTING SNEAKERS. Toe box on RIGHT touching the wall; heel on LEFT with a gap to the wall. Correct the ankles to connect naturally to these right-pointing shoes. Both feet point the same way; no feet hidden behind or inside the wall.
+
+Repaint all shoe/foot areas, not the woman or wall. Do not leave the original left-pointing shoes. No added text or objects. True transparent PNG background.
+```
+
+### handstand_push_up-v13.png — selected correction
+
+Saved: `public/exercise-assets/corrections/handstand_push_up-v13.png`.
+
+Targeted visual checks passed: chest, face and knee fronts face right toward wall; buttocks and back face left away; horizontal shoes point right with toe tips touching wall and heels clear; palms face down and fingers point left away from wall in both poses. Same side view and anatomy across top/lowered positions.
+
+Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-7995f23c-b3f6-460a-b433-ac0c56f0ae26.png`.
+
+```text
+Precise local edit of ONLY BOTH PAIRS OF WHITE SHOES AND ANKLES in this transparent exercise PNG. Preserve everything else exactly.
+
+The current shoes stand vertically with their entire soles against the wall. Replace them with shoes whose LONG AXES ARE HORIZONTAL IN THE IMAGE, perpendicular to the vertical shins. In both panels the rounded TOE BOX is at the RIGHT end and gently touches the wall. The HEEL is at the LEFT end, about one whole shoe-length AWAY from the wall. Thus a clear transparent gap separates each HEEL from the wall. The horizontal shoe SOLE is on the TOP side of the shoe (because woman is upside down), and laces/tongue are on the lower side. This is the side-view shoe orientation obtained by turning a normal upright LEFT-facing standing woman upside down through 180 degrees. Shoes point RIGHT, not up and not left. Legs remain together and straight; ankles connect naturally below the LEFT heel/midfoot of the horizontal shoes. Both feet have the same orientation, overlapping naturally.
+
+TOE-TIP contact ONLY. No sole/heel pressed flat along wall. Keep all hands, fingers pointing LEFT, face/chest facing RIGHT, buttocks facing LEFT, two poses, body, walls and true transparent background unchanged. No labels or extra elements.
+```
+
+## Pull-Up (`pull_up`)
+
+Selected: `public/exercise-assets/corrections/pull_up-v4.png`.
+
+Same straight rear camera and overhand grip in both phases. Top position raised relative to bar; straight legs maintain same orientation. User found revised pull-up better.
+
+### pull_up-v2.png — rejected correction
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/pull_up-v2.png`.
+
+Rear view still reverses between left and right three-quarter angles.
+
+```text
+Use case: scientific-educational. Correct the supplied pull-up instructional illustration. Original is defective edit target with inconsistent grip; goblet squat image is identity/style reference only.
+Create two complete head-to-toe poses of the same adult woman, dark ponytail, black sports bra and shorts, white trainers. Fixed REAR THREE-QUARTER camera angle in BOTH panels, athlete's back facing camera consistently. Exactly same pull-up rack, bar height, camera, woman scale and hand spacing.
+BOTH poses use PRONATED OVERHAND GRIP with palms facing away from the athlete. Since viewing from behind her, the knuckles/backs of both hands face toward the camera and palms face the forward side of the bar in BOTH panels. Each thumb wraps beneath the bar on the same side of its hand throughout. Show normal anatomically attached hands with correct opposite right/left thumbs, neutral wrists, no wrist flips, no mixed or underhand grip.
+LEFT: hangs beneath bar with elbows straight and shoulders controlled, legs straight together, feet off floor. RIGHT: chest rises toward bar with elbows bent down beside torso, chin above bar, same overhand grasp; legs still straight together and feet pointing same way with normal knees and ankles. Only arm flexion and upward body translation change. No kipping, no body turn or camera reversal, no crossing/swapping legs.
+Photo realistic cutouts on TRUE transparent background, complete rack feet, full athlete, no crop or overlap. No text arrows logos backdrop shadows glow.
+```
+
+### pull_up-v3.png — rejected correction
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/pull_up-v3.png`.
+
+Fixed rear angle and grip, but chin clearance above bar cannot be established from this top position; further correction required.
+
+```text
+Use case: scientific-educational. Produce a corrected pull-up illustration using attached PNG only as adult athlete identity / black sports outfit reference. Two poses photographed from EXACT STRAIGHT REAR VIEW, no three-quarter angle. Camera centered directly behind athlete. Her back faces camera, face invisible, ponytail at center of back of head, ears equally visible or both hidden in BOTH poses. Same full upright pull-up rack and horizontal straight bar at same height in both panels.
+Same dark-ponytail woman in black sports bra shorts and white trainers, complete head to toe. In BOTH poses use shoulder-width OVERHAND grip: backs of hands and knuckles face camera, palms face away from camera, thumbs wrap under bar consistently with normal right/left handedness. Clearly show both hands in both panels with exactly same positions and grip.
+LEFT: dead hang with arms straight, legs straight together, toes forward away from camera, rear heels and shoe soles partly visible. RIGHT: elbows flex down to sides and chin above the bar, same grip fixed to same points, shoulders/buttocks square to camera with no turning at all, legs straight together, same feet orientation. Equal athlete proportions and scale. Rack height unchanged. Body simply moves upward between panels, rack remains stationary. No wrist reversal, body twist, side swapping or underhand grip.
+Clean professional realistic sports photograph cutouts. Fully transparent backdrop, full rack feet and complete fingers feet hair all within margin. No text labels arrows shadows scene or glow.
+```
+
+### pull_up-v4.png — selected correction
+
+Saved: `public/exercise-assets/corrections/pull_up-v4.png`.
+
+Same straight rear camera and overhand grip in both phases. Top position raised relative to bar; straight legs maintain same orientation. User found revised pull-up better.
+
+Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9046bce5-1799-40ea-8594-875028678ceb.png`.
+
+```text
+Targeted range-of-motion correction of attached two-pose rear-view overhand pull-up. Preserve left dead-hang pose, same rear camera, athlete identity, black outfit, rack and pronated grip in BOTH panels. Correct RIGHT top pose so the athlete is pulled HIGHER, chin clears bar: bar is at base-of-neck / upper chest level, BELOW the chin, never at the back of the skull. Back of head and shoulders remain square to camera, elbows bent deeply down beside torso, hands stay attached to the same fixed bar points with same OVERHAND grip and same normal opposite thumbs. Right athlete's shoulders and upper chest rise relative to bar as elbows flex further. No wrist turning or camera change. Legs remain straight together with same rear feet view and normal knees, hips and ankles.
+Reframe the entire composition with more transparent space above rack so the higher head has generous margin. Both racks identical height and scale, full rack base and full athlete hands feet visible. True transparent background, no labels or arrows or extras.
+```
+
+## Reverse Pec Deck (`reverse_pec_deck`)
+
+Selected: `public/exercise-assets/corrections/reverse_pec_deck-v3.png`.
+
+Manufacturer-referenced machine. Same seated athlete, chest-pad orientation and leg geometry in both phases; palms-down horizontal handles move forward to outward. User found revised reverse fly better.
+
+### reverse_pec_deck-v2.png — rejected correction
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/reverse_pec_deck-v2.png`.
+
+User rejected. Leg and machine geometry not resolved. Superseded by manufacturer-referenced base-pose workflow.
+
+```text
+Use case: scientific-educational. Create a corrected transparent instructional PNG of REVERSE PEC DECK, with two full-body poses, same adult dark-ponytail woman in black sports bra and shorts, white trainers. Original supplied machine image has WRONG changing body orientation and is an edit target to correct; goblet image supplies athlete style only.
+Both panels must use exactly the SAME rear three-quarter camera view and same machine geometry. Athlete sits facing the machine weight tower, CHEST resting against the front chest pad in BOTH poses; the athlete's back faces the camera in BOTH. No torso turning. Feet planted with toes and kneecaps facing the weight tower in both images, same hip/knee angles.
+LEFT: both arms reaching forward at shoulder level to the machine's two upright handles, slight soft bend in elbows.
+RIGHT: both arms sweep outward to the sides to make a T at shoulder level while the chest remains against the SAME pad. Hands still grasp the SAME two handles attached to the same hinged machine arms. Do not reverse the seat or change to chest fly. Show the two connected lever arms swinging from forward to side, anatomically continuous arms, thumbs around handles, neutral wrists. No arm pads obscuring the chest or making a fake machine. The woman's head, chest, pelvis, legs, seat and machine stay unchanged.
+Realistic professional sports photography. Complete athlete and full identical machine in both panels, including legs and feet and overhead hinges. Equal scale, no overlap, generous transparency margin. True transparent background, no text, arrows, logos, scene, shadows or glow.
+```
+
+### reverse_pec_deck-v3.png — selected correction
+
+Saved: `public/exercise-assets/corrections/reverse_pec_deck-v3.png`.
+
+Manufacturer-referenced machine. Same seated athlete, chest-pad orientation and leg geometry in both phases; palms-down horizontal handles move forward to outward. User found revised reverse fly better.
+
+Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-087c3722-6203-41cd-8eb6-00ce4117b24e.png`.
+
+```text
+Create the final two-position REVERSE PEC DECK asset by duplicating the attached single exercise photo, preserving its real machine architecture and the EXACT adult woman, view, seat, torso, head direction, pelvis, legs, knees, shoes and clothing. The attached pose is the END position with arms swept outward, not the start.
+LEFT PANEL: same machine and woman, but pivot ONLY the two machine lever arms FORWARD around the same overhead pivots, and move ONLY the woman's arms to grasp the two horizontal grips in front of her at shoulder height. Arms nearly straight with slight elbow bend, hands palm down. Both arms reach forward toward the tower. Do not row by bending elbows, turn the body, or use vertical grips.
+RIGHT PANEL: keep the attached outward-arm END position. Both arms at shoulder level, chest against pad, horizontal grip palm down, same soft elbows.
+Torso/head/pelvis/legs/feet are EXACTLY identical in both panels; both shoe toes point toward the tower in both. Do not rotate, redraw or exchange either leg or foot. Machine base, weight tower, chest pad and seat remain identical; only the two hinged levers rotate. Connected solid levers, hands attached to grips, normal wrists. The narrow seat remains between legs, chest stays against center pad. Same camera angle in both, equal scale, full head-to-toe athlete and entire equipment visible in each with margin, no overlap. True transparent background; no text arrows scene logos shadows glow. Use professional photo-realism.
+```
+
+### reverse_pec_deck-v4.png — preparation reference
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/reverse_pec_deck-v4.png`.
+
+Preparation reference: single machine/end-position study, used as the input for selected two-pose v3. Not a separate app asset.
+
+Input images: `/private/tmp/apex-reverse-fly-reference-page.png`, `/Users/jaxoncorrey/Downloads/goblet squat.png`.
+
+```text
+Use case: scientific-educational. Create ONE single complete photo realistic exercise pose on a transparent background: the START position of a seated REVERSE PEC DECK.
+Image 1 is the actual manufacturer's movement and machine reference. Use only its REAR DELTOID setup and machine architecture, not the chest fly exercise, text or arrows. Image 2 supplies adult woman's identity and photographic style, not pose.
+Same adult dark-ponytail woman in black sports bra shorts and white trainers. Use an elevated rear three-quarter camera, 20 degrees to her LEFT, so her back and chest contact with front pad are understandable. She sits STRADDLING the narrow seat, facing the chest pad and weight tower. Her torso leans slightly forward against the pad, both shoulders square to machine and head facing same forward direction. Both thighs go forward from hips along the sides of the seat, both knees bend normally, both feet flat with BOTH TOES pointing forward toward the weight tower, matching BOTH kneecaps. Do not turn the far shoe backward.
+Actual rear-delt machine architecture: enclosed weight tower in front of athlete, a small center chest pad in front of torso, narrow seat beneath pelvis, overhead rigid dual pivoting arms with horizontal inside hand grips. No giant elbow pads. Both arms reach FORWARD from shoulders toward the two horizontal handles, elbows just softly bent, upper arms at shoulder height parallel to floor. Hands palm down, wrists straight, fingers and thumbs around connected horizontal handles. Show both arms and actual continuous machine hinges/levers.
+This is ONE starting pose only. Do not draw a second pose yet. Full athlete, all fingers both legs both shoes and whole machine visible with generous transparent margin. Professional studio cutout photography, black and dark gray equipment, true transparent alpha, no text, logos, arrows, scenery, shadows or glow.
+```
+
+## Cable External Rotation (`cable_external_rotation`)
+
+Selected: `public/exercise-assets/corrections/cable_external_rotation-v3.png`.
+
+Right arm works in both poses; starting forearm crosses abdomen, finish rotates outward; nonworking left arm, body, feet and camera stay consistent. Cable attachment continuous.
+
+### cable_external_rotation-v2.png — rejected correction
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/cable_external_rotation-v2.png`.
+
+Same arm restored but left starting forearm still too foreshortened; movement not clear.
+
+```text
+Use case: scientific-educational. Correct the attached cable external rotation exercise illustration for a fitness app. Image 1 is the defective edit target; Image 2 is the athlete and photographic style reference.
+Create two full-body positions of the SAME adult woman with dark ponytail, black sports bra and shorts, white trainers. Fixed FRONT camera angle, both figures face directly toward camera, identical standing stance and scale. The athlete's RIGHT arm, on viewer's LEFT, does the exercise in BOTH positions. Left arm hangs down on viewer's RIGHT throughout. Each cable tower stands on viewer's RIGHT of the athlete (athlete's nonworking left side). Cable pulley at elbow height, visible cable crosses front of abdomen to one D-handle held in RIGHT hand. NO straps or bands around either upper arm.
+LEFT position: right upper arm vertical and right elbow pressed beside right ribs (viewer left). Elbow bent 90 degrees; horizontal right forearm across abdomen, right hand near left side of abdomen (viewer right).
+RIGHT position: EXACT SAME right elbow stays beside right ribs. Only the right shoulder rotates: horizontal bent right forearm swings outward toward viewer left, right hand outside the right hip. Right elbow remains bent 90 degrees, upper arm fixed vertical. Left arm unchanged.
+Thumb-up grip and neutral straight wrist in both positions. Keep torso, head, pelvis, knees, feet and camera unchanged. Both kneecaps and toes forward, anatomically normal hands and feet. Continuous cable connection. Equipment identical between positions. Do not mirror the athlete or exchange arms. Full head-to-toe and complete tower within transparent margin. Photo realistic clean cutouts, true transparent background, no text, arrows, logos, scenery or glow.
+```
+
+### cable_external_rotation-v3.png — selected correction
+
+Saved: `public/exercise-assets/corrections/cable_external_rotation-v3.png`.
+
+Right arm works in both poses; starting forearm crosses abdomen, finish rotates outward; nonworking left arm, body, feet and camera stay consistent. Cable attachment continuous.
+
+```text
+Targeted correction to the attached two-pose cable external rotation PNG. Preserve the RIGHT PANEL entirely. Preserve identical full-body adult athlete, outfit, face, camera, towers, legs and both LEFT arms in all poses. Fix ONLY the working RIGHT FOREARM AND HAND IN THE LEFT PANEL:
+The LEFT PANEL athlete's right elbow is the elbow on the viewer's LEFT of her torso. Keep this elbow pinned at the side of her ribs and keep its upper arm vertical. Bend this elbow 90 degrees and place her RIGHT FOREARM HORIZONTALLY ACROSS THE FRONT OF HER ABDOMEN, clearly showing the forearm travelling from that fixed elbow toward the viewer's RIGHT. Her right hand with the vertical D-handle should sit in front of the LEFT SIDE OF HER ABDOMEN (viewer right), close to the cable tower. This is the internally rotated starting position. It MUST look different from the outward rotated RIGHT PANEL. A clearly visible horizontal forearm segment spans across the stomach; no forward foreshortened forearm. Right thumb up, anatomically connected wrist, cable stays attached to handle.
+The same RIGHT arm works in both panels; left arm hangs down in both. Do not exchange arms. Do not move either torso, head or stance. Preserve transparency. No background, text, arrow or additional objects.
+```
