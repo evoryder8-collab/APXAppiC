@@ -12,7 +12,7 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 
 ## Progress
 
-228 generated; 1 supplied reference; 320 pending.
+258 generated; 1 supplied reference; 290 pending.
 
 | Order | Catalog ID | Exercise | Status |
 | --- | --- | --- | --- |
@@ -245,36 +245,36 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 227 | `sandbag_clean` | Sandbag Clean | generated_reviewed |
 | 228 | `tire_flip` | Tire Flip | generated_reviewed |
 | 229 | `bear_crawl` | Bear Crawl | generated_needs_review |
-| 230 | `sled_drag` | Sled Drag | pending |
-| 231 | `overhead_carry` | Overhead Carry | pending |
-| 232 | `front_rack_carry` | Front Rack Carry | pending |
-| 233 | `sandbag_carry` | Sandbag Carry | pending |
-| 234 | `yoke_walk` | Yoke Walk | pending |
-| 235 | `zercher_carry` | Zercher Carry | pending |
-| 236 | `waiter_walk` | Waiter Walk | pending |
-| 237 | `bottoms_up_carry` | Bottoms-Up Carry | pending |
-| 238 | `mixed_carry` | Mixed Carry | pending |
-| 239 | `depth_jump` | Depth Jump | pending |
-| 240 | `bounding` | Bounding | pending |
-| 241 | `lateral_bound` | Lateral Bound | pending |
-| 242 | `lateral_hop` | Lateral Hop | pending |
-| 243 | `pogo_hop` | Pogo Hop | pending |
-| 244 | `tuck_jump` | Tuck Jump | pending |
-| 245 | `split_jump` | Split Jump | pending |
-| 246 | `single_leg_hop` | Single-Leg Hop | pending |
-| 247 | `hurdle_hop` | Hurdle Hop | pending |
-| 248 | `medicine_ball_slam` | Medicine Ball Slam | pending |
-| 249 | `medicine_ball_chest_pass` | Medicine Ball Chest Pass | pending |
-| 250 | `medicine_ball_rotational_throw` | Rotational Throw | pending |
-| 251 | `broad_jump_repeat` | Repeat Broad Jump | pending |
-| 252 | `landmine_rotation` | Landmine Rotation | pending |
-| 253 | `cable_chop` | Cable Chop | pending |
-| 254 | `cable_lift` | Cable Lift | pending |
-| 255 | `renegade_row` | Renegade Row | pending |
-| 256 | `suitcase_deadlift` | Suitcase Deadlift | pending |
-| 257 | `half_kneeling_press` | Half-Kneeling Press | pending |
-| 258 | `plank_pull_through` | Plank Pull-Through | pending |
-| 259 | `bird_dog_row` | Bird-Dog Row | pending |
+| 230 | `sled_drag` | Sled Drag | generated_reviewed |
+| 231 | `overhead_carry` | Overhead Carry | generated_reviewed |
+| 232 | `front_rack_carry` | Front Rack Carry | generated_reviewed |
+| 233 | `sandbag_carry` | Sandbag Carry | generated_reviewed |
+| 234 | `yoke_walk` | Yoke Walk | generated_reviewed |
+| 235 | `zercher_carry` | Zercher Carry | generated_reviewed |
+| 236 | `waiter_walk` | Waiter Walk | generated_reviewed |
+| 237 | `bottoms_up_carry` | Bottoms-Up Carry | generated_needs_review |
+| 238 | `mixed_carry` | Mixed Carry | generated_reviewed |
+| 239 | `depth_jump` | Depth Jump | generated_reviewed |
+| 240 | `bounding` | Bounding | generated_reviewed |
+| 241 | `lateral_bound` | Lateral Bound | generated_reviewed |
+| 242 | `lateral_hop` | Lateral Hop | generated_reviewed |
+| 243 | `pogo_hop` | Pogo Hop | generated_reviewed |
+| 244 | `tuck_jump` | Tuck Jump | generated_reviewed |
+| 245 | `split_jump` | Split Jump | generated_reviewed |
+| 246 | `single_leg_hop` | Single-Leg Hop | generated_reviewed |
+| 247 | `hurdle_hop` | Hurdle Hop | generated_needs_review |
+| 248 | `medicine_ball_slam` | Medicine Ball Slam | generated_reviewed |
+| 249 | `medicine_ball_chest_pass` | Medicine Ball Chest Pass | generated_reviewed |
+| 250 | `medicine_ball_rotational_throw` | Rotational Throw | generated_reviewed |
+| 251 | `broad_jump_repeat` | Repeat Broad Jump | generated_reviewed |
+| 252 | `landmine_rotation` | Landmine Rotation | generated_reviewed |
+| 253 | `cable_chop` | Cable Chop | generated_needs_review |
+| 254 | `cable_lift` | Cable Lift | generated_needs_review |
+| 255 | `renegade_row` | Renegade Row | generated_reviewed |
+| 256 | `suitcase_deadlift` | Suitcase Deadlift | generated_reviewed |
+| 257 | `half_kneeling_press` | Half-Kneeling Press | generated_reviewed |
+| 258 | `plank_pull_through` | Plank Pull-Through | generated_reviewed |
+| 259 | `bird_dog_row` | Bird-Dog Row | generated_reviewed |
 | 260 | `single_arm_dumbbell_press` | Single-Arm Dumbbell Press | pending |
 | 261 | `single_arm_floor_press` | Single-Arm Floor Press | pending |
 | 262 | `single_arm_bench_press` | Single-Arm Dumbbell Bench Press | pending |

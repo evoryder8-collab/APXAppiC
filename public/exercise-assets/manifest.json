@@ -4142,270 +4142,540 @@
       "name": "Sled Drag",
       "equipment": "Sled · Outdoor Space or Track or Turf",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "sled_drag.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Sled Drag (catalog ID sled_drag). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. One action: walking forward with sled harness around waist, strap taut behind connecting to full weighted sled. Both hands free, long forward step. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-e795fbc4-a32d-47be-9369-b3d0ff1857db.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Forward walking stance with waist harness and taut strap connecting full sled."
     },
     {
       "id": "overhead_carry",
       "name": "Overhead Carry",
       "equipment": "Dumbbells · Floor Space",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "overhead_carry.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Overhead Carry (catalog ID overhead_carry). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. One walking position holding a dumbbell in each hand vertically overhead with straight arms, ribs controlled, staggered step. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-c4ee4d57-6d24-41e9-bad8-cd10c5aa8333.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Walking positions with two dumbbells held overhead in straight arms."
     },
     {
       "id": "front_rack_carry",
       "name": "Front Rack Carry",
       "equipment": "Kettlebell · Floor Space",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "front_rack_carry.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Front Rack Carry (catalog ID front_rack_carry). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. One walking position with two kettlebells in front rack resting against forearms at shoulders, elbows close and upright torso. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-332cec2a-2c80-4455-bb5b-a91c6b4a7fc7.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Walking stance holding two kettlebells at front shoulders."
     },
     {
       "id": "sandbag_carry",
       "name": "Sandbag Carry",
       "equipment": "Sandbag · Floor Space",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "sandbag_carry.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Sandbag Carry (catalog ID sandbag_carry). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. One walking position hugging a substantial sandbag against chest with both arms, torso upright. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-7fc0bd40-55fc-48d5-b95b-70ef189ff888.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Walking positions hugging sandbag against chest."
     },
     {
       "id": "yoke_walk",
       "name": "Yoke Walk",
       "equipment": "Yoke · Floor Space",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "yoke_walk.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Yoke Walk (catalog ID yoke_walk). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. One walking position beneath a strongman yoke: loaded crossbar rests on upper back, hands grip vertical uprights, full weighted frame lifts slightly clear of ground. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-7040f3e8-6321-4095-914c-8959ac2f3a0e.png",
+      "width": 1145,
+      "height": 1374,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Walking under loaded yoke crossbar; outer apparatus end reaches canvas edge."
     },
     {
       "id": "zercher_carry",
       "name": "Zercher Carry",
       "equipment": "Barbell · Plates · Floor Space",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "zercher_carry.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Zercher Carry (catalog ID zercher_carry). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. One walking position carrying loaded barbell in crooks of both bent elbows at waist-to-chest height, hands together and upright torso. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-ef8c205f-71f8-4b0b-9da4-8f58aab4143d.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Walking positions carrying barbell in bent elbow crooks."
     },
     {
       "id": "waiter_walk",
       "name": "Waiter Walk",
       "equipment": "Kettlebell · Floor Space",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "waiter_walk.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Waiter Walk (catalog ID waiter_walk). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. One walking position with single kettlebell held overhead in one fully straight arm, bell resting behind wrist, other arm at side. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-40c5109b-fb51-4b62-b135-4a11720275e6.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Walking stance holding one kettlebell in a straight overhead arm."
     },
     {
       "id": "bottoms_up_carry",
       "name": "Bottoms-Up Carry",
       "equipment": "Kettlebell · Floor Space",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "bottoms_up_carry.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Bottoms-Up Carry (catalog ID bottoms_up_carry). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. One walking position with single kettlebell at shoulder height held by handle in bent arm; bell body points upward above handle, wrist vertical and balanced. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-819ac12e-dcd6-45b1-a13f-2ab891f296b4.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Equipment looks like a spherical dumbbell without the necessary inverted kettlebell handle."
     },
     {
       "id": "mixed_carry",
       "name": "Mixed Carry",
       "equipment": "Kettlebell · Floor Space",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "mixed_carry.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Mixed Carry (catalog ID mixed_carry). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. One walking position with kettlebell overhead in one straight arm and another kettlebell hanging beside opposite hip in suitcase grip. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-683df752-fad4-4cae-bba0-aa891e87b5cc.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Walking positions with one kettlebell overhead and one beside hip."
     },
     {
       "id": "depth_jump",
       "name": "Depth Jump",
       "equipment": "Bench or Plyo Box or Step",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "depth_jump.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Depth Jump (catalog ID depth_jump). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Three positions: stepping off a low box, soft two-foot ground landing, then vertical rebound jump. Full box and athlete figures separated. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-86d95c92-e0f7-4684-b927-66dd9cd7da6b.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Step off box, two-foot landing and rebound jump illustrated."
     },
     {
       "id": "bounding",
       "name": "Bounding",
       "equipment": "Floor Space",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "bounding.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Bounding (catalog ID bounding). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Two separated airborne running bounds with opposite arm and leg driving forward, long stride and rear leg extended. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-1a319423-0002-4fc2-80da-9be036602592.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Two long airborne running strides with opposite arm drive."
     },
     {
       "id": "lateral_bound",
       "name": "Lateral Bound",
       "equipment": "Floor Space",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "lateral_bound.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Lateral Bound (catalog ID lateral_bound). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Two positions: pushing sideways from one bent leg then landing on the opposite leg with other leg trailing behind, arms counterbalance. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-81b16642-e26f-4be2-90ef-d7625da583e0.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Sideways push-off and opposite single-leg landing positions illustrated."
     },
     {
       "id": "lateral_hop",
       "name": "Lateral Hop",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "lateral_hop.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Lateral Hop (catalog ID lateral_hop). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Two positions: feet together preparing small sideways hop, then airborne both feet together displaced laterally. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-84a47240-e889-4654-bb5e-b997bf0b438c.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Two-foot stance and small airborne lateral hop shown."
     },
     {
       "id": "pogo_hop",
       "name": "Pogo Hop",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "pogo_hop.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Pogo Hop (catalog ID pogo_hop). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Two positions: upright contact with almost straight knees, then small airborne ankle-driven hop with feet together and arms relaxed. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-a388ccea-7246-4844-a230-2b962fdf15b3.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Upright contact and ankle-driven airborne hop shown."
     },
     {
       "id": "tuck_jump",
       "name": "Tuck Jump",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "tuck_jump.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Tuck Jump (catalog ID tuck_jump). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Two positions: shallow squat preparation, then airborne with knees drawn toward chest, arms forward and torso upright. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-533a9506-72b2-49bb-825c-fdc68e32ff4d.png",
+      "width": 1151,
+      "height": 1367,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Squat preparation and airborne knees-tucked position; fingertips close to right edge."
     },
     {
       "id": "split_jump",
       "name": "Split Jump",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "split_jump.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Split Jump (catalog ID split_jump). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Two positions: split lunge with rear knee near ground, then airborne switching legs in long split stance. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-73317159-b7f6-4417-b1f8-8e940a857a15.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Lunge preparation and airborne split stance shown."
     },
     {
       "id": "single_leg_hop",
       "name": "Single-Leg Hop",
       "equipment": "Floor Space",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "single_leg_hop.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Single-Leg Hop (catalog ID single_leg_hop). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Two positions: single-leg bent-knee preparation with opposite foot raised, then airborne on same working leg with free knee lifted. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-f4f6ac18-0be0-4620-b538-c14233a45fff.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "One-leg preparation and airborne one-leg hop with free knee lifted."
     },
     {
       "id": "hurdle_hop",
       "name": "Hurdle Hop",
       "equipment": "Cones or Hurdles",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "hurdle_hop.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Hurdle Hop (catalog ID hurdle_hop). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Two positions: feet together preparation before a low hurdle, then airborne both feet clearing hurdle, knees bent. Full low hurdle visible. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-78535b7c-db29-4b7d-81c5-97b5b96010d6.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Two-foot preparation and clearance over low hurdle shown; ponytail touches top canvas edge."
     },
     {
       "id": "medicine_ball_slam",
       "name": "Medicine Ball Slam",
       "equipment": "Medicine Ball",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "medicine_ball_slam.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Medicine Ball Slam (catalog ID medicine_ball_slam). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Two positions: standing holding medicine ball overhead, then hip and knee flexion throwing ball down toward floor, ball near hands below waist. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-beef7baa-71ab-4935-af02-0eb611b652eb.png",
+      "width": 1145,
+      "height": 1374,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Overhead ball and downward slam position with hip and knee flexion shown."
     },
     {
       "id": "medicine_ball_chest_pass",
       "name": "Medicine Ball Chest Pass",
       "equipment": "Medicine Ball · Wall",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "medicine_ball_chest_pass.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Medicine Ball Chest Pass (catalog ID medicine_ball_chest_pass). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Two positions: athletic stance holding medicine ball at chest, then arms extend forward releasing ball toward isolated small wall target. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-5c815fe9-7b72-4b9c-b5da-fdd93a0ad83a.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Chest preparation and forward release toward isolated target shown."
     },
     {
       "id": "medicine_ball_rotational_throw",
       "name": "Rotational Throw",
       "equipment": "Medicine Ball · Wall",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "medicine_ball_rotational_throw.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Rotational Throw (catalog ID medicine_ball_rotational_throw). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Two positions: sideways to small isolated target panel holding medicine ball beside rear hip with rotated torso, then pivoting rear foot and rotating forward releasing ball laterally toward target. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-762db818-554a-4538-9036-669b9fb71c7c.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Side-loaded ball and pivoting release toward isolated target shown."
     },
     {
       "id": "broad_jump_repeat",
       "name": "Repeat Broad Jump",
       "equipment": "Floor Space",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "broad_jump_repeat.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Repeat Broad Jump (catalog ID broad_jump_repeat). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Three separated positions: squat preparation with arms back, airborne forward jump with legs forward, then soft bent-knee two-foot landing. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-ff1694a0-b04a-4f05-b192-bb9e155640f0.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Preparation, airborne forward jump and soft two-foot landing shown."
     },
     {
       "id": "landmine_rotation",
       "name": "Landmine Rotation",
       "equipment": "Landmine · Barbell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "landmine_rotation.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Landmine Rotation (catalog ID landmine_rotation). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Two positions holding same loaded bar end with both hands, arms long; rotate bar diagonally from one hip to opposite hip with torso pivot. Each bar shaft must remain continuously connected to its ground anchor. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-b77f0e14-24cd-47f2-84b4-0df2e5e38996.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Recognizable anchored landmine rotation; complete athlete and connected bar."
     },
     {
       "id": "cable_chop",
       "name": "Cable Chop",
       "equipment": "Cable Stack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "cable_chop.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Cable Chop (catalog ID cable_chop). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Two positions: holding cable handle high beside one shoulder from high pulley, then diagonal pull toward opposite hip with rotated torso, arms long. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-b062fe00-affe-4ab7-8355-8da5012a63ad.png",
+      "width": 1201,
+      "height": 1310,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Pulley position changes sides between poses; anchor should stay on the same side."
     },
     {
       "id": "cable_lift",
       "name": "Cable Lift",
       "equipment": "Cable Stack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "cable_lift.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Cable Lift (catalog ID cable_lift). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Two positions: holding cable handle low beside hip from low pulley, then diagonal pull up across body toward opposite shoulder, arms long. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-a4b983cf-866a-4ad6-aad7-95e7c8ce8e30.png",
+      "width": 1178,
+      "height": 1335,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Shows a one-arm forward raise; expected two-handed diagonal cable lift."
     },
     {
       "id": "renegade_row",
       "name": "Renegade Row",
       "equipment": "Dumbbells",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "renegade_row.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Renegade Row (catalog ID renegade_row). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black full-length leggings and a black long-sleeved athletic top, white trainers. Two positions: wide-foot straight-arm plank gripping two dumbbells on floor, then one dumbbell rows to ribs while other arm supports plank. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-b8c7d6bb-5956-439e-b344-f9a390bbf37c.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Clear plank row with complete athlete and equipment."
     },
     {
       "id": "suitcase_deadlift",
       "name": "Suitcase Deadlift",
       "equipment": "Dumbbells",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "suitcase_deadlift.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Suitcase Deadlift (catalog ID suitcase_deadlift). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black athletic shorts, white trainers. Two positions: squat-hinge holding single dumbbell alongside one leg near floor, then standing upright with same dumbbell beside hip, opposite hand free. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-f21cf563-072c-4566-949e-1844ced539fe.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Clear unilateral dumbbell deadlift, complete body and equipment."
     },
     {
       "id": "half_kneeling_press",
       "name": "Half-Kneeling Press",
       "equipment": "Dumbbells",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "half_kneeling_press.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Half-Kneeling Press (catalog ID half_kneeling_press). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black full-length leggings and a black long-sleeved athletic top, white trainers. Two positions: half-kneeling one knee on mat and other foot forward, single dumbbell at shoulder; then same dumbbell pressed overhead with straight arm. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9c972aca-ced4-4f76-b774-e36bca007e46.png",
+      "width": 1143,
+      "height": 1376,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Clear half-kneeling shoulder-to-overhead press."
     },
     {
       "id": "plank_pull_through",
       "name": "Plank Pull-Through",
       "equipment": "Dumbbells",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "plank_pull_through.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Plank Pull-Through (catalog ID plank_pull_through). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black full-length leggings and a black long-sleeved athletic top, white trainers. Two positions: wide-foot high plank, dumbbell just outside one hand, opposite arm reaches under torso and drags dumbbell across to other side. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-38de2fbf-3536-4633-8b8b-5f1ae14e2379.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Clear opposite hand dumbbell pull through under stable plank torso."
     },
     {
       "id": "bird_dog_row",
       "name": "Bird-Dog Row",
       "equipment": "Dumbbells · Bench",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "bird_dog_row.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Bird-Dog Row (catalog ID bird_dog_row). Use attached goblet squat only as athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black full-length leggings and a black long-sleeved athletic top, white trainers. Two positions: one hand and opposite knee supported on flat bench, other leg extended horizontally behind, free hand holding dumbbell below shoulder, then rows dumbbell to ribs without rotating hips. For multiple positions show complete separated nonoverlapping figures at consistent scale. Choose a clear three-quarter or side view. Natural anatomy and accurate realistic equipment contact. Include every athlete fully head to toe and every hand, fingertip and shoe, and all essential equipment. Leave at least 8 percent clear transparent margins on every side; shrink the figures as necessary to fit. True transparent background. No text, logos, arrows, numbers, scenery, motion lines, shadows or decorative effects. Include only equipment essential to this specific exercise.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-ea2f3599-c047-4303-b359-f8e15d1b638b.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Clear bench-supported bird dog row with leg extended and unilateral dumbbell row."
     },
     {
       "id": "single_arm_dumbbell_press",
@@ -7070,6 +7340,13 @@
       "commit": "f9f8ca8c2294d39ebc79914f80241208297434fb",
       "generated_count": 198,
       "workflow_run": 37137873583,
+      "conclusion": "success",
+      "url": "https://evoryder8-collab.github.io/APXAppiC/"
+    },
+    {
+      "commit": "604cbe030fe778a3fe90a9b0da6de6d97497f119",
+      "generated_count": 228,
+      "workflow_run": 37139235614,
       "conclusion": "success",
       "url": "https://evoryder8-collab.github.io/APXAppiC/"
     }
