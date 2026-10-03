@@ -12,7 +12,7 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 
 ## Progress
 
-452 generated; 1 supplied reference; 96 pending.
+548 generated; 1 supplied reference; 0 pending.
 
 | Order | Catalog ID | Exercise | Status |
 | --- | --- | --- | --- |
@@ -460,112 +460,116 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 442 | `cross_body_mountain_climber` | Cross-Body Mountain Climber | generated_needs_review |
 | 443 | `plank_with_shoulder_tap` | Plank with Shoulder Tap | generated_reviewed |
 | 444 | `single_arm_single_leg_plank` | Single-Arm Single-Leg Plank | generated_reviewed |
-| 445 | `side_plank_with_leg_lift` | Side Plank with Leg Lift | generated_pending_visual_review |
-| 446 | `copenhagen_side_plank_long_lever` | Copenhagen Side Plank - Long Lever | pending |
-| 447 | `crab_walk` | Crab Walk | pending |
-| 448 | `inchworm_walkout` | Inchworm Walkout | pending |
-| 449 | `walkout_to_push_up` | Walkout to Push-up | pending |
-| 450 | `hollow_body_arch_rock` | Hollow Body Arch Rock | pending |
+| 445 | `side_plank_with_leg_lift` | Side Plank with Leg Lift | generated_needs_review |
+| 446 | `copenhagen_side_plank_long_lever` | Copenhagen Side Plank - Long Lever | generated_reviewed |
+| 447 | `crab_walk` | Crab Walk | generated_reviewed |
+| 448 | `inchworm_walkout` | Inchworm Walkout | generated_reviewed |
+| 449 | `walkout_to_push_up` | Walkout to Push-up | generated_reviewed |
+| 450 | `hollow_body_arch_rock` | Hollow Body Arch Rock | generated_reviewed |
 | 451 | `barbell_rack_pull` | Barbell Rack Pull | generated_needs_review |
 | 452 | `deficit_romanian_deadlift` | Deficit Romanian Deadlift | generated_reviewed |
 | 453 | `snatch_grip_romanian_deadlift` | Snatch-Grip Romanian Deadlift | generated_needs_review |
 | 454 | `barbell_hip_thrust_single_leg` | Barbell Hip Thrust - Single-Leg | generated_reviewed |
-| 455 | `barbell_glute_bridge` | Barbell Glute Bridge | generated_pending_visual_review |
-| 456 | `barbell_step_up` | Barbell Step-up | pending |
-| 457 | `barbell_walking_lunge_front_rack` | Barbell Walking Lunge (Front Rack) | pending |
-| 458 | `barbell_split_jerk` | Barbell Split Jerk | pending |
-| 459 | `barbell_push_jerk` | Barbell Push Jerk | pending |
-| 460 | `barbell_power_jerk` | Barbell Power Jerk | pending |
-| 461 | `barbell_floor_row` | Barbell Floor Row | pending |
-| 462 | `landmine_reverse_lunge` | Landmine Reverse Lunge | pending |
-| 463 | `landmine_lateral_lunge` | Landmine Lateral Lunge | pending |
-| 464 | `landmine_single_arm_row` | Landmine Single-Arm Row | pending |
-| 465 | `landmine_meadows_row` | Landmine Meadows Row | pending |
-| 466 | `landmine_single_arm_press_half_kneeling` | Landmine Single-Arm Press (Half-Kneeling) | pending |
-| 467 | `dumbbell_sumo_squat` | Dumbbell Sumo Squat | pending |
-| 468 | `dumbbell_step_up_with_knee_drive` | Dumbbell Step-up with Knee Drive | pending |
-| 469 | `dumbbell_curtsy_lunge` | Dumbbell Curtsy Lunge | pending |
-| 470 | `dumbbell_rdl_to_row` | Dumbbell RDL to Row | pending |
-| 471 | `dumbbell_renegade_row_with_push_up` | Dumbbell Renegade Row with Push-up | pending |
-| 472 | `dumbbell_pullover_to_press` | Dumbbell Pullover to Press | pending |
-| 473 | `alternating_dumbbell_bench_press` | Alternating Dumbbell Bench Press | pending |
-| 474 | `dumbbell_cross_body_hammer_curl` | Dumbbell Cross-Body Hammer Curl | pending |
-| 475 | `dumbbell_zottman_curl` | Dumbbell Zottman Curl | pending |
-| 476 | `dumbbell_concentration_curl` | Dumbbell Concentration Curl | pending |
-| 477 | `dumbbell_reverse_fly_incline` | Dumbbell Reverse Fly (Incline) | pending |
-| 478 | `dumbbell_y_raise` | Dumbbell Y-Raise | pending |
-| 479 | `dumbbell_cuban_press` | Dumbbell Cuban Press | pending |
-| 480 | `dumbbell_tate_press` | Dumbbell Tate Press | pending |
-| 481 | `dumbbell_floor_fly` | Dumbbell Floor Fly | pending |
-| 482 | `dumbbell_squeeze_press` | Dumbbell Squeeze Press | pending |
-| 483 | `farmers_walk_with_trap_bar` | Farmer's Walk with Trap Bar | pending |
-| 484 | `suitcase_carry_single_dumbbell` | Suitcase Carry (Single Dumbbell) | pending |
-| 485 | `front_rack_carry_barbell` | Front Rack Carry (Barbell) | pending |
-| 486 | `sandbag_bear_hug_carry` | Sandbag Bear-Hug Carry | pending |
-| 487 | `sandbag_shouldering` | Sandbag Shouldering | pending |
-| 488 | `sandbag_over_the_shoulder_throw` | Sandbag Over-the-Shoulder Throw | pending |
-| 489 | `atlas_stone_to_platform` | Atlas Stone to Platform | pending |
+| 455 | `barbell_glute_bridge` | Barbell Glute Bridge | generated_reviewed |
+| 456 | `barbell_step_up` | Barbell Step-up | generated_reviewed |
+| 457 | `barbell_walking_lunge_front_rack` | Barbell Walking Lunge (Front Rack) | generated_reviewed |
+| 458 | `barbell_split_jerk` | Barbell Split Jerk | generated_reviewed |
+| 459 | `barbell_push_jerk` | Barbell Push Jerk | generated_reviewed |
+| 460 | `barbell_power_jerk` | Barbell Power Jerk | generated_reviewed |
+| 461 | `barbell_floor_row` | Barbell Floor Row | generated_needs_review |
+| 462 | `landmine_reverse_lunge` | Landmine Reverse Lunge | generated_reviewed |
+| 463 | `landmine_lateral_lunge` | Landmine Lateral Lunge | generated_reviewed |
+| 464 | `landmine_single_arm_row` | Landmine Single-Arm Row | generated_needs_review |
+| 465 | `landmine_meadows_row` | Landmine Meadows Row | generated_reviewed |
+| 466 | `landmine_single_arm_press_half_kneeling` | Landmine Single-Arm Press (Half-Kneeling) | generated_reviewed |
+| 467 | `dumbbell_sumo_squat` | Dumbbell Sumo Squat | generated_reviewed |
+| 468 | `dumbbell_step_up_with_knee_drive` | Dumbbell Step-up with Knee Drive | generated_reviewed |
+| 469 | `dumbbell_curtsy_lunge` | Dumbbell Curtsy Lunge | generated_needs_review |
+| 470 | `dumbbell_rdl_to_row` | Dumbbell RDL to Row | generated_reviewed |
+| 471 | `dumbbell_renegade_row_with_push_up` | Dumbbell Renegade Row with Push-up | generated_reviewed |
+| 472 | `dumbbell_pullover_to_press` | Dumbbell Pullover to Press | generated_reviewed |
+| 473 | `alternating_dumbbell_bench_press` | Alternating Dumbbell Bench Press | generated_reviewed |
+| 474 | `dumbbell_cross_body_hammer_curl` | Dumbbell Cross-Body Hammer Curl | generated_reviewed |
+| 475 | `dumbbell_zottman_curl` | Dumbbell Zottman Curl | generated_reviewed |
+| 476 | `dumbbell_concentration_curl` | Dumbbell Concentration Curl | generated_reviewed |
+| 477 | `dumbbell_reverse_fly_incline` | Dumbbell Reverse Fly (Incline) | generated_reviewed |
+| 478 | `dumbbell_y_raise` | Dumbbell Y-Raise | generated_reviewed |
+| 479 | `dumbbell_cuban_press` | Dumbbell Cuban Press | generated_reviewed |
+| 480 | `dumbbell_tate_press` | Dumbbell Tate Press | generated_needs_review |
+| 481 | `dumbbell_floor_fly` | Dumbbell Floor Fly | generated_needs_review |
+| 482 | `dumbbell_squeeze_press` | Dumbbell Squeeze Press | generated_needs_review |
+| 483 | `farmers_walk_with_trap_bar` | Farmer's Walk with Trap Bar | generated_reviewed |
+| 484 | `suitcase_carry_single_dumbbell` | Suitcase Carry (Single Dumbbell) | generated_reviewed |
+| 485 | `front_rack_carry_barbell` | Front Rack Carry (Barbell) | generated_reviewed |
+| 486 | `sandbag_bear_hug_carry` | Sandbag Bear-Hug Carry | generated_reviewed |
+| 487 | `sandbag_shouldering` | Sandbag Shouldering | generated_reviewed |
+| 488 | `sandbag_over_the_shoulder_throw` | Sandbag Over-the-Shoulder Throw | generated_reviewed |
+| 489 | `atlas_stone_to_platform` | Atlas Stone to Platform | generated_reviewed |
 | 490 | `smith_machine_back_squat` | Smith Machine Back Squat | generated_reviewed |
 | 491 | `smith_machine_bench_press` | Smith Machine Bench Press | generated_reviewed |
 | 492 | `smith_machine_incline_bench_press` | Smith Machine Incline Bench Press | generated_reviewed |
-| 493 | `smith_machine_shoulder_press` | Smith Machine Shoulder Press | pending |
-| 494 | `hack_squat_reverse` | Hack Squat - Reverse | pending |
-| 495 | `pendulum_squat_machine` | Pendulum Squat Machine | pending |
-| 496 | `vertical_leg_press_machine` | Vertical Leg Press Machine | pending |
-| 497 | `reverse_hyper_machine` | Reverse Hyper Machine | pending |
-| 498 | `cable_cross_over_high_to_low` | Cable Cross-Over - High to Low | pending |
-| 499 | `cable_cross_over_low_to_high` | Cable Cross-Over - Low to High | pending |
-| 500 | `single_arm_cable_chest_press` | Single-Arm Cable Chest Press | pending |
-| 501 | `standing_cable_fly` | Standing Cable Fly | pending |
-| 502 | `single_arm_cable_lateral_raise` | Single-Arm Cable Lateral Raise | pending |
-| 503 | `cable_rear_delt_fly_standing` | Cable Rear-Delt Fly (Standing) | pending |
-| 504 | `cable_rope_overhead_triceps_extension` | Cable Rope Overhead Triceps Extension | pending |
-| 505 | `cable_overhead_curl` | Cable Overhead Curl | pending |
-| 506 | `cable_rope_hammer_curl` | Cable Rope Hammer Curl | pending |
-| 507 | `cable_hip_flexion` | Cable Hip Flexion | pending |
-| 508 | `cable_kickback_glutes` | Cable Kickback (Glutes) | pending |
-| 509 | `cable_deadlift` | Cable Deadlift | pending |
-| 510 | `cable_squat_row` | Cable Squat Row | pending |
-| 511 | `lat_pulldown_single_arm` | Lat Pulldown - Single-Arm | pending |
-| 512 | `machine_chest_fly` | Machine Chest Fly | pending |
-| 513 | `machine_reverse_fly` | Machine Reverse Fly | pending |
-| 514 | `hammer_strength_row_machine` | Hammer-Strength Row Machine | pending |
-| 515 | `hammer_strength_incline_press` | Hammer-Strength Incline Press | pending |
-| 516 | `seated_machine_shoulder_press_neutral` | Seated Machine Shoulder Press (Neutral) | pending |
-| 517 | `standing_hip_cars` | Standing Hip CARs | pending |
-| 518 | `shoulder_cars` | Shoulder CARs | pending |
-| 519 | `ankle_cars` | Ankle CARs | pending |
-| 520 | `90_90_shin_box_switch` | 90/90 Shin Box Switch | pending |
-| 521 | `frog_stretch` | Frog Stretch | pending |
-| 522 | `pigeon_stretch` | Pigeon Stretch | pending |
-| 523 | `thread_the_needle_stretch` | Thread-the-Needle Stretch | pending |
-| 524 | `brettzel_stretch` | Brettzel Stretch | pending |
-| 525 | `jefferson_curl` | Jefferson Curl | pending |
-| 526 | `single_leg_balance_reach` | Single-Leg Balance Reach | pending |
-| 527 | `steel_mace_360` | Steel Mace 360 | pending |
-| 528 | `steel_mace_10_to_2` | Steel Mace 10-to-2 | pending |
-| 529 | `steel_mace_uppercut` | Steel Mace Uppercut | pending |
-| 530 | `steel_mace_offset_press` | Steel Mace Offset Press | pending |
-| 531 | `steel_mace_offset_squat` | Steel Mace Offset Squat | pending |
-| 532 | `steel_mace_rotational_lunge` | Steel Mace Rotational Lunge | pending |
-| 533 | `steel_mace_single_arm_swing` | Steel Mace Single-Arm Swing | pending |
-| 534 | `steel_mace_overhead_carry` | Steel Mace Overhead Carry | pending |
-| 535 | `cycle_stationary` | Stationary Bike | pending |
-| 536 | `cycle_outdoor` | Outdoor Cycling | pending |
-| 537 | `treadmill` | Treadmill | pending |
-| 538 | `run_outdoor` | Outdoor Running | pending |
-| 539 | `walk` | Walking | pending |
-| 540 | `incline_walk` | Incline Treadmill Walk | pending |
-| 541 | `row_erg` | Rowing Machine | pending |
-| 542 | `ski_erg` | Ski Erg | pending |
-| 543 | `air_bike` | Air Bike | pending |
-| 544 | `elliptical` | Elliptical | pending |
-| 545 | `stair_climber` | Stair Climber | pending |
-| 546 | `swim` | Swimming | pending |
-| 547 | `jump_rope` | Jump Rope | pending |
-| 548 | `sled_push_drag` | Sled Push or Drag | pending |
-| 549 | `shadow_box` | Shadow Boxing | pending |
+| 493 | `smith_machine_shoulder_press` | Smith Machine Shoulder Press | generated_reviewed |
+| 494 | `hack_squat_reverse` | Hack Squat - Reverse | generated_needs_review |
+| 495 | `pendulum_squat_machine` | Pendulum Squat Machine | generated_reviewed |
+| 496 | `vertical_leg_press_machine` | Vertical Leg Press Machine | generated_reviewed |
+| 497 | `reverse_hyper_machine` | Reverse Hyper Machine | generated_reviewed |
+| 498 | `cable_cross_over_high_to_low` | Cable Cross-Over - High to Low | generated_reviewed |
+| 499 | `cable_cross_over_low_to_high` | Cable Cross-Over - Low to High | generated_needs_review |
+| 500 | `single_arm_cable_chest_press` | Single-Arm Cable Chest Press | generated_needs_review |
+| 501 | `standing_cable_fly` | Standing Cable Fly | generated_reviewed |
+| 502 | `single_arm_cable_lateral_raise` | Single-Arm Cable Lateral Raise | generated_reviewed |
+| 503 | `cable_rear_delt_fly_standing` | Cable Rear-Delt Fly (Standing) | generated_needs_review |
+| 504 | `cable_rope_overhead_triceps_extension` | Cable Rope Overhead Triceps Extension | generated_reviewed |
+| 505 | `cable_overhead_curl` | Cable Overhead Curl | generated_needs_review |
+| 506 | `cable_rope_hammer_curl` | Cable Rope Hammer Curl | generated_reviewed |
+| 507 | `cable_hip_flexion` | Cable Hip Flexion | generated_needs_review |
+| 508 | `cable_kickback_glutes` | Cable Kickback (Glutes) | generated_reviewed |
+| 509 | `cable_deadlift` | Cable Deadlift | generated_reviewed |
+| 510 | `cable_squat_row` | Cable Squat Row | generated_needs_review |
+| 511 | `lat_pulldown_single_arm` | Lat Pulldown - Single-Arm | generated_reviewed |
+| 512 | `machine_chest_fly` | Machine Chest Fly | generated_reviewed |
+| 513 | `machine_reverse_fly` | Machine Reverse Fly | generated_reviewed |
+| 514 | `hammer_strength_row_machine` | Hammer-Strength Row Machine | generated_reviewed |
+| 515 | `hammer_strength_incline_press` | Hammer-Strength Incline Press | generated_reviewed |
+| 516 | `seated_machine_shoulder_press_neutral` | Seated Machine Shoulder Press (Neutral) | generated_reviewed |
+| 517 | `standing_hip_cars` | Standing Hip CARs | generated_reviewed |
+| 518 | `shoulder_cars` | Shoulder CARs | generated_reviewed |
+| 519 | `ankle_cars` | Ankle CARs | generated_reviewed |
+| 520 | `90_90_shin_box_switch` | 90/90 Shin Box Switch | generated_needs_review |
+| 521 | `frog_stretch` | Frog Stretch | generated_reviewed |
+| 522 | `pigeon_stretch` | Pigeon Stretch | generated_reviewed |
+| 523 | `thread_the_needle_stretch` | Thread-the-Needle Stretch | generated_reviewed |
+| 524 | `brettzel_stretch` | Brettzel Stretch | generated_reviewed |
+| 525 | `jefferson_curl` | Jefferson Curl | generated_reviewed |
+| 526 | `single_leg_balance_reach` | Single-Leg Balance Reach | generated_reviewed |
+| 527 | `steel_mace_360` | Steel Mace 360 | generated_reviewed |
+| 528 | `steel_mace_10_to_2` | Steel Mace 10-to-2 | generated_reviewed |
+| 529 | `steel_mace_uppercut` | Steel Mace Uppercut | generated_reviewed |
+| 530 | `steel_mace_offset_press` | Steel Mace Offset Press | generated_reviewed |
+| 531 | `steel_mace_offset_squat` | Steel Mace Offset Squat | generated_reviewed |
+| 532 | `steel_mace_rotational_lunge` | Steel Mace Rotational Lunge | generated_reviewed |
+| 533 | `steel_mace_single_arm_swing` | Steel Mace Single-Arm Swing | generated_reviewed |
+| 534 | `steel_mace_overhead_carry` | Steel Mace Overhead Carry | generated_reviewed |
+| 535 | `cycle_stationary` | Stationary Bike | generated_reviewed |
+| 536 | `cycle_outdoor` | Outdoor Cycling | generated_reviewed |
+| 537 | `treadmill` | Treadmill | generated_reviewed |
+| 538 | `run_outdoor` | Outdoor Running | generated_reviewed |
+| 539 | `walk` | Walking | generated_reviewed |
+| 540 | `incline_walk` | Incline Treadmill Walk | generated_reviewed |
+| 541 | `row_erg` | Rowing Machine | generated_needs_review |
+| 542 | `ski_erg` | Ski Erg | generated_reviewed |
+| 543 | `air_bike` | Air Bike | generated_reviewed |
+| 544 | `elliptical` | Elliptical | generated_reviewed |
+| 545 | `stair_climber` | Stair Climber | generated_reviewed |
+| 546 | `swim` | Swimming | generated_reviewed |
+| 547 | `jump_rope` | Jump Rope | generated_reviewed |
+| 548 | `sled_push_drag` | Sled Push or Drag | generated_reviewed |
+| 549 | `shadow_box` | Shadow Boxing | generated_reviewed |
 
 ## Generation notes
 
 Existing selected images are retained and skipped during resume. The initial alpha validation incorrectly rejected valid transparency with a maximum alpha of 254; this is corrected. Three unnecessary alternate Dumbbell Romanian Deadlift generations are preserved in the draft folder. Pose and cropping concerns are tracked independently of transparency, without automatic regeneration.
+
+## Final collection verification
+
+Verified 2026-10-04: 549 catalog IDs match 549 unique PNG files; 548 generated and one supplied reference. Every PNG contains transparency and visible pixels. No entries remain pending. 444 generated images passed visual inspection; 104 have pose, equipment or cropping concerns recorded in [exercise-asset-review-notes.md](exercise-asset-review-notes.md). Preserve those originals for review before app use. SHA-256 checksums and individual prompts are saved in the manifest.
