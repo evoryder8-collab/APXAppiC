@@ -12,7 +12,7 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 
 ## Progress
 
-318 generated; 1 supplied reference; 230 pending.
+358 generated; 1 supplied reference; 190 pending.
 
 | Order | Catalog ID | Exercise | Status |
 | --- | --- | --- | --- |
@@ -335,46 +335,46 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 317 | `dumbbell_side_bend` | Dumbbell Side Bend | generated_reviewed |
 | 318 | `kettlebell_turkish_get_up` | Kettlebell Turkish Get-Up | generated_reviewed |
 | 319 | `half_turkish_get_up` | Half Turkish Get-Up | generated_reviewed |
-| 320 | `kettlebell_windmill` | Kettlebell Windmill | pending |
-| 321 | `kettlebell_around_the_world` | Kettlebell Around-the-World | pending |
-| 322 | `kettlebell_halo` | Kettlebell Halo | pending |
-| 323 | `kettlebell_figure_8` | Kettlebell Figure-8 | pending |
-| 324 | `kettlebell_figure_8_to_hold` | Kettlebell Figure-8 to Hold | pending |
-| 325 | `dual_kettlebell_clean` | Dual-Kettlebell Clean | pending |
-| 326 | `kettlebell_clean_and_jerk` | Kettlebell Clean and Jerk | pending |
-| 327 | `kettlebell_clean_and_push_press` | Kettlebell Clean and Push Press | pending |
-| 328 | `kettlebell_snatch` | Kettlebell Snatch | pending |
-| 329 | `kettlebell_snatch_to_overhead_carry` | Kettlebell Snatch to Overhead Carry | pending |
-| 330 | `kettlebell_swing_to_squat` | Kettlebell Swing to Squat | pending |
-| 331 | `kettlebell_squat_to_press` | Kettlebell Squat to Press | pending |
-| 332 | `kettlebell_front_rack_squat` | Kettlebell Front Rack Squat | pending |
-| 333 | `kettlebell_lateral_squat` | Kettlebell Lateral Squat | pending |
-| 334 | `kettlebell_curtsy_lunge` | Kettlebell Curtsy Lunge | pending |
-| 335 | `kettlebell_lunge_with_rotation` | Kettlebell Lunge with Rotation | pending |
-| 336 | `kettlebell_reverse_lunge_to_press` | Kettlebell Reverse Lunge to Press | pending |
-| 337 | `kettlebell_step_up` | Kettlebell Step-up | pending |
-| 338 | `kettlebell_walking_lunge` | Kettlebell Walking Lunge | pending |
-| 339 | `kettlebell_suitcase_deadlift` | Kettlebell Suitcase Deadlift | pending |
-| 340 | `kettlebell_romanian_deadlift` | Kettlebell Romanian Deadlift | pending |
-| 341 | `single_leg_kettlebell_deadlift` | Single-leg Kettlebell Deadlift | pending |
-| 342 | `kettlebell_sumo_deadlift` | Kettlebell Sumo Deadlift | pending |
-| 343 | `kettlebell_good_morning` | Kettlebell Good Morning | pending |
-| 344 | `kettlebell_row` | Kettlebell Row | pending |
-| 345 | `kettlebell_renegade_row` | Kettlebell Renegade Row | pending |
-| 346 | `kettlebell_gorilla_row` | Kettlebell Gorilla Row | pending |
-| 347 | `kettlebell_suitcase_row` | Kettlebell Suitcase Row | pending |
-| 348 | `kettlebell_chest_supported_row` | Kettlebell Chest-Supported Row | pending |
-| 349 | `kettlebell_floor_press` | Kettlebell Floor Press | pending |
-| 350 | `kettlebell_alternating_floor_press` | Kettlebell Alternating Floor Press | pending |
-| 351 | `kettlebell_bench_press` | Kettlebell Bench Press | pending |
-| 352 | `kettlebell_incline_bench_press` | Kettlebell Incline Bench Press | pending |
-| 353 | `kettlebell_see_saw_press` | Kettlebell See-Saw Press | pending |
-| 354 | `kettlebell_bottoms_up_press` | Kettlebell Bottoms-Up Press | pending |
-| 355 | `kettlebell_bottoms_up_clean` | Kettlebell Bottoms-Up Clean | pending |
-| 356 | `kettlebell_bottoms_up_carry` | Kettlebell Bottoms-Up Carry | pending |
-| 357 | `kettlebell_overhead_carry` | Kettlebell Overhead Carry | pending |
-| 358 | `double_overhead_kettlebell_carry` | Double Overhead Kettlebell Carry | pending |
-| 359 | `kettlebell_rack_carry` | Kettlebell Rack Carry | pending |
+| 320 | `kettlebell_windmill` | Kettlebell Windmill | generated_reviewed |
+| 321 | `kettlebell_around_the_world` | Kettlebell Around-the-World | generated_reviewed |
+| 322 | `kettlebell_halo` | Kettlebell Halo | generated_reviewed |
+| 323 | `kettlebell_figure_8` | Kettlebell Figure-8 | generated_reviewed |
+| 324 | `kettlebell_figure_8_to_hold` | Kettlebell Figure-8 to Hold | generated_reviewed |
+| 325 | `dual_kettlebell_clean` | Dual-Kettlebell Clean | generated_reviewed |
+| 326 | `kettlebell_clean_and_jerk` | Kettlebell Clean and Jerk | generated_reviewed |
+| 327 | `kettlebell_clean_and_push_press` | Kettlebell Clean and Push Press | generated_reviewed |
+| 328 | `kettlebell_snatch` | Kettlebell Snatch | generated_reviewed |
+| 329 | `kettlebell_snatch_to_overhead_carry` | Kettlebell Snatch to Overhead Carry | generated_reviewed |
+| 330 | `kettlebell_swing_to_squat` | Kettlebell Swing to Squat | generated_reviewed |
+| 331 | `kettlebell_squat_to_press` | Kettlebell Squat to Press | generated_reviewed |
+| 332 | `kettlebell_front_rack_squat` | Kettlebell Front Rack Squat | generated_reviewed |
+| 333 | `kettlebell_lateral_squat` | Kettlebell Lateral Squat | generated_reviewed |
+| 334 | `kettlebell_curtsy_lunge` | Kettlebell Curtsy Lunge | generated_reviewed |
+| 335 | `kettlebell_lunge_with_rotation` | Kettlebell Lunge with Rotation | generated_reviewed |
+| 336 | `kettlebell_reverse_lunge_to_press` | Kettlebell Reverse Lunge to Press | generated_reviewed |
+| 337 | `kettlebell_step_up` | Kettlebell Step-up | generated_reviewed |
+| 338 | `kettlebell_walking_lunge` | Kettlebell Walking Lunge | generated_reviewed |
+| 339 | `kettlebell_suitcase_deadlift` | Kettlebell Suitcase Deadlift | generated_reviewed |
+| 340 | `kettlebell_romanian_deadlift` | Kettlebell Romanian Deadlift | generated_reviewed |
+| 341 | `single_leg_kettlebell_deadlift` | Single-leg Kettlebell Deadlift | generated_reviewed |
+| 342 | `kettlebell_sumo_deadlift` | Kettlebell Sumo Deadlift | generated_reviewed |
+| 343 | `kettlebell_good_morning` | Kettlebell Good Morning | generated_reviewed |
+| 344 | `kettlebell_row` | Kettlebell Row | generated_reviewed |
+| 345 | `kettlebell_renegade_row` | Kettlebell Renegade Row | generated_reviewed |
+| 346 | `kettlebell_gorilla_row` | Kettlebell Gorilla Row | generated_reviewed |
+| 347 | `kettlebell_suitcase_row` | Kettlebell Suitcase Row | generated_reviewed |
+| 348 | `kettlebell_chest_supported_row` | Kettlebell Chest-Supported Row | generated_reviewed |
+| 349 | `kettlebell_floor_press` | Kettlebell Floor Press | generated_reviewed |
+| 350 | `kettlebell_alternating_floor_press` | Kettlebell Alternating Floor Press | generated_needs_review |
+| 351 | `kettlebell_bench_press` | Kettlebell Bench Press | generated_needs_review |
+| 352 | `kettlebell_incline_bench_press` | Kettlebell Incline Bench Press | generated_needs_review |
+| 353 | `kettlebell_see_saw_press` | Kettlebell See-Saw Press | generated_reviewed |
+| 354 | `kettlebell_bottoms_up_press` | Kettlebell Bottoms-Up Press | generated_reviewed |
+| 355 | `kettlebell_bottoms_up_clean` | Kettlebell Bottoms-Up Clean | generated_reviewed |
+| 356 | `kettlebell_bottoms_up_carry` | Kettlebell Bottoms-Up Carry | generated_reviewed |
+| 357 | `kettlebell_overhead_carry` | Kettlebell Overhead Carry | generated_reviewed |
+| 358 | `double_overhead_kettlebell_carry` | Double Overhead Kettlebell Carry | generated_reviewed |
+| 359 | `kettlebell_rack_carry` | Kettlebell Rack Carry | generated_reviewed |
 | 360 | `kettlebell_farmers_walk` | Kettlebell Farmer's Walk | pending |
 | 361 | `kettlebell_cross_body_carry` | Kettlebell Cross-Body Carry | pending |
 | 362 | `kettlebell_crush_grip_push_up` | Kettlebell Crush-Grip Push-up | pending |
