@@ -168,7 +168,7 @@
       "name": "B-Stance Hip Thrust",
       "equipment": "Dumbbells · Bench",
       "record_type": "movement",
-      "status": "generated_pending_visual_review",
+      "status": "generated_needs_review",
       "file": "b_stance_hip_thrust.png",
       "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for B-Stance Hip Thrust (b_stance_hip_thrust). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating B-STANCE HIP THRUST using Dumbbells · Bench. One clear complete full-body view showing the representative held position. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
       "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-98ef99dc-6b9e-4b59-aea1-0eaa1f6c4b6f.png",
@@ -178,79 +178,152 @@
       "alpha_extrema": [
         0,
         255
-      ]
+      ],
+      "review_notes": "One extended position shown; helper foot placement should be checked against B-stance variant. Preserve output."
     },
     {
       "id": "glute_bridge",
       "name": "Glute Bridge",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "glute_bridge.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Glute Bridge (glute_bridge). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating GLUTE BRIDGE using Bodyweight. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-015780bf-12ba-44f4-8173-3ebd4804970c.png",
+      "width": 1774,
+      "height": 887,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review_notes": "Supine setup and raised bridge position shown."
     },
     {
       "id": "frog_pump",
       "name": "Frog Pump",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "frog_pump.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Frog Pump (frog_pump). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating FROG PUMP using Bodyweight. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-b262b1d9-e3ac-49ee-a6dd-a08e36df4ca2.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Soles-together setup and elevated hip position shown."
     },
     {
       "id": "back_extension",
       "name": "Back Extension",
       "equipment": "Back Extension Bench",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "back_extension.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Back Extension (back_extension). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating BACK EXTENSION using Back Extension Bench. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-d978333f-2265-4354-b1d6-c65a94b8b800.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Both positions shown, but raised torso appears beyond neutral alignment; technique review needed. Preserve output."
     },
     {
       "id": "kettlebell_swing",
       "name": "Kettlebell Swing",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "kettlebell_swing.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Kettlebell Swing (kettlebell_swing). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating KETTLEBELL SWING using Kettlebell. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-790b9026-07e6-46db-a6c6-3092e9a8a5e0.png",
+      "width": 1214,
+      "height": 1295,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review_notes": "Lower position uses kettlebell; upper position appears to substitute a dumbbell. Equipment review needed. Preserve output."
     },
     {
       "id": "good_morning",
       "name": "Good Morning",
       "equipment": "Barbell · Plates · Rack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "good_morning.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Good Morning (good_morning). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating GOOD MORNING using Barbell · Plates · Rack. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-c2b53aa4-ac9d-4b35-be15-4aac5bf02592.png",
+      "width": 1374,
+      "height": 1145,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review_notes": "Bar on upper back, standing and hip hinge positions visible."
     },
     {
       "id": "backpack_rdl",
       "name": "Backpack Romanian Deadlift",
       "equipment": "Backpack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "backpack_rdl.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Backpack Romanian Deadlift (backpack_rdl). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating BACKPACK ROMANIAN DEADLIFT using Backpack. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-90af65ce-4757-4c60-9eab-a6894165439a.png",
+      "width": 941,
+      "height": 1672,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review_notes": "Backpack held in front; standing and hinge positions visible."
     },
     {
       "id": "barbell_back_squat",
       "name": "Barbell Back Squat",
       "equipment": "Barbell · Plates · Rack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "barbell_back_squat.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Barbell Back Squat (barbell_back_squat). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating BARBELL BACK SQUAT using Barbell · Plates · Rack. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-134d2a44-4191-4cea-8840-9d53a03892e4.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Standing and squat positions, bar across upper back."
     },
     {
       "id": "barbell_front_squat",
       "name": "Barbell Front Squat",
       "equipment": "Barbell · Plates · Rack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "barbell_front_squat.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Barbell Front Squat (barbell_front_squat). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating BARBELL FRONT SQUAT using Barbell · Plates · Rack. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-05a765e7-a8a7-4769-8648-48f4b46f62df.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Standing and squat positions, front-rack bar and raised elbows."
     },
     {
       "id": "goblet_squat",
@@ -266,72 +339,136 @@
       "name": "Heel-Elevated Goblet Squat",
       "equipment": "Dumbbells · Plates or Slant Board",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "heel_elevated_goblet_squat.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Heel-Elevated Goblet Squat (heel_elevated_goblet_squat). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating HEEL-ELEVATED GOBLET SQUAT using Dumbbells · Plates or Slant Board. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-25cfdaef-dfb7-4dd4-8d87-cd871d6c8c85.png",
+      "width": 941,
+      "height": 1672,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review_notes": "Standing and squat positions, goblet dumbbell and heel wedges."
     },
     {
       "id": "hack_squat",
       "name": "Hack Squat",
       "equipment": "Hack Squat Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "hack_squat.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Hack Squat (hack_squat). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating HACK SQUAT using Hack Squat Machine. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-c9223add-6e75-4b24-89e5-01dd6a2445bd.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Machine extension and lowered squat positions shown."
     },
     {
       "id": "leg_press",
       "name": "Leg Press",
       "equipment": "Leg Press Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "leg_press.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Leg Press (leg_press). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating LEG PRESS using Leg Press Machine. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-eb082ca5-0b90-4621-a84c-453c87c52bc2.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Seated leg press: knee flexion and extension positions visible."
     },
     {
       "id": "bodyweight_squat",
       "name": "Bodyweight Squat",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "bodyweight_squat.png",
-      "prompt": null
+      "prompt": null,
+      "review_notes": "Standing and squat positions shown; extended hands on right are clipped at canvas edge. Preserve output."
     },
     {
       "id": "sit_to_stand",
       "name": "Sit-to-Stand",
       "equipment": "Chair",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "sit_to_stand.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Sit-to-Stand (sit_to_stand). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating SIT-TO-STAND using Chair. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-613233ae-5f0f-4462-b45a-9fe11ec00555.png",
+      "width": 1188,
+      "height": 1324,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review_notes": "Seated chair setup and standing position visible."
     },
     {
       "id": "pistol_squat",
       "name": "Pistol Squat",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "pistol_squat.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Pistol Squat (pistol_squat). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating PISTOL SQUAT using Bodyweight. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-c8529aaa-511f-457d-8fa6-2cc871e9fec9.png",
+      "width": 1246,
+      "height": 1263,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review_notes": "Single-leg standing setup and deep pistol position visible."
     },
     {
       "id": "smith_machine_squat",
       "name": "Smith Machine Squat",
       "equipment": "Smith Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "smith_machine_squat.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Smith Machine Squat (smith_machine_squat). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating SMITH MACHINE SQUAT using Smith Machine. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-b2414578-ac18-4225-aac1-2f11164954a7.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Guided Smith bar on upper back, standing and squat positions visible."
     },
     {
       "id": "bulgarian_split_squat",
       "name": "Bulgarian Split Squat",
       "equipment": "Dumbbells · Bench",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "bulgarian_split_squat.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Bulgarian Split Squat (bulgarian_split_squat). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating BULGARIAN SPLIT SQUAT using Dumbbells · Bench. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-2f0c1e54-eaa1-4905-bb23-396292d8c53c.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Rear foot on bench, dumbbells at sides, upper and lowered split squat positions visible."
     },
     {
       "id": "split_squat",
@@ -5041,5 +5178,14 @@
       "prompt": null
     }
   ],
-  "validation_policy": "PNG with alpha channel, at least one fully transparent pixel and some visible pixels. Alpha maximum 254 is valid. Visual review tracked separately."
+  "validation_policy": "PNG with alpha channel, at least one fully transparent pixel and some visible pixels. Alpha maximum 254 is valid. Visual review tracked separately.",
+  "publication_checkpoints": [
+    {
+      "commit": "7060bd30b97aaa772663fa91162ae7536bb9a842",
+      "workflow_run": 37129181528,
+      "conclusion": "success",
+      "url": "https://evoryder8-collab.github.io/APXAppiC/",
+      "note": "Initial 8 generated PNGs plus supplied reference; full library ongoing."
+    }
+  ]
 }

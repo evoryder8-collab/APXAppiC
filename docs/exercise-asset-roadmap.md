@@ -12,7 +12,7 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 
 ## Progress
 
-8 generated; 1 supplied reference; 540 pending.
+24 generated; 1 supplied reference; 524 pending.
 
 | Order | Catalog ID | Exercise | Status |
 | --- | --- | --- | --- |
@@ -20,28 +20,28 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 2 | `dumbbell_romanian_deadlift` | Dumbbell Romanian Deadlift | generated_reviewed |
 | 3 | `single_leg_romanian_deadlift` | Single-Leg Romanian Deadlift | generated_reviewed |
 | 4 | `conventional_deadlift` | Conventional Deadlift | generated_reviewed |
-| 5 | `trap_bar_deadlift` | Trap Bar Deadlift | generated_pending_visual_review |
-| 6 | `hip_thrust_barbell` | Barbell Hip Thrust | generated_pending_visual_review |
-| 7 | `hip_thrust_dumbbell` | Dumbbell Hip Thrust | generated_pending_visual_review |
-| 8 | `machine_hip_thrust` | Machine Hip Thrust | generated_pending_visual_review |
-| 9 | `b_stance_hip_thrust` | B-Stance Hip Thrust | pending |
-| 10 | `glute_bridge` | Glute Bridge | pending |
-| 11 | `frog_pump` | Frog Pump | pending |
-| 12 | `back_extension` | Back Extension | pending |
-| 13 | `kettlebell_swing` | Kettlebell Swing | pending |
-| 14 | `good_morning` | Good Morning | pending |
-| 15 | `backpack_rdl` | Backpack Romanian Deadlift | pending |
-| 16 | `barbell_back_squat` | Barbell Back Squat | pending |
-| 17 | `barbell_front_squat` | Barbell Front Squat | pending |
+| 5 | `trap_bar_deadlift` | Trap Bar Deadlift | generated_reviewed |
+| 6 | `hip_thrust_barbell` | Barbell Hip Thrust | generated_needs_review |
+| 7 | `hip_thrust_dumbbell` | Dumbbell Hip Thrust | generated_needs_review |
+| 8 | `machine_hip_thrust` | Machine Hip Thrust | generated_needs_review |
+| 9 | `b_stance_hip_thrust` | B-Stance Hip Thrust | generated_needs_review |
+| 10 | `glute_bridge` | Glute Bridge | generated_reviewed |
+| 11 | `frog_pump` | Frog Pump | generated_reviewed |
+| 12 | `back_extension` | Back Extension | generated_needs_review |
+| 13 | `kettlebell_swing` | Kettlebell Swing | generated_needs_review |
+| 14 | `good_morning` | Good Morning | generated_reviewed |
+| 15 | `backpack_rdl` | Backpack Romanian Deadlift | generated_reviewed |
+| 16 | `barbell_back_squat` | Barbell Back Squat | generated_reviewed |
+| 17 | `barbell_front_squat` | Barbell Front Squat | generated_reviewed |
 | 18 | `goblet_squat` | Goblet Squat | provided_reference |
-| 19 | `heel_elevated_goblet_squat` | Heel-Elevated Goblet Squat | pending |
-| 20 | `hack_squat` | Hack Squat | pending |
-| 21 | `leg_press` | Leg Press | pending |
+| 19 | `heel_elevated_goblet_squat` | Heel-Elevated Goblet Squat | generated_reviewed |
+| 20 | `hack_squat` | Hack Squat | generated_reviewed |
+| 21 | `leg_press` | Leg Press | generated_pending_visual_review |
 | 22 | `bodyweight_squat` | Bodyweight Squat | pending |
-| 23 | `sit_to_stand` | Sit-to-Stand | pending |
-| 24 | `pistol_squat` | Pistol Squat | pending |
-| 25 | `smith_machine_squat` | Smith Machine Squat | pending |
-| 26 | `bulgarian_split_squat` | Bulgarian Split Squat | pending |
+| 23 | `sit_to_stand` | Sit-to-Stand | generated_pending_visual_review |
+| 24 | `pistol_squat` | Pistol Squat | generated_pending_visual_review |
+| 25 | `smith_machine_squat` | Smith Machine Squat | generated_pending_visual_review |
+| 26 | `bulgarian_split_squat` | Bulgarian Split Squat | generated_pending_visual_review |
 | 27 | `split_squat` | Split Squat | pending |
 | 28 | `reverse_lunge` | Reverse Lunge | pending |
 | 29 | `walking_lunge` | Walking Lunge | pending |
