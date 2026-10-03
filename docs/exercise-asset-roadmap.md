@@ -12,7 +12,7 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 
 ## Progress
 
-258 generated; 1 supplied reference; 290 pending.
+288 generated; 1 supplied reference; 260 pending.
 
 | Order | Catalog ID | Exercise | Status |
 | --- | --- | --- | --- |
@@ -275,36 +275,36 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 257 | `half_kneeling_press` | Half-Kneeling Press | generated_reviewed |
 | 258 | `plank_pull_through` | Plank Pull-Through | generated_reviewed |
 | 259 | `bird_dog_row` | Bird-Dog Row | generated_reviewed |
-| 260 | `single_arm_dumbbell_press` | Single-Arm Dumbbell Press | pending |
-| 261 | `single_arm_floor_press` | Single-Arm Floor Press | pending |
-| 262 | `single_arm_bench_press` | Single-Arm Dumbbell Bench Press | pending |
-| 263 | `single_arm_landmine_press` | Single-Arm Landmine Press | pending |
-| 264 | `single_arm_machine_press` | Single-Arm Machine Press | pending |
-| 265 | `arnold_press` | Arnold Press | pending |
-| 266 | `front_raise` | Front Raise | pending |
-| 267 | `svend_press` | Svend Press | pending |
-| 268 | `decline_press` | Decline Press | pending |
-| 269 | `ab_wheel_rollout` | Ab-Wheel Rollout | pending |
-| 270 | `reverse_crunch` | Reverse Crunch | pending |
-| 271 | `decline_sit_up` | Decline Sit-Up | pending |
-| 272 | `front_lever_row` | Front Lever Row | pending |
-| 273 | `human_flag_progression` | Human Flag Progression | pending |
-| 274 | `worlds_greatest_stretch` | World's Greatest Stretch | pending |
-| 275 | `band_shoulder_dislocate` | Band Shoulder Dislocate | pending |
-| 276 | `lower_body_foam_roll` | Lower-Body Foam Roll | pending |
-| 277 | `single_leg_stand` | Single-Leg Stand | pending |
-| 278 | `tandem_stance` | Tandem Stance | pending |
-| 279 | `heel_toe_walk` | Heel-to-Toe Walk | pending |
-| 280 | `single_leg_reach` | Single-Leg Reach | pending |
-| 281 | `airplane_balance` | Airplane Balance | pending |
-| 282 | `eyes_closed_balance` | Single-Leg Stand, Eyes Closed | pending |
-| 283 | `step_down_control` | Controlled Step-Down | pending |
-| 284 | `bent_over_dumbbell_row` | Bent-Over Dumbbell Row | pending |
-| 285 | `kettlebell_bent_over_row` | Bent-Over Kettlebell Row | pending |
-| 286 | `band_bent_over_row` | Bent-Over Band Row | pending |
-| 287 | `prone_floor_row` | Prone Floor Row | pending |
-| 288 | `table_row` | Table Row | pending |
-| 289 | `towel_door_row` | Towel Door Row | pending |
+| 260 | `single_arm_dumbbell_press` | Single-Arm Dumbbell Press | generated_reviewed |
+| 261 | `single_arm_floor_press` | Single-Arm Floor Press | generated_reviewed |
+| 262 | `single_arm_bench_press` | Single-Arm Dumbbell Bench Press | generated_reviewed |
+| 263 | `single_arm_landmine_press` | Single-Arm Landmine Press | generated_reviewed |
+| 264 | `single_arm_machine_press` | Single-Arm Machine Press | generated_reviewed |
+| 265 | `arnold_press` | Arnold Press | generated_needs_review |
+| 266 | `front_raise` | Front Raise | generated_reviewed |
+| 267 | `svend_press` | Svend Press | generated_reviewed |
+| 268 | `decline_press` | Decline Press | generated_needs_review |
+| 269 | `ab_wheel_rollout` | Ab-Wheel Rollout | generated_reviewed |
+| 270 | `reverse_crunch` | Reverse Crunch | generated_reviewed |
+| 271 | `decline_sit_up` | Decline Sit-Up | generated_reviewed |
+| 272 | `front_lever_row` | Front Lever Row | generated_reviewed |
+| 273 | `human_flag_progression` | Human Flag Progression | generated_reviewed |
+| 274 | `worlds_greatest_stretch` | World's Greatest Stretch | generated_reviewed |
+| 275 | `band_shoulder_dislocate` | Band Shoulder Dislocate | generated_reviewed |
+| 276 | `lower_body_foam_roll` | Lower-Body Foam Roll | generated_reviewed |
+| 277 | `single_leg_stand` | Single-Leg Stand | generated_reviewed |
+| 278 | `tandem_stance` | Tandem Stance | generated_reviewed |
+| 279 | `heel_toe_walk` | Heel-to-Toe Walk | generated_needs_review |
+| 280 | `single_leg_reach` | Single-Leg Reach | generated_reviewed |
+| 281 | `airplane_balance` | Airplane Balance | generated_reviewed |
+| 282 | `eyes_closed_balance` | Single-Leg Stand, Eyes Closed | generated_reviewed |
+| 283 | `step_down_control` | Controlled Step-Down | generated_reviewed |
+| 284 | `bent_over_dumbbell_row` | Bent-Over Dumbbell Row | generated_reviewed |
+| 285 | `kettlebell_bent_over_row` | Bent-Over Kettlebell Row | generated_reviewed |
+| 286 | `band_bent_over_row` | Bent-Over Band Row | generated_reviewed |
+| 287 | `prone_floor_row` | Prone Floor Row | generated_reviewed |
+| 288 | `table_row` | Table Row | generated_reviewed |
+| 289 | `towel_door_row` | Towel Door Row | generated_reviewed |
 | 290 | `band_lat_pullover` | Band Lat Pullover | pending |
 | 291 | `dumbbell_pullover` | Dumbbell Pullover | pending |
 | 292 | `floor_pullover` | Floor Pullover | pending |
