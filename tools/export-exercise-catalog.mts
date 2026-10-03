@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import {
   EXERCISE_CATALOG,
@@ -178,12 +178,51 @@ function csvCell(value: ExerciseCatalogExportCell): string {
 
 export function renderExerciseCatalogCsv(
   rows: ExerciseCatalogExportCell[][] = EXERCISE_CATALOG_EXPORT_ROWS,
+  headers: readonly string[] = EXERCISE_CATALOG_EXPORT_HEADERS,
 ): string {
-  return [EXERCISE_CATALOG_EXPORT_HEADERS, ...rows]
+  return [headers, ...rows]
     .map((row) => row.map(csvCell).join(','))
     .join('\n') + '\n'
 }
 
+/** Full owner download, preserving both platforms' authored display labels. */
+export function renderExerciseLibraryCsv(): string {
+  const native: { exercises: Array<{ id: string; names: Record<string, string>; aliases: Record<string, string[]> }> } = JSON.parse(
+    readFileSync(new URL('../ios/APEXNative/APEX/Resources/exercise-catalog.json', import.meta.url), 'utf8'),
+  )
+  const nativeByID = new Map(native.exercises.map((item) => [item.id, item]))
+  const webIDs = new Set(EXERCISE_CATALOG.map((item) => item.id))
+  if (webIDs.size !== EXERCISE_CATALOG.length || nativeByID.size !== native.exercises.length
+    || nativeByID.size !== webIDs.size || [...webIDs].some((id) => !nativeByID.has(id))) {
+    throw new Error('Web and iOS exercise libraries differ; reconcile them before exporting.')
+  }
+  const languages = [...new Set(native.exercises.flatMap((item) => [...Object.keys(item.names), ...Object.keys(item.aliases)]))]
+  const headers = [
+    ...EXERCISE_CATALOG_EXPORT_HEADERS,
+    'canonical_name', 'movement_id', 'day_type', 'romanian_aliases', 'thai_aliases',
+    ...languages.map((language) => `ios_name_${language}`),
+    ...languages.map((language) => `ios_aliases_${language}`),
+  ]
+  const rows = EXERCISE_CATALOG.map((item, index) => {
+    const ios = nativeByID.get(item.id)!
+    return [
+      ...EXERCISE_CATALOG_EXPORT_ROWS[index],
+      item.name, item.movementID, item.dayType, item.aliases.ro.join('; '), item.aliases.th.join('; '),
+      ...languages.map((language) => ios.names[language] ?? ''),
+      ...languages.map((language) => (ios.aliases[language] ?? []).join('; ')),
+    ]
+  })
+  return renderExerciseCatalogCsv(rows, headers)
+}
+
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
-  process.stdout.write(renderExerciseCatalogCsv())
+  const outputArgument = process.argv.indexOf('--output')
+  if (outputArgument !== -1) {
+    const outputPath = process.argv[outputArgument + 1]
+    if (!outputPath || outputPath.startsWith('--')) throw new Error('--output requires a file path')
+    writeFileSync(outputPath, renderExerciseLibraryCsv(), 'utf8')
+    process.stdout.write(`Exported ${EXERCISE_CATALOG_EXPORT_ROWS.length} exercises to ${outputPath}\n`)
+  } else {
+    process.stdout.write(renderExerciseCatalogCsv())
+  }
 }
