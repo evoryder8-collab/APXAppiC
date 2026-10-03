@@ -12,7 +12,7 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 
 ## Progress
 
-198 generated; 1 supplied reference; 350 pending.
+228 generated; 1 supplied reference; 320 pending.
 
 | Order | Catalog ID | Exercise | Status |
 | --- | --- | --- | --- |
@@ -215,36 +215,36 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 197 | `happy_baby` | Happy Baby | generated_reviewed |
 | 198 | `supine_twist` | Supine Twist | generated_reviewed |
 | 199 | `legs_up_wall` | Legs Up the Wall | generated_reviewed |
-| 200 | `corpse_pose` | Corpse Pose | pending |
-| 201 | `chaturanga` | Chaturanga | pending |
-| 202 | `upward_dog` | Upward-Facing Dog | pending |
-| 203 | `low_lunge` | Low Lunge | pending |
-| 204 | `lizard_pose` | Lizard Pose | pending |
-| 205 | `garland_pose` | Garland Pose | pending |
-| 206 | `eagle_pose` | Eagle Pose | pending |
-| 207 | `dancer_pose` | Dancer Pose | pending |
-| 208 | `sled_push` | Sled Push | pending |
-| 209 | `sled_pull` | Sled Pull | pending |
-| 210 | `burpee_broad_jump` | Burpee Broad Jump | pending |
-| 211 | `sandbag_lunge` | Sandbag Lunge | pending |
-| 212 | `wall_ball` | Wall Ball | pending |
-| 213 | `thruster` | Thruster | pending |
-| 214 | `power_clean` | Power Clean | pending |
-| 215 | `power_snatch` | Power Snatch | pending |
-| 216 | `clean_and_jerk` | Clean and Jerk | pending |
-| 217 | `push_press` | Push Press | pending |
-| 218 | `overhead_squat` | Overhead Squat | pending |
-| 219 | `front_rack_lunge` | Front Rack Lunge | pending |
-| 220 | `double_under` | Double Under | pending |
-| 221 | `single_under` | Skipping | pending |
-| 222 | `toes_to_bar` | Toes to Bar | pending |
-| 223 | `kettlebell_clean` | Kettlebell Clean | pending |
-| 224 | `turkish_get_up` | Turkish Get-Up | pending |
-| 225 | `devils_press` | Devil's Press | pending |
-| 226 | `man_maker` | Man Maker | pending |
-| 227 | `sandbag_clean` | Sandbag Clean | pending |
-| 228 | `tire_flip` | Tire Flip | pending |
-| 229 | `bear_crawl` | Bear Crawl | pending |
+| 200 | `corpse_pose` | Corpse Pose | generated_reviewed |
+| 201 | `chaturanga` | Chaturanga | generated_reviewed |
+| 202 | `upward_dog` | Upward-Facing Dog | generated_needs_review |
+| 203 | `low_lunge` | Low Lunge | generated_reviewed |
+| 204 | `lizard_pose` | Lizard Pose | generated_reviewed |
+| 205 | `garland_pose` | Garland Pose | generated_reviewed |
+| 206 | `eagle_pose` | Eagle Pose | generated_needs_review |
+| 207 | `dancer_pose` | Dancer Pose | generated_reviewed |
+| 208 | `sled_push` | Sled Push | generated_reviewed |
+| 209 | `sled_pull` | Sled Pull | generated_reviewed |
+| 210 | `burpee_broad_jump` | Burpee Broad Jump | generated_reviewed |
+| 211 | `sandbag_lunge` | Sandbag Lunge | generated_reviewed |
+| 212 | `wall_ball` | Wall Ball | generated_reviewed |
+| 213 | `thruster` | Thruster | generated_reviewed |
+| 214 | `power_clean` | Power Clean | generated_reviewed |
+| 215 | `power_snatch` | Power Snatch | generated_reviewed |
+| 216 | `clean_and_jerk` | Clean and Jerk | generated_reviewed |
+| 217 | `push_press` | Push Press | generated_needs_review |
+| 218 | `overhead_squat` | Overhead Squat | generated_reviewed |
+| 219 | `front_rack_lunge` | Front Rack Lunge | generated_reviewed |
+| 220 | `double_under` | Double Under | generated_reviewed |
+| 221 | `single_under` | Skipping | generated_reviewed |
+| 222 | `toes_to_bar` | Toes to Bar | generated_reviewed |
+| 223 | `kettlebell_clean` | Kettlebell Clean | generated_reviewed |
+| 224 | `turkish_get_up` | Turkish Get-Up | generated_reviewed |
+| 225 | `devils_press` | Devil's Press | generated_reviewed |
+| 226 | `man_maker` | Man Maker | generated_reviewed |
+| 227 | `sandbag_clean` | Sandbag Clean | generated_reviewed |
+| 228 | `tire_flip` | Tire Flip | generated_reviewed |
+| 229 | `bear_crawl` | Bear Crawl | generated_needs_review |
 | 230 | `sled_drag` | Sled Drag | pending |
 | 231 | `overhead_carry` | Overhead Carry | pending |
 | 232 | `front_rack_carry` | Front Rack Carry | pending |
