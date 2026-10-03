@@ -12,7 +12,7 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 
 ## Progress
 
-84 generated; 1 supplied reference; 464 pending.
+113 generated; 1 supplied reference; 435 pending.
 
 | Order | Catalog ID | Exercise | Status |
 | --- | --- | --- | --- |
@@ -96,40 +96,40 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 78 | `bird_dog` | Bird-Dog | generated_reviewed |
 | 79 | `pallof_press` | Pallof Press | generated_needs_review |
 | 80 | `hanging_knee_raise` | Hanging Knee Raise | generated_reviewed |
-| 81 | `hollow_body_hold` | Hollow Body Hold | generated_pending_visual_review |
-| 82 | `dumbbell_curl` | Dumbbell Curl | generated_pending_visual_review |
-| 83 | `incline_dumbbell_curl` | Incline Dumbbell Curl | generated_pending_visual_review |
-| 84 | `hammer_curl` | Hammer Curl | generated_pending_visual_review |
-| 85 | `cable_curl` | Cable Curl | generated_pending_visual_review |
-| 86 | `band_curl` | Band Curl | pending |
-| 87 | `overhead_triceps_extension` | Overhead Triceps Extension | pending |
-| 88 | `lateral_raise` | Lateral Raise | pending |
-| 89 | `cable_lateral_raise` | Cable Lateral Raise | pending |
-| 90 | `band_lateral_raise` | Band Lateral Raise | pending |
-| 91 | `face_pull` | Cable Face Pull | pending |
-| 92 | `band_face_pull` | Band Face Pull | pending |
-| 93 | `band_pull_apart` | Band Pull-Apart | pending |
-| 94 | `reverse_pec_deck` | Reverse Pec Deck | pending |
-| 95 | `cable_external_rotation` | Cable External Rotation | pending |
-| 96 | `lying_leg_curl` | Lying Leg Curl | pending |
-| 97 | `seated_leg_curl` | Seated Leg Curl | pending |
-| 98 | `sliding_leg_curl` | Sliding Leg Curl | pending |
-| 99 | `nordic_curl` | Nordic Hamstring Curl | pending |
-| 100 | `leg_extension` | Leg Extension | pending |
-| 101 | `hip_abduction` | Hip Abduction | pending |
-| 102 | `standing_calf_raise` | Standing Calf Raise | pending |
-| 103 | `seated_calf_raise` | Seated Calf Raise | pending |
-| 104 | `single_leg_calf_raise` | Single-Leg Calf Raise | pending |
-| 105 | `l_sit` | L-Sit | pending |
-| 106 | `tuck_planche_hold` | Tuck Planche Hold | pending |
-| 107 | `wall_handstand_hold` | Wall Handstand Hold | pending |
-| 108 | `archer_push_up` | Archer Push-Up | pending |
-| 109 | `ring_dip` | Ring Dip | pending |
-| 110 | `burpee` | Burpee | pending |
-| 111 | `squat_thrust` | Squat Thrust | pending |
-| 112 | `mountain_climber` | Mountain Climber | pending |
-| 113 | `high_knees` | High Knees | pending |
-| 114 | `marching_in_place` | Marching in Place | pending |
+| 81 | `hollow_body_hold` | Hollow Body Hold | generated_reviewed |
+| 82 | `dumbbell_curl` | Dumbbell Curl | generated_reviewed |
+| 83 | `incline_dumbbell_curl` | Incline Dumbbell Curl | generated_needs_review |
+| 84 | `hammer_curl` | Hammer Curl | generated_needs_review |
+| 85 | `cable_curl` | Cable Curl | generated_reviewed |
+| 86 | `band_curl` | Band Curl | generated_reviewed |
+| 87 | `overhead_triceps_extension` | Overhead Triceps Extension | generated_reviewed |
+| 88 | `lateral_raise` | Lateral Raise | generated_needs_review |
+| 89 | `cable_lateral_raise` | Cable Lateral Raise | generated_reviewed |
+| 90 | `band_lateral_raise` | Band Lateral Raise | generated_reviewed |
+| 91 | `face_pull` | Cable Face Pull | generated_reviewed |
+| 92 | `band_face_pull` | Band Face Pull | generated_reviewed |
+| 93 | `band_pull_apart` | Band Pull-Apart | generated_reviewed |
+| 94 | `reverse_pec_deck` | Reverse Pec Deck | generated_needs_review |
+| 95 | `cable_external_rotation` | Cable External Rotation | generated_needs_review |
+| 96 | `lying_leg_curl` | Lying Leg Curl | generated_reviewed |
+| 97 | `seated_leg_curl` | Seated Leg Curl | generated_needs_review |
+| 98 | `sliding_leg_curl` | Sliding Leg Curl | generated_needs_review |
+| 99 | `nordic_curl` | Nordic Hamstring Curl | generated_reviewed |
+| 100 | `leg_extension` | Leg Extension | generated_reviewed |
+| 101 | `hip_abduction` | Hip Abduction | generated_reviewed |
+| 102 | `standing_calf_raise` | Standing Calf Raise | generated_reviewed |
+| 103 | `seated_calf_raise` | Seated Calf Raise | generated_reviewed |
+| 104 | `single_leg_calf_raise` | Single-Leg Calf Raise | generated_reviewed |
+| 105 | `l_sit` | L-Sit | generated_reviewed |
+| 106 | `tuck_planche_hold` | Tuck Planche Hold | generated_needs_review |
+| 107 | `wall_handstand_hold` | Wall Handstand Hold | generated_reviewed |
+| 108 | `archer_push_up` | Archer Push-Up | generated_reviewed |
+| 109 | `ring_dip` | Ring Dip | generated_reviewed |
+| 110 | `burpee` | Burpee | generated_needs_review |
+| 111 | `squat_thrust` | Squat Thrust | generated_reviewed |
+| 112 | `mountain_climber` | Mountain Climber | generated_reviewed |
+| 113 | `high_knees` | High Knees | generated_reviewed |
+| 114 | `marching_in_place` | Marching in Place | generated_reviewed |
 | 115 | `jumping_jack` | Jumping Jack | pending |
 | 116 | `box_jump` | Box Jump | pending |
 | 117 | `squat_jump` | Squat Jump | pending |
