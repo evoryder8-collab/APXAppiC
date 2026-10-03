@@ -12,7 +12,7 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 
 ## Progress
 
-50 generated; 1 supplied reference; 498 pending.
+84 generated; 1 supplied reference; 464 pending.
 
 | Order | Catalog ID | Exercise | Status |
 | --- | --- | --- | --- |
@@ -62,45 +62,45 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 44 | `diamond_push_up` | Diamond Push-Up | generated_reviewed |
 | 45 | `dip` | Parallel Bar Dip | generated_reviewed |
 | 46 | `cable_fly` | Cable Fly | generated_reviewed |
-| 47 | `barbell_overhead_press` | Barbell Overhead Press | generated_pending_visual_review |
-| 48 | `dumbbell_overhead_press` | Seated Dumbbell Press | generated_pending_visual_review |
-| 49 | `machine_shoulder_press` | Machine Shoulder Press | generated_pending_visual_review |
-| 50 | `landmine_press` | Landmine Press | generated_pending_visual_review |
-| 51 | `pike_push_up` | Pike Push-Up | generated_pending_visual_review |
-| 52 | `elevated_pike_push_up` | Feet-Elevated Pike Push-Up | pending |
-| 53 | `handstand_push_up` | Handstand Push-Up | pending |
-| 54 | `barbell_row` | Barbell Row | pending |
-| 55 | `one_arm_dumbbell_row` | One-Arm Dumbbell Row | pending |
-| 56 | `chest_supported_row` | Chest-Supported Dumbbell Row | pending |
-| 57 | `machine_row` | Chest-Supported Machine Row | pending |
-| 58 | `t_bar_row` | Chest-Supported T-Bar Row | pending |
-| 59 | `cable_row` | Seated Cable Row | pending |
-| 60 | `single_arm_cable_row` | Single-Arm Cable Row | pending |
-| 61 | `inverted_row` | Inverted Row | pending |
-| 62 | `band_row` | Band Row | pending |
-| 63 | `backpack_row` | Backpack Row | pending |
-| 64 | `pull_up` | Pull-Up | pending |
-| 65 | `chin_up` | Chin-Up | pending |
-| 66 | `band_assisted_pull_up` | Band-Assisted Pull-Up | pending |
-| 67 | `lat_pulldown` | Neutral-Grip Lat Pulldown | pending |
-| 68 | `band_lat_pulldown` | Band Lat Pulldown | pending |
-| 69 | `dead_hang` | Dead Hang | pending |
-| 70 | `scapular_pull_up` | Scapular Pull-Up | pending |
-| 71 | `muscle_up_practice` | Muscle-Up Transition Practice | pending |
-| 72 | `suitcase_carry` | Suitcase Carry | pending |
-| 73 | `farmers_carry` | Farmer's Carry | pending |
-| 74 | `plank` | Plank | pending |
-| 75 | `rkc_plank` | RKC Plank | pending |
-| 76 | `side_plank` | Side Plank | pending |
-| 77 | `dead_bug` | Dead Bug | pending |
-| 78 | `bird_dog` | Bird-Dog | pending |
-| 79 | `pallof_press` | Pallof Press | pending |
-| 80 | `hanging_knee_raise` | Hanging Knee Raise | pending |
-| 81 | `hollow_body_hold` | Hollow Body Hold | pending |
-| 82 | `dumbbell_curl` | Dumbbell Curl | pending |
-| 83 | `incline_dumbbell_curl` | Incline Dumbbell Curl | pending |
-| 84 | `hammer_curl` | Hammer Curl | pending |
-| 85 | `cable_curl` | Cable Curl | pending |
+| 47 | `barbell_overhead_press` | Barbell Overhead Press | generated_reviewed |
+| 48 | `dumbbell_overhead_press` | Seated Dumbbell Press | generated_needs_review |
+| 49 | `machine_shoulder_press` | Machine Shoulder Press | generated_reviewed |
+| 50 | `landmine_press` | Landmine Press | generated_reviewed |
+| 51 | `pike_push_up` | Pike Push-Up | generated_reviewed |
+| 52 | `elevated_pike_push_up` | Feet-Elevated Pike Push-Up | generated_reviewed |
+| 53 | `handstand_push_up` | Handstand Push-Up | generated_reviewed |
+| 54 | `barbell_row` | Barbell Row | generated_reviewed |
+| 55 | `one_arm_dumbbell_row` | One-Arm Dumbbell Row | generated_reviewed |
+| 56 | `chest_supported_row` | Chest-Supported Dumbbell Row | generated_reviewed |
+| 57 | `machine_row` | Chest-Supported Machine Row | generated_reviewed |
+| 58 | `t_bar_row` | Chest-Supported T-Bar Row | generated_reviewed |
+| 59 | `cable_row` | Seated Cable Row | generated_reviewed |
+| 60 | `single_arm_cable_row` | Single-Arm Cable Row | generated_reviewed |
+| 61 | `inverted_row` | Inverted Row | generated_reviewed |
+| 62 | `band_row` | Band Row | generated_reviewed |
+| 63 | `backpack_row` | Backpack Row | generated_reviewed |
+| 64 | `pull_up` | Pull-Up | generated_reviewed |
+| 65 | `chin_up` | Chin-Up | generated_reviewed |
+| 66 | `band_assisted_pull_up` | Band-Assisted Pull-Up | generated_reviewed |
+| 67 | `lat_pulldown` | Neutral-Grip Lat Pulldown | generated_needs_review |
+| 68 | `band_lat_pulldown` | Band Lat Pulldown | generated_reviewed |
+| 69 | `dead_hang` | Dead Hang | generated_needs_review |
+| 70 | `scapular_pull_up` | Scapular Pull-Up | generated_reviewed |
+| 71 | `muscle_up_practice` | Muscle-Up Transition Practice | generated_reviewed |
+| 72 | `suitcase_carry` | Suitcase Carry | generated_reviewed |
+| 73 | `farmers_carry` | Farmer's Carry | generated_reviewed |
+| 74 | `plank` | Plank | generated_needs_review |
+| 75 | `rkc_plank` | RKC Plank | generated_needs_review |
+| 76 | `side_plank` | Side Plank | generated_reviewed |
+| 77 | `dead_bug` | Dead Bug | generated_reviewed |
+| 78 | `bird_dog` | Bird-Dog | generated_reviewed |
+| 79 | `pallof_press` | Pallof Press | generated_needs_review |
+| 80 | `hanging_knee_raise` | Hanging Knee Raise | generated_reviewed |
+| 81 | `hollow_body_hold` | Hollow Body Hold | generated_pending_visual_review |
+| 82 | `dumbbell_curl` | Dumbbell Curl | generated_pending_visual_review |
+| 83 | `incline_dumbbell_curl` | Incline Dumbbell Curl | generated_pending_visual_review |
+| 84 | `hammer_curl` | Hammer Curl | generated_pending_visual_review |
+| 85 | `cable_curl` | Cable Curl | generated_pending_visual_review |
 | 86 | `band_curl` | Band Curl | pending |
 | 87 | `overhead_triceps_extension` | Overhead Triceps Extension | pending |
 | 88 | `lateral_raise` | Lateral Raise | pending |
@@ -565,3 +565,7 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 547 | `jump_rope` | Jump Rope | pending |
 | 548 | `sled_push_drag` | Sled Push or Drag | pending |
 | 549 | `shadow_box` | Shadow Boxing | pending |
+
+## Generation notes
+
+Existing selected images are retained and skipped during resume. The initial alpha validation incorrectly rejected valid transparency with a maximum alpha of 254; this is corrected. Three unnecessary alternate Dumbbell Romanian Deadlift generations are preserved in the draft folder. Pose and cropping concerns are tracked independently of transparency, without automatic regeneration.

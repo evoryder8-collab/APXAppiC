@@ -931,306 +931,614 @@
       "name": "Feet-Elevated Pike Push-Up",
       "equipment": "Bench or Plyo Box or Step",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "elevated_pike_push_up.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Feet-Elevated Pike Push-Up (elevated_pike_push_up). Neutral fitness instruction. Reference image supplies athlete face/hair, photographic finish, and key-position presentation only. Generate the same adult athletic woman with dark ponytail wearing fully covering black athletic leggings, a black long-sleeved training top and white trainers, demonstrating FEET-ELEVATED PIKE PUSH-UP using Bench or Plyo Box or Step. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap; keep all shoes, limbs and equipment well within canvas with generous transparent margin on EVERY side. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-b314cb88-6c8b-49f1-a1c4-1b6c457f999b.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Feet elevated on step, pike upper and lowered positions shown; full training outfit."
     },
     {
       "id": "handstand_push_up",
       "name": "Handstand Push-Up",
       "equipment": "Wall",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "handstand_push_up.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Handstand Push-Up (handstand_push_up). Neutral fitness instruction. Reference image supplies athlete face/hair, photographic finish, and key-position presentation only. Generate the same adult athletic woman with dark ponytail wearing fully covering black athletic leggings, a black long-sleeved training top and white trainers, demonstrating HANDSTAND PUSH-UP using Wall. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap; keep all shoes, limbs and equipment well within canvas with generous transparent margin on EVERY side. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-6ff9cb88-5c36-4849-a535-34404e74da72.png",
+      "width": 1190,
+      "height": 1322,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review_notes": "Wall-assisted inverted upper and lowered positions shown; full training outfit."
     },
     {
       "id": "barbell_row",
       "name": "Barbell Row",
       "equipment": "Barbell · Plates",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "barbell_row.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Barbell Row (barbell_row). Neutral fitness instruction. Reference image supplies athlete face/hair, photographic finish, and key-position presentation only. Generate the same adult athletic woman with dark ponytail wearing black sports bra and black shorts, white trainers, demonstrating BARBELL ROW using Barbell · Plates. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap; keep all shoes, limbs and equipment well within canvas with generous transparent margin on EVERY side. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-d8b465f3-a2a7-4dcc-b004-cce5958a04ba.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Hip-hinged barbell row, extended and retracted arm positions shown."
     },
     {
       "id": "one_arm_dumbbell_row",
       "name": "One-Arm Dumbbell Row",
       "equipment": "Dumbbells · Bench",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "one_arm_dumbbell_row.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for One-Arm Dumbbell Row (one_arm_dumbbell_row). Neutral fitness instruction. Reference image supplies athlete face/hair, photographic finish, and key-position presentation only. Generate the same adult athletic woman with dark ponytail wearing black sports bra and black shorts, white trainers, demonstrating ONE-ARM DUMBBELL ROW using Dumbbells · Bench. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap; keep all shoes, limbs and equipment well within canvas with generous transparent margin on EVERY side. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-5b7af9f4-f6c9-40c9-9e33-1b9eb1c3a93c.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Bench-supported one-arm row, lowered and retracted positions shown."
     },
     {
       "id": "chest_supported_row",
       "name": "Chest-Supported Dumbbell Row",
       "equipment": "Dumbbells · Adjustable Bench",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "chest_supported_row.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Chest-Supported Dumbbell Row (chest_supported_row). Neutral fitness instruction. Reference image supplies athlete face/hair, photographic finish, and key-position presentation only. Generate the same adult athletic woman with dark ponytail wearing black sports bra and black shorts, white trainers, demonstrating CHEST-SUPPORTED DUMBBELL ROW using Dumbbells · Adjustable Bench. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap; keep all shoes, limbs and equipment well within canvas with generous transparent margin on EVERY side. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-e829ccd0-d710-412e-9519-93c11c38e11d.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Chest on incline bench, paired dumbbells lowered and retracted."
     },
     {
       "id": "machine_row",
       "name": "Chest-Supported Machine Row",
       "equipment": "Row Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "machine_row.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Chest-Supported Machine Row (machine_row). Neutral fitness instruction. Reference image supplies athlete face/hair, photographic finish, and key-position presentation only. Generate the same adult athletic woman with dark ponytail wearing black sports bra and black shorts, white trainers, demonstrating CHEST-SUPPORTED MACHINE ROW using Row Machine. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap; keep all shoes, limbs and equipment well within canvas with generous transparent margin on EVERY side. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-78d42dd5-c25c-4afe-8957-202348774859.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Chest supported on machine pad, handles extended and retracted."
     },
     {
       "id": "t_bar_row",
       "name": "Chest-Supported T-Bar Row",
       "equipment": "T Bar Row Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "t_bar_row.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Chest-Supported T-Bar Row (t_bar_row). Neutral fitness instruction. Reference image supplies athlete face/hair, photographic finish, and key-position presentation only. Generate the same adult athletic woman with dark ponytail wearing black sports bra and black shorts, white trainers, demonstrating CHEST-SUPPORTED T-BAR ROW using T Bar Row Machine. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap; keep all shoes, limbs and equipment well within canvas with generous transparent margin on EVERY side. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-15e29230-100c-47f4-9a79-83a375dcefbf.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Chest-supported T-bar machine row, extended and retracted positions shown."
     },
     {
       "id": "cable_row",
       "name": "Seated Cable Row",
       "equipment": "Cable Stack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "cable_row.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Seated Cable Row (cable_row). Neutral fitness instruction. Reference image supplies athlete face/hair, photographic finish, and key-position presentation only. Generate the same adult athletic woman with dark ponytail wearing black sports bra and black shorts, white trainers, demonstrating SEATED CABLE ROW using Cable Stack. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap; keep all shoes, limbs and equipment well within canvas with generous transparent margin on EVERY side. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-555cbc22-3d4c-487a-8b2c-cdb45536f884.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Seated cable row with low pulley, extended and retracted positions shown."
     },
     {
       "id": "single_arm_cable_row",
       "name": "Single-Arm Cable Row",
       "equipment": "Cable Stack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "single_arm_cable_row.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Single-Arm Cable Row (single_arm_cable_row). Neutral fitness instruction. Reference image supplies athlete face/hair, photographic finish, and key-position presentation only. Generate the same adult athletic woman with dark ponytail wearing black sports bra and black shorts, white trainers, demonstrating SINGLE-ARM CABLE ROW using Cable Stack. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap; keep all shoes, limbs and equipment well within canvas with generous transparent margin on EVERY side. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-e621862c-ac9b-4c15-9c44-be66c67abd65.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Standing one-arm cable row, extended and retracted positions shown."
     },
     {
       "id": "inverted_row",
       "name": "Inverted Row",
       "equipment": "Barbell or Pull Up Bar or Rings or Smith Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "inverted_row.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Inverted Row (inverted_row). Neutral fitness instruction. Reference image supplies athlete face/hair, photographic finish, and key-position presentation only. Generate the same adult athletic woman with dark ponytail wearing black sports bra and black shorts, white trainers, demonstrating INVERTED ROW using Barbell or Pull Up Bar or Rings or Smith Machine. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap; keep all shoes, limbs and equipment well within canvas with generous transparent margin on EVERY side. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-4a9a000d-8e92-4c67-b067-88571f91427f.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Body under fixed bar, extended and retracted positions shown."
     },
     {
       "id": "band_row",
       "name": "Band Row",
       "equipment": "Bands",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "band_row.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Band Row (band_row). Neutral fitness instruction. Reference image supplies athlete face/hair, photographic finish, and key-position presentation only. Generate the same adult athletic woman with dark ponytail wearing black sports bra and black shorts, white trainers, demonstrating BAND ROW using Bands. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap; keep all shoes, limbs and equipment well within canvas with generous transparent margin on EVERY side. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-498bbdc1-ffb2-4625-93e4-681e2a88e62c.png",
+      "width": 1238,
+      "height": 1271,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review_notes": "Standing band row, handles extended and retracted."
     },
     {
       "id": "backpack_row",
       "name": "Backpack Row",
       "equipment": "Backpack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "backpack_row.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Backpack Row (backpack_row). Neutral fitness instruction. Reference image supplies athlete face/hair, photographic finish, and key-position presentation only. Generate the same adult athletic woman with dark ponytail wearing black sports bra and black shorts, white trainers, demonstrating BACKPACK ROW using Backpack. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap; keep all shoes, limbs and equipment well within canvas with generous transparent margin on EVERY side. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-ab94633b-efff-4785-ab2d-bbe88aba3477.png",
+      "width": 1205,
+      "height": 1305,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review_notes": "Hip-hinged backpack row, load lowered and retracted."
     },
     {
       "id": "pull_up",
       "name": "Pull-Up",
       "equipment": "Pull Up Bar",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "pull_up.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Pull-Up (pull_up). Neutral fitness instruction. Reference image supplies athlete face/hair, photographic finish, and key-position presentation only. Generate the same adult athletic woman with dark ponytail wearing black sports bra and black shorts, white trainers, demonstrating PULL-UP using Pull Up Bar. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap; keep all shoes, limbs and equipment well within canvas with generous transparent margin on EVERY side. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9be4dbf2-5e97-46f3-b9c4-63499966079f.png",
+      "width": 1145,
+      "height": 1374,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review_notes": "Overhead bar, hanging and chin-over-bar positions shown."
     },
     {
       "id": "chin_up",
       "name": "Chin-Up",
       "equipment": "Pull Up Bar",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "chin_up.png",
-      "prompt": null
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Chin-Up (chin_up). Neutral fitness instruction. Reference image supplies athlete face/hair, photographic finish, and key-position presentation only. Generate the same adult athletic woman with dark ponytail wearing black sports bra and black shorts, white trainers, demonstrating CHIN-UP using Pull Up Bar. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap; keep all shoes, limbs and equipment well within canvas with generous transparent margin on EVERY side. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-2834f71f-6504-4972-9561-7a7e39a3cd5d.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Underhand grip, hanging and chin-over-bar positions shown."
     },
     {
       "id": "band_assisted_pull_up",
       "name": "Band-Assisted Pull-Up",
       "equipment": "Pull Up Bar · Bands",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "band_assisted_pull_up.png",
-      "prompt": null
+      "prompt": "Scientific fitness education photograph. Adult female athlete, dark ponytail, fully covering black long-sleeved training shirt extending over waist and black full-length athletic leggings, white trainers. Demonstrate BAND-ASSISTED PULL-UP on a fixed overhead pull-up bar. A resistance loop is secured around the bar and under one knee or foot to assist the athlete. Two full-body side/three-quarter views, one in straight-arm hanging setup and one at the top with chin above bar. Proper overhand grip. Complete figure and relevant bar/band apparatus inside canvas, separate silhouettes, clear generous margins. Photoreal instructional workout cutouts on actual transparent background. Reference supplies facial appearance and photo finish only. No scene, floor, shadows, text, logos, watermark or checkerboard.",
+      "generation_attempts": [
+        {
+          "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Band-Assisted Pull-Up (band_assisted_pull_up). Neutral fitness instruction. Reference image supplies athlete face/hair, photographic finish, and key-position presentation only. Generate the same adult athletic woman with dark ponytail wearing black sports bra and black shorts, white trainers, demonstrating BAND-ASSISTED PULL-UP using Pull Up Bar · Bands. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap; keep all shoes, limbs and equipment well within canvas with generous transparent margin on EVERY side. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+          "result": "image generation failed: http 400 Bad Request: Some(\"{\\n  \\\"error\\\": {\\n    \\\"message\\\": \\\"Your request was rejected by the safety system. If you believe this is an error, contact us at help.openai.com and include the request ID c64909b0-d5f8-4f43-adf9-ba40f47fcf40. safety_violations=[sexual].\\\",\\n    \\\"type\\\": \\\"image_generation_user_error\\\",\\n    \\\"param\\\": null,\\n    \\\"code\\\": \\\"moderation_blocked\\\",\\n    \\\"moderation_details\\\": {\\n      \\\"moderation_stage\\\": \\\"output\\\",\\n      \\\"categories\\\": [\\n        \\\"sexual\\\"\\n      ]\\n    }\\n  }\\n}\")",
+          "image_returned": false
+        }
+      ],
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-812a76b9-2996-450e-9d02-d4c17b632ca1.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Inspected both pull-up positions, overhead bar and assisting band; full outfit and figures visible."
     },
     {
       "id": "lat_pulldown",
       "name": "Neutral-Grip Lat Pulldown",
       "equipment": "Lat Pulldown Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "lat_pulldown.png",
-      "prompt": null
+      "prompt": "Create a photographic fitness exercise asset for Neutral-Grip Lat Pulldown. Match the adult woman, dark ponytail, black sports bra and black shorts, white trainers and photographic cutout style in the reference. Two clearly separate views of the SAME athlete at equal anatomical scale: left seated with arms extended overhead gripping parallel neutral-grip handles of a lat pulldown machine; right seated with elbows pulled down beside torso, handle at upper chest. Include seat, thigh restraint and enough cable apparatus to understand the movement. Neutral instructional posture, realistic hands/anatomy/equipment. All body parts, shoes and apparatus inside canvas with generous transparent margins. True transparent background and gaps, no setting/floor/shadows/text/logos/arrows/checkerboard. This image demonstrates exercise technique.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-7ee7dbc2-e4c7-4416-8fa6-b379b2082454.png",
+      "width": 1145,
+      "height": 1374,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Neutral handle and movement visible; right shoe reaches canvas edge."
     },
     {
       "id": "band_lat_pulldown",
       "name": "Band Lat Pulldown",
       "equipment": "Bands · Anchor Point",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "band_lat_pulldown.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Band Lat Pulldown (catalog band_lat_pulldown), using Bands · Anchor Point. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9912751d-9f7f-4cb8-9880-0139579bb764.png",
+      "width": 1141,
+      "height": 1378,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Both band-pulldown key positions and complete athlete visible; overhead band attachment extends to top."
     },
     {
       "id": "dead_hang",
       "name": "Dead Hang",
       "equipment": "Pull Up Bar",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "dead_hang.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Dead Hang (catalog dead_hang), using Pull Up Bar. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-55ece021-075a-45d1-bc49-d6adcedda387.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Left pose demonstrates straight-arm hang; right pose incorrectly adds pull-up instead of held hang."
     },
     {
       "id": "scapular_pull_up",
       "name": "Scapular Pull-Up",
       "equipment": "Pull Up Bar",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "scapular_pull_up.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Scapular Pull-Up (catalog scapular_pull_up), using Pull Up Bar. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-96144ccd-8d25-4b0e-8754-a1cb22fe4a2e.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Both arms remain straight; shoulder elevation and depression illustrated from rear angle."
     },
     {
       "id": "muscle_up_practice",
       "name": "Muscle-Up Transition Practice",
       "equipment": "Pull Up Bar",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "muscle_up_practice.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Muscle-Up Transition Practice (catalog muscle_up_practice), using Pull Up Bar. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-478e3a93-c3ba-458c-96a2-7c81ff9a382b.png",
+      "width": 1132,
+      "height": 1390,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Bar transition illustrated from below-bar position to supported position above bar."
     },
     {
       "id": "suitcase_carry",
       "name": "Suitcase Carry",
       "equipment": "Dumbbells · Floor Space",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "suitcase_carry.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Suitcase Carry (catalog suitcase_carry), using Dumbbells · Floor Space. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-799c6259-2a30-439a-b812-bd96895a62b5.png",
+      "width": 1154,
+      "height": 1363,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Single dumbbell at side, upright and walking positions visible."
     },
     {
       "id": "farmers_carry",
       "name": "Farmer's Carry",
       "equipment": "Dumbbells · Floor Space",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "farmers_carry.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Farmer's Carry (catalog farmers_carry), using Dumbbells · Floor Space. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-02ff9012-aec1-4638-8fa7-e3e9b35580fa.png",
+      "width": 1145,
+      "height": 1374,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Two dumbbells at sides, standing and walking positions visible."
     },
     {
       "id": "plank",
       "name": "Plank",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "plank.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Plank (catalog plank), using Bodyweight. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9ec86571-ed7f-4c89-a4a6-148ac52e2bd5.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Straight-leg forearm plank present; extra kneeling setup pose."
     },
     {
       "id": "rkc_plank",
       "name": "RKC Plank",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "rkc_plank.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for RKC Plank (catalog rkc_plank), using Bodyweight. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-4dbecb28-53b4-4195-9d44-4c030e40b3bf.png",
+      "width": 1774,
+      "height": 887,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Straight-leg plank present but generic setup and edge cropping; RKC tension cues require review."
     },
     {
       "id": "side_plank",
       "name": "Side Plank",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "side_plank.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Side Plank (catalog side_plank), using Bodyweight. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-12abcef2-dd83-4e61-bf66-d100625cd069.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Side-support positions visible with stacked feet."
     },
     {
       "id": "dead_bug",
       "name": "Dead Bug",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "dead_bug.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Dead Bug (catalog dead_bug), using Bodyweight. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-5ead5aed-3a9b-42d3-8cb5-b55256f7e6d6.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Supine setup and opposite arm/leg extension visible."
     },
     {
       "id": "bird_dog",
       "name": "Bird-Dog",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "bird_dog.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Bird-Dog (catalog bird_dog), using Bodyweight. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-578be688-08f6-4184-b5a7-5a5503ec7224.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Quadruped setup and opposite arm/leg reach visible."
     },
     {
       "id": "pallof_press",
       "name": "Pallof Press",
       "equipment": "Bands or Cable Stack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "pallof_press.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Pallof Press (catalog pallof_press), using Bands or Cable Stack. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-80a4b9d7-8eb4-49f2-9b51-fd1ae5cbd562.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Press positions visible; cable direction should be checked for lateral anti-rotation resistance."
     },
     {
       "id": "hanging_knee_raise",
       "name": "Hanging Knee Raise",
       "equipment": "Pull Up Bar",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "hanging_knee_raise.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Hanging Knee Raise (catalog hanging_knee_raise), using Pull Up Bar. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-b2688044-d54f-4be6-9b92-4a3b0c3ee22f.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Straight-arm hang and raised bent knees visible."
     },
     {
       "id": "hollow_body_hold",
       "name": "Hollow Body Hold",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_pending_visual_review",
       "file": "hollow_body_hold.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Hollow Body Hold (catalog hollow_body_hold), using Bodyweight. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-d06ccc0f-2da1-49c7-a7ba-128d362e4976.png",
+      "width": 1774,
+      "height": 887,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
     },
     {
       "id": "dumbbell_curl",
       "name": "Dumbbell Curl",
       "equipment": "Dumbbells",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_pending_visual_review",
       "file": "dumbbell_curl.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Dumbbell Curl (catalog dumbbell_curl), using Dumbbells. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-20b19deb-c104-4700-a998-41225c8a1c7d.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
     },
     {
       "id": "incline_dumbbell_curl",
       "name": "Incline Dumbbell Curl",
       "equipment": "Dumbbells · Adjustable Bench",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_pending_visual_review",
       "file": "incline_dumbbell_curl.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Incline Dumbbell Curl (catalog incline_dumbbell_curl), using Dumbbells · Adjustable Bench. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-34753ce2-69e5-4e3d-8531-d17128b7ce37.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ]
     },
     {
       "id": "hammer_curl",
       "name": "Hammer Curl",
       "equipment": "Dumbbells",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_pending_visual_review",
       "file": "hammer_curl.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Hammer Curl (catalog hammer_curl), using Dumbbells. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9b81ea6e-9132-4ba6-b629-f70dcd6f92c5.png",
+      "width": 941,
+      "height": 1672,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
     },
     {
       "id": "cable_curl",
       "name": "Cable Curl",
       "equipment": "Cable Stack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_pending_visual_review",
       "file": "cable_curl.png",
-      "prompt": null
+      "prompt": "Scientific fitness education. Create transparent photographic PNG exercise asset for Cable Curl (catalog cable_curl), using Cable Stack. Reference supplies adult woman's appearance, dark ponytail, photographic finish and key-position composition. Same adult athletic woman wearing black sports bra, black shorts, white trainers. Show two distinctly separate full-body key positions at equal anatomical scale, start and end of the named movement; for static holds show one correct held position. Choose side or three-quarter angle that clearly explains technique and specific variant. Use correct exercise-specific apparatus, realistic anatomy, hands and mechanics. All limbs, shoes and equipment fully inside canvas with generous transparent margins on every edge. No overlapping silhouettes. True transparent background including between limbs; no backdrop, floor, scene, text, logos, arrows, watermark or checkerboard. Neutral instructional presentation.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-1e69571f-c355-46fd-8781-37ae7cd17e8b.png",
+      "width": 1199,
+      "height": 1312,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
     },
     {
       "id": "band_curl",
@@ -5424,6 +5732,13 @@
       "conclusion": "success",
       "url": "https://evoryder8-collab.github.io/APXAppiC/",
       "note": "25 generated PNGs plus supplied reference; full library ongoing."
+    },
+    {
+      "commit": "00788be8a6",
+      "workflow_run": 37130936284,
+      "conclusion": "success",
+      "url": "https://evoryder8-collab.github.io/APXAppiC/",
+      "note": "50 generated PNGs plus supplied reference; full library ongoing."
     }
   ]
 }
