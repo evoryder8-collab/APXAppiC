@@ -12,7 +12,7 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 
 ## Progress
 
-138 generated; 1 supplied reference; 410 pending.
+168 generated; 1 supplied reference; 380 pending.
 
 | Order | Catalog ID | Exercise | Status |
 | --- | --- | --- | --- |
@@ -155,36 +155,36 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 137 | `diaphragmatic_breathing` | Diaphragmatic Breathing | generated_reviewed |
 | 138 | `joint_circles` | Controlled Articular Rotations | generated_reviewed |
 | 139 | `pec_deck` | Pec Deck | generated_reviewed |
-| 140 | `incline_chest_press_machine` | Incline Chest Press Machine | pending |
-| 141 | `converging_row_machine` | Converging Row Machine | pending |
-| 142 | `straight_arm_pulldown` | Straight-Arm Pulldown | pending |
-| 143 | `pullover_machine` | Pullover Machine | pending |
-| 144 | `assisted_pull_up_machine` | Assisted Pull-Up Machine | pending |
-| 145 | `preacher_curl_machine` | Preacher Curl Machine | pending |
-| 146 | `triceps_pushdown` | Triceps Pushdown | pending |
-| 147 | `dip_machine` | Seated Dip Machine | pending |
-| 148 | `shrug` | Dumbbell Shrug | pending |
-| 149 | `upright_row` | Cable Upright Row | pending |
-| 150 | `machine_lateral_raise` | Machine Lateral Raise | pending |
-| 151 | `hip_adduction` | Hip Adduction Machine | pending |
-| 152 | `copenhagen_plank` | Copenhagen Plank | pending |
-| 153 | `cable_kickback` | Cable Glute Kickback | pending |
-| 154 | `cable_pull_through` | Cable Pull-Through | pending |
-| 155 | `belt_squat` | Belt Squat | pending |
-| 156 | `pendulum_squat` | Pendulum Squat | pending |
-| 157 | `calf_press_leg_press` | Calf Press on Leg Press | pending |
-| 158 | `machine_crunch` | Machine Crunch | pending |
-| 159 | `cable_crunch` | Cable Crunch | pending |
-| 160 | `back_extension_machine` | Back Extension Machine | pending |
-| 161 | `hip_thrust_smith` | Smith Machine Hip Thrust | pending |
-| 162 | `landmine_row` | Landmine Row | pending |
-| 163 | `landmine_squat` | Landmine Squat | pending |
-| 164 | `pilates_hundred` | The Hundred | pending |
-| 165 | `pilates_roll_up` | Roll-Up | pending |
-| 166 | `pilates_single_leg_circle` | Single Leg Circles | pending |
-| 167 | `pilates_single_leg_stretch` | Single Leg Stretch | pending |
-| 168 | `pilates_double_leg_stretch` | Double Leg Stretch | pending |
-| 169 | `pilates_scissors` | Pilates Scissors | pending |
+| 140 | `incline_chest_press_machine` | Incline Chest Press Machine | generated_needs_review |
+| 141 | `converging_row_machine` | Converging Row Machine | generated_reviewed |
+| 142 | `straight_arm_pulldown` | Straight-Arm Pulldown | generated_reviewed |
+| 143 | `pullover_machine` | Pullover Machine | generated_needs_review |
+| 144 | `assisted_pull_up_machine` | Assisted Pull-Up Machine | generated_reviewed |
+| 145 | `preacher_curl_machine` | Preacher Curl Machine | generated_reviewed |
+| 146 | `triceps_pushdown` | Triceps Pushdown | generated_reviewed |
+| 147 | `dip_machine` | Seated Dip Machine | generated_needs_review |
+| 148 | `shrug` | Dumbbell Shrug | generated_reviewed |
+| 149 | `upright_row` | Cable Upright Row | generated_needs_review |
+| 150 | `machine_lateral_raise` | Machine Lateral Raise | generated_needs_review |
+| 151 | `hip_adduction` | Hip Adduction Machine | generated_needs_review |
+| 152 | `copenhagen_plank` | Copenhagen Plank | generated_needs_review |
+| 153 | `cable_kickback` | Cable Glute Kickback | generated_reviewed |
+| 154 | `cable_pull_through` | Cable Pull-Through | generated_needs_review |
+| 155 | `belt_squat` | Belt Squat | generated_reviewed |
+| 156 | `pendulum_squat` | Pendulum Squat | generated_needs_review |
+| 157 | `calf_press_leg_press` | Calf Press on Leg Press | generated_needs_review |
+| 158 | `machine_crunch` | Machine Crunch | generated_needs_review |
+| 159 | `cable_crunch` | Cable Crunch | generated_reviewed |
+| 160 | `back_extension_machine` | Back Extension Machine | generated_needs_review |
+| 161 | `hip_thrust_smith` | Smith Machine Hip Thrust | generated_needs_review |
+| 162 | `landmine_row` | Landmine Row | generated_needs_review |
+| 163 | `landmine_squat` | Landmine Squat | generated_needs_review |
+| 164 | `pilates_hundred` | The Hundred | generated_reviewed |
+| 165 | `pilates_roll_up` | Roll-Up | generated_reviewed |
+| 166 | `pilates_single_leg_circle` | Single Leg Circles | generated_needs_review |
+| 167 | `pilates_single_leg_stretch` | Single Leg Stretch | generated_reviewed |
+| 168 | `pilates_double_leg_stretch` | Double Leg Stretch | generated_reviewed |
+| 169 | `pilates_scissors` | Pilates Scissors | generated_needs_review |
 | 170 | `pilates_teaser` | Teaser | pending |
 | 171 | `pilates_swan` | Swan | pending |
 | 172 | `pilates_saw` | Saw | pending |

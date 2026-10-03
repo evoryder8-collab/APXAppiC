@@ -2522,270 +2522,540 @@
       "name": "Incline Chest Press Machine",
       "equipment": "Chest Press Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "incline_chest_press_machine.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Incline Chest Press Machine. Movement mechanics: Seated against inclined backrest, handles beside upper chest then pressed upward-forward with elbows extended.. Equipment: Chest Press Machine. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-b0f78e54-a3de-4e5d-aa65-6475fa3c9904.png",
+      "width": 1174,
+      "height": 1339,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Inclined seated press positions visible; right shoe and machine handle touch/cross edge."
     },
     {
       "id": "converging_row_machine",
       "name": "Converging Row Machine",
       "equipment": "Row Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "converging_row_machine.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Converging Row Machine. Movement mechanics: Seated chest against pad, arms forward gripping handles then elbows drawn backward and handles to ribs.. Equipment: Row Machine. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-c248bf7f-06cb-4303-9593-fd3f46b424a0.png",
+      "width": 1151,
+      "height": 1366,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Chest-supported machine row with extended and pulled-back handles."
     },
     {
       "id": "straight_arm_pulldown",
       "name": "Straight-Arm Pulldown",
       "equipment": "Cable Stack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "straight_arm_pulldown.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Straight-Arm Pulldown. Movement mechanics: Standing slight hip hinge facing high cable, nearly straight elbows; bar above head then bar pulled in arc down to thighs.. Equipment: Cable Stack. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-24d26428-9843-4495-a6b1-1a6066f08ec0.png",
+      "width": 941,
+      "height": 1672,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Straight-arm high cable arc from overhead toward thighs visible."
     },
     {
       "id": "pullover_machine",
       "name": "Pullover Machine",
       "equipment": "Pullover Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "pullover_machine.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Pullover Machine. Movement mechanics: Seated supported machine with upper arms on pads, elbows bent; arms overhead then upper arms brought downward in front of torso.. Equipment: Pullover Machine. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-d8985fb4-7e2e-476e-81fc-d09ba990b398.png",
+      "width": 1070,
+      "height": 1470,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Overhead and lowered machine arm positions visible; right foot clipped."
     },
     {
       "id": "assisted_pull_up_machine",
       "name": "Assisted Pull-Up Machine",
       "equipment": "Assisted Pull Up Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "assisted_pull_up_machine.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Assisted Pull-Up Machine. Movement mechanics: Knees supported by machine's counterweighted kneeling platform; overhand bar grip, straight-arm hang then chin above bar.. Equipment: Assisted Pull Up Machine. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-55144c76-79e8-409e-827c-e63bdd8cf900.png",
+      "width": 941,
+      "height": 1671,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Knees supported on counterweighted platform, hanging and upper pull-up positions visible."
     },
     {
       "id": "preacher_curl_machine",
       "name": "Preacher Curl Machine",
       "equipment": "Preacher Curl Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "preacher_curl_machine.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Preacher Curl Machine. Movement mechanics: Seated upper arms supported on angled preacher pad, handles low with elbows almost straight then elbows flexed to bring handles up.. Equipment: Preacher Curl Machine. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-f4be3b90-8858-4b08-a82a-13b6b438947e.png",
+      "width": 1132,
+      "height": 1390,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Upper arms supported by preacher pad, extended and curled elbow positions visible."
     },
     {
       "id": "triceps_pushdown",
       "name": "Triceps Pushdown",
       "equipment": "Cable Stack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "triceps_pushdown.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Triceps Pushdown. Movement mechanics: Standing facing high cable with rope attachment, upper arms fixed beside torso; elbows bent then straightened to press rope ends toward thighs.. Equipment: Cable Stack. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-63b9aa8b-359d-47c2-b703-1e95e70b025c.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Rope pushdown from flexed to extended elbows shown."
     },
     {
       "id": "dip_machine",
       "name": "Seated Dip Machine",
       "equipment": "Dip Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "dip_machine.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Seated Dip Machine. Movement mechanics: Seated upright with back supported and hands gripping handles beside waist; elbows bent then straightened to press handles downward.. Equipment: Dip Machine. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-08f4a058-0596-4f6f-beba-1f8be9ce200e.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Seated handle pushdown visible; right shoe cropped at edge."
     },
     {
       "id": "shrug",
       "name": "Dumbbell Shrug",
       "equipment": "Dumbbells",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "shrug.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Dumbbell Shrug. Movement mechanics: Standing with dumbbells beside thighs, arms straight; relaxed shoulders then shoulders lifted toward ears without bending elbows.. Equipment: Dumbbells. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-ad329002-fd27-4094-8a3e-d8114045d7d9.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Dumbbell shrug with straight arms and elevated shoulders shown."
     },
     {
       "id": "upright_row",
       "name": "Cable Upright Row",
       "equipment": "Cable Stack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "upright_row.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Cable Upright Row. Movement mechanics: Standing low-cable straight bar grip, bar near thighs then raised toward upper chest with elbows higher than hands.. Equipment: Cable Stack. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-b2d58039-c6f3-4006-8997-2ce89d9c969e.png",
+      "width": 941,
+      "height": 1672,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Cable upright row elbow-high position visible; right elbow touches edge."
     },
     {
       "id": "machine_lateral_raise",
       "name": "Machine Lateral Raise",
       "equipment": "Lateral Raise Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "machine_lateral_raise.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Machine Lateral Raise. Movement mechanics: Seated on lateral raise machine, elbows bent with pads against outer upper arms; upper arms lowered then raised sideways to shoulder height.. Equipment: Lateral Raise Machine. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-13556d73-cd04-499c-b697-70e83d57ef57.png",
+      "width": 1183,
+      "height": 1330,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Upper-arm pads raised to shoulder height; right shoe and handle clipped at edge."
     },
     {
       "id": "hip_adduction",
       "name": "Hip Adduction Machine",
       "equipment": "Adduction Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "hip_adduction.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Hip Adduction Machine. Movement mechanics: Seated in adduction machine with pads on INNER thighs; knees wide then brought together against resistance.. Equipment: Adduction Machine. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-e4b3ed2e-117f-43a7-a8b7-437a46b24bb8.png",
+      "width": 941,
+      "height": 1672,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Inner-thigh pads and wide/closed knees shown; hands touch edges."
     },
     {
       "id": "copenhagen_plank",
       "name": "Copenhagen Plank",
       "equipment": "Bench",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "copenhagen_plank.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Copenhagen Plank. Movement mechanics: ONE held side plank: forearm supporting torso, top leg supported horizontally on bench at ankle or knee, lower leg lifted close below top leg. Hips level, straight body, bench visible.. Equipment: Bench. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black full-length leggings and fully covering black long-sleeved training top, white trainers. ONE representative held full-body pose. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-c4b36bb8-359f-484f-b05e-744ebfac7e6f.png",
+      "width": 1774,
+      "height": 887,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Upper leg supported by bench; lower foot appears to touch bench frame rather than float freely."
     },
     {
       "id": "cable_kickback",
       "name": "Cable Glute Kickback",
       "equipment": "Cable Stack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "cable_kickback.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Cable Glute Kickback. Movement mechanics: Standing facing low cable support, cable attached by ankle cuff to working leg. Support leg stable; working hip neutral then working leg extended behind with knee soft.. Equipment: Cable Stack. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-a50ba788-4e65-4305-b30e-e97e76bc836d.png",
+      "width": 1154,
+      "height": 1363,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Low-cable ankle cuff with standing and hip-extension phases visible."
     },
     {
       "id": "cable_pull_through",
       "name": "Cable Pull-Through",
       "equipment": "Cable Stack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "cable_pull_through.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Cable Pull-Through. Movement mechanics: Standing with low pulley BEHIND athlete, rope threaded between legs and hands holding ends; hips hinged back then upright hip extension, neutral spine.. Equipment: Cable Stack. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-2935aafc-9542-4f54-b182-6b816e44d813.png",
+      "width": 1152,
+      "height": 1366,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Low cable behind body through legs, hinge and upright positions; right shoe clipped."
     },
     {
       "id": "belt_squat",
       "name": "Belt Squat",
       "equipment": "Belt Squat Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "belt_squat.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Belt Squat. Movement mechanics: Standing on belt squat platform with loaded belt around hips linked downward to resistance. Upright then deep squat, torso upright, no weight at shoulders.. Equipment: Belt Squat Machine. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-7e43d007-b94c-4362-8787-300ebe977742.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Standing and deep squat with loaded hip belt."
     },
     {
       "id": "pendulum_squat",
       "name": "Pendulum Squat",
       "equipment": "Pendulum Squat Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "pendulum_squat.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Pendulum Squat. Movement mechanics: Standing in pendulum squat machine under shoulder pads with back supported and feet on angled platform; upright then knees/hips flexed to deep squat.. Equipment: Pendulum Squat Machine. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-6784f821-c7ab-4e54-b5f6-db26a041a59f.png",
+      "width": 1151,
+      "height": 1367,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Recognizable squat positions; left plate axle reaches canvas edge."
     },
     {
       "id": "calf_press_leg_press",
       "name": "Calf Press on Leg Press",
       "equipment": "Leg Press Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "calf_press_leg_press.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Calf Press on Leg Press. Movement mechanics: Seated reclined leg press with knees nearly straight, FOREFOOT only on lower edge of footplate; ankles dorsiflexed then plantarflexed, knees unchanged.. Equipment: Leg Press Machine. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-0174d407-64e5-4861-89f9-2e0c7eee2e26.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Straight legs and ankle press shown; apparatus reaches edges. Check forefoot placement."
     },
     {
       "id": "machine_crunch",
       "name": "Machine Crunch",
       "equipment": "Ab Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "machine_crunch.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Machine Crunch. Movement mechanics: Seated abdominal crunch machine, chest/shoulder pads against torso. Upright then curled torso forward through trunk flexion.. Equipment: Ab Machine. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-68e605d5-9d41-4ad2-9cd3-a62e272e45bc.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Seated trunk flexion shown; right shoe clipped at canvas edge."
     },
     {
       "id": "cable_crunch",
       "name": "Cable Crunch",
       "equipment": "Cable Stack",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "cable_crunch.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Cable Crunch. Movement mechanics: Kneeling facing high cable with rope held near temples, hips stable; torso tall then ribs curl downward toward pelvis.. Equipment: Cable Stack. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-c1e7170b-0416-4af5-b5c5-2b3639955375.png",
+      "width": 1165,
+      "height": 1350,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Kneeling rope crunch positions visible; complete athlete."
     },
     {
       "id": "back_extension_machine",
       "name": "Back Extension Machine",
       "equipment": "Back Extension Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "back_extension_machine.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Back Extension Machine. Movement mechanics: Seated back-extension machine with pad behind upper back, hips secured; torso leaning forward then extended to neutral upright.. Equipment: Back Extension Machine. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-3cf46bb5-3c39-4eb4-94af-3d93b6246dfa.png",
+      "width": 1173,
+      "height": 1341,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Seated forward lean and upright extension shown; right platform cropped."
     },
     {
       "id": "hip_thrust_smith",
       "name": "Smith Machine Hip Thrust",
       "equipment": "Smith Machine · Bench",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "hip_thrust_smith.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Smith Machine Hip Thrust. Movement mechanics: Upper back supported on bench, feet planted, Smith bar padded across hip crease. Hips lowered then extended to align torso/thighs, bar slides on vertical rails.. Equipment: Smith Machine · Bench. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-0fc5cb20-62f8-42bb-bb97-be8cc783d034.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Low and high hip thrust positions; right shoe clipped and frame cropped."
     },
     {
       "id": "landmine_row",
       "name": "Landmine Row",
       "equipment": "Landmine · Barbell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "landmine_row.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Landmine Row. Movement mechanics: Bent-over hip hinge straddling landmine bar fixed at one end, neutral spine; V-handle held with arms extended then pulled toward lower ribs.. Equipment: Landmine · Barbell. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-473c6bcd-ab8d-478a-bd44-9f292d103d89.png",
+      "width": 1145,
+      "height": 1374,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Hinged row positions visible; second bar anchor extends beyond canvas."
     },
     {
       "id": "landmine_squat",
       "name": "Landmine Squat",
       "equipment": "Landmine · Barbell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "landmine_squat.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Landmine Squat. Movement mechanics: Standing with both hands supporting weighted free end of angled landmine bar at upper chest; upright then deep squat keeping bar in front.. Equipment: Landmine · Barbell. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black sports bra and black athletic shorts, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-3def82b0-9372-4ce0-bdc4-e77cc7ff542d.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Standing and squat shown; landmine bar is visibly disconnected from its anchor."
     },
     {
       "id": "pilates_hundred",
       "name": "The Hundred",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "pilates_hundred.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for The Hundred. Movement mechanics: ONE supine held Pilates Hundred: head/shoulders lifted, both straight legs together diagonally above ground, straight arms hovering alongside torso, palms down.. Equipment: Mat. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black full-length leggings and fully covering black long-sleeved training top, white trainers. ONE representative held full-body pose. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-7fbb5b9b-a628-41b9-89d1-b983db385e0b.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Curled head and shoulders, extended elevated legs, arms alongside torso."
     },
     {
       "id": "pilates_roll_up",
       "name": "Roll-Up",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "pilates_roll_up.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Roll-Up. Movement mechanics: Two stages: supine with straight legs together and arms overhead; seated with spine curved reaching arms toward feet, legs remain straight.. Equipment: Mat. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black full-length leggings and fully covering black long-sleeved training top, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-56c07c2b-3ed8-4589-b700-c28cae5760dd.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Supine start and seated forward-reaching position shown."
     },
     {
       "id": "pilates_single_leg_circle",
       "name": "Single Leg Circles",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "pilates_single_leg_circle.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Single Leg Circles. Movement mechanics: Supine with arms alongside torso, one leg straight along ground and other straight vertical; second pose raised leg circles slightly across midline, pelvis stable.. Equipment: Mat. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black full-length leggings and fully covering black long-sleeved training top, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-387aa2bc-7cfc-4b4d-afed-42b18a77c3a7.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Single raised leg positions shown; head is lifted rather than resting on mat."
     },
     {
       "id": "pilates_single_leg_stretch",
       "name": "Single Leg Stretch",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "pilates_single_leg_stretch.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Single Leg Stretch. Movement mechanics: Supine curled shoulders, one knee drawn toward chest with both hands, opposite leg straight hovering; second pose legs switched.. Equipment: Mat. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black full-length leggings and fully covering black long-sleeved training top, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-cae9e356-68d2-4272-ac9a-913d82c4808a.png",
+      "width": 1208,
+      "height": 1302,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Alternating bent knee and extended hovering leg shown."
     },
     {
       "id": "pilates_double_leg_stretch",
       "name": "Double Leg Stretch",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "pilates_double_leg_stretch.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Double Leg Stretch. Movement mechanics: Supine shoulders curled, both knees tucked and hands by shins; then both arms reaching overhead and both legs straight diagonally outward.. Equipment: Mat. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black full-length leggings and fully covering black long-sleeved training top, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-a3a0c8ed-f96f-4f70-8b05-08fb515be94c.png",
+      "width": 1166,
+      "height": 1349,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Both knees drawn in then arms and legs extended; full athlete visible."
     },
     {
       "id": "pilates_scissors",
       "name": "Pilates Scissors",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "pilates_scissors.png",
-      "prompt": null
+      "prompt": "Photographic fitness instruction for Pilates Scissors. Movement mechanics: Supine shoulders curled, one straight leg raised toward torso held behind calf while other straight leg hovers low; second pose alternate legs.. Equipment: Mat. Reference ONLY supplies same adult woman's face, ponytail and photoreal cutout finish. Wear black full-length leggings and fully covering black long-sleeved training top, white trainers. TWO distinct complete key positions, matching scale and same camera angle, clearly separated. Realistic anatomy, hands, apparatus and contact points. Entire figures, hands, shoes and essential apparatus comfortably within canvas, generous transparent margins on EVERY edge. True transparent PNG background, transparent limb gaps; no scenery, floor, shadows, labels, arrows, text, logos, watermark or checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-5e55c498-77b0-4e7c-a4d9-b7e5ff069001.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Raised leg held with hands; second illustration bends the raised knee instead of clearly alternating straight legs."
     },
     {
       "id": "pilates_teaser",
@@ -6240,6 +6510,12 @@
     {
       "commit": "15b9a655df1281ea77604e05088ed3a5c3e49ccf",
       "run_id": 37134225104,
+      "status": "success",
+      "url": "https://evoryder8-collab.github.io/APXAppiC/"
+    },
+    {
+      "commit": "456c53619f1b24f7a1155b3242112d72555e87dc",
+      "run_id": 37135222162,
       "status": "success",
       "url": "https://evoryder8-collab.github.io/APXAppiC/"
     }
