@@ -12,7 +12,7 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 
 ## Progress
 
-288 generated; 1 supplied reference; 260 pending.
+318 generated; 1 supplied reference; 230 pending.
 
 | Order | Catalog ID | Exercise | Status |
 | --- | --- | --- | --- |
@@ -305,36 +305,36 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 287 | `prone_floor_row` | Prone Floor Row | generated_reviewed |
 | 288 | `table_row` | Table Row | generated_reviewed |
 | 289 | `towel_door_row` | Towel Door Row | generated_reviewed |
-| 290 | `band_lat_pullover` | Band Lat Pullover | pending |
-| 291 | `dumbbell_pullover` | Dumbbell Pullover | pending |
-| 292 | `floor_pullover` | Floor Pullover | pending |
-| 293 | `towel_door_pulldown` | Towel Door Pulldown | pending |
-| 294 | `band_straight_arm_pulldown` | Band Straight-Arm Pulldown | pending |
-| 295 | `wall_sit` | Wall Sit | pending |
-| 296 | `cossack_squat` | Cossack Squat | pending |
-| 297 | `lateral_lunge` | Lateral Lunge | pending |
-| 298 | `shrimp_squat` | Shrimp Squat | pending |
-| 299 | `chair_step_up` | Chair Step-Up | pending |
-| 300 | `single_leg_glute_bridge` | Single-Leg Glute Bridge | pending |
-| 301 | `nordic_eccentric` | Nordic Curl, Eccentric | pending |
-| 302 | `hamstring_walkout` | Hamstring Walkout | pending |
-| 303 | `band_good_morning` | Band Good Morning | pending |
-| 304 | `band_overhead_press` | Band Overhead Press | pending |
-| 305 | `wall_walk` | Wall Walk | pending |
-| 306 | `backpack_carry` | Loaded Backpack Carry | pending |
-| 307 | `suitcase_hold` | Suitcase Hold | pending |
-| 308 | `tibialis_raise` | Tibialis Raise | pending |
-| 309 | `heel_walk` | Heel Walk | pending |
-| 310 | `short_foot` | Short Foot Drill | pending |
-| 311 | `plate_pinch` | Plate Pinch | pending |
-| 312 | `towel_hang` | Towel Hang | pending |
-| 313 | `wrist_roller` | Wrist Roller | pending |
-| 314 | `neck_isometric` | Neck Isometric | pending |
-| 315 | `chin_tuck` | Chin Tuck | pending |
-| 316 | `side_plank_knees` | Side Plank from Knees | pending |
-| 317 | `dumbbell_side_bend` | Dumbbell Side Bend | pending |
-| 318 | `kettlebell_turkish_get_up` | Kettlebell Turkish Get-Up | pending |
-| 319 | `half_turkish_get_up` | Half Turkish Get-Up | pending |
+| 290 | `band_lat_pullover` | Band Lat Pullover | generated_reviewed |
+| 291 | `dumbbell_pullover` | Dumbbell Pullover | generated_reviewed |
+| 292 | `floor_pullover` | Floor Pullover | generated_reviewed |
+| 293 | `towel_door_pulldown` | Towel Door Pulldown | generated_reviewed |
+| 294 | `band_straight_arm_pulldown` | Band Straight-Arm Pulldown | generated_reviewed |
+| 295 | `wall_sit` | Wall Sit | generated_reviewed |
+| 296 | `cossack_squat` | Cossack Squat | generated_needs_review |
+| 297 | `lateral_lunge` | Lateral Lunge | generated_reviewed |
+| 298 | `shrimp_squat` | Shrimp Squat | generated_reviewed |
+| 299 | `chair_step_up` | Chair Step-Up | generated_needs_review |
+| 300 | `single_leg_glute_bridge` | Single-Leg Glute Bridge | generated_reviewed |
+| 301 | `nordic_eccentric` | Nordic Curl, Eccentric | generated_reviewed |
+| 302 | `hamstring_walkout` | Hamstring Walkout | generated_reviewed |
+| 303 | `band_good_morning` | Band Good Morning | generated_reviewed |
+| 304 | `band_overhead_press` | Band Overhead Press | generated_reviewed |
+| 305 | `wall_walk` | Wall Walk | generated_reviewed |
+| 306 | `backpack_carry` | Loaded Backpack Carry | generated_reviewed |
+| 307 | `suitcase_hold` | Suitcase Hold | generated_reviewed |
+| 308 | `tibialis_raise` | Tibialis Raise | generated_reviewed |
+| 309 | `heel_walk` | Heel Walk | generated_reviewed |
+| 310 | `short_foot` | Short Foot Drill | generated_reviewed |
+| 311 | `plate_pinch` | Plate Pinch | generated_reviewed |
+| 312 | `towel_hang` | Towel Hang | generated_reviewed |
+| 313 | `wrist_roller` | Wrist Roller | generated_reviewed |
+| 314 | `neck_isometric` | Neck Isometric | generated_reviewed |
+| 315 | `chin_tuck` | Chin Tuck | generated_reviewed |
+| 316 | `side_plank_knees` | Side Plank from Knees | generated_reviewed |
+| 317 | `dumbbell_side_bend` | Dumbbell Side Bend | generated_reviewed |
+| 318 | `kettlebell_turkish_get_up` | Kettlebell Turkish Get-Up | generated_reviewed |
+| 319 | `half_turkish_get_up` | Half Turkish Get-Up | generated_reviewed |
 | 320 | `kettlebell_windmill` | Kettlebell Windmill | pending |
 | 321 | `kettlebell_around_the_world` | Kettlebell Around-the-World | pending |
 | 322 | `kettlebell_halo` | Kettlebell Halo | pending |
