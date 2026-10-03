@@ -2072,225 +2072,450 @@
       "name": "Jumping Jack",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "jumping_jack.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Jumping Jack. Start upright feet together and arms down. End feet spread apart and arms overhead in a jumping jack. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use TWO distinctly separate complete key positions at equal anatomical scale. Accurate anatomy and exercise equipment: Bodyweight. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-d65257bd-649a-4ff5-8571-70c114e9265a.png",
+      "width": 1144,
+      "height": 1375,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Feet-together arms-down and feet-apart arms-overhead positions visible."
     },
     {
       "id": "box_jump",
       "name": "Box Jump",
       "equipment": "Plyo Box",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "box_jump.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Box Jump. Start on ground in slight crouch beside sturdy plyometric box. End landed on top of box with both feet and knees bent. Two complete side-view poses and boxes. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use TWO distinctly separate complete key positions at equal anatomical scale. Accurate anatomy and exercise equipment: Plyo Box. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-90ad9092-6ea9-41f0-b36e-7828f49fb8f9.png",
+      "width": 1211,
+      "height": 1299,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Ground preparation and box landing shown; left fingertips cropped at side."
     },
     {
       "id": "squat_jump",
       "name": "Squat Jump",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "squat_jump.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Squat Jump. Start half squat with hips back and arms behind. End airborne with hips and knees extended, feet clearly lifted, arms forward. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use TWO distinctly separate complete key positions at equal anatomical scale. Accurate anatomy and exercise equipment: Bodyweight. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9cc74d6d-69f0-42bd-87b9-8c8078655ebf.png",
+      "width": 1153,
+      "height": 1364,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Squat preparation and airborne extension shown; hands cropped at sides."
     },
     {
       "id": "broad_jump",
       "name": "Broad Jump",
       "equipment": "Floor Space",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "broad_jump.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Broad Jump. Start crouched with arms swung back. End airborne moving forward with legs in front preparing landing and arms forward. Two isolated side views. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use TWO distinctly separate complete key positions at equal anatomical scale. Accurate anatomy and exercise equipment: Floor Space. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-c9033718-0e09-49f5-8c2a-619862991284.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Countermovement preparation and airborne forward jump shown."
     },
     {
       "id": "battle_ropes",
       "name": "Battle Ropes",
       "equipment": "Battle Ropes",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "battle_ropes.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Battle Ropes. Athlete in athletic half squat gripping one thick rope end in each hand, alternating up-down arm phases create clear waves through two parallel ropes. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use TWO distinctly separate complete key positions at equal anatomical scale. Accurate anatomy and exercise equipment: Battle Ropes. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-28e1000d-fc90-4d02-8305-de6dbd5576b3.png",
+      "width": 1240,
+      "height": 1268,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Rope-wave motion recognizable; ropes cropped and overlap next silhouette."
     },
     {
       "id": "downward_dog",
       "name": "Downward-Facing Dog",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "downward_dog.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Downward-Facing Dog. Held inverted V shape: palms and feet grounded, arms straight, hips high, legs straight, head between arms. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use ONE complete representative held position. Accurate anatomy and exercise equipment: Mat. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-acf7727c-5556-40d2-b097-abe03182c60b.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Inverted-V held position with straight arms and raised hips."
     },
     {
       "id": "childs_pose",
       "name": "Child's Pose",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "childs_pose.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Child's Pose. Held kneeling rest: hips toward heels, torso folded over thighs, forehead lowered, arms extended on ground ahead. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use ONE complete representative held position. Accurate anatomy and exercise equipment: Mat. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-0e1f7fd1-799c-4358-95a0-2c73394b3e78.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Kneeling folded rest with extended arms shown."
     },
     {
       "id": "cat_cow",
       "name": "Cat-Cow",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "cat_cow.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Cat-Cow. Two quadruped poses: cat rounds spine upward with head lowered; cow gently arches spine with chest lifted. Hands under shoulders and knees under hips. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use ONE complete representative held position. Accurate anatomy and exercise equipment: Mat. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9ee9f0c2-058d-4f3a-b553-ca091ce473fa.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Quadruped rounded and extended spine positions shown."
     },
     {
       "id": "cobra_pose",
       "name": "Cobra",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "cobra_pose.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Cobra. Held prone cobra: pelvis and legs remain on ground, hands beside chest, elbows soft, torso lifted into gentle back extension. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use ONE complete representative held position. Accurate anatomy and exercise equipment: Mat. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-040b5471-1d19-4e68-a833-765052c4af1a.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Prone torso lift with pelvis and legs supported."
     },
     {
       "id": "warrior_two",
       "name": "Warrior II",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "warrior_two.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Warrior II. Held Warrior II standing lunge: front knee bent above ankle, back leg straight and foot turned out, torso upright, arms horizontal in opposite directions, look over front hand. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use ONE complete representative held position. Accurate anatomy and exercise equipment: Mat. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-734bccca-f22f-40f5-92af-cbedd958c3a2.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Bent front knee, straight rear leg and horizontal arms shown."
     },
     {
       "id": "triangle_pose",
       "name": "Triangle Pose",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "triangle_pose.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Triangle Pose. Held wide-legged triangle: both legs straight, torso tilted toward front leg, lower hand at shin or block, other arm vertical, chest rotated open. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use ONE complete representative held position. Accurate anatomy and exercise equipment: Mat. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-6ccf31f1-351e-413f-96c2-98a2c6ac5cf0.png",
+      "width": 1145,
+      "height": 1374,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Straight-leg lateral fold with upper arm vertical shown."
     },
     {
       "id": "pigeon_pose",
       "name": "Pigeon Pose",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "pigeon_pose.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Pigeon Pose. Held pigeon stretch: front hip externally rotated with knee bent ahead, rear leg straight behind, pelvis supported, hands on either side and torso upright. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use ONE complete representative held position. Accurate anatomy and exercise equipment: Mat. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-e7e3245b-2577-4f4f-b6a2-88c7f086678c.png",
+      "width": 1246,
+      "height": 1262,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Pigeon leg arrangement visible; rear hand and mat clipped at right edge."
     },
     {
       "id": "forward_fold",
       "name": "Standing Forward Fold",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "forward_fold.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Standing Forward Fold. Held standing forward fold: feet hip-width, knees soft, torso folds at hips over thighs, arms hanging toward feet. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use ONE complete representative held position. Accurate anatomy and exercise equipment: Bodyweight. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-c664d84f-c57f-48e5-b217-0a359a7aabc7.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Standing hip fold with relaxed hanging arms shown."
     },
     {
       "id": "bridge_pose",
       "name": "Bridge Pose",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "bridge_pose.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Bridge Pose. Held supine bridge: shoulders and head grounded, feet planted knees bent, pelvis raised and arms alongside body. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use ONE complete representative held position. Accurate anatomy and exercise equipment: Mat. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-99f6519d-ba7b-4c07-83a7-3482ba65f940.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Supine bridge with bent knees, lifted hips and grounded shoulders."
     },
     {
       "id": "sun_salutation",
       "name": "Sun Salutation",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "sun_salutation.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Sun Salutation. Illustrative two key poses from Sun Salutation sequence: standing upward salute with arms overhead; downward-facing dog with hips high and palms and feet grounded. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use ONE complete representative held position. Accurate anatomy and exercise equipment: Mat. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9da89f18-701a-49d1-a0e5-f5b9133b9d07.png",
+      "width": 1153,
+      "height": 1364,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Upward salute and downward dog key poses shown."
     },
     {
       "id": "ninety_ninety_hip",
       "name": "90/90 Hip Mobility",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "ninety_ninety_hip.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: 90/90 Hip Mobility. Seated on ground with front and rear knees each bent at 90 degrees, front hip externally rotated and rear hip internally rotated. Show seated upright and gentle forward lean over front thigh. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use TWO distinctly separate complete key positions at equal anatomical scale. Accurate anatomy and exercise equipment: Mat. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-c71ba149-2cf4-4bed-bc75-0df662240300.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Seated 90/90 leg arrangement with upright and forward-leaning positions."
     },
     {
       "id": "figure_four_stretch",
       "name": "Figure-Four Stretch",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "figure_four_stretch.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Figure-Four Stretch. Held supine stretch: one ankle crossed over opposite thigh just above knee, both hands clasp supporting thigh behind knee and draw it toward chest. Head and back grounded. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use ONE complete representative held position. Accurate anatomy and exercise equipment: Bodyweight. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9594099d-03d8-4d31-969d-cdab52b5ea5e.png",
+      "width": 1206,
+      "height": 1304,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Crossed ankle visible, but hands grip crossed thigh while opposite foot remains grounded instead of drawing supporting thigh toward chest."
     },
     {
       "id": "couch_stretch",
       "name": "Couch Stretch",
       "equipment": "Wall",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "couch_stretch.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Couch Stretch. Held half-kneeling quadriceps stretch with rear knee on pad beside low bench and rear foot elevated against bench; front foot planted, torso upright. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use ONE complete representative held position. Accurate anatomy and exercise equipment: Wall. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-030f34e3-63ee-4b09-9720-39d73028d577.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Rear knee padded, rear foot against wall support and front foot planted."
     },
     {
       "id": "hip_flexor_stretch",
       "name": "Hip Flexor Stretch",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "hip_flexor_stretch.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Hip Flexor Stretch. Held half-kneeling lunge: rear knee grounded, front knee over ankle, pelvis gently tucked and hips shifted forward, torso upright. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use ONE complete representative held position. Accurate anatomy and exercise equipment: Bodyweight. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-3fc74b0d-0359-4fd1-8a2f-9ef1907571ac.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Upright half-kneeling hip-flexor stretch shown."
     },
     {
       "id": "thoracic_extension",
       "name": "Thoracic Extension",
       "equipment": "Chair or Foam Roller",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "thoracic_extension.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Thoracic Extension. Two seated supported poses: sit with back of chair at mid-back, hands supporting head, lean upper back gently backward over chair while lower torso stays stable. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use TWO distinctly separate complete key positions at equal anatomical scale. Accurate anatomy and exercise equipment: Chair or Foam Roller. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-b7baa37d-2f5c-47d2-baf8-a70f00997325.png",
+      "width": 1203,
+      "height": 1308,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Chair-supported upper-back extension visible; far shoe clipped at right edge."
     },
     {
       "id": "wall_slide",
       "name": "Wall Slide",
       "equipment": "Wall",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "wall_slide.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Wall Slide. Two upright wall-supported positions: back facing narrow wall support, arms in bent W at shoulder level; slide arms overhead while keeping back aligned. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use TWO distinctly separate complete key positions at equal anatomical scale. Accurate anatomy and exercise equipment: Wall. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-ae628e69-e166-4e39-86a1-987244d643b5.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Back to wall support with arms in W and overhead positions."
     },
     {
       "id": "mobility_flow",
       "name": "Sun Salutation A",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "mobility_flow.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Sun Salutation A. Two distinct full-body poses from Sun Salutation A: standing upward salute and straight-arm high plank. Show representative key poses. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use ONE complete representative held position. Accurate anatomy and exercise equipment: Bodyweight. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-a4b84c4f-7a9b-4d87-a56b-9f36c37b8134.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Upward salute and high-plank key poses shown."
     },
     {
       "id": "diaphragmatic_breathing",
       "name": "Diaphragmatic Breathing",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "diaphragmatic_breathing.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Diaphragmatic Breathing. ONE relaxed supine pose with knees bent and feet planted, one hand on lower ribs and other on abdomen, illustrating calm breathing. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use ONE complete representative held position. Accurate anatomy and exercise equipment: Bodyweight. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-0c9a9a28-3962-4ac1-bf93-eda082a11f23.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Supine bent-knee breathing illustration with hands over torso."
     },
     {
       "id": "joint_circles",
       "name": "Controlled Articular Rotations",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "joint_circles.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Controlled Articular Rotations. Two upright shoulder controlled-articular-rotation positions: one arm straight overhead; same arm moving behind torso, other arm still by side. Torso stable. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use TWO distinctly separate complete key positions at equal anatomical scale. Accurate anatomy and exercise equipment: Bodyweight. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-caa4207e-253d-4536-85a7-768e66818655.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Controlled shoulder rotation key positions shown."
     },
     {
       "id": "pec_deck",
       "name": "Pec Deck",
       "equipment": "Pec Deck Machine",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "pec_deck.png",
-      "prompt": null
+      "prompt": "Photoreal fitness instructional exercise asset: Pec Deck. Two seated machine positions facing forward with back supported: arms opened wide holding pec-deck handles; arms brought together in front of chest through horizontal shoulder adduction. Match reference adult woman's face, dark ponytail and photographic finish only, not squat pose. Wear fully covering black long-sleeved athletic training top and black full-length leggings, white trainers. Use TWO distinctly separate complete key positions at equal anatomical scale. Accurate anatomy and exercise equipment: Pec Deck Machine. Camera chosen for clear mechanics. All limbs, hands, shoes, necessary apparatus inside canvas, generous transparent margin on every side. True transparency and transparent limb gaps; no backdrop/scenery/floor/ground shadow/text/logos/arrows/watermark/checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-38dc0b97-6c83-41a8-b101-b3c980cbe36f.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Seated pec-deck opened-arm and closed-arm positions visible."
     },
     {
       "id": "incline_chest_press_machine",
@@ -6009,6 +6234,12 @@
     {
       "commit": "fbc188080240221e4f99fa963a3a7665498c1d13",
       "run_id": 37132989470,
+      "status": "success",
+      "url": "https://evoryder8-collab.github.io/APXAppiC/"
+    },
+    {
+      "commit": "15b9a655df1281ea77604e05088ed3a5c3e49ccf",
+      "run_id": 37134225104,
       "status": "success",
       "url": "https://evoryder8-collab.github.io/APXAppiC/"
     }

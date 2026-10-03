@@ -12,7 +12,7 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 
 ## Progress
 
-113 generated; 1 supplied reference; 435 pending.
+138 generated; 1 supplied reference; 410 pending.
 
 | Order | Catalog ID | Exercise | Status |
 | --- | --- | --- | --- |
@@ -130,31 +130,31 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 112 | `mountain_climber` | Mountain Climber | generated_reviewed |
 | 113 | `high_knees` | High Knees | generated_reviewed |
 | 114 | `marching_in_place` | Marching in Place | generated_reviewed |
-| 115 | `jumping_jack` | Jumping Jack | pending |
-| 116 | `box_jump` | Box Jump | pending |
-| 117 | `squat_jump` | Squat Jump | pending |
-| 118 | `broad_jump` | Broad Jump | pending |
-| 119 | `battle_ropes` | Battle Ropes | pending |
-| 120 | `downward_dog` | Downward-Facing Dog | pending |
-| 121 | `childs_pose` | Child's Pose | pending |
-| 122 | `cat_cow` | Cat-Cow | pending |
-| 123 | `cobra_pose` | Cobra | pending |
-| 124 | `warrior_two` | Warrior II | pending |
-| 125 | `triangle_pose` | Triangle Pose | pending |
-| 126 | `pigeon_pose` | Pigeon Pose | pending |
-| 127 | `forward_fold` | Standing Forward Fold | pending |
-| 128 | `bridge_pose` | Bridge Pose | pending |
-| 129 | `sun_salutation` | Sun Salutation | pending |
-| 130 | `ninety_ninety_hip` | 90/90 Hip Mobility | pending |
-| 131 | `figure_four_stretch` | Figure-Four Stretch | pending |
-| 132 | `couch_stretch` | Couch Stretch | pending |
-| 133 | `hip_flexor_stretch` | Hip Flexor Stretch | pending |
-| 134 | `thoracic_extension` | Thoracic Extension | pending |
-| 135 | `wall_slide` | Wall Slide | pending |
-| 136 | `mobility_flow` | Sun Salutation A | pending |
-| 137 | `diaphragmatic_breathing` | Diaphragmatic Breathing | pending |
-| 138 | `joint_circles` | Controlled Articular Rotations | pending |
-| 139 | `pec_deck` | Pec Deck | pending |
+| 115 | `jumping_jack` | Jumping Jack | generated_reviewed |
+| 116 | `box_jump` | Box Jump | generated_needs_review |
+| 117 | `squat_jump` | Squat Jump | generated_needs_review |
+| 118 | `broad_jump` | Broad Jump | generated_reviewed |
+| 119 | `battle_ropes` | Battle Ropes | generated_needs_review |
+| 120 | `downward_dog` | Downward-Facing Dog | generated_reviewed |
+| 121 | `childs_pose` | Child's Pose | generated_reviewed |
+| 122 | `cat_cow` | Cat-Cow | generated_reviewed |
+| 123 | `cobra_pose` | Cobra | generated_reviewed |
+| 124 | `warrior_two` | Warrior II | generated_reviewed |
+| 125 | `triangle_pose` | Triangle Pose | generated_reviewed |
+| 126 | `pigeon_pose` | Pigeon Pose | generated_needs_review |
+| 127 | `forward_fold` | Standing Forward Fold | generated_reviewed |
+| 128 | `bridge_pose` | Bridge Pose | generated_reviewed |
+| 129 | `sun_salutation` | Sun Salutation | generated_reviewed |
+| 130 | `ninety_ninety_hip` | 90/90 Hip Mobility | generated_reviewed |
+| 131 | `figure_four_stretch` | Figure-Four Stretch | generated_needs_review |
+| 132 | `couch_stretch` | Couch Stretch | generated_reviewed |
+| 133 | `hip_flexor_stretch` | Hip Flexor Stretch | generated_reviewed |
+| 134 | `thoracic_extension` | Thoracic Extension | generated_needs_review |
+| 135 | `wall_slide` | Wall Slide | generated_reviewed |
+| 136 | `mobility_flow` | Sun Salutation A | generated_reviewed |
+| 137 | `diaphragmatic_breathing` | Diaphragmatic Breathing | generated_reviewed |
+| 138 | `joint_circles` | Controlled Articular Rotations | generated_reviewed |
+| 139 | `pec_deck` | Pec Deck | generated_reviewed |
 | 140 | `incline_chest_press_machine` | Incline Chest Press Machine | pending |
 | 141 | `converging_row_machine` | Converging Row Machine | pending |
 | 142 | `straight_arm_pulldown` | Straight-Arm Pulldown | pending |
