@@ -1,0 +1,5045 @@
+{
+  "source": "APEX-exercise-library-2026-10-03.csv",
+  "date": "2026-10-03",
+  "generation_method": "Built-in GPT Image image generation; exact model version not exposed by tool",
+  "presentation": "Transparent photographic PNG; key positions; static reference, not timed animation",
+  "entries": [
+    {
+      "id": "barbell_romanian_deadlift",
+      "name": "Romanian Deadlift",
+      "equipment": "Barbell · Plates",
+      "record_type": "movement",
+      "status": "generated_reviewed",
+      "file": "barbell_romanian_deadlift.png",
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Romanian Deadlift (barbell_romanian_deadlift). Reference image supplies athlete appearance, clothing, photographic finish, and two-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating BARBELL ROMANIAN DEADLIFT. Two separate full-body views side by side, equal anatomical scale, feet on same baseline: left standing lockout holding straight barbell with modest plates in front of thighs; right hip hinge lowered position with hips pushed backward, softly bent knees, neutral back, bar close to legs around mid-shin, arms straight. Three-quarter side view makes hip hinge clear. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and barbell. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-3949829a-9218-4df1-a62d-26842e4d7a8b.png",
+      "width": 1241,
+      "height": 1268,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review_notes": "Transparent output; key positions visible. Some colored edge contamination inherited from reference; refinement may be needed on contrasting UI backgrounds."
+    },
+    {
+      "id": "dumbbell_romanian_deadlift",
+      "name": "Dumbbell Romanian Deadlift",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "generated_reviewed",
+      "file": "dumbbell_romanian_deadlift.png",
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Dumbbell Romanian Deadlift (dumbbell_romanian_deadlift). Reference image supplies athlete appearance, clothing, photographic finish, and two-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating DUMBBELL ROMANIAN DEADLIFT. Two separate full-body views side by side, equal anatomical scale, feet on same baseline: left standing lockout holding two individual dumbbells in front of thighs; right hip hinge lowered position with hips pushed backward, softly bent knees, neutral back, dumbbells close to legs around mid-shin, arms straight. Three-quarter side view makes hip hinge clear. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and dumbbells. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-6c8a7dc6-11fb-429b-98d5-88fd8dce8c80.png",
+      "width": 941,
+      "height": 1672,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review_notes": "Transparent PNG, two key positions. Selected reference-matching version. Previous maximum-alpha=255 gate was incorrect; 254 is valid.",
+      "attempts": [
+        {
+          "file": "../../docs/exercise-asset-drafts/dumbbell_romanian_deadlift-background-rejected.png",
+          "note": "Incorrectly rejected by overly strict opacity check; preserved alternate"
+        },
+        {
+          "file": "../../docs/exercise-asset-drafts/dumbbell_romanian_deadlift-background-removal-rejected.png",
+          "note": "Unnecessary background-removal retry; preserved alternate"
+        },
+        {
+          "file": "../../docs/exercise-asset-drafts/dumbbell_romanian_deadlift-fresh-alternate.png",
+          "prompt": "Create a transparent-background exercise photo cutout PNG. Two full-body views of an athletic adult woman with dark ponytail, black sports bra, black shorts and white sneakers doing a DUMBBELL ROMANIAN DEADLIFT. Left view standing holding two black dumbbells in front of thighs with straight arms. Right view hip hinging deeply with hips back, knees softly bent, neutral back, dumbbells close to shins. Side three-quarter view. Figures equally sized, fully inside canvas with padding and separate silhouettes. The background is entirely empty and transparent. Absolutely no scenery, glow, floor, smoky backdrop or shadow. Real studio photographic finish, natural fingers and anatomically correct exercise. No labels, no watermark.",
+          "note": "Fresh alternate; selected version already saved"
+        }
+      ]
+    },
+    {
+      "id": "single_leg_romanian_deadlift",
+      "name": "Single-Leg Romanian Deadlift",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "generated_reviewed",
+      "file": "single_leg_romanian_deadlift.png",
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Single-Leg Romanian Deadlift (single_leg_romanian_deadlift). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating SINGLE-LEG ROMANIAN DEADLIFT using Dumbbells. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-46e4a222-5ba4-4c06-83b6-5c6da186dbdf.png",
+      "width": 1152,
+      "height": 1366,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review_notes": "Single supporting leg and hinge shown; raised knee flexion and hinge depth may merit later technique refinement. No regeneration requested."
+    },
+    {
+      "id": "conventional_deadlift",
+      "name": "Conventional Deadlift",
+      "equipment": "Barbell · Plates",
+      "record_type": "movement",
+      "status": "generated_reviewed",
+      "file": "conventional_deadlift.png",
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Conventional Deadlift (conventional_deadlift). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating CONVENTIONAL DEADLIFT using Barbell · Plates. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-b1921df6-2a58-4660-84c2-b162d9a6e7be.png",
+      "width": 1243,
+      "height": 1266,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review_notes": "Setup and standing lockout visible with barbell; transparent PNG verified."
+    },
+    {
+      "id": "trap_bar_deadlift",
+      "name": "Trap Bar Deadlift",
+      "equipment": "Trap Bar · Plates",
+      "record_type": "movement",
+      "status": "generated_reviewed",
+      "file": "trap_bar_deadlift.png",
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Trap Bar Deadlift (trap_bar_deadlift). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating TRAP BAR DEADLIFT using Trap Bar · Plates. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-d9e675d4-af9f-4806-a9dd-f9073bb20087.png",
+      "width": 1214,
+      "height": 1295,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review_notes": "Hexagonal trap bar, inside stance, setup and lockout shown."
+    },
+    {
+      "id": "hip_thrust_barbell",
+      "name": "Barbell Hip Thrust",
+      "equipment": "Barbell · Plates · Bench",
+      "record_type": "movement",
+      "status": "generated_needs_review",
+      "file": "hip_thrust_barbell.png",
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Barbell Hip Thrust (hip_thrust_barbell). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating BARBELL HIP THRUST using Barbell · Plates · Bench. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-b655ac13-babb-45e8-a82b-742476e3c745.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Key hip thrust positions shown; right shoe is clipped by image edge. Preserve output; no automatic regeneration."
+    },
+    {
+      "id": "hip_thrust_dumbbell",
+      "name": "Dumbbell Hip Thrust",
+      "equipment": "Dumbbells · Bench",
+      "record_type": "movement",
+      "status": "generated_needs_review",
+      "file": "hip_thrust_dumbbell.png",
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Dumbbell Hip Thrust (hip_thrust_dumbbell). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating DUMBBELL HIP THRUST using Dumbbells · Bench. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-4aae9f24-b136-4244-ace8-a7c67cd0c21c.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Two hip thrust positions visible; right foot touches/crosses canvas edge. Preserve output; no automatic regeneration."
+    },
+    {
+      "id": "machine_hip_thrust",
+      "name": "Machine Hip Thrust",
+      "equipment": "Hip Thrust Machine",
+      "record_type": "movement",
+      "status": "generated_needs_review",
+      "file": "machine_hip_thrust.png",
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for Machine Hip Thrust (machine_hip_thrust). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating MACHINE HIP THRUST using Hip Thrust Machine. Two distinct full-body key positions side by side, showing the start and end (or most illustrative stages) of this specific exercise. Keep figures equal anatomical scale. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-34314490-f3f8-4bb5-9cf4-42a0ba421d95.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review_notes": "Two machine hip thrust positions visible; right-side apparatus cropped. Preserve output; no automatic regeneration."
+    },
+    {
+      "id": "b_stance_hip_thrust",
+      "name": "B-Stance Hip Thrust",
+      "equipment": "Dumbbells · Bench",
+      "record_type": "movement",
+      "status": "generated_pending_visual_review",
+      "file": "b_stance_hip_thrust.png",
+      "prompt": "Use case: scientific-educational. Asset: transparent PNG exercise-library illustration for B-Stance Hip Thrust (b_stance_hip_thrust). Reference image supplies athlete appearance, clothing, photographic finish, and key-position presentation only. Generate the same adult athletic woman, dark ponytail, black sports bra and black shorts, white trainers, demonstrating B-STANCE HIP THRUST using Dumbbells · Bench. One clear complete full-body view showing the representative held position. Choose a side or three-quarter view that clearly demonstrates correct exercise technique and the distinguishing features of this variant. Realistic exercise-specific equipment and anatomically correct positions. Entire athlete and equipment visible in each view; silhouettes do not overlap, generous transparent margin. Photoreal studio cutouts, realistic hands, anatomy and equipment. Truly transparent background including spaces around limbs and equipment. No floor, scenery, labels, text, logos, arrows, watermark, or baked checkerboard.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-98ef99dc-6b9e-4b59-aea1-0eaa1f6c4b6f.png",
+      "width": 1142,
+      "height": 1377,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ]
+    },
+    {
+      "id": "glute_bridge",
+      "name": "Glute Bridge",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "glute_bridge.png",
+      "prompt": null
+    },
+    {
+      "id": "frog_pump",
+      "name": "Frog Pump",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "frog_pump.png",
+      "prompt": null
+    },
+    {
+      "id": "back_extension",
+      "name": "Back Extension",
+      "equipment": "Back Extension Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "back_extension.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_swing",
+      "name": "Kettlebell Swing",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_swing.png",
+      "prompt": null
+    },
+    {
+      "id": "good_morning",
+      "name": "Good Morning",
+      "equipment": "Barbell · Plates · Rack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "good_morning.png",
+      "prompt": null
+    },
+    {
+      "id": "backpack_rdl",
+      "name": "Backpack Romanian Deadlift",
+      "equipment": "Backpack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "backpack_rdl.png",
+      "prompt": null
+    },
+    {
+      "id": "barbell_back_squat",
+      "name": "Barbell Back Squat",
+      "equipment": "Barbell · Plates · Rack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "barbell_back_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "barbell_front_squat",
+      "name": "Barbell Front Squat",
+      "equipment": "Barbell · Plates · Rack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "barbell_front_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "goblet_squat",
+      "name": "Goblet Squat",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "provided_reference",
+      "file": "goblet_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "heel_elevated_goblet_squat",
+      "name": "Heel-Elevated Goblet Squat",
+      "equipment": "Dumbbells · Plates or Slant Board",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "heel_elevated_goblet_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "hack_squat",
+      "name": "Hack Squat",
+      "equipment": "Hack Squat Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hack_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "leg_press",
+      "name": "Leg Press",
+      "equipment": "Leg Press Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "leg_press.png",
+      "prompt": null
+    },
+    {
+      "id": "bodyweight_squat",
+      "name": "Bodyweight Squat",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "bodyweight_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "sit_to_stand",
+      "name": "Sit-to-Stand",
+      "equipment": "Chair",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "sit_to_stand.png",
+      "prompt": null
+    },
+    {
+      "id": "pistol_squat",
+      "name": "Pistol Squat",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pistol_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "smith_machine_squat",
+      "name": "Smith Machine Squat",
+      "equipment": "Smith Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "smith_machine_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "bulgarian_split_squat",
+      "name": "Bulgarian Split Squat",
+      "equipment": "Dumbbells · Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "bulgarian_split_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "split_squat",
+      "name": "Split Squat",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "split_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "reverse_lunge",
+      "name": "Reverse Lunge",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "reverse_lunge.png",
+      "prompt": null
+    },
+    {
+      "id": "walking_lunge",
+      "name": "Walking Lunge",
+      "equipment": "Dumbbells · Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "walking_lunge.png",
+      "prompt": null
+    },
+    {
+      "id": "forward_lunge",
+      "name": "Forward Lunge",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "forward_lunge.png",
+      "prompt": null
+    },
+    {
+      "id": "step_up",
+      "name": "Step-Up",
+      "equipment": "Dumbbells · Bench or Plyo Box or Step",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "step_up.png",
+      "prompt": null
+    },
+    {
+      "id": "smith_split_squat",
+      "name": "Smith Machine Split Squat",
+      "equipment": "Smith Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "smith_split_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "barbell_bench_press",
+      "name": "Barbell Bench Press",
+      "equipment": "Barbell · Plates · Bench · Rack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "barbell_bench_press.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_bench_press",
+      "name": "Flat Dumbbell Press",
+      "equipment": "Dumbbells · Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_bench_press.png",
+      "prompt": null
+    },
+    {
+      "id": "incline_dumbbell_press",
+      "name": "Incline Dumbbell Press",
+      "equipment": "Dumbbells · Adjustable Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "incline_dumbbell_press.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_floor_press",
+      "name": "Dumbbell Floor Press",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_floor_press.png",
+      "prompt": null
+    },
+    {
+      "id": "machine_chest_press",
+      "name": "Machine Chest Press",
+      "equipment": "Chest Press Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "machine_chest_press.png",
+      "prompt": null
+    },
+    {
+      "id": "incline_smith_press",
+      "name": "Incline Smith Machine Press",
+      "equipment": "Smith Machine · Adjustable Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "incline_smith_press.png",
+      "prompt": null
+    },
+    {
+      "id": "push_up",
+      "name": "Push-Up",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "incline_push_up",
+      "name": "Incline Push-Up",
+      "equipment": "Bench or Plyo Box or Step",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "incline_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "knee_push_up",
+      "name": "Knee Push-Up",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "knee_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "feet_elevated_push_up",
+      "name": "Feet-Elevated Push-Up",
+      "equipment": "Bench or Plyo Box or Step",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "feet_elevated_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "weighted_push_up",
+      "name": "Weighted Push-Up",
+      "equipment": "Backpack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "weighted_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "diamond_push_up",
+      "name": "Diamond Push-Up",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "diamond_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "dip",
+      "name": "Parallel Bar Dip",
+      "equipment": "Dip Bars",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dip.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_fly",
+      "name": "Cable Fly",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_fly.png",
+      "prompt": null
+    },
+    {
+      "id": "barbell_overhead_press",
+      "name": "Barbell Overhead Press",
+      "equipment": "Barbell · Plates · Rack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "barbell_overhead_press.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_overhead_press",
+      "name": "Seated Dumbbell Press",
+      "equipment": "Dumbbells · Adjustable Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_overhead_press.png",
+      "prompt": null
+    },
+    {
+      "id": "machine_shoulder_press",
+      "name": "Machine Shoulder Press",
+      "equipment": "Shoulder Press Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "machine_shoulder_press.png",
+      "prompt": null
+    },
+    {
+      "id": "landmine_press",
+      "name": "Landmine Press",
+      "equipment": "Landmine · Barbell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "landmine_press.png",
+      "prompt": null
+    },
+    {
+      "id": "pike_push_up",
+      "name": "Pike Push-Up",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pike_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "elevated_pike_push_up",
+      "name": "Feet-Elevated Pike Push-Up",
+      "equipment": "Bench or Plyo Box or Step",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "elevated_pike_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "handstand_push_up",
+      "name": "Handstand Push-Up",
+      "equipment": "Wall",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "handstand_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "barbell_row",
+      "name": "Barbell Row",
+      "equipment": "Barbell · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "barbell_row.png",
+      "prompt": null
+    },
+    {
+      "id": "one_arm_dumbbell_row",
+      "name": "One-Arm Dumbbell Row",
+      "equipment": "Dumbbells · Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "one_arm_dumbbell_row.png",
+      "prompt": null
+    },
+    {
+      "id": "chest_supported_row",
+      "name": "Chest-Supported Dumbbell Row",
+      "equipment": "Dumbbells · Adjustable Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "chest_supported_row.png",
+      "prompt": null
+    },
+    {
+      "id": "machine_row",
+      "name": "Chest-Supported Machine Row",
+      "equipment": "Row Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "machine_row.png",
+      "prompt": null
+    },
+    {
+      "id": "t_bar_row",
+      "name": "Chest-Supported T-Bar Row",
+      "equipment": "T Bar Row Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "t_bar_row.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_row",
+      "name": "Seated Cable Row",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_row.png",
+      "prompt": null
+    },
+    {
+      "id": "single_arm_cable_row",
+      "name": "Single-Arm Cable Row",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_arm_cable_row.png",
+      "prompt": null
+    },
+    {
+      "id": "inverted_row",
+      "name": "Inverted Row",
+      "equipment": "Barbell or Pull Up Bar or Rings or Smith Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "inverted_row.png",
+      "prompt": null
+    },
+    {
+      "id": "band_row",
+      "name": "Band Row",
+      "equipment": "Bands",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "band_row.png",
+      "prompt": null
+    },
+    {
+      "id": "backpack_row",
+      "name": "Backpack Row",
+      "equipment": "Backpack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "backpack_row.png",
+      "prompt": null
+    },
+    {
+      "id": "pull_up",
+      "name": "Pull-Up",
+      "equipment": "Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pull_up.png",
+      "prompt": null
+    },
+    {
+      "id": "chin_up",
+      "name": "Chin-Up",
+      "equipment": "Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "chin_up.png",
+      "prompt": null
+    },
+    {
+      "id": "band_assisted_pull_up",
+      "name": "Band-Assisted Pull-Up",
+      "equipment": "Pull Up Bar · Bands",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "band_assisted_pull_up.png",
+      "prompt": null
+    },
+    {
+      "id": "lat_pulldown",
+      "name": "Neutral-Grip Lat Pulldown",
+      "equipment": "Lat Pulldown Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "lat_pulldown.png",
+      "prompt": null
+    },
+    {
+      "id": "band_lat_pulldown",
+      "name": "Band Lat Pulldown",
+      "equipment": "Bands · Anchor Point",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "band_lat_pulldown.png",
+      "prompt": null
+    },
+    {
+      "id": "dead_hang",
+      "name": "Dead Hang",
+      "equipment": "Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dead_hang.png",
+      "prompt": null
+    },
+    {
+      "id": "scapular_pull_up",
+      "name": "Scapular Pull-Up",
+      "equipment": "Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "scapular_pull_up.png",
+      "prompt": null
+    },
+    {
+      "id": "muscle_up_practice",
+      "name": "Muscle-Up Transition Practice",
+      "equipment": "Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "muscle_up_practice.png",
+      "prompt": null
+    },
+    {
+      "id": "suitcase_carry",
+      "name": "Suitcase Carry",
+      "equipment": "Dumbbells · Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "suitcase_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "farmers_carry",
+      "name": "Farmer's Carry",
+      "equipment": "Dumbbells · Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "farmers_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "plank",
+      "name": "Plank",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "plank.png",
+      "prompt": null
+    },
+    {
+      "id": "rkc_plank",
+      "name": "RKC Plank",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "rkc_plank.png",
+      "prompt": null
+    },
+    {
+      "id": "side_plank",
+      "name": "Side Plank",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "side_plank.png",
+      "prompt": null
+    },
+    {
+      "id": "dead_bug",
+      "name": "Dead Bug",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dead_bug.png",
+      "prompt": null
+    },
+    {
+      "id": "bird_dog",
+      "name": "Bird-Dog",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "bird_dog.png",
+      "prompt": null
+    },
+    {
+      "id": "pallof_press",
+      "name": "Pallof Press",
+      "equipment": "Bands or Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pallof_press.png",
+      "prompt": null
+    },
+    {
+      "id": "hanging_knee_raise",
+      "name": "Hanging Knee Raise",
+      "equipment": "Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hanging_knee_raise.png",
+      "prompt": null
+    },
+    {
+      "id": "hollow_body_hold",
+      "name": "Hollow Body Hold",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hollow_body_hold.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_curl",
+      "name": "Dumbbell Curl",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_curl.png",
+      "prompt": null
+    },
+    {
+      "id": "incline_dumbbell_curl",
+      "name": "Incline Dumbbell Curl",
+      "equipment": "Dumbbells · Adjustable Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "incline_dumbbell_curl.png",
+      "prompt": null
+    },
+    {
+      "id": "hammer_curl",
+      "name": "Hammer Curl",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hammer_curl.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_curl",
+      "name": "Cable Curl",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_curl.png",
+      "prompt": null
+    },
+    {
+      "id": "band_curl",
+      "name": "Band Curl",
+      "equipment": "Bands",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "band_curl.png",
+      "prompt": null
+    },
+    {
+      "id": "overhead_triceps_extension",
+      "name": "Overhead Triceps Extension",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "overhead_triceps_extension.png",
+      "prompt": null
+    },
+    {
+      "id": "lateral_raise",
+      "name": "Lateral Raise",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "lateral_raise.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_lateral_raise",
+      "name": "Cable Lateral Raise",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_lateral_raise.png",
+      "prompt": null
+    },
+    {
+      "id": "band_lateral_raise",
+      "name": "Band Lateral Raise",
+      "equipment": "Bands",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "band_lateral_raise.png",
+      "prompt": null
+    },
+    {
+      "id": "face_pull",
+      "name": "Cable Face Pull",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "face_pull.png",
+      "prompt": null
+    },
+    {
+      "id": "band_face_pull",
+      "name": "Band Face Pull",
+      "equipment": "Bands · Anchor Point",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "band_face_pull.png",
+      "prompt": null
+    },
+    {
+      "id": "band_pull_apart",
+      "name": "Band Pull-Apart",
+      "equipment": "Bands",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "band_pull_apart.png",
+      "prompt": null
+    },
+    {
+      "id": "reverse_pec_deck",
+      "name": "Reverse Pec Deck",
+      "equipment": "Pec Deck Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "reverse_pec_deck.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_external_rotation",
+      "name": "Cable External Rotation",
+      "equipment": "Bands or Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_external_rotation.png",
+      "prompt": null
+    },
+    {
+      "id": "lying_leg_curl",
+      "name": "Lying Leg Curl",
+      "equipment": "Leg Curl Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "lying_leg_curl.png",
+      "prompt": null
+    },
+    {
+      "id": "seated_leg_curl",
+      "name": "Seated Leg Curl",
+      "equipment": "Leg Curl Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "seated_leg_curl.png",
+      "prompt": null
+    },
+    {
+      "id": "sliding_leg_curl",
+      "name": "Sliding Leg Curl",
+      "equipment": "Sliders or Towel",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "sliding_leg_curl.png",
+      "prompt": null
+    },
+    {
+      "id": "nordic_curl",
+      "name": "Nordic Hamstring Curl",
+      "equipment": "Anchor For Feet",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "nordic_curl.png",
+      "prompt": null
+    },
+    {
+      "id": "leg_extension",
+      "name": "Leg Extension",
+      "equipment": "Leg Extension Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "leg_extension.png",
+      "prompt": null
+    },
+    {
+      "id": "hip_abduction",
+      "name": "Hip Abduction",
+      "equipment": "Abduction Machine or Bands",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hip_abduction.png",
+      "prompt": null
+    },
+    {
+      "id": "standing_calf_raise",
+      "name": "Standing Calf Raise",
+      "equipment": "Calf Raise Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "standing_calf_raise.png",
+      "prompt": null
+    },
+    {
+      "id": "seated_calf_raise",
+      "name": "Seated Calf Raise",
+      "equipment": "Calf Raise Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "seated_calf_raise.png",
+      "prompt": null
+    },
+    {
+      "id": "single_leg_calf_raise",
+      "name": "Single-Leg Calf Raise",
+      "equipment": "Step",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_leg_calf_raise.png",
+      "prompt": null
+    },
+    {
+      "id": "l_sit",
+      "name": "L-Sit",
+      "equipment": "Floor Space or Parallettes",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "l_sit.png",
+      "prompt": null
+    },
+    {
+      "id": "tuck_planche_hold",
+      "name": "Tuck Planche Hold",
+      "equipment": "Floor Space or Parallettes",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "tuck_planche_hold.png",
+      "prompt": null
+    },
+    {
+      "id": "wall_handstand_hold",
+      "name": "Wall Handstand Hold",
+      "equipment": "Wall",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "wall_handstand_hold.png",
+      "prompt": null
+    },
+    {
+      "id": "archer_push_up",
+      "name": "Archer Push-Up",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "archer_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "ring_dip",
+      "name": "Ring Dip",
+      "equipment": "Rings",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "ring_dip.png",
+      "prompt": null
+    },
+    {
+      "id": "burpee",
+      "name": "Burpee",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "burpee.png",
+      "prompt": null
+    },
+    {
+      "id": "squat_thrust",
+      "name": "Squat Thrust",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "squat_thrust.png",
+      "prompt": null
+    },
+    {
+      "id": "mountain_climber",
+      "name": "Mountain Climber",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "mountain_climber.png",
+      "prompt": null
+    },
+    {
+      "id": "high_knees",
+      "name": "High Knees",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "high_knees.png",
+      "prompt": null
+    },
+    {
+      "id": "marching_in_place",
+      "name": "Marching in Place",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "marching_in_place.png",
+      "prompt": null
+    },
+    {
+      "id": "jumping_jack",
+      "name": "Jumping Jack",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "jumping_jack.png",
+      "prompt": null
+    },
+    {
+      "id": "box_jump",
+      "name": "Box Jump",
+      "equipment": "Plyo Box",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "box_jump.png",
+      "prompt": null
+    },
+    {
+      "id": "squat_jump",
+      "name": "Squat Jump",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "squat_jump.png",
+      "prompt": null
+    },
+    {
+      "id": "broad_jump",
+      "name": "Broad Jump",
+      "equipment": "Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "broad_jump.png",
+      "prompt": null
+    },
+    {
+      "id": "battle_ropes",
+      "name": "Battle Ropes",
+      "equipment": "Battle Ropes",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "battle_ropes.png",
+      "prompt": null
+    },
+    {
+      "id": "downward_dog",
+      "name": "Downward-Facing Dog",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "downward_dog.png",
+      "prompt": null
+    },
+    {
+      "id": "childs_pose",
+      "name": "Child's Pose",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "childs_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "cat_cow",
+      "name": "Cat-Cow",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cat_cow.png",
+      "prompt": null
+    },
+    {
+      "id": "cobra_pose",
+      "name": "Cobra",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cobra_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "warrior_two",
+      "name": "Warrior II",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "warrior_two.png",
+      "prompt": null
+    },
+    {
+      "id": "triangle_pose",
+      "name": "Triangle Pose",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "triangle_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "pigeon_pose",
+      "name": "Pigeon Pose",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pigeon_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "forward_fold",
+      "name": "Standing Forward Fold",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "forward_fold.png",
+      "prompt": null
+    },
+    {
+      "id": "bridge_pose",
+      "name": "Bridge Pose",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "bridge_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "sun_salutation",
+      "name": "Sun Salutation",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "sun_salutation.png",
+      "prompt": null
+    },
+    {
+      "id": "ninety_ninety_hip",
+      "name": "90/90 Hip Mobility",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "ninety_ninety_hip.png",
+      "prompt": null
+    },
+    {
+      "id": "figure_four_stretch",
+      "name": "Figure-Four Stretch",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "figure_four_stretch.png",
+      "prompt": null
+    },
+    {
+      "id": "couch_stretch",
+      "name": "Couch Stretch",
+      "equipment": "Wall",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "couch_stretch.png",
+      "prompt": null
+    },
+    {
+      "id": "hip_flexor_stretch",
+      "name": "Hip Flexor Stretch",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hip_flexor_stretch.png",
+      "prompt": null
+    },
+    {
+      "id": "thoracic_extension",
+      "name": "Thoracic Extension",
+      "equipment": "Chair or Foam Roller",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "thoracic_extension.png",
+      "prompt": null
+    },
+    {
+      "id": "wall_slide",
+      "name": "Wall Slide",
+      "equipment": "Wall",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "wall_slide.png",
+      "prompt": null
+    },
+    {
+      "id": "mobility_flow",
+      "name": "Sun Salutation A",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "mobility_flow.png",
+      "prompt": null
+    },
+    {
+      "id": "diaphragmatic_breathing",
+      "name": "Diaphragmatic Breathing",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "diaphragmatic_breathing.png",
+      "prompt": null
+    },
+    {
+      "id": "joint_circles",
+      "name": "Controlled Articular Rotations",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "joint_circles.png",
+      "prompt": null
+    },
+    {
+      "id": "pec_deck",
+      "name": "Pec Deck",
+      "equipment": "Pec Deck Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pec_deck.png",
+      "prompt": null
+    },
+    {
+      "id": "incline_chest_press_machine",
+      "name": "Incline Chest Press Machine",
+      "equipment": "Chest Press Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "incline_chest_press_machine.png",
+      "prompt": null
+    },
+    {
+      "id": "converging_row_machine",
+      "name": "Converging Row Machine",
+      "equipment": "Row Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "converging_row_machine.png",
+      "prompt": null
+    },
+    {
+      "id": "straight_arm_pulldown",
+      "name": "Straight-Arm Pulldown",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "straight_arm_pulldown.png",
+      "prompt": null
+    },
+    {
+      "id": "pullover_machine",
+      "name": "Pullover Machine",
+      "equipment": "Pullover Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pullover_machine.png",
+      "prompt": null
+    },
+    {
+      "id": "assisted_pull_up_machine",
+      "name": "Assisted Pull-Up Machine",
+      "equipment": "Assisted Pull Up Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "assisted_pull_up_machine.png",
+      "prompt": null
+    },
+    {
+      "id": "preacher_curl_machine",
+      "name": "Preacher Curl Machine",
+      "equipment": "Preacher Curl Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "preacher_curl_machine.png",
+      "prompt": null
+    },
+    {
+      "id": "triceps_pushdown",
+      "name": "Triceps Pushdown",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "triceps_pushdown.png",
+      "prompt": null
+    },
+    {
+      "id": "dip_machine",
+      "name": "Seated Dip Machine",
+      "equipment": "Dip Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dip_machine.png",
+      "prompt": null
+    },
+    {
+      "id": "shrug",
+      "name": "Dumbbell Shrug",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "shrug.png",
+      "prompt": null
+    },
+    {
+      "id": "upright_row",
+      "name": "Cable Upright Row",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "upright_row.png",
+      "prompt": null
+    },
+    {
+      "id": "machine_lateral_raise",
+      "name": "Machine Lateral Raise",
+      "equipment": "Lateral Raise Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "machine_lateral_raise.png",
+      "prompt": null
+    },
+    {
+      "id": "hip_adduction",
+      "name": "Hip Adduction Machine",
+      "equipment": "Adduction Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hip_adduction.png",
+      "prompt": null
+    },
+    {
+      "id": "copenhagen_plank",
+      "name": "Copenhagen Plank",
+      "equipment": "Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "copenhagen_plank.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_kickback",
+      "name": "Cable Glute Kickback",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_kickback.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_pull_through",
+      "name": "Cable Pull-Through",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_pull_through.png",
+      "prompt": null
+    },
+    {
+      "id": "belt_squat",
+      "name": "Belt Squat",
+      "equipment": "Belt Squat Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "belt_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "pendulum_squat",
+      "name": "Pendulum Squat",
+      "equipment": "Pendulum Squat Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pendulum_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "calf_press_leg_press",
+      "name": "Calf Press on Leg Press",
+      "equipment": "Leg Press Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "calf_press_leg_press.png",
+      "prompt": null
+    },
+    {
+      "id": "machine_crunch",
+      "name": "Machine Crunch",
+      "equipment": "Ab Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "machine_crunch.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_crunch",
+      "name": "Cable Crunch",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_crunch.png",
+      "prompt": null
+    },
+    {
+      "id": "back_extension_machine",
+      "name": "Back Extension Machine",
+      "equipment": "Back Extension Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "back_extension_machine.png",
+      "prompt": null
+    },
+    {
+      "id": "hip_thrust_smith",
+      "name": "Smith Machine Hip Thrust",
+      "equipment": "Smith Machine · Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hip_thrust_smith.png",
+      "prompt": null
+    },
+    {
+      "id": "landmine_row",
+      "name": "Landmine Row",
+      "equipment": "Landmine · Barbell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "landmine_row.png",
+      "prompt": null
+    },
+    {
+      "id": "landmine_squat",
+      "name": "Landmine Squat",
+      "equipment": "Landmine · Barbell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "landmine_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "pilates_hundred",
+      "name": "The Hundred",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pilates_hundred.png",
+      "prompt": null
+    },
+    {
+      "id": "pilates_roll_up",
+      "name": "Roll-Up",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pilates_roll_up.png",
+      "prompt": null
+    },
+    {
+      "id": "pilates_single_leg_circle",
+      "name": "Single Leg Circles",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pilates_single_leg_circle.png",
+      "prompt": null
+    },
+    {
+      "id": "pilates_single_leg_stretch",
+      "name": "Single Leg Stretch",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pilates_single_leg_stretch.png",
+      "prompt": null
+    },
+    {
+      "id": "pilates_double_leg_stretch",
+      "name": "Double Leg Stretch",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pilates_double_leg_stretch.png",
+      "prompt": null
+    },
+    {
+      "id": "pilates_scissors",
+      "name": "Pilates Scissors",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pilates_scissors.png",
+      "prompt": null
+    },
+    {
+      "id": "pilates_teaser",
+      "name": "Teaser",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pilates_teaser.png",
+      "prompt": null
+    },
+    {
+      "id": "pilates_swan",
+      "name": "Swan",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pilates_swan.png",
+      "prompt": null
+    },
+    {
+      "id": "pilates_saw",
+      "name": "Saw",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pilates_saw.png",
+      "prompt": null
+    },
+    {
+      "id": "pilates_spine_stretch",
+      "name": "Spine Stretch Forward",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pilates_spine_stretch.png",
+      "prompt": null
+    },
+    {
+      "id": "pilates_side_kick",
+      "name": "Side Kick Series",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pilates_side_kick.png",
+      "prompt": null
+    },
+    {
+      "id": "pilates_clam",
+      "name": "Clam",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pilates_clam.png",
+      "prompt": null
+    },
+    {
+      "id": "pilates_swimming",
+      "name": "Pilates Swimming",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pilates_swimming.png",
+      "prompt": null
+    },
+    {
+      "id": "reformer_footwork",
+      "name": "Reformer Footwork",
+      "equipment": "Reformer",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "reformer_footwork.png",
+      "prompt": null
+    },
+    {
+      "id": "reformer_long_stretch",
+      "name": "Reformer Long Stretch",
+      "equipment": "Reformer",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "reformer_long_stretch.png",
+      "prompt": null
+    },
+    {
+      "id": "reformer_elephant",
+      "name": "Reformer Elephant",
+      "equipment": "Reformer",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "reformer_elephant.png",
+      "prompt": null
+    },
+    {
+      "id": "reformer_knee_stretch",
+      "name": "Reformer Knee Stretch",
+      "equipment": "Reformer",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "reformer_knee_stretch.png",
+      "prompt": null
+    },
+    {
+      "id": "reformer_short_box",
+      "name": "Reformer Short Box",
+      "equipment": "Reformer",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "reformer_short_box.png",
+      "prompt": null
+    },
+    {
+      "id": "reformer_mermaid",
+      "name": "Reformer Mermaid",
+      "equipment": "Reformer",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "reformer_mermaid.png",
+      "prompt": null
+    },
+    {
+      "id": "chair_pose",
+      "name": "Chair Pose",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "chair_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "tree_pose",
+      "name": "Tree Pose",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "tree_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "warrior_one",
+      "name": "Warrior I",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "warrior_one.png",
+      "prompt": null
+    },
+    {
+      "id": "warrior_three",
+      "name": "Warrior III",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "warrior_three.png",
+      "prompt": null
+    },
+    {
+      "id": "half_moon",
+      "name": "Half Moon",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "half_moon.png",
+      "prompt": null
+    },
+    {
+      "id": "extended_side_angle",
+      "name": "Extended Side Angle",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "extended_side_angle.png",
+      "prompt": null
+    },
+    {
+      "id": "revolved_triangle",
+      "name": "Revolved Triangle",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "revolved_triangle.png",
+      "prompt": null
+    },
+    {
+      "id": "crow_pose",
+      "name": "Crow Pose",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "crow_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "boat_pose",
+      "name": "Boat Pose",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "boat_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "camel_pose",
+      "name": "Camel Pose",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "camel_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "bow_pose",
+      "name": "Bow Pose",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "bow_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "locust_pose",
+      "name": "Locust Pose",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "locust_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "seated_forward_fold",
+      "name": "Seated Forward Fold",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "seated_forward_fold.png",
+      "prompt": null
+    },
+    {
+      "id": "butterfly_stretch",
+      "name": "Butterfly",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "butterfly_stretch.png",
+      "prompt": null
+    },
+    {
+      "id": "happy_baby",
+      "name": "Happy Baby",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "happy_baby.png",
+      "prompt": null
+    },
+    {
+      "id": "supine_twist",
+      "name": "Supine Twist",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "supine_twist.png",
+      "prompt": null
+    },
+    {
+      "id": "legs_up_wall",
+      "name": "Legs Up the Wall",
+      "equipment": "Wall · Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "legs_up_wall.png",
+      "prompt": null
+    },
+    {
+      "id": "corpse_pose",
+      "name": "Corpse Pose",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "corpse_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "chaturanga",
+      "name": "Chaturanga",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "chaturanga.png",
+      "prompt": null
+    },
+    {
+      "id": "upward_dog",
+      "name": "Upward-Facing Dog",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "upward_dog.png",
+      "prompt": null
+    },
+    {
+      "id": "low_lunge",
+      "name": "Low Lunge",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "low_lunge.png",
+      "prompt": null
+    },
+    {
+      "id": "lizard_pose",
+      "name": "Lizard Pose",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "lizard_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "garland_pose",
+      "name": "Garland Pose",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "garland_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "eagle_pose",
+      "name": "Eagle Pose",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "eagle_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "dancer_pose",
+      "name": "Dancer Pose",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dancer_pose.png",
+      "prompt": null
+    },
+    {
+      "id": "sled_push",
+      "name": "Sled Push",
+      "equipment": "Sled · Outdoor Space or Track or Turf",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "sled_push.png",
+      "prompt": null
+    },
+    {
+      "id": "sled_pull",
+      "name": "Sled Pull",
+      "equipment": "Sled · Rope · Outdoor Space or Track or Turf",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "sled_pull.png",
+      "prompt": null
+    },
+    {
+      "id": "burpee_broad_jump",
+      "name": "Burpee Broad Jump",
+      "equipment": "Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "burpee_broad_jump.png",
+      "prompt": null
+    },
+    {
+      "id": "sandbag_lunge",
+      "name": "Sandbag Lunge",
+      "equipment": "Sandbag · Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "sandbag_lunge.png",
+      "prompt": null
+    },
+    {
+      "id": "wall_ball",
+      "name": "Wall Ball",
+      "equipment": "Medicine Ball · Wall",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "wall_ball.png",
+      "prompt": null
+    },
+    {
+      "id": "thruster",
+      "name": "Thruster",
+      "equipment": "Barbell · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "thruster.png",
+      "prompt": null
+    },
+    {
+      "id": "power_clean",
+      "name": "Power Clean",
+      "equipment": "Barbell · Plates · Lifting Platform",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "power_clean.png",
+      "prompt": null
+    },
+    {
+      "id": "power_snatch",
+      "name": "Power Snatch",
+      "equipment": "Barbell · Plates · Lifting Platform",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "power_snatch.png",
+      "prompt": null
+    },
+    {
+      "id": "clean_and_jerk",
+      "name": "Clean and Jerk",
+      "equipment": "Barbell · Plates · Lifting Platform",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "clean_and_jerk.png",
+      "prompt": null
+    },
+    {
+      "id": "push_press",
+      "name": "Push Press",
+      "equipment": "Barbell · Plates · Rack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "push_press.png",
+      "prompt": null
+    },
+    {
+      "id": "overhead_squat",
+      "name": "Overhead Squat",
+      "equipment": "Barbell · Plates · Rack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "overhead_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "front_rack_lunge",
+      "name": "Front Rack Lunge",
+      "equipment": "Barbell · Plates · Rack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "front_rack_lunge.png",
+      "prompt": null
+    },
+    {
+      "id": "double_under",
+      "name": "Double Under",
+      "equipment": "Skipping Rope",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "double_under.png",
+      "prompt": null
+    },
+    {
+      "id": "single_under",
+      "name": "Skipping",
+      "equipment": "Skipping Rope",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_under.png",
+      "prompt": null
+    },
+    {
+      "id": "toes_to_bar",
+      "name": "Toes to Bar",
+      "equipment": "Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "toes_to_bar.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_clean",
+      "name": "Kettlebell Clean",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_clean.png",
+      "prompt": null
+    },
+    {
+      "id": "turkish_get_up",
+      "name": "Turkish Get-Up",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "turkish_get_up.png",
+      "prompt": null
+    },
+    {
+      "id": "devils_press",
+      "name": "Devil's Press",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "devils_press.png",
+      "prompt": null
+    },
+    {
+      "id": "man_maker",
+      "name": "Man Maker",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "man_maker.png",
+      "prompt": null
+    },
+    {
+      "id": "sandbag_clean",
+      "name": "Sandbag Clean",
+      "equipment": "Sandbag",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "sandbag_clean.png",
+      "prompt": null
+    },
+    {
+      "id": "tire_flip",
+      "name": "Tire Flip",
+      "equipment": "Tire · Outdoor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "tire_flip.png",
+      "prompt": null
+    },
+    {
+      "id": "bear_crawl",
+      "name": "Bear Crawl",
+      "equipment": "Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "bear_crawl.png",
+      "prompt": null
+    },
+    {
+      "id": "sled_drag",
+      "name": "Sled Drag",
+      "equipment": "Sled · Outdoor Space or Track or Turf",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "sled_drag.png",
+      "prompt": null
+    },
+    {
+      "id": "overhead_carry",
+      "name": "Overhead Carry",
+      "equipment": "Dumbbells · Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "overhead_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "front_rack_carry",
+      "name": "Front Rack Carry",
+      "equipment": "Kettlebell · Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "front_rack_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "sandbag_carry",
+      "name": "Sandbag Carry",
+      "equipment": "Sandbag · Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "sandbag_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "yoke_walk",
+      "name": "Yoke Walk",
+      "equipment": "Yoke · Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "yoke_walk.png",
+      "prompt": null
+    },
+    {
+      "id": "zercher_carry",
+      "name": "Zercher Carry",
+      "equipment": "Barbell · Plates · Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "zercher_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "waiter_walk",
+      "name": "Waiter Walk",
+      "equipment": "Kettlebell · Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "waiter_walk.png",
+      "prompt": null
+    },
+    {
+      "id": "bottoms_up_carry",
+      "name": "Bottoms-Up Carry",
+      "equipment": "Kettlebell · Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "bottoms_up_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "mixed_carry",
+      "name": "Mixed Carry",
+      "equipment": "Kettlebell · Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "mixed_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "depth_jump",
+      "name": "Depth Jump",
+      "equipment": "Bench or Plyo Box or Step",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "depth_jump.png",
+      "prompt": null
+    },
+    {
+      "id": "bounding",
+      "name": "Bounding",
+      "equipment": "Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "bounding.png",
+      "prompt": null
+    },
+    {
+      "id": "lateral_bound",
+      "name": "Lateral Bound",
+      "equipment": "Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "lateral_bound.png",
+      "prompt": null
+    },
+    {
+      "id": "lateral_hop",
+      "name": "Lateral Hop",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "lateral_hop.png",
+      "prompt": null
+    },
+    {
+      "id": "pogo_hop",
+      "name": "Pogo Hop",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pogo_hop.png",
+      "prompt": null
+    },
+    {
+      "id": "tuck_jump",
+      "name": "Tuck Jump",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "tuck_jump.png",
+      "prompt": null
+    },
+    {
+      "id": "split_jump",
+      "name": "Split Jump",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "split_jump.png",
+      "prompt": null
+    },
+    {
+      "id": "single_leg_hop",
+      "name": "Single-Leg Hop",
+      "equipment": "Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_leg_hop.png",
+      "prompt": null
+    },
+    {
+      "id": "hurdle_hop",
+      "name": "Hurdle Hop",
+      "equipment": "Cones or Hurdles",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hurdle_hop.png",
+      "prompt": null
+    },
+    {
+      "id": "medicine_ball_slam",
+      "name": "Medicine Ball Slam",
+      "equipment": "Medicine Ball",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "medicine_ball_slam.png",
+      "prompt": null
+    },
+    {
+      "id": "medicine_ball_chest_pass",
+      "name": "Medicine Ball Chest Pass",
+      "equipment": "Medicine Ball · Wall",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "medicine_ball_chest_pass.png",
+      "prompt": null
+    },
+    {
+      "id": "medicine_ball_rotational_throw",
+      "name": "Rotational Throw",
+      "equipment": "Medicine Ball · Wall",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "medicine_ball_rotational_throw.png",
+      "prompt": null
+    },
+    {
+      "id": "broad_jump_repeat",
+      "name": "Repeat Broad Jump",
+      "equipment": "Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "broad_jump_repeat.png",
+      "prompt": null
+    },
+    {
+      "id": "landmine_rotation",
+      "name": "Landmine Rotation",
+      "equipment": "Landmine · Barbell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "landmine_rotation.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_chop",
+      "name": "Cable Chop",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_chop.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_lift",
+      "name": "Cable Lift",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_lift.png",
+      "prompt": null
+    },
+    {
+      "id": "renegade_row",
+      "name": "Renegade Row",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "renegade_row.png",
+      "prompt": null
+    },
+    {
+      "id": "suitcase_deadlift",
+      "name": "Suitcase Deadlift",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "suitcase_deadlift.png",
+      "prompt": null
+    },
+    {
+      "id": "half_kneeling_press",
+      "name": "Half-Kneeling Press",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "half_kneeling_press.png",
+      "prompt": null
+    },
+    {
+      "id": "plank_pull_through",
+      "name": "Plank Pull-Through",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "plank_pull_through.png",
+      "prompt": null
+    },
+    {
+      "id": "bird_dog_row",
+      "name": "Bird-Dog Row",
+      "equipment": "Dumbbells · Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "bird_dog_row.png",
+      "prompt": null
+    },
+    {
+      "id": "single_arm_dumbbell_press",
+      "name": "Single-Arm Dumbbell Press",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_arm_dumbbell_press.png",
+      "prompt": null
+    },
+    {
+      "id": "single_arm_floor_press",
+      "name": "Single-Arm Floor Press",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_arm_floor_press.png",
+      "prompt": null
+    },
+    {
+      "id": "single_arm_bench_press",
+      "name": "Single-Arm Dumbbell Bench Press",
+      "equipment": "Dumbbells · Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_arm_bench_press.png",
+      "prompt": null
+    },
+    {
+      "id": "single_arm_landmine_press",
+      "name": "Single-Arm Landmine Press",
+      "equipment": "Landmine · Barbell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_arm_landmine_press.png",
+      "prompt": null
+    },
+    {
+      "id": "single_arm_machine_press",
+      "name": "Single-Arm Machine Press",
+      "equipment": "Chest Press Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_arm_machine_press.png",
+      "prompt": null
+    },
+    {
+      "id": "arnold_press",
+      "name": "Arnold Press",
+      "equipment": "Dumbbells · Adjustable Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "arnold_press.png",
+      "prompt": null
+    },
+    {
+      "id": "front_raise",
+      "name": "Front Raise",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "front_raise.png",
+      "prompt": null
+    },
+    {
+      "id": "svend_press",
+      "name": "Svend Press",
+      "equipment": "Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "svend_press.png",
+      "prompt": null
+    },
+    {
+      "id": "decline_press",
+      "name": "Decline Press",
+      "equipment": "Dumbbells · Adjustable Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "decline_press.png",
+      "prompt": null
+    },
+    {
+      "id": "ab_wheel_rollout",
+      "name": "Ab-Wheel Rollout",
+      "equipment": "Ab Wheel",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "ab_wheel_rollout.png",
+      "prompt": null
+    },
+    {
+      "id": "reverse_crunch",
+      "name": "Reverse Crunch",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "reverse_crunch.png",
+      "prompt": null
+    },
+    {
+      "id": "decline_sit_up",
+      "name": "Decline Sit-Up",
+      "equipment": "Adjustable Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "decline_sit_up.png",
+      "prompt": null
+    },
+    {
+      "id": "front_lever_row",
+      "name": "Front Lever Row",
+      "equipment": "Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "front_lever_row.png",
+      "prompt": null
+    },
+    {
+      "id": "human_flag_progression",
+      "name": "Human Flag Progression",
+      "equipment": "Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "human_flag_progression.png",
+      "prompt": null
+    },
+    {
+      "id": "worlds_greatest_stretch",
+      "name": "World's Greatest Stretch",
+      "equipment": "Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "worlds_greatest_stretch.png",
+      "prompt": null
+    },
+    {
+      "id": "band_shoulder_dislocate",
+      "name": "Band Shoulder Dislocate",
+      "equipment": "Bands",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "band_shoulder_dislocate.png",
+      "prompt": null
+    },
+    {
+      "id": "lower_body_foam_roll",
+      "name": "Lower-Body Foam Roll",
+      "equipment": "Foam Roller",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "lower_body_foam_roll.png",
+      "prompt": null
+    },
+    {
+      "id": "single_leg_stand",
+      "name": "Single-Leg Stand",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_leg_stand.png",
+      "prompt": null
+    },
+    {
+      "id": "tandem_stance",
+      "name": "Tandem Stance",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "tandem_stance.png",
+      "prompt": null
+    },
+    {
+      "id": "heel_toe_walk",
+      "name": "Heel-to-Toe Walk",
+      "equipment": "Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "heel_toe_walk.png",
+      "prompt": null
+    },
+    {
+      "id": "single_leg_reach",
+      "name": "Single-Leg Reach",
+      "equipment": "Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_leg_reach.png",
+      "prompt": null
+    },
+    {
+      "id": "airplane_balance",
+      "name": "Airplane Balance",
+      "equipment": "Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "airplane_balance.png",
+      "prompt": null
+    },
+    {
+      "id": "eyes_closed_balance",
+      "name": "Single-Leg Stand, Eyes Closed",
+      "equipment": "Wall",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "eyes_closed_balance.png",
+      "prompt": null
+    },
+    {
+      "id": "step_down_control",
+      "name": "Controlled Step-Down",
+      "equipment": "Chair or Plyo Box or Step",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "step_down_control.png",
+      "prompt": null
+    },
+    {
+      "id": "bent_over_dumbbell_row",
+      "name": "Bent-Over Dumbbell Row",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "bent_over_dumbbell_row.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_bent_over_row",
+      "name": "Bent-Over Kettlebell Row",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_bent_over_row.png",
+      "prompt": null
+    },
+    {
+      "id": "band_bent_over_row",
+      "name": "Bent-Over Band Row",
+      "equipment": "Bands",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "band_bent_over_row.png",
+      "prompt": null
+    },
+    {
+      "id": "prone_floor_row",
+      "name": "Prone Floor Row",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "prone_floor_row.png",
+      "prompt": null
+    },
+    {
+      "id": "table_row",
+      "name": "Table Row",
+      "equipment": "Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "table_row.png",
+      "prompt": null
+    },
+    {
+      "id": "towel_door_row",
+      "name": "Towel Door Row",
+      "equipment": "Towel",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "towel_door_row.png",
+      "prompt": null
+    },
+    {
+      "id": "band_lat_pullover",
+      "name": "Band Lat Pullover",
+      "equipment": "Bands",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "band_lat_pullover.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_pullover",
+      "name": "Dumbbell Pullover",
+      "equipment": "Dumbbells · Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_pullover.png",
+      "prompt": null
+    },
+    {
+      "id": "floor_pullover",
+      "name": "Floor Pullover",
+      "equipment": "Backpack or Dumbbells or Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "floor_pullover.png",
+      "prompt": null
+    },
+    {
+      "id": "towel_door_pulldown",
+      "name": "Towel Door Pulldown",
+      "equipment": "Towel",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "towel_door_pulldown.png",
+      "prompt": null
+    },
+    {
+      "id": "band_straight_arm_pulldown",
+      "name": "Band Straight-Arm Pulldown",
+      "equipment": "Bands · Anchor Point or Door Anchor",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "band_straight_arm_pulldown.png",
+      "prompt": null
+    },
+    {
+      "id": "wall_sit",
+      "name": "Wall Sit",
+      "equipment": "Wall",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "wall_sit.png",
+      "prompt": null
+    },
+    {
+      "id": "cossack_squat",
+      "name": "Cossack Squat",
+      "equipment": "Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cossack_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "lateral_lunge",
+      "name": "Lateral Lunge",
+      "equipment": "Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "lateral_lunge.png",
+      "prompt": null
+    },
+    {
+      "id": "shrimp_squat",
+      "name": "Shrimp Squat",
+      "equipment": "Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "shrimp_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "chair_step_up",
+      "name": "Chair Step-Up",
+      "equipment": "Chair",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "chair_step_up.png",
+      "prompt": null
+    },
+    {
+      "id": "single_leg_glute_bridge",
+      "name": "Single-Leg Glute Bridge",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_leg_glute_bridge.png",
+      "prompt": null
+    },
+    {
+      "id": "nordic_eccentric",
+      "name": "Nordic Curl, Eccentric",
+      "equipment": "Mat · Anchor For Feet",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "nordic_eccentric.png",
+      "prompt": null
+    },
+    {
+      "id": "hamstring_walkout",
+      "name": "Hamstring Walkout",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hamstring_walkout.png",
+      "prompt": null
+    },
+    {
+      "id": "band_good_morning",
+      "name": "Band Good Morning",
+      "equipment": "Bands",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "band_good_morning.png",
+      "prompt": null
+    },
+    {
+      "id": "band_overhead_press",
+      "name": "Band Overhead Press",
+      "equipment": "Bands",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "band_overhead_press.png",
+      "prompt": null
+    },
+    {
+      "id": "wall_walk",
+      "name": "Wall Walk",
+      "equipment": "Wall · Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "wall_walk.png",
+      "prompt": null
+    },
+    {
+      "id": "backpack_carry",
+      "name": "Loaded Backpack Carry",
+      "equipment": "Backpack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "backpack_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "suitcase_hold",
+      "name": "Suitcase Hold",
+      "equipment": "Backpack or Dumbbells or Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "suitcase_hold.png",
+      "prompt": null
+    },
+    {
+      "id": "tibialis_raise",
+      "name": "Tibialis Raise",
+      "equipment": "Wall",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "tibialis_raise.png",
+      "prompt": null
+    },
+    {
+      "id": "heel_walk",
+      "name": "Heel Walk",
+      "equipment": "Floor Space",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "heel_walk.png",
+      "prompt": null
+    },
+    {
+      "id": "short_foot",
+      "name": "Short Foot Drill",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "short_foot.png",
+      "prompt": null
+    },
+    {
+      "id": "plate_pinch",
+      "name": "Plate Pinch",
+      "equipment": "Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "plate_pinch.png",
+      "prompt": null
+    },
+    {
+      "id": "towel_hang",
+      "name": "Towel Hang",
+      "equipment": "Pull Up Bar · Towel",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "towel_hang.png",
+      "prompt": null
+    },
+    {
+      "id": "wrist_roller",
+      "name": "Wrist Roller",
+      "equipment": "Rope · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "wrist_roller.png",
+      "prompt": null
+    },
+    {
+      "id": "neck_isometric",
+      "name": "Neck Isometric",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "neck_isometric.png",
+      "prompt": null
+    },
+    {
+      "id": "chin_tuck",
+      "name": "Chin Tuck",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "chin_tuck.png",
+      "prompt": null
+    },
+    {
+      "id": "side_plank_knees",
+      "name": "Side Plank from Knees",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "side_plank_knees.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_side_bend",
+      "name": "Dumbbell Side Bend",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_side_bend.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_turkish_get_up",
+      "name": "Kettlebell Turkish Get-Up",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_turkish_get_up.png",
+      "prompt": null
+    },
+    {
+      "id": "half_turkish_get_up",
+      "name": "Half Turkish Get-Up",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "half_turkish_get_up.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_windmill",
+      "name": "Kettlebell Windmill",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_windmill.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_around_the_world",
+      "name": "Kettlebell Around-the-World",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_around_the_world.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_halo",
+      "name": "Kettlebell Halo",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_halo.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_figure_8",
+      "name": "Kettlebell Figure-8",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_figure_8.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_figure_8_to_hold",
+      "name": "Kettlebell Figure-8 to Hold",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_figure_8_to_hold.png",
+      "prompt": null
+    },
+    {
+      "id": "dual_kettlebell_clean",
+      "name": "Dual-Kettlebell Clean",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dual_kettlebell_clean.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_clean_and_jerk",
+      "name": "Kettlebell Clean and Jerk",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_clean_and_jerk.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_clean_and_push_press",
+      "name": "Kettlebell Clean and Push Press",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_clean_and_push_press.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_snatch",
+      "name": "Kettlebell Snatch",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_snatch.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_snatch_to_overhead_carry",
+      "name": "Kettlebell Snatch to Overhead Carry",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_snatch_to_overhead_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_swing_to_squat",
+      "name": "Kettlebell Swing to Squat",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_swing_to_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_squat_to_press",
+      "name": "Kettlebell Squat to Press",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_squat_to_press.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_front_rack_squat",
+      "name": "Kettlebell Front Rack Squat",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_front_rack_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_lateral_squat",
+      "name": "Kettlebell Lateral Squat",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_lateral_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_curtsy_lunge",
+      "name": "Kettlebell Curtsy Lunge",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_curtsy_lunge.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_lunge_with_rotation",
+      "name": "Kettlebell Lunge with Rotation",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_lunge_with_rotation.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_reverse_lunge_to_press",
+      "name": "Kettlebell Reverse Lunge to Press",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_reverse_lunge_to_press.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_step_up",
+      "name": "Kettlebell Step-up",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_step_up.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_walking_lunge",
+      "name": "Kettlebell Walking Lunge",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_walking_lunge.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_suitcase_deadlift",
+      "name": "Kettlebell Suitcase Deadlift",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_suitcase_deadlift.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_romanian_deadlift",
+      "name": "Kettlebell Romanian Deadlift",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_romanian_deadlift.png",
+      "prompt": null
+    },
+    {
+      "id": "single_leg_kettlebell_deadlift",
+      "name": "Single-leg Kettlebell Deadlift",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_leg_kettlebell_deadlift.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_sumo_deadlift",
+      "name": "Kettlebell Sumo Deadlift",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_sumo_deadlift.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_good_morning",
+      "name": "Kettlebell Good Morning",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_good_morning.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_row",
+      "name": "Kettlebell Row",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_row.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_renegade_row",
+      "name": "Kettlebell Renegade Row",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_renegade_row.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_gorilla_row",
+      "name": "Kettlebell Gorilla Row",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_gorilla_row.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_suitcase_row",
+      "name": "Kettlebell Suitcase Row",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_suitcase_row.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_chest_supported_row",
+      "name": "Kettlebell Chest-Supported Row",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_chest_supported_row.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_floor_press",
+      "name": "Kettlebell Floor Press",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_floor_press.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_alternating_floor_press",
+      "name": "Kettlebell Alternating Floor Press",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_alternating_floor_press.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_bench_press",
+      "name": "Kettlebell Bench Press",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_bench_press.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_incline_bench_press",
+      "name": "Kettlebell Incline Bench Press",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_incline_bench_press.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_see_saw_press",
+      "name": "Kettlebell See-Saw Press",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_see_saw_press.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_bottoms_up_press",
+      "name": "Kettlebell Bottoms-Up Press",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_bottoms_up_press.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_bottoms_up_clean",
+      "name": "Kettlebell Bottoms-Up Clean",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_bottoms_up_clean.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_bottoms_up_carry",
+      "name": "Kettlebell Bottoms-Up Carry",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_bottoms_up_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_overhead_carry",
+      "name": "Kettlebell Overhead Carry",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_overhead_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "double_overhead_kettlebell_carry",
+      "name": "Double Overhead Kettlebell Carry",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "double_overhead_kettlebell_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_rack_carry",
+      "name": "Kettlebell Rack Carry",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_rack_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_farmers_walk",
+      "name": "Kettlebell Farmer's Walk",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_farmers_walk.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_cross_body_carry",
+      "name": "Kettlebell Cross-Body Carry",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_cross_body_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_crush_grip_push_up",
+      "name": "Kettlebell Crush-Grip Push-up",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_crush_grip_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_push_up_to_row",
+      "name": "Kettlebell Push-up to Row",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_push_up_to_row.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_pullover",
+      "name": "Kettlebell Pullover",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_pullover.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_russian_twist",
+      "name": "Kettlebell Russian Twist",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_russian_twist.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_side_bend",
+      "name": "Kettlebell Side Bend",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_side_bend.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_dead_bug",
+      "name": "Kettlebell Dead Bug",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_dead_bug.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_hollow_body_hold",
+      "name": "Kettlebell Hollow Body Hold",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_hollow_body_hold.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_sit_up",
+      "name": "Kettlebell Sit-up",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_sit_up.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_v_up",
+      "name": "Kettlebell V-Up",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_v_up.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_woodchopper",
+      "name": "Kettlebell Woodchopper",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_woodchopper.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_slasher_to_halo",
+      "name": "Kettlebell Slasher-to-Halo",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_slasher_to_halo.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_armbar",
+      "name": "Kettlebell Armbar",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_armbar.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_surrender",
+      "name": "Kettlebell Surrender",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_surrender.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_deck_squat",
+      "name": "Kettlebell Deck Squat",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_deck_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "kettlebell_man_maker",
+      "name": "Kettlebell Man Maker",
+      "equipment": "Kettlebell",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "kettlebell_man_maker.png",
+      "prompt": null
+    },
+    {
+      "id": "split_squat_jump",
+      "name": "Split Squat Jump",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "split_squat_jump.png",
+      "prompt": null
+    },
+    {
+      "id": "jumping_lunge",
+      "name": "Jumping Lunge",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "jumping_lunge.png",
+      "prompt": null
+    },
+    {
+      "id": "box_step_up_bodyweight",
+      "name": "Box Step-up (Bodyweight)",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "box_step_up_bodyweight.png",
+      "prompt": null
+    },
+    {
+      "id": "curtsy_lunge_bodyweight",
+      "name": "Curtsy Lunge (Bodyweight)",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "curtsy_lunge_bodyweight.png",
+      "prompt": null
+    },
+    {
+      "id": "single_leg_box_squat",
+      "name": "Single-leg Box Squat",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_leg_box_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "assisted_pistol_squat",
+      "name": "Assisted Pistol Squat",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "assisted_pistol_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "jumping_pistol_squat",
+      "name": "Jumping Pistol Squat",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "jumping_pistol_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "sissy_squat_unloaded",
+      "name": "Sissy Squat (Unloaded)",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "sissy_squat_unloaded.png",
+      "prompt": null
+    },
+    {
+      "id": "glute_ham_walkout",
+      "name": "Glute-Ham Walkout",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "glute_ham_walkout.png",
+      "prompt": null
+    },
+    {
+      "id": "hip_thrust_bodyweight",
+      "name": "Hip Thrust (Bodyweight)",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hip_thrust_bodyweight.png",
+      "prompt": null
+    },
+    {
+      "id": "single_leg_hip_thrust_bodyweight",
+      "name": "Single-leg Hip Thrust (Bodyweight)",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_leg_hip_thrust_bodyweight.png",
+      "prompt": null
+    },
+    {
+      "id": "reverse_lunge_to_knee_drive",
+      "name": "Reverse Lunge to Knee Drive",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "reverse_lunge_to_knee_drive.png",
+      "prompt": null
+    },
+    {
+      "id": "step_back_lunge_with_twist",
+      "name": "Step-back Lunge with Twist",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "step_back_lunge_with_twist.png",
+      "prompt": null
+    },
+    {
+      "id": "lateral_step_up",
+      "name": "Lateral Step-up",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "lateral_step_up.png",
+      "prompt": null
+    },
+    {
+      "id": "calf_raise_on_step",
+      "name": "Calf Raise on Step",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "calf_raise_on_step.png",
+      "prompt": null
+    },
+    {
+      "id": "donkey_calf_raise",
+      "name": "Donkey Calf Raise",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "donkey_calf_raise.png",
+      "prompt": null
+    },
+    {
+      "id": "wall_calf_raise",
+      "name": "Wall Calf Raise",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "wall_calf_raise.png",
+      "prompt": null
+    },
+    {
+      "id": "decline_push_up_high_feet",
+      "name": "Decline Push-up (High Feet)",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "decline_push_up_high_feet.png",
+      "prompt": null
+    },
+    {
+      "id": "clap_push_up",
+      "name": "Clap Push-up",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "clap_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "wide_grip_push_up",
+      "name": "Wide-Grip Push-up",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "wide_grip_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "close_grip_push_up",
+      "name": "Close-Grip Push-up",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "close_grip_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "clock_push_up",
+      "name": "Clock Push-up",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "clock_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "planche_lean",
+      "name": "Planche Lean",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "planche_lean.png",
+      "prompt": null
+    },
+    {
+      "id": "planche_push_up",
+      "name": "Planche Push-up",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "planche_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "hindu_push_up",
+      "name": "Hindu Push-up",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hindu_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "divebomber_push_up",
+      "name": "Divebomber Push-up",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "divebomber_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "spiderman_push_up",
+      "name": "Spiderman Push-up",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "spiderman_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "ring_push_up",
+      "name": "Ring Push-up",
+      "equipment": "Rings",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "ring_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "ring_archer_push_up",
+      "name": "Ring Archer Push-up",
+      "equipment": "Rings",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "ring_archer_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "ring_fly",
+      "name": "Ring Fly",
+      "equipment": "Rings",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "ring_fly.png",
+      "prompt": null
+    },
+    {
+      "id": "bench_dip_feet_on_floor",
+      "name": "Bench Dip (Feet on Floor)",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "bench_dip_feet_on_floor.png",
+      "prompt": null
+    },
+    {
+      "id": "bench_dip_feet_elevated",
+      "name": "Bench Dip (Feet Elevated)",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "bench_dip_feet_elevated.png",
+      "prompt": null
+    },
+    {
+      "id": "ring_dip_forward_lean",
+      "name": "Ring Dip - Forward Lean",
+      "equipment": "Rings",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "ring_dip_forward_lean.png",
+      "prompt": null
+    },
+    {
+      "id": "assisted_ring_dip",
+      "name": "Assisted Ring Dip",
+      "equipment": "Rings",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "assisted_ring_dip.png",
+      "prompt": null
+    },
+    {
+      "id": "isometric_dip_hold",
+      "name": "Isometric Dip Hold",
+      "equipment": "Dip Bars",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "isometric_dip_hold.png",
+      "prompt": null
+    },
+    {
+      "id": "mixed_grip_pull_up",
+      "name": "Mixed-Grip Pull-up",
+      "equipment": "Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "mixed_grip_pull_up.png",
+      "prompt": null
+    },
+    {
+      "id": "archer_pull_up",
+      "name": "Archer Pull-up",
+      "equipment": "Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "archer_pull_up.png",
+      "prompt": null
+    },
+    {
+      "id": "typewriter_pull_up",
+      "name": "Typewriter Pull-up",
+      "equipment": "Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "typewriter_pull_up.png",
+      "prompt": null
+    },
+    {
+      "id": "commando_pull_up",
+      "name": "Commando Pull-up",
+      "equipment": "Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "commando_pull_up.png",
+      "prompt": null
+    },
+    {
+      "id": "behind_the_neck_pull_up",
+      "name": "Behind-the-Neck Pull-up",
+      "equipment": "Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "behind_the_neck_pull_up.png",
+      "prompt": null
+    },
+    {
+      "id": "one_arm_pull_up_assisted",
+      "name": "One-Arm Pull-up (Assisted)",
+      "equipment": "Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "one_arm_pull_up_assisted.png",
+      "prompt": null
+    },
+    {
+      "id": "false_grip_pull_up",
+      "name": "False-Grip Pull-up",
+      "equipment": "Rings",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "false_grip_pull_up.png",
+      "prompt": null
+    },
+    {
+      "id": "chest_to_bar_pull_up_strict",
+      "name": "Chest-to-Bar Pull-up (Strict)",
+      "equipment": "Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "chest_to_bar_pull_up_strict.png",
+      "prompt": null
+    },
+    {
+      "id": "inverted_row_underhand",
+      "name": "Inverted Row - Underhand",
+      "equipment": "Pull Up Bar or Rings",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "inverted_row_underhand.png",
+      "prompt": null
+    },
+    {
+      "id": "inverted_row_wide_grip",
+      "name": "Inverted Row - Wide Grip",
+      "equipment": "Pull Up Bar or Rings",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "inverted_row_wide_grip.png",
+      "prompt": null
+    },
+    {
+      "id": "ring_row_supinated",
+      "name": "Ring Row (Supinated)",
+      "equipment": "Rings",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "ring_row_supinated.png",
+      "prompt": null
+    },
+    {
+      "id": "rope_climb_feet_clamp",
+      "name": "Rope Climb (Feet Clamp)",
+      "equipment": "Rope",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "rope_climb_feet_clamp.png",
+      "prompt": null
+    },
+    {
+      "id": "rope_climb_legless",
+      "name": "Rope Climb (Legless)",
+      "equipment": "Rope",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "rope_climb_legless.png",
+      "prompt": null
+    },
+    {
+      "id": "towel_pull_up",
+      "name": "Towel Pull-up",
+      "equipment": "Towel · Pull Up Bar",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "towel_pull_up.png",
+      "prompt": null
+    },
+    {
+      "id": "skin_the_cat",
+      "name": "Skin-the-Cat",
+      "equipment": "Rings",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "skin_the_cat.png",
+      "prompt": null
+    },
+    {
+      "id": "german_hang",
+      "name": "German Hang",
+      "equipment": "Rings",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "german_hang.png",
+      "prompt": null
+    },
+    {
+      "id": "front_lever_tuck_hold",
+      "name": "Front Lever Tuck Hold",
+      "equipment": "Pull Up Bar or Rings",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "front_lever_tuck_hold.png",
+      "prompt": null
+    },
+    {
+      "id": "front_lever_advanced_tuck",
+      "name": "Front Lever Advanced Tuck",
+      "equipment": "Pull Up Bar or Rings",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "front_lever_advanced_tuck.png",
+      "prompt": null
+    },
+    {
+      "id": "back_lever_tuck_hold",
+      "name": "Back Lever Tuck Hold",
+      "equipment": "Rings",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "back_lever_tuck_hold.png",
+      "prompt": null
+    },
+    {
+      "id": "back_lever_full_hold",
+      "name": "Back Lever Full Hold",
+      "equipment": "Rings",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "back_lever_full_hold.png",
+      "prompt": null
+    },
+    {
+      "id": "hollow_rock",
+      "name": "Hollow Rock",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hollow_rock.png",
+      "prompt": null
+    },
+    {
+      "id": "v_sit_hold",
+      "name": "V-Sit Hold",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "v_sit_hold.png",
+      "prompt": null
+    },
+    {
+      "id": "straddle_l_sit",
+      "name": "Straddle L-Sit",
+      "equipment": "Parallettes",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "straddle_l_sit.png",
+      "prompt": null
+    },
+    {
+      "id": "open_tuck_l_sit",
+      "name": "Open Tuck L-Sit",
+      "equipment": "Parallettes",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "open_tuck_l_sit.png",
+      "prompt": null
+    },
+    {
+      "id": "manna_progression_hold",
+      "name": "Manna Progression Hold",
+      "equipment": "Parallettes",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "manna_progression_hold.png",
+      "prompt": null
+    },
+    {
+      "id": "dragon_flag_eccentrics",
+      "name": "Dragon Flag Eccentrics",
+      "equipment": "Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dragon_flag_eccentrics.png",
+      "prompt": null
+    },
+    {
+      "id": "dragon_flag_full",
+      "name": "Dragon Flag Full",
+      "equipment": "Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dragon_flag_full.png",
+      "prompt": null
+    },
+    {
+      "id": "hip_raise_on_bench",
+      "name": "Hip Raise on Bench",
+      "equipment": "Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hip_raise_on_bench.png",
+      "prompt": null
+    },
+    {
+      "id": "jackknife_sit_up",
+      "name": "Jackknife Sit-up",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "jackknife_sit_up.png",
+      "prompt": null
+    },
+    {
+      "id": "bicycle_crunch",
+      "name": "Bicycle Crunch",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "bicycle_crunch.png",
+      "prompt": null
+    },
+    {
+      "id": "cross_body_mountain_climber",
+      "name": "Cross-Body Mountain Climber",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cross_body_mountain_climber.png",
+      "prompt": null
+    },
+    {
+      "id": "plank_with_shoulder_tap",
+      "name": "Plank with Shoulder Tap",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "plank_with_shoulder_tap.png",
+      "prompt": null
+    },
+    {
+      "id": "single_arm_single_leg_plank",
+      "name": "Single-Arm Single-Leg Plank",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_arm_single_leg_plank.png",
+      "prompt": null
+    },
+    {
+      "id": "side_plank_with_leg_lift",
+      "name": "Side Plank with Leg Lift",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "side_plank_with_leg_lift.png",
+      "prompt": null
+    },
+    {
+      "id": "copenhagen_side_plank_long_lever",
+      "name": "Copenhagen Side Plank - Long Lever",
+      "equipment": "Bench",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "copenhagen_side_plank_long_lever.png",
+      "prompt": null
+    },
+    {
+      "id": "crab_walk",
+      "name": "Crab Walk",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "crab_walk.png",
+      "prompt": null
+    },
+    {
+      "id": "inchworm_walkout",
+      "name": "Inchworm Walkout",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "inchworm_walkout.png",
+      "prompt": null
+    },
+    {
+      "id": "walkout_to_push_up",
+      "name": "Walkout to Push-up",
+      "equipment": "Bodyweight",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "walkout_to_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "hollow_body_arch_rock",
+      "name": "Hollow Body Arch Rock",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hollow_body_arch_rock.png",
+      "prompt": null
+    },
+    {
+      "id": "barbell_rack_pull",
+      "name": "Barbell Rack Pull",
+      "equipment": "Barbell · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "barbell_rack_pull.png",
+      "prompt": null
+    },
+    {
+      "id": "deficit_romanian_deadlift",
+      "name": "Deficit Romanian Deadlift",
+      "equipment": "Barbell · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "deficit_romanian_deadlift.png",
+      "prompt": null
+    },
+    {
+      "id": "snatch_grip_romanian_deadlift",
+      "name": "Snatch-Grip Romanian Deadlift",
+      "equipment": "Barbell · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "snatch_grip_romanian_deadlift.png",
+      "prompt": null
+    },
+    {
+      "id": "barbell_hip_thrust_single_leg",
+      "name": "Barbell Hip Thrust - Single-Leg",
+      "equipment": "Barbell · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "barbell_hip_thrust_single_leg.png",
+      "prompt": null
+    },
+    {
+      "id": "barbell_glute_bridge",
+      "name": "Barbell Glute Bridge",
+      "equipment": "Barbell · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "barbell_glute_bridge.png",
+      "prompt": null
+    },
+    {
+      "id": "barbell_step_up",
+      "name": "Barbell Step-up",
+      "equipment": "Barbell · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "barbell_step_up.png",
+      "prompt": null
+    },
+    {
+      "id": "barbell_walking_lunge_front_rack",
+      "name": "Barbell Walking Lunge (Front Rack)",
+      "equipment": "Barbell · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "barbell_walking_lunge_front_rack.png",
+      "prompt": null
+    },
+    {
+      "id": "barbell_split_jerk",
+      "name": "Barbell Split Jerk",
+      "equipment": "Barbell · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "barbell_split_jerk.png",
+      "prompt": null
+    },
+    {
+      "id": "barbell_push_jerk",
+      "name": "Barbell Push Jerk",
+      "equipment": "Barbell · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "barbell_push_jerk.png",
+      "prompt": null
+    },
+    {
+      "id": "barbell_power_jerk",
+      "name": "Barbell Power Jerk",
+      "equipment": "Barbell · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "barbell_power_jerk.png",
+      "prompt": null
+    },
+    {
+      "id": "barbell_floor_row",
+      "name": "Barbell Floor Row",
+      "equipment": "Barbell · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "barbell_floor_row.png",
+      "prompt": null
+    },
+    {
+      "id": "landmine_reverse_lunge",
+      "name": "Landmine Reverse Lunge",
+      "equipment": "Landmine · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "landmine_reverse_lunge.png",
+      "prompt": null
+    },
+    {
+      "id": "landmine_lateral_lunge",
+      "name": "Landmine Lateral Lunge",
+      "equipment": "Landmine · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "landmine_lateral_lunge.png",
+      "prompt": null
+    },
+    {
+      "id": "landmine_single_arm_row",
+      "name": "Landmine Single-Arm Row",
+      "equipment": "Landmine · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "landmine_single_arm_row.png",
+      "prompt": null
+    },
+    {
+      "id": "landmine_meadows_row",
+      "name": "Landmine Meadows Row",
+      "equipment": "Landmine · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "landmine_meadows_row.png",
+      "prompt": null
+    },
+    {
+      "id": "landmine_single_arm_press_half_kneeling",
+      "name": "Landmine Single-Arm Press (Half-Kneeling)",
+      "equipment": "Landmine · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "landmine_single_arm_press_half_kneeling.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_sumo_squat",
+      "name": "Dumbbell Sumo Squat",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_sumo_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_step_up_with_knee_drive",
+      "name": "Dumbbell Step-up with Knee Drive",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_step_up_with_knee_drive.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_curtsy_lunge",
+      "name": "Dumbbell Curtsy Lunge",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_curtsy_lunge.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_rdl_to_row",
+      "name": "Dumbbell RDL to Row",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_rdl_to_row.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_renegade_row_with_push_up",
+      "name": "Dumbbell Renegade Row with Push-up",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_renegade_row_with_push_up.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_pullover_to_press",
+      "name": "Dumbbell Pullover to Press",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_pullover_to_press.png",
+      "prompt": null
+    },
+    {
+      "id": "alternating_dumbbell_bench_press",
+      "name": "Alternating Dumbbell Bench Press",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "alternating_dumbbell_bench_press.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_cross_body_hammer_curl",
+      "name": "Dumbbell Cross-Body Hammer Curl",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_cross_body_hammer_curl.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_zottman_curl",
+      "name": "Dumbbell Zottman Curl",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_zottman_curl.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_concentration_curl",
+      "name": "Dumbbell Concentration Curl",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_concentration_curl.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_reverse_fly_incline",
+      "name": "Dumbbell Reverse Fly (Incline)",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_reverse_fly_incline.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_y_raise",
+      "name": "Dumbbell Y-Raise",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_y_raise.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_cuban_press",
+      "name": "Dumbbell Cuban Press",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_cuban_press.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_tate_press",
+      "name": "Dumbbell Tate Press",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_tate_press.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_floor_fly",
+      "name": "Dumbbell Floor Fly",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_floor_fly.png",
+      "prompt": null
+    },
+    {
+      "id": "dumbbell_squeeze_press",
+      "name": "Dumbbell Squeeze Press",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "dumbbell_squeeze_press.png",
+      "prompt": null
+    },
+    {
+      "id": "farmers_walk_with_trap_bar",
+      "name": "Farmer's Walk with Trap Bar",
+      "equipment": "Trap Bar · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "farmers_walk_with_trap_bar.png",
+      "prompt": null
+    },
+    {
+      "id": "suitcase_carry_single_dumbbell",
+      "name": "Suitcase Carry (Single Dumbbell)",
+      "equipment": "Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "suitcase_carry_single_dumbbell.png",
+      "prompt": null
+    },
+    {
+      "id": "front_rack_carry_barbell",
+      "name": "Front Rack Carry (Barbell)",
+      "equipment": "Barbell · Plates",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "front_rack_carry_barbell.png",
+      "prompt": null
+    },
+    {
+      "id": "sandbag_bear_hug_carry",
+      "name": "Sandbag Bear-Hug Carry",
+      "equipment": "Sandbag",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "sandbag_bear_hug_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "sandbag_shouldering",
+      "name": "Sandbag Shouldering",
+      "equipment": "Sandbag",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "sandbag_shouldering.png",
+      "prompt": null
+    },
+    {
+      "id": "sandbag_over_the_shoulder_throw",
+      "name": "Sandbag Over-the-Shoulder Throw",
+      "equipment": "Sandbag",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "sandbag_over_the_shoulder_throw.png",
+      "prompt": null
+    },
+    {
+      "id": "atlas_stone_to_platform",
+      "name": "Atlas Stone to Platform",
+      "equipment": "Atlas Stone",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "atlas_stone_to_platform.png",
+      "prompt": null
+    },
+    {
+      "id": "smith_machine_back_squat",
+      "name": "Smith Machine Back Squat",
+      "equipment": "Smith Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "smith_machine_back_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "smith_machine_bench_press",
+      "name": "Smith Machine Bench Press",
+      "equipment": "Smith Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "smith_machine_bench_press.png",
+      "prompt": null
+    },
+    {
+      "id": "smith_machine_incline_bench_press",
+      "name": "Smith Machine Incline Bench Press",
+      "equipment": "Smith Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "smith_machine_incline_bench_press.png",
+      "prompt": null
+    },
+    {
+      "id": "smith_machine_shoulder_press",
+      "name": "Smith Machine Shoulder Press",
+      "equipment": "Smith Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "smith_machine_shoulder_press.png",
+      "prompt": null
+    },
+    {
+      "id": "hack_squat_reverse",
+      "name": "Hack Squat - Reverse",
+      "equipment": "Hack Squat Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hack_squat_reverse.png",
+      "prompt": null
+    },
+    {
+      "id": "pendulum_squat_machine",
+      "name": "Pendulum Squat Machine",
+      "equipment": "Pendulum Squat Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pendulum_squat_machine.png",
+      "prompt": null
+    },
+    {
+      "id": "vertical_leg_press_machine",
+      "name": "Vertical Leg Press Machine",
+      "equipment": "Leg Press Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "vertical_leg_press_machine.png",
+      "prompt": null
+    },
+    {
+      "id": "reverse_hyper_machine",
+      "name": "Reverse Hyper Machine",
+      "equipment": "Reverse Hyper Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "reverse_hyper_machine.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_cross_over_high_to_low",
+      "name": "Cable Cross-Over - High to Low",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_cross_over_high_to_low.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_cross_over_low_to_high",
+      "name": "Cable Cross-Over - Low to High",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_cross_over_low_to_high.png",
+      "prompt": null
+    },
+    {
+      "id": "single_arm_cable_chest_press",
+      "name": "Single-Arm Cable Chest Press",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_arm_cable_chest_press.png",
+      "prompt": null
+    },
+    {
+      "id": "standing_cable_fly",
+      "name": "Standing Cable Fly",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "standing_cable_fly.png",
+      "prompt": null
+    },
+    {
+      "id": "single_arm_cable_lateral_raise",
+      "name": "Single-Arm Cable Lateral Raise",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_arm_cable_lateral_raise.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_rear_delt_fly_standing",
+      "name": "Cable Rear-Delt Fly (Standing)",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_rear_delt_fly_standing.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_rope_overhead_triceps_extension",
+      "name": "Cable Rope Overhead Triceps Extension",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_rope_overhead_triceps_extension.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_overhead_curl",
+      "name": "Cable Overhead Curl",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_overhead_curl.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_rope_hammer_curl",
+      "name": "Cable Rope Hammer Curl",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_rope_hammer_curl.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_hip_flexion",
+      "name": "Cable Hip Flexion",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_hip_flexion.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_kickback_glutes",
+      "name": "Cable Kickback (Glutes)",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_kickback_glutes.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_deadlift",
+      "name": "Cable Deadlift",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_deadlift.png",
+      "prompt": null
+    },
+    {
+      "id": "cable_squat_row",
+      "name": "Cable Squat Row",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "cable_squat_row.png",
+      "prompt": null
+    },
+    {
+      "id": "lat_pulldown_single_arm",
+      "name": "Lat Pulldown - Single-Arm",
+      "equipment": "Cable Stack",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "lat_pulldown_single_arm.png",
+      "prompt": null
+    },
+    {
+      "id": "machine_chest_fly",
+      "name": "Machine Chest Fly",
+      "equipment": "Pec Deck Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "machine_chest_fly.png",
+      "prompt": null
+    },
+    {
+      "id": "machine_reverse_fly",
+      "name": "Machine Reverse Fly",
+      "equipment": "Pec Deck Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "machine_reverse_fly.png",
+      "prompt": null
+    },
+    {
+      "id": "hammer_strength_row_machine",
+      "name": "Hammer-Strength Row Machine",
+      "equipment": "Row Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hammer_strength_row_machine.png",
+      "prompt": null
+    },
+    {
+      "id": "hammer_strength_incline_press",
+      "name": "Hammer-Strength Incline Press",
+      "equipment": "Chest Press Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "hammer_strength_incline_press.png",
+      "prompt": null
+    },
+    {
+      "id": "seated_machine_shoulder_press_neutral",
+      "name": "Seated Machine Shoulder Press (Neutral)",
+      "equipment": "Shoulder Press Machine",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "seated_machine_shoulder_press_neutral.png",
+      "prompt": null
+    },
+    {
+      "id": "standing_hip_cars",
+      "name": "Standing Hip CARs",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "standing_hip_cars.png",
+      "prompt": null
+    },
+    {
+      "id": "shoulder_cars",
+      "name": "Shoulder CARs",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "shoulder_cars.png",
+      "prompt": null
+    },
+    {
+      "id": "ankle_cars",
+      "name": "Ankle CARs",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "ankle_cars.png",
+      "prompt": null
+    },
+    {
+      "id": "90_90_shin_box_switch",
+      "name": "90/90 Shin Box Switch",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "90_90_shin_box_switch.png",
+      "prompt": null
+    },
+    {
+      "id": "frog_stretch",
+      "name": "Frog Stretch",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "frog_stretch.png",
+      "prompt": null
+    },
+    {
+      "id": "pigeon_stretch",
+      "name": "Pigeon Stretch",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "pigeon_stretch.png",
+      "prompt": null
+    },
+    {
+      "id": "thread_the_needle_stretch",
+      "name": "Thread-the-Needle Stretch",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "thread_the_needle_stretch.png",
+      "prompt": null
+    },
+    {
+      "id": "brettzel_stretch",
+      "name": "Brettzel Stretch",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "brettzel_stretch.png",
+      "prompt": null
+    },
+    {
+      "id": "jefferson_curl",
+      "name": "Jefferson Curl",
+      "equipment": "Barbell or Dumbbells",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "jefferson_curl.png",
+      "prompt": null
+    },
+    {
+      "id": "single_leg_balance_reach",
+      "name": "Single-Leg Balance Reach",
+      "equipment": "Mat",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "single_leg_balance_reach.png",
+      "prompt": null
+    },
+    {
+      "id": "steel_mace_360",
+      "name": "Steel Mace 360",
+      "equipment": "Steel Mace",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "steel_mace_360.png",
+      "prompt": null
+    },
+    {
+      "id": "steel_mace_10_to_2",
+      "name": "Steel Mace 10-to-2",
+      "equipment": "Steel Mace",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "steel_mace_10_to_2.png",
+      "prompt": null
+    },
+    {
+      "id": "steel_mace_uppercut",
+      "name": "Steel Mace Uppercut",
+      "equipment": "Steel Mace",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "steel_mace_uppercut.png",
+      "prompt": null
+    },
+    {
+      "id": "steel_mace_offset_press",
+      "name": "Steel Mace Offset Press",
+      "equipment": "Steel Mace",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "steel_mace_offset_press.png",
+      "prompt": null
+    },
+    {
+      "id": "steel_mace_offset_squat",
+      "name": "Steel Mace Offset Squat",
+      "equipment": "Steel Mace",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "steel_mace_offset_squat.png",
+      "prompt": null
+    },
+    {
+      "id": "steel_mace_rotational_lunge",
+      "name": "Steel Mace Rotational Lunge",
+      "equipment": "Steel Mace",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "steel_mace_rotational_lunge.png",
+      "prompt": null
+    },
+    {
+      "id": "steel_mace_single_arm_swing",
+      "name": "Steel Mace Single-Arm Swing",
+      "equipment": "Steel Mace",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "steel_mace_single_arm_swing.png",
+      "prompt": null
+    },
+    {
+      "id": "steel_mace_overhead_carry",
+      "name": "Steel Mace Overhead Carry",
+      "equipment": "Steel Mace",
+      "record_type": "movement",
+      "status": "pending",
+      "file": "steel_mace_overhead_carry.png",
+      "prompt": null
+    },
+    {
+      "id": "cycle_stationary",
+      "name": "Stationary Bike",
+      "equipment": "Stationary Bike",
+      "record_type": "cardio_modality",
+      "status": "pending",
+      "file": "cycle_stationary.png",
+      "prompt": null
+    },
+    {
+      "id": "cycle_outdoor",
+      "name": "Outdoor Cycling",
+      "equipment": "Bicycle",
+      "record_type": "cardio_modality",
+      "status": "pending",
+      "file": "cycle_outdoor.png",
+      "prompt": null
+    },
+    {
+      "id": "treadmill",
+      "name": "Treadmill",
+      "equipment": "Treadmill",
+      "record_type": "cardio_modality",
+      "status": "pending",
+      "file": "treadmill.png",
+      "prompt": null
+    },
+    {
+      "id": "run_outdoor",
+      "name": "Outdoor Running",
+      "equipment": "Outdoor Space",
+      "record_type": "cardio_modality",
+      "status": "pending",
+      "file": "run_outdoor.png",
+      "prompt": null
+    },
+    {
+      "id": "walk",
+      "name": "Walking",
+      "equipment": "Bodyweight",
+      "record_type": "cardio_modality",
+      "status": "pending",
+      "file": "walk.png",
+      "prompt": null
+    },
+    {
+      "id": "incline_walk",
+      "name": "Incline Treadmill Walk",
+      "equipment": "Treadmill",
+      "record_type": "cardio_modality",
+      "status": "pending",
+      "file": "incline_walk.png",
+      "prompt": null
+    },
+    {
+      "id": "row_erg",
+      "name": "Rowing Machine",
+      "equipment": "Rower",
+      "record_type": "cardio_modality",
+      "status": "pending",
+      "file": "row_erg.png",
+      "prompt": null
+    },
+    {
+      "id": "ski_erg",
+      "name": "Ski Erg",
+      "equipment": "Ski Erg",
+      "record_type": "cardio_modality",
+      "status": "pending",
+      "file": "ski_erg.png",
+      "prompt": null
+    },
+    {
+      "id": "air_bike",
+      "name": "Air Bike",
+      "equipment": "Air Bike",
+      "record_type": "cardio_modality",
+      "status": "pending",
+      "file": "air_bike.png",
+      "prompt": null
+    },
+    {
+      "id": "elliptical",
+      "name": "Elliptical",
+      "equipment": "Elliptical",
+      "record_type": "cardio_modality",
+      "status": "pending",
+      "file": "elliptical.png",
+      "prompt": null
+    },
+    {
+      "id": "stair_climber",
+      "name": "Stair Climber",
+      "equipment": "Stair Climber",
+      "record_type": "cardio_modality",
+      "status": "pending",
+      "file": "stair_climber.png",
+      "prompt": null
+    },
+    {
+      "id": "swim",
+      "name": "Swimming",
+      "equipment": "Pool",
+      "record_type": "cardio_modality",
+      "status": "pending",
+      "file": "swim.png",
+      "prompt": null
+    },
+    {
+      "id": "jump_rope",
+      "name": "Jump Rope",
+      "equipment": "Jump Rope",
+      "record_type": "cardio_modality",
+      "status": "pending",
+      "file": "jump_rope.png",
+      "prompt": null
+    },
+    {
+      "id": "sled_push_drag",
+      "name": "Sled Push or Drag",
+      "equipment": "Sled",
+      "record_type": "cardio_modality",
+      "status": "pending",
+      "file": "sled_push_drag.png",
+      "prompt": null
+    },
+    {
+      "id": "shadow_box",
+      "name": "Shadow Boxing",
+      "equipment": "Bodyweight",
+      "record_type": "cardio_modality",
+      "status": "pending",
+      "file": "shadow_box.png",
+      "prompt": null
+    }
+  ],
+  "validation_policy": "PNG with alpha channel, at least one fully transparent pixel and some visible pixels. Alpha maximum 254 is valid. Visual review tracked separately."
+}
