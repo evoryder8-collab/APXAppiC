@@ -12,7 +12,7 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 
 ## Progress
 
-358 generated; 1 supplied reference; 190 pending.
+398 generated; 1 supplied reference; 150 pending.
 
 | Order | Catalog ID | Exercise | Status |
 | --- | --- | --- | --- |
@@ -375,46 +375,46 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 357 | `kettlebell_overhead_carry` | Kettlebell Overhead Carry | generated_reviewed |
 | 358 | `double_overhead_kettlebell_carry` | Double Overhead Kettlebell Carry | generated_reviewed |
 | 359 | `kettlebell_rack_carry` | Kettlebell Rack Carry | generated_reviewed |
-| 360 | `kettlebell_farmers_walk` | Kettlebell Farmer's Walk | pending |
-| 361 | `kettlebell_cross_body_carry` | Kettlebell Cross-Body Carry | pending |
-| 362 | `kettlebell_crush_grip_push_up` | Kettlebell Crush-Grip Push-up | pending |
-| 363 | `kettlebell_push_up_to_row` | Kettlebell Push-up to Row | pending |
-| 364 | `kettlebell_pullover` | Kettlebell Pullover | pending |
-| 365 | `kettlebell_russian_twist` | Kettlebell Russian Twist | pending |
-| 366 | `kettlebell_side_bend` | Kettlebell Side Bend | pending |
-| 367 | `kettlebell_dead_bug` | Kettlebell Dead Bug | pending |
-| 368 | `kettlebell_hollow_body_hold` | Kettlebell Hollow Body Hold | pending |
-| 369 | `kettlebell_sit_up` | Kettlebell Sit-up | pending |
-| 370 | `kettlebell_v_up` | Kettlebell V-Up | pending |
-| 371 | `kettlebell_woodchopper` | Kettlebell Woodchopper | pending |
-| 372 | `kettlebell_slasher_to_halo` | Kettlebell Slasher-to-Halo | pending |
-| 373 | `kettlebell_armbar` | Kettlebell Armbar | pending |
-| 374 | `kettlebell_surrender` | Kettlebell Surrender | pending |
-| 375 | `kettlebell_deck_squat` | Kettlebell Deck Squat | pending |
-| 376 | `kettlebell_man_maker` | Kettlebell Man Maker | pending |
-| 377 | `split_squat_jump` | Split Squat Jump | pending |
-| 378 | `jumping_lunge` | Jumping Lunge | pending |
-| 379 | `box_step_up_bodyweight` | Box Step-up (Bodyweight) | pending |
-| 380 | `curtsy_lunge_bodyweight` | Curtsy Lunge (Bodyweight) | pending |
-| 381 | `single_leg_box_squat` | Single-leg Box Squat | pending |
-| 382 | `assisted_pistol_squat` | Assisted Pistol Squat | pending |
-| 383 | `jumping_pistol_squat` | Jumping Pistol Squat | pending |
-| 384 | `sissy_squat_unloaded` | Sissy Squat (Unloaded) | pending |
-| 385 | `glute_ham_walkout` | Glute-Ham Walkout | pending |
-| 386 | `hip_thrust_bodyweight` | Hip Thrust (Bodyweight) | pending |
-| 387 | `single_leg_hip_thrust_bodyweight` | Single-leg Hip Thrust (Bodyweight) | pending |
-| 388 | `reverse_lunge_to_knee_drive` | Reverse Lunge to Knee Drive | pending |
-| 389 | `step_back_lunge_with_twist` | Step-back Lunge with Twist | pending |
-| 390 | `lateral_step_up` | Lateral Step-up | pending |
-| 391 | `calf_raise_on_step` | Calf Raise on Step | pending |
-| 392 | `donkey_calf_raise` | Donkey Calf Raise | pending |
-| 393 | `wall_calf_raise` | Wall Calf Raise | pending |
-| 394 | `decline_push_up_high_feet` | Decline Push-up (High Feet) | pending |
-| 395 | `clap_push_up` | Clap Push-up | pending |
-| 396 | `wide_grip_push_up` | Wide-Grip Push-up | pending |
-| 397 | `close_grip_push_up` | Close-Grip Push-up | pending |
-| 398 | `clock_push_up` | Clock Push-up | pending |
-| 399 | `planche_lean` | Planche Lean | pending |
+| 360 | `kettlebell_farmers_walk` | Kettlebell Farmer's Walk | generated_reviewed |
+| 361 | `kettlebell_cross_body_carry` | Kettlebell Cross-Body Carry | generated_needs_review |
+| 362 | `kettlebell_crush_grip_push_up` | Kettlebell Crush-Grip Push-up | generated_reviewed |
+| 363 | `kettlebell_push_up_to_row` | Kettlebell Push-up to Row | generated_reviewed |
+| 364 | `kettlebell_pullover` | Kettlebell Pullover | generated_reviewed |
+| 365 | `kettlebell_russian_twist` | Kettlebell Russian Twist | generated_needs_review |
+| 366 | `kettlebell_side_bend` | Kettlebell Side Bend | generated_reviewed |
+| 367 | `kettlebell_dead_bug` | Kettlebell Dead Bug | generated_reviewed |
+| 368 | `kettlebell_hollow_body_hold` | Kettlebell Hollow Body Hold | generated_reviewed |
+| 369 | `kettlebell_sit_up` | Kettlebell Sit-up | generated_reviewed |
+| 370 | `kettlebell_v_up` | Kettlebell V-Up | generated_reviewed |
+| 371 | `kettlebell_woodchopper` | Kettlebell Woodchopper | generated_reviewed |
+| 372 | `kettlebell_slasher_to_halo` | Kettlebell Slasher-to-Halo | generated_reviewed |
+| 373 | `kettlebell_armbar` | Kettlebell Armbar | generated_reviewed |
+| 374 | `kettlebell_surrender` | Kettlebell Surrender | generated_reviewed |
+| 375 | `kettlebell_deck_squat` | Kettlebell Deck Squat | generated_reviewed |
+| 376 | `kettlebell_man_maker` | Kettlebell Man Maker | generated_reviewed |
+| 377 | `split_squat_jump` | Split Squat Jump | generated_reviewed |
+| 378 | `jumping_lunge` | Jumping Lunge | generated_needs_review |
+| 379 | `box_step_up_bodyweight` | Box Step-up (Bodyweight) | generated_reviewed |
+| 380 | `curtsy_lunge_bodyweight` | Curtsy Lunge (Bodyweight) | generated_reviewed |
+| 381 | `single_leg_box_squat` | Single-leg Box Squat | generated_reviewed |
+| 382 | `assisted_pistol_squat` | Assisted Pistol Squat | generated_reviewed |
+| 383 | `jumping_pistol_squat` | Jumping Pistol Squat | generated_reviewed |
+| 384 | `sissy_squat_unloaded` | Sissy Squat (Unloaded) | generated_reviewed |
+| 385 | `glute_ham_walkout` | Glute-Ham Walkout | generated_reviewed |
+| 386 | `hip_thrust_bodyweight` | Hip Thrust (Bodyweight) | generated_reviewed |
+| 387 | `single_leg_hip_thrust_bodyweight` | Single-leg Hip Thrust (Bodyweight) | generated_reviewed |
+| 388 | `reverse_lunge_to_knee_drive` | Reverse Lunge to Knee Drive | generated_reviewed |
+| 389 | `step_back_lunge_with_twist` | Step-back Lunge with Twist | generated_reviewed |
+| 390 | `lateral_step_up` | Lateral Step-up | generated_reviewed |
+| 391 | `calf_raise_on_step` | Calf Raise on Step | generated_reviewed |
+| 392 | `donkey_calf_raise` | Donkey Calf Raise | generated_reviewed |
+| 393 | `wall_calf_raise` | Wall Calf Raise | generated_reviewed |
+| 394 | `decline_push_up_high_feet` | Decline Push-up (High Feet) | generated_reviewed |
+| 395 | `clap_push_up` | Clap Push-up | generated_reviewed |
+| 396 | `wide_grip_push_up` | Wide-Grip Push-up | generated_reviewed |
+| 397 | `close_grip_push_up` | Close-Grip Push-up | generated_reviewed |
+| 398 | `clock_push_up` | Clock Push-up | generated_reviewed |
+| 399 | `planche_lean` | Planche Lean | generated_needs_review |
 | 400 | `planche_push_up` | Planche Push-up | pending |
 | 401 | `hindu_push_up` | Hindu Push-up | pending |
 | 402 | `divebomber_push_up` | Divebomber Push-up | pending |

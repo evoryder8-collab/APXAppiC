@@ -6489,360 +6489,720 @@
       "name": "Kettlebell Farmer's Walk",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "kettlebell_farmers_walk.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell Farmer's Walk (catalog ID kettlebell_farmers_walk). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. One upright walking pose carrying two kettlebells by sides with straight arms and level shoulders. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-8b60f10a-ecca-475a-94f9-465afff744b0.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Two bells at sides and walking positions checked."
     },
     {
       "id": "kettlebell_cross_body_carry",
       "name": "Kettlebell Cross-Body Carry",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "kettlebell_cross_body_carry.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell Cross-Body Carry (catalog ID kettlebell_cross_body_carry). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. One upright walking pose with one bell locked overhead and opposite bell down at side, level hips and ribs. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-b54f114c-6077-4589-a799-0142515b4b04.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Cross-body carry positions correct; last figure's front foot partly cropped. Preserve original."
     },
     {
       "id": "kettlebell_crush_grip_push_up",
       "name": "Kettlebell Crush-Grip Push-up",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "kettlebell_crush_grip_push_up.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell Crush-Grip Push-up (catalog ID kettlebell_crush_grip_push_up). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. Two high plank push-up poses both palms gripping sides of one stable kettlebell body beneath sternum, legs straight: elbows extended then chest lowered. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-d713b65d-7715-4e4c-8176-546fe9463384.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Hands on bell body, straight plank top and lowered poses checked."
     },
     {
       "id": "kettlebell_push_up_to_row",
       "name": "Kettlebell Push-up to Row",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "kettlebell_push_up_to_row.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell Push-up to Row (catalog ID kettlebell_push_up_to_row). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. Two high plank poses hands gripping two stable kettlebell handles: push-up lowered chest, then high plank with one bell rowed toward ribs. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-6390258f-868f-4758-9481-1eee51b3e36b.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Lowered push-up and unilateral plank row checked."
     },
     {
       "id": "kettlebell_pullover",
       "name": "Kettlebell Pullover",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "kettlebell_pullover.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell Pullover (catalog ID kettlebell_pullover). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. Two supine mat poses knees bent, both hands holding one kettlebell by horns: arms vertical above chest then nearly straight arms lowered behind head. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-d299a8a1-5612-4ddd-b40c-27242fce2079.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Supine arms above chest then behind head with bell checked."
     },
     {
       "id": "kettlebell_russian_twist",
       "name": "Kettlebell Russian Twist",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "kettlebell_russian_twist.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell Russian Twist (catalog ID kettlebell_russian_twist). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. Two seated mat poses knees bent, torso leaned back, both hands gripping one bell near waist: torso and bell rotated to left then right. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-02656930-b279-48a8-a234-20b0c1147a3b.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Both positions put bell on same side rather than demonstrate left and right rotation. Preserve original."
     },
     {
       "id": "kettlebell_side_bend",
       "name": "Kettlebell Side Bend",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "kettlebell_side_bend.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell Side Bend (catalog ID kettlebell_side_bend). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. Two standing poses single bell down in one hand: upright then small controlled lateral bend toward weight, no twisting. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-6c1c7a83-afc1-42c5-8d49-4e8a480ce585.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Key movement positions, full figures and kettlebell equipment visually checked."
     },
     {
       "id": "kettlebell_dead_bug",
       "name": "Kettlebell Dead Bug",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "kettlebell_dead_bug.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell Dead Bug (catalog ID kettlebell_dead_bug). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. Two supine mat poses one arm holding bell vertically above shoulder and opposite arm overhead on floor. Hips knees ninety degrees, then opposite leg extended close to floor while bell remains vertical. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-83214278-97e1-421d-bc6c-1004cd679ef7.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Key movement positions, full figures and kettlebell equipment visually checked."
     },
     {
       "id": "kettlebell_hollow_body_hold",
       "name": "Kettlebell Hollow Body Hold",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "kettlebell_hollow_body_hold.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell Hollow Body Hold (catalog ID kettlebell_hollow_body_hold). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. One supine hollow hold on mat, shoulders raised, straight legs hovering low, both arms holding one bell extended above upper chest. Lower back stays down. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9e7fc649-ac03-443d-8431-8f1e57ac78e6.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Key movement positions, full figures and kettlebell equipment visually checked."
     },
     {
       "id": "kettlebell_sit_up",
       "name": "Kettlebell Sit-up",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "kettlebell_sit_up.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell Sit-up (catalog ID kettlebell_sit_up). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. Two supine-to-seated mat poses knees bent, one bell held securely by horns at chest, shoulders curl up into upright sit-up. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-fced4815-2c38-4147-8c62-c345aa531f50.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Key movement positions, full figures and kettlebell equipment visually checked."
     },
     {
       "id": "kettlebell_v_up",
       "name": "Kettlebell V-Up",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "kettlebell_v_up.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell V-Up (catalog ID kettlebell_v_up). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. Two mat poses both hands holding one bell: supine arms extended above head and legs straight, then V-up with torso and straight legs lifted and bell reaching toward feet. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-550dc90c-bc8d-42bd-a960-60c203aad0f8.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Key movement positions, full figures and kettlebell equipment visually checked."
     },
     {
       "id": "kettlebell_woodchopper",
       "name": "Kettlebell Woodchopper",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "kettlebell_woodchopper.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell Woodchopper (catalog ID kettlebell_woodchopper). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. Two standing poses holding one bell by horns in both hands: bell beside one hip with torso turned, then diagonal lift across body to opposite shoulder, hips pivot naturally. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-2457c55e-3ed1-4518-ad1b-a793706553e9.png",
+      "width": 1355,
+      "height": 1161,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Key movement positions, full figures and kettlebell equipment visually checked."
     },
     {
       "id": "kettlebell_slasher_to_halo",
       "name": "Kettlebell Slasher-to-Halo",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "kettlebell_slasher_to_halo.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell Slasher-to-Halo (catalog ID kettlebell_slasher_to_halo). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. Three poses both hands on bell horns: beside one hip, diagonal lift toward opposite shoulder, then bell circled behind head with bent elbows. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-e9846792-ae3a-4e0b-99ab-b256fcae0529.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Key movement positions, full figures and kettlebell equipment visually checked."
     },
     {
       "id": "kettlebell_armbar",
       "name": "Kettlebell Armbar",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "kettlebell_armbar.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell Armbar (catalog ID kettlebell_armbar). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. One complete side-lying armbar pose on mat, one arm holding bell vertically straight above shoulder, lower leg straight and upper knee bent over supporting body. Bell upright over shoulder. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-7c47aad2-ecfd-4f44-abfc-40274f3bc22c.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Key movement positions, full figures and kettlebell equipment visually checked."
     },
     {
       "id": "kettlebell_surrender",
       "name": "Kettlebell Surrender",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "kettlebell_surrender.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell Surrender (catalog ID kettlebell_surrender). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. Two poses holding two bells front-racked: tall kneeling with both knees down then half kneeling with one foot placed forward to rise. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-d9d9f28b-3860-4454-b737-4eed2917fe58.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Key movement positions, full figures and kettlebell equipment visually checked."
     },
     {
       "id": "kettlebell_deck_squat",
       "name": "Kettlebell Deck Squat",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "kettlebell_deck_squat.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell Deck Squat (catalog ID kettlebell_deck_squat). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. Three poses holding one bell by horns: supine rocking back with bent knees; deep squat after rolling forward; standing tall with bell at chest. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-b49027f4-94bb-47c9-84fa-68d04026317c.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Key movement positions, full figures and kettlebell equipment visually checked."
     },
     {
       "id": "kettlebell_man_maker",
       "name": "Kettlebell Man Maker",
       "equipment": "Kettlebell",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "kettlebell_man_maker.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Kettlebell Man Maker (catalog ID kettlebell_man_maker). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Kettlebells have a spherical weight body and clearly visible arched handle, never substitute dumbbells. Three poses holding two bells: high plank unilateral row; squat with bells front-racked; standing overhead press. Keep poses separate. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-30489703-1b56-4a17-8426-f2529c0d35d9.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Key movement positions, full figures and kettlebell equipment visually checked."
     },
     {
       "id": "split_squat_jump",
       "name": "Split Squat Jump",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "split_squat_jump.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Split Squat Jump (catalog ID split_squat_jump). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two poses in the same split stance: knees bent in split squat then airborne straightening legs, keeping same leg forward. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-b1ddb048-a3b7-4370-a79f-3a7e386a9d16.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Split stance and airborne pose checked."
     },
     {
       "id": "jumping_lunge",
       "name": "Jumping Lunge",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "jumping_lunge.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Jumping Lunge (catalog ID jumping_lunge). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Three poses: deep lunge right leg forward; airborne swapping legs; deep lunge left leg forward. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-811f34bf-8a5e-4d17-bdb6-d935f49a1098.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Three jump/lunge phases present, but ending stance appears same as starting stance rather than swapping legs. Preserve original."
     },
     {
       "id": "box_step_up_bodyweight",
       "name": "Box Step-up (Bodyweight)",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "box_step_up_bodyweight.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Box Step-up (Bodyweight) (catalog ID box_step_up_bodyweight). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two poses at low sturdy box: one foot on box other on floor then standing tall on same leg on box with free knee lifted. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-8dfe861d-8b3d-43c8-91ea-127a551bf203.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Unloaded box step-up and knee drive checked."
     },
     {
       "id": "curtsy_lunge_bodyweight",
       "name": "Curtsy Lunge (Bodyweight)",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "curtsy_lunge_bodyweight.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Curtsy Lunge (Bodyweight) (catalog ID curtsy_lunge_bodyweight). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two poses: standing upright then one leg stepped diagonally behind other into bent-knee curtsy lunge, hands clasped at chest. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-93db26c5-cd78-4304-a9e5-4c5a5813bfb6.png",
+      "width": 1181,
+      "height": 1332,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Unloaded standing and crossed rear-leg curtsy checked."
     },
     {
       "id": "single_leg_box_squat",
       "name": "Single-leg Box Squat",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "single_leg_box_squat.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Single-leg Box Squat (catalog ID single_leg_box_squat). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two side-view poses with low sturdy box behind: one-leg standing with other leg extended forward, then hips seated lightly on box while free leg stays raised. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-af174038-a3e7-4756-b4ac-1e7228ba1b7d.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "One-legged standing and seated box squat checked."
     },
     {
       "id": "assisted_pistol_squat",
       "name": "Assisted Pistol Squat",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "assisted_pistol_squat.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Assisted Pistol Squat (catalog ID assisted_pistol_squat). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two side-view poses holding isolated sturdy support pole with one hand: standing on one leg then deep single-leg squat, free leg extended forward off floor. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-776427c8-a4d0-40f1-ac23-a4fbbee6152e.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Single-leg standing and pistol with support pole checked; pole extends beyond upper edge."
     },
     {
       "id": "jumping_pistol_squat",
       "name": "Jumping Pistol Squat",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "jumping_pistol_squat.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Jumping Pistol Squat (catalog ID jumping_pistol_squat). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two side-view poses: deep one-leg pistol squat free leg straight forward, then airborne jump from supporting foot while free leg stays forward. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-41937a82-60d6-47f1-b718-7e6d24ba225a.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Exercise positions, unloaded variation and full figure visually checked."
     },
     {
       "id": "sissy_squat_unloaded",
       "name": "Sissy Squat (Unloaded)",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "sissy_squat_unloaded.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Sissy Squat (Unloaded) (catalog ID sissy_squat_unloaded). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two side-view poses: upright then knees travel forward with heels lifted and rigid torso leaning backward from knees, hips extended. No added weights. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-022104e1-619e-47af-92d9-b1f2765928fd.png",
+      "width": 1377,
+      "height": 1142,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Exercise positions, unloaded variation and full figure visually checked."
     },
     {
       "id": "glute_ham_walkout",
       "name": "Glute-Ham Walkout",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "glute_ham_walkout.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Glute-Ham Walkout (catalog ID glute_ham_walkout). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two supine bridge poses on mat hips elevated, heels initially close then walked far forward with knees nearly straight. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-69210196-5195-4480-a9f7-7a2458bfb166.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Exercise positions, unloaded variation and full figure visually checked."
     },
     {
       "id": "hip_thrust_bodyweight",
       "name": "Hip Thrust (Bodyweight)",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "hip_thrust_bodyweight.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Hip Thrust (Bodyweight) (catalog ID hip_thrust_bodyweight). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two side-view poses upper back supported on sturdy bench, feet planted: hips lowered then hips raised until trunk horizontal, knees bent ninety degrees. No weight. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-caaf37d5-6293-4b8a-9702-c381aefea9b4.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Exercise positions, unloaded variation and full figure visually checked."
     },
     {
       "id": "single_leg_hip_thrust_bodyweight",
       "name": "Single-leg Hip Thrust (Bodyweight)",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "single_leg_hip_thrust_bodyweight.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Single-leg Hip Thrust (Bodyweight) (catalog ID single_leg_hip_thrust_bodyweight). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two side-view poses upper back on bench, one foot planted and other leg raised: hips lowered then lifted to horizontal trunk. No weight. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-892bcb8a-b5b6-4af3-93b3-bb671080f264.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Exercise positions, unloaded variation and full figure visually checked."
     },
     {
       "id": "reverse_lunge_to_knee_drive",
       "name": "Reverse Lunge to Knee Drive",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "reverse_lunge_to_knee_drive.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Reverse Lunge to Knee Drive (catalog ID reverse_lunge_to_knee_drive). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two poses: reverse lunge rear knee near floor then standing on front leg with rear knee driven forward to hip height. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-c9d7dc08-3006-47ea-9fb2-b0d2bd869825.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Reverse lunge and knee drive shown; complete figures checked."
     },
     {
       "id": "step_back_lunge_with_twist",
       "name": "Step-back Lunge with Twist",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "step_back_lunge_with_twist.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Step-back Lunge with Twist (catalog ID step_back_lunge_with_twist). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two poses: reverse lunge torso facing forward, then same lunge with torso rotated toward front leg, arms held in front. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-1009f5e9-2ec5-4075-b982-7df3897f92ba.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Reverse lunge and torso turn checked."
     },
     {
       "id": "lateral_step_up",
       "name": "Lateral Step-up",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "lateral_step_up.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Lateral Step-up (catalog ID lateral_step_up). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two poses standing beside low box, near foot on box; then standing atop box on near leg with free leg lifted, stepping sideways. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-da372aa2-b7e8-47a9-9ada-3fb6235a17f9.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Side placement beside box and atop box checked."
     },
     {
       "id": "calf_raise_on_step",
       "name": "Calf Raise on Step",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "calf_raise_on_step.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Calf Raise on Step (catalog ID calf_raise_on_step). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two side-view poses forefeet on edge of low step, heels hanging off: heels lowered then heels raised high. Whole athlete and step. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-da63aa4c-dd13-4938-a8a8-15b9c0808da1.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Forefeet on edge, heels lowered then elevated checked."
     },
     {
       "id": "donkey_calf_raise",
       "name": "Donkey Calf Raise",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "donkey_calf_raise.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Donkey Calf Raise (catalog ID donkey_calf_raise). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two side-view poses torso hinged forward with both palms supported on sturdy bench, knees straight: heels down then raised onto forefeet. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9c6278f9-4832-4f7d-8fbb-7ee91e0c7485.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Distinct key poses, equipment support where applicable and full figures visually checked."
     },
     {
       "id": "wall_calf_raise",
       "name": "Wall Calf Raise",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "wall_calf_raise.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Wall Calf Raise (catalog ID wall_calf_raise). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, black sports bra and black shorts, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two side-view poses palms against small isolated wall panel, body inclined forward and legs straight: heels down then raised onto toes. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-07778119-3a8a-42bc-a8f0-03948d66dcc9.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Distinct key poses, equipment support where applicable and full figures visually checked."
     },
     {
       "id": "decline_push_up_high_feet",
       "name": "Decline Push-up (High Feet)",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "decline_push_up_high_feet.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Decline Push-up (High Feet) (catalog ID decline_push_up_high_feet). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two side-view push-up poses toes on high sturdy bench and palms on floor, straight body angled down toward head: elbows extended then chest lowered. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-ca644bf2-1aa2-483e-8afd-777f9bd4d15d.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Distinct key poses, equipment support where applicable and full figures visually checked."
     },
     {
       "id": "clap_push_up",
       "name": "Clap Push-up",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "clap_push_up.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Clap Push-up (catalog ID clap_push_up). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two side-view poses straight plank body: low push-up then explosive airborne hands clapping together beneath chest while toes stay grounded. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-ed17837e-5b59-4856-bca5-c54b51172c38.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Distinct key poses, equipment support where applicable and full figures visually checked."
     },
     {
       "id": "wide_grip_push_up",
       "name": "Wide-Grip Push-up",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "wide_grip_push_up.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Wide-Grip Push-up (catalog ID wide_grip_push_up). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two front three-quarter push-up poses hands clearly wider than shoulders: elbows straight then bent with chest lowered, legs straight. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-f3125887-9e95-4818-b3e2-7d9e6dcc04b8.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Distinct key poses, equipment support where applicable and full figures visually checked."
     },
     {
       "id": "close_grip_push_up",
       "name": "Close-Grip Push-up",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "close_grip_push_up.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Close-Grip Push-up (catalog ID close_grip_push_up). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two front three-quarter push-up poses hands close under sternum and elbows close to ribs: top then lowered. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-1133bab2-4de0-4219-ae2e-d9394456cab7.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Close hand position and elbows beside ribs checked."
     },
     {
       "id": "clock_push_up",
       "name": "Clock Push-up",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "clock_push_up.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Clock Push-up (catalog ID clock_push_up). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. Two high plank push-up positions pivoting around grounded toes: one with hands to forward-left, another with hands forward-right at distinct angles. No arrows or clock markings. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-d29f2c26-d1bd-4fc5-9409-d04d8b8fd855.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Two distinct plank orientations checked."
     },
     {
       "id": "planche_lean",
       "name": "Planche Lean",
       "equipment": "Bodyweight",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "planche_lean.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise-library PNG for Planche Lean (catalog ID planche_lean). Use attached goblet squat ONLY as athlete identity and photographic style reference; do not copy its squat pose or dumbbell. Same adult athletic woman, dark ponytail, realistic photographic finish, opaque black athletic leggings and fitted long sleeve black athletic top, white trainers. Bodyweight exercise: absolutely no dumbbells, kettlebells, barbells or added weights. One side-view high plank hold with straight arms, shoulders shifted well forward of wrists, protracted shoulder blades, toes on floor and body rigid. Multiple positions must be complete separated nonoverlapping figures at consistent scale. Accurate anatomy and realistic equipment contact. Include complete athlete head to toe, every hand fingertip shoe and all equipment. Wide spacious composition with at least 8 percent transparent margins; shrink figures to fit. True transparent background. No text logos arrows numbers scenery motion lines shadows decorative effects. Essential equipment only.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-e38f02dc-4162-4711-b0b2-1691adc4f077.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Full straight plank shown; shoulder shift ahead of wrists is limited and may need stronger lean. Preserve original."
     },
     {
       "id": "planche_push_up",
@@ -8275,6 +8635,13 @@
       "commit": "afb030db5501f231e33d81dec8fa9c40010f1f33",
       "generated_count": 318,
       "workflow_run": 37145521242,
+      "conclusion": "success",
+      "url": "https://evoryder8-collab.github.io/APXAppiC/"
+    },
+    {
+      "commit": "9d832a1be9597c5eec61aad02749e832f62791a4",
+      "generated_count": 358,
+      "workflow_run": 37147301916,
       "conclusion": "success",
       "url": "https://evoryder8-collab.github.io/APXAppiC/"
     }
