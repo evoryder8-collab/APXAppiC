@@ -12,7 +12,7 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 
 ## Progress
 
-24 generated; 1 supplied reference; 524 pending.
+50 generated; 1 supplied reference; 498 pending.
 
 | Order | Catalog ID | Exercise | Status |
 | --- | --- | --- | --- |
@@ -36,37 +36,37 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 18 | `goblet_squat` | Goblet Squat | provided_reference |
 | 19 | `heel_elevated_goblet_squat` | Heel-Elevated Goblet Squat | generated_reviewed |
 | 20 | `hack_squat` | Hack Squat | generated_reviewed |
-| 21 | `leg_press` | Leg Press | generated_pending_visual_review |
-| 22 | `bodyweight_squat` | Bodyweight Squat | pending |
-| 23 | `sit_to_stand` | Sit-to-Stand | generated_pending_visual_review |
-| 24 | `pistol_squat` | Pistol Squat | generated_pending_visual_review |
-| 25 | `smith_machine_squat` | Smith Machine Squat | generated_pending_visual_review |
-| 26 | `bulgarian_split_squat` | Bulgarian Split Squat | generated_pending_visual_review |
-| 27 | `split_squat` | Split Squat | pending |
-| 28 | `reverse_lunge` | Reverse Lunge | pending |
-| 29 | `walking_lunge` | Walking Lunge | pending |
-| 30 | `forward_lunge` | Forward Lunge | pending |
-| 31 | `step_up` | Step-Up | pending |
-| 32 | `smith_split_squat` | Smith Machine Split Squat | pending |
-| 33 | `barbell_bench_press` | Barbell Bench Press | pending |
-| 34 | `dumbbell_bench_press` | Flat Dumbbell Press | pending |
-| 35 | `incline_dumbbell_press` | Incline Dumbbell Press | pending |
-| 36 | `dumbbell_floor_press` | Dumbbell Floor Press | pending |
-| 37 | `machine_chest_press` | Machine Chest Press | pending |
-| 38 | `incline_smith_press` | Incline Smith Machine Press | pending |
-| 39 | `push_up` | Push-Up | pending |
-| 40 | `incline_push_up` | Incline Push-Up | pending |
-| 41 | `knee_push_up` | Knee Push-Up | pending |
-| 42 | `feet_elevated_push_up` | Feet-Elevated Push-Up | pending |
-| 43 | `weighted_push_up` | Weighted Push-Up | pending |
-| 44 | `diamond_push_up` | Diamond Push-Up | pending |
-| 45 | `dip` | Parallel Bar Dip | pending |
-| 46 | `cable_fly` | Cable Fly | pending |
-| 47 | `barbell_overhead_press` | Barbell Overhead Press | pending |
-| 48 | `dumbbell_overhead_press` | Seated Dumbbell Press | pending |
-| 49 | `machine_shoulder_press` | Machine Shoulder Press | pending |
-| 50 | `landmine_press` | Landmine Press | pending |
-| 51 | `pike_push_up` | Pike Push-Up | pending |
+| 21 | `leg_press` | Leg Press | generated_reviewed |
+| 22 | `bodyweight_squat` | Bodyweight Squat | generated_needs_review |
+| 23 | `sit_to_stand` | Sit-to-Stand | generated_reviewed |
+| 24 | `pistol_squat` | Pistol Squat | generated_reviewed |
+| 25 | `smith_machine_squat` | Smith Machine Squat | generated_reviewed |
+| 26 | `bulgarian_split_squat` | Bulgarian Split Squat | generated_reviewed |
+| 27 | `split_squat` | Split Squat | generated_reviewed |
+| 28 | `reverse_lunge` | Reverse Lunge | generated_reviewed |
+| 29 | `walking_lunge` | Walking Lunge | generated_reviewed |
+| 30 | `forward_lunge` | Forward Lunge | generated_reviewed |
+| 31 | `step_up` | Step-Up | generated_reviewed |
+| 32 | `smith_split_squat` | Smith Machine Split Squat | generated_reviewed |
+| 33 | `barbell_bench_press` | Barbell Bench Press | generated_reviewed |
+| 34 | `dumbbell_bench_press` | Flat Dumbbell Press | generated_reviewed |
+| 35 | `incline_dumbbell_press` | Incline Dumbbell Press | generated_needs_review |
+| 36 | `dumbbell_floor_press` | Dumbbell Floor Press | generated_reviewed |
+| 37 | `machine_chest_press` | Machine Chest Press | generated_reviewed |
+| 38 | `incline_smith_press` | Incline Smith Machine Press | generated_needs_review |
+| 39 | `push_up` | Push-Up | generated_reviewed |
+| 40 | `incline_push_up` | Incline Push-Up | generated_reviewed |
+| 41 | `knee_push_up` | Knee Push-Up | generated_reviewed |
+| 42 | `feet_elevated_push_up` | Feet-Elevated Push-Up | generated_reviewed |
+| 43 | `weighted_push_up` | Weighted Push-Up | generated_reviewed |
+| 44 | `diamond_push_up` | Diamond Push-Up | generated_reviewed |
+| 45 | `dip` | Parallel Bar Dip | generated_reviewed |
+| 46 | `cable_fly` | Cable Fly | generated_reviewed |
+| 47 | `barbell_overhead_press` | Barbell Overhead Press | generated_pending_visual_review |
+| 48 | `dumbbell_overhead_press` | Seated Dumbbell Press | generated_pending_visual_review |
+| 49 | `machine_shoulder_press` | Machine Shoulder Press | generated_pending_visual_review |
+| 50 | `landmine_press` | Landmine Press | generated_pending_visual_review |
+| 51 | `pike_push_up` | Pike Push-Up | generated_pending_visual_review |
 | 52 | `elevated_pike_push_up` | Feet-Elevated Pike Push-Up | pending |
 | 53 | `handstand_push_up` | Handstand Push-Up | pending |
 | 54 | `barbell_row` | Barbell Row | pending |
