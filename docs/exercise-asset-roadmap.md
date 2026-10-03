@@ -12,7 +12,7 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 
 ## Progress
 
-168 generated; 1 supplied reference; 380 pending.
+198 generated; 1 supplied reference; 350 pending.
 
 | Order | Catalog ID | Exercise | Status |
 | --- | --- | --- | --- |
@@ -185,36 +185,36 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 167 | `pilates_single_leg_stretch` | Single Leg Stretch | generated_reviewed |
 | 168 | `pilates_double_leg_stretch` | Double Leg Stretch | generated_reviewed |
 | 169 | `pilates_scissors` | Pilates Scissors | generated_needs_review |
-| 170 | `pilates_teaser` | Teaser | pending |
-| 171 | `pilates_swan` | Swan | pending |
-| 172 | `pilates_saw` | Saw | pending |
-| 173 | `pilates_spine_stretch` | Spine Stretch Forward | pending |
-| 174 | `pilates_side_kick` | Side Kick Series | pending |
-| 175 | `pilates_clam` | Clam | pending |
-| 176 | `pilates_swimming` | Pilates Swimming | pending |
-| 177 | `reformer_footwork` | Reformer Footwork | pending |
-| 178 | `reformer_long_stretch` | Reformer Long Stretch | pending |
-| 179 | `reformer_elephant` | Reformer Elephant | pending |
-| 180 | `reformer_knee_stretch` | Reformer Knee Stretch | pending |
-| 181 | `reformer_short_box` | Reformer Short Box | pending |
-| 182 | `reformer_mermaid` | Reformer Mermaid | pending |
-| 183 | `chair_pose` | Chair Pose | pending |
-| 184 | `tree_pose` | Tree Pose | pending |
-| 185 | `warrior_one` | Warrior I | pending |
-| 186 | `warrior_three` | Warrior III | pending |
-| 187 | `half_moon` | Half Moon | pending |
-| 188 | `extended_side_angle` | Extended Side Angle | pending |
-| 189 | `revolved_triangle` | Revolved Triangle | pending |
-| 190 | `crow_pose` | Crow Pose | pending |
-| 191 | `boat_pose` | Boat Pose | pending |
-| 192 | `camel_pose` | Camel Pose | pending |
-| 193 | `bow_pose` | Bow Pose | pending |
-| 194 | `locust_pose` | Locust Pose | pending |
-| 195 | `seated_forward_fold` | Seated Forward Fold | pending |
-| 196 | `butterfly_stretch` | Butterfly | pending |
-| 197 | `happy_baby` | Happy Baby | pending |
-| 198 | `supine_twist` | Supine Twist | pending |
-| 199 | `legs_up_wall` | Legs Up the Wall | pending |
+| 170 | `pilates_teaser` | Teaser | generated_reviewed |
+| 171 | `pilates_swan` | Swan | generated_reviewed |
+| 172 | `pilates_saw` | Saw | generated_needs_review |
+| 173 | `pilates_spine_stretch` | Spine Stretch Forward | generated_reviewed |
+| 174 | `pilates_side_kick` | Side Kick Series | generated_reviewed |
+| 175 | `pilates_clam` | Clam | generated_reviewed |
+| 176 | `pilates_swimming` | Pilates Swimming | generated_needs_review |
+| 177 | `reformer_footwork` | Reformer Footwork | generated_reviewed |
+| 178 | `reformer_long_stretch` | Reformer Long Stretch | generated_needs_review |
+| 179 | `reformer_elephant` | Reformer Elephant | generated_reviewed |
+| 180 | `reformer_knee_stretch` | Reformer Knee Stretch | generated_reviewed |
+| 181 | `reformer_short_box` | Reformer Short Box | generated_reviewed |
+| 182 | `reformer_mermaid` | Reformer Mermaid | generated_reviewed |
+| 183 | `chair_pose` | Chair Pose | generated_reviewed |
+| 184 | `tree_pose` | Tree Pose | generated_reviewed |
+| 185 | `warrior_one` | Warrior I | generated_reviewed |
+| 186 | `warrior_three` | Warrior III | generated_reviewed |
+| 187 | `half_moon` | Half Moon | generated_reviewed |
+| 188 | `extended_side_angle` | Extended Side Angle | generated_reviewed |
+| 189 | `revolved_triangle` | Revolved Triangle | generated_needs_review |
+| 190 | `crow_pose` | Crow Pose | generated_reviewed |
+| 191 | `boat_pose` | Boat Pose | generated_reviewed |
+| 192 | `camel_pose` | Camel Pose | generated_reviewed |
+| 193 | `bow_pose` | Bow Pose | generated_reviewed |
+| 194 | `locust_pose` | Locust Pose | generated_reviewed |
+| 195 | `seated_forward_fold` | Seated Forward Fold | generated_reviewed |
+| 196 | `butterfly_stretch` | Butterfly | generated_reviewed |
+| 197 | `happy_baby` | Happy Baby | generated_reviewed |
+| 198 | `supine_twist` | Supine Twist | generated_reviewed |
+| 199 | `legs_up_wall` | Legs Up the Wall | generated_reviewed |
 | 200 | `corpse_pose` | Corpse Pose | pending |
 | 201 | `chaturanga` | Chaturanga | pending |
 | 202 | `upward_dog` | Upward-Facing Dog | pending |

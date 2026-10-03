@@ -3062,270 +3062,540 @@
       "name": "Teaser",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "pilates_teaser.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Teaser (catalog ID pilates_teaser). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. Two positions: seated bent-knee preparation then balanced on sit bones in a V with straight legs lifted together, torso lifted and arms reaching forward parallel to the legs. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-071f03bf-c350-4b07-90f3-c679302214f4.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Bent-knee setup and straight-leg V balance visible."
     },
     {
       "id": "pilates_swan",
       "name": "Swan",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "pilates_swan.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Swan (catalog ID pilates_swan). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. Prone start with palms under shoulders then gentle chest extension supported by hands, pelvis and legs on the mat, long neck. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-c0094e17-4cba-450d-bf6d-59b12db85b2a.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Prone supported chest extension positions visible with complete athlete."
     },
     {
       "id": "pilates_saw",
       "name": "Saw",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "pilates_saw.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Saw (catalog ID pilates_saw). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. Seated legs straight and wide, arms spread; second position torso rotated and reaching opposite hand toward outside of the other foot. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9dc03a34-827b-4674-99b1-3c3e9682dd0b.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Second position appears to reach same-side foot rather than the opposite foot; figures shoes touch."
     },
     {
       "id": "pilates_spine_stretch",
       "name": "Spine Stretch Forward",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "pilates_spine_stretch.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Spine Stretch Forward (catalog ID pilates_spine_stretch). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. Seated upright with straight separated legs and arms forward; second position rounded upper spine reaching forward over legs. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-1bf59662-6aed-40ad-9b54-b9c7a55b0895.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Seated upright and rounded forward reach shown; complete athlete."
     },
     {
       "id": "pilates_side_kick",
       "name": "Side Kick Series",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "pilates_side_kick.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Side Kick Series (catalog ID pilates_side_kick). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. Side lying supported on forearm with lower leg resting, upper straight leg at hip height; two positions upper leg forward then backward with stable pelvis. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-d5fd05c1-7366-4b2e-a261-66612ba76533.png",
+      "width": 1212,
+      "height": 1297,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Side lying with upper straight leg hovering; two leg orientations shown."
     },
     {
       "id": "pilates_clam",
       "name": "Clam",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "pilates_clam.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Clam (catalog ID pilates_clam). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. Side lying knees bent, heels together; closed knees then upper knee opens while heels remain together and pelvis stacked. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-b0006660-efa9-4197-8c52-d1b183926315.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Closed and open top knee shown with heels together and stacked pelvis."
     },
     {
       "id": "pilates_swimming",
       "name": "Pilates Swimming",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "pilates_swimming.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Pilates Swimming (catalog ID pilates_swimming). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held position: prone with long legs and arms extended overhead, chest lifted gently, opposite arm and leg hovering higher. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-3ca11383-fd3b-4c47-b3c4-232821c584b6.png",
+      "width": 1774,
+      "height": 887,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "One arm extends backward instead of both reaching overhead for alternating swimming."
     },
     {
       "id": "reformer_footwork",
       "name": "Reformer Footwork",
       "equipment": "Reformer",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "reformer_footwork.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Reformer Footwork (catalog ID reformer_footwork). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. Supine on reformer carriage, hands by sides, both feet on fixed footbar; knees bent carriage near footbar then knees extended carriage slides away. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-26a5a6bc-317b-4aa5-8107-012ef70fd37b.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Supine bent and extended legs pressing fixed support; complete apparatus and athlete."
     },
     {
       "id": "reformer_long_stretch",
       "name": "Reformer Long Stretch",
       "equipment": "Reformer",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "reformer_long_stretch.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Reformer Long Stretch (catalog ID reformer_long_stretch). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. Straight-arm plank on reformer, hands on fixed footbar, toes on carriage shoulder blocks; two carriage positions keeping one straight body line. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-0bf73f83-e243-420b-996e-45d5fb92ce16.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "First position shows plank; second changes to pike instead of maintaining straight-body plank."
     },
     {
       "id": "reformer_elephant",
       "name": "Reformer Elephant",
       "equipment": "Reformer",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "reformer_elephant.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Reformer Elephant (catalog ID reformer_elephant). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. Hands on fixed reformer footbar, both feet flat on carriage, hips lifted high in inverted V; carriage near then slightly farther while knees straight. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-0c5d3ae9-ff8f-412a-90be-b5d70ee77956.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "High hips, straight knees, hands on bar and feet on moving carriage shown."
     },
     {
       "id": "reformer_knee_stretch",
       "name": "Reformer Knee Stretch",
       "equipment": "Reformer",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "reformer_knee_stretch.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Reformer Knee Stretch (catalog ID reformer_knee_stretch). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. Kneeling on reformer carriage, toes braced at shoulder blocks, hands on fixed footbar, rounded spine; knees near bar then carriage farther while hands fixed. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-14eb48c9-5139-4c45-aa96-b89bf78232bc.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Kneeling carriage exercise with hands on fixed bar; bent knees and braced feet shown."
     },
     {
       "id": "reformer_short_box",
       "name": "Reformer Short Box",
       "equipment": "Reformer",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "reformer_short_box.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Reformer Short Box (catalog ID reformer_short_box). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. Sitting on reformer short box, feet secured under footstrap, arms crossed over chest; upright then controlled rounded-back lean. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-53252ca9-3884-4889-96ce-7dea8c272f6f.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Seated upright and rounded lean with feet secured under strap; minor apparatus edge crop."
     },
     {
       "id": "reformer_mermaid",
       "name": "Reformer Mermaid",
       "equipment": "Reformer",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "reformer_mermaid.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Reformer Mermaid (catalog ID reformer_mermaid). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held position: seated sideways on reformer carriage with folded legs, one hand on footbar and other arm arcs overhead into side bend. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-2d2f2168-bdba-40aa-be26-3998a68110c6.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Seated side bend with one arm overhead and other hand on footbar."
     },
     {
       "id": "chair_pose",
       "name": "Chair Pose",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "chair_pose.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Chair Pose (catalog ID chair_pose). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held yoga position: both feet grounded close together, knees bent, hips back, torso long inclined forward, both straight arms reaching overhead. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-058dec0d-7e94-4276-aa8e-7373a033454e.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Bent knees, grounded feet, hips back and raised arms; full athlete visible."
     },
     {
       "id": "tree_pose",
       "name": "Tree Pose",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "tree_pose.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Tree Pose (catalog ID tree_pose). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held yoga position: balance on one straight leg, opposite foot rests on inside upper thigh, knee turned outward, hands together at chest. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-262bac5a-47c8-4980-826f-d48b08030cd8.png",
+      "width": 941,
+      "height": 1672,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Single-leg balance with opposite foot on inner thigh and hands together."
     },
     {
       "id": "warrior_one",
       "name": "Warrior I",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "warrior_one.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Warrior I (catalog ID warrior_one). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held yoga position: long lunge, front knee bent over ankle, back heel grounded and rear foot angled out, hips forward, both arms straight overhead. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-660922ef-161d-4495-84db-bb4b89ab63df.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Long lunge with back heel grounded and arms overhead."
     },
     {
       "id": "warrior_three",
       "name": "Warrior III",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "warrior_three.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Warrior III (catalog ID warrior_three). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held yoga position: balance on one straight leg, torso and opposite straight leg horizontal in a T, both arms extend forward, level hips. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-8de248ef-d5ea-4ca1-8dbb-74d4bff57424.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Single-leg balance with horizontal torso and extended rear leg."
     },
     {
       "id": "half_moon",
       "name": "Half Moon",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "half_moon.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Half Moon (catalog ID half_moon). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held yoga position: balance on one straight leg and lower hand on a yoga block, opposite straight leg extends horizontally, torso opens sideways and top arm vertical. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-1398d889-04be-465f-8b0d-b0af405e78d5.png",
+      "width": 1150,
+      "height": 1368,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Open sideways balance with hand on block and elevated straight leg."
     },
     {
       "id": "extended_side_angle",
       "name": "Extended Side Angle",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "extended_side_angle.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Extended Side Angle (catalog ID extended_side_angle). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held yoga position: wide stance front knee bent, rear leg straight and heel grounded, front forearm resting on front thigh, other arm reaches diagonally overhead. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-dbf8c826-3f84-4d5d-9461-a0b7123d2dd2.png",
+      "width": 1086,
+      "height": 1448,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Bent front knee, straight rear leg and diagonal overhead reach."
     },
     {
       "id": "revolved_triangle",
       "name": "Revolved Triangle",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_needs_review",
       "file": "revolved_triangle.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Revolved Triangle (catalog ID revolved_triangle). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held yoga position: wide staggered straight legs, torso hinges over front leg and rotates, opposite hand on block by front foot, top arm vertical. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-0b4a8a52-58f1-43da-b6ea-8505446c1536.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Appears to show ordinary open triangle; opposite-hand placement and torso rotation are unclear."
     },
     {
       "id": "crow_pose",
       "name": "Crow Pose",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "crow_pose.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Crow Pose (catalog ID crow_pose). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held yoga position: hands flat shoulder width, elbows bent, knees resting on upper arms, body leans forward balanced with both feet fully off the mat. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-2f6fb9be-757b-4e4a-931a-9959fe6099b0.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Hand balance with knees supported by upper arms and both feet airborne; straight-arm variation."
     },
     {
       "id": "boat_pose",
       "name": "Boat Pose",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "boat_pose.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Boat Pose (catalog ID boat_pose). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held yoga position: balance on sit bones, torso upright angled back, both straight legs lifted into V, arms forward parallel to floor. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-fd906315-012c-42dd-8b9e-e88b42993fd9.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Seated V balance with straight lifted legs and arms reaching forward."
     },
     {
       "id": "camel_pose",
       "name": "Camel Pose",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "camel_pose.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Camel Pose (catalog ID camel_pose). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held yoga position: kneeling upright on both shins, gentle backbend with hands on heels, hips over knees, chest lifted. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-870805d0-74cd-4686-b572-7516f456b7e2.png",
+      "width": 1024,
+      "height": 1536,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Kneeling backbend with hands reaching heels."
     },
     {
       "id": "bow_pose",
       "name": "Bow Pose",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "bow_pose.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Bow Pose (catalog ID bow_pose). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held yoga position: prone, knees bent, hands grasp respective ankles, chest and thighs gently lifted from mat, neck long. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-0d98ad69-a371-41d9-a0ac-e6d27c4adc21.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Prone backbend holding both ankles, chest and thighs lifted."
     },
     {
       "id": "locust_pose",
       "name": "Locust Pose",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "locust_pose.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Locust Pose (catalog ID locust_pose). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held yoga position: prone with chest and straight legs gently lifted, straight arms extend backwards beside hips, long neck. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-04c5b7e7-9f5d-460e-a5f4-7d6ee287666a.png",
+      "width": 1774,
+      "height": 887,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Prone extension with long lifted legs and arms alongside torso."
     },
     {
       "id": "seated_forward_fold",
       "name": "Seated Forward Fold",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "seated_forward_fold.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Seated Forward Fold (catalog ID seated_forward_fold). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held yoga position: seated with both straight legs together on mat, hinge forward at hips with hands reaching feet. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-1adeab87-e479-4f96-a04c-65b7f01e36b3.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Seated forward hinge with straight legs and hands reaching feet."
     },
     {
       "id": "butterfly_stretch",
       "name": "Butterfly",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "butterfly_stretch.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Butterfly (catalog ID butterfly_stretch). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held position: seated upright, soles of feet together, knees open outward, hands hold feet, relaxed long spine. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-bc4b0181-6c6d-4562-a928-527ae2b08e5e.png",
+      "width": 1199,
+      "height": 1312,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Upright seat, knees open, soles together and hands holding feet."
     },
     {
       "id": "happy_baby",
       "name": "Happy Baby",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "happy_baby.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Happy Baby (catalog ID happy_baby). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held yoga position: lying on back, knees bent wide toward ribs, shins approximately vertical, hands holding outer feet, head rests on mat. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-772865d7-d0c8-4572-91ac-395dad357c7e.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Supine with knees wide, shins raised and hands holding feet."
     },
     {
       "id": "supine_twist",
       "name": "Supine Twist",
       "equipment": "Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "supine_twist.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Supine Twist (catalog ID supine_twist). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held yoga position: lying on back, both knees bent and resting together to one side, shoulders remain on mat, arms extend sideways. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-6abbf568-f30d-4975-8f6b-7b12f54fc154.png",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "review": "Supine bent knees dropped to one side with shoulders resting and arms open."
     },
     {
       "id": "legs_up_wall",
       "name": "Legs Up the Wall",
       "equipment": "Wall · Mat",
       "record_type": "movement",
-      "status": "pending",
+      "status": "generated_reviewed",
       "file": "legs_up_wall.png",
-      "prompt": null
+      "prompt": "Create a new standalone exercise library PNG for Legs Up the Wall (catalog ID legs_up_wall). Use the attached goblet squat image only as the consistent athlete identity and photographic style reference. Same adult athletic woman, dark ponytail, realistic studio photography, now wearing opaque black full-length leggings and a black long-sleeved athletic top with white trainers. One held yoga position: supine on mat, hips near a minimal plain support wall, both straight legs extend vertically up wall, arms relaxed by sides. Include only the narrow wall needed for support, isolated with athlete and mat. Show the complete athlete, every hand, finger and shoe, and all essential equipment with ample transparent margins. For two positions use two separated nonoverlapping figures at consistent scale. For held yoga poses use one clear full-body figure. Use a useful side or three-quarter view that clearly shows the movement. Anatomically accurate natural limbs and realistic equipment contact. True transparent background. No text, numbers, arrows, logos, gym scenery or decorative effects. The mat and any required apparatus may remain as isolated objects. Center the entire composition and leave generous space around every edge.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-5be5009f-5d70-4101-96dc-574a1d4dc82b.png",
+      "width": 1206,
+      "height": 1305,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "review": "Supine with straight legs supported vertically against an isolated narrow wall."
     },
     {
       "id": "corpse_pose",
@@ -6517,6 +6787,13 @@
       "commit": "456c53619f1b24f7a1155b3242112d72555e87dc",
       "run_id": 37135222162,
       "status": "success",
+      "url": "https://evoryder8-collab.github.io/APXAppiC/"
+    },
+    {
+      "commit": "bf523e3d6ec2b42e26e7f253d2fb1552d7faa74d",
+      "generated_count": 168,
+      "workflow_run": 37136707806,
+      "conclusion": "success",
       "url": "https://evoryder8-collab.github.io/APXAppiC/"
     }
   ]
