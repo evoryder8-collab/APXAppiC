@@ -12,7 +12,7 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 
 ## Progress
 
-398 generated; 1 supplied reference; 150 pending.
+452 generated; 1 supplied reference; 96 pending.
 
 | Order | Catalog ID | Exercise | Status |
 | --- | --- | --- | --- |
@@ -415,62 +415,62 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 397 | `close_grip_push_up` | Close-Grip Push-up | generated_reviewed |
 | 398 | `clock_push_up` | Clock Push-up | generated_reviewed |
 | 399 | `planche_lean` | Planche Lean | generated_needs_review |
-| 400 | `planche_push_up` | Planche Push-up | pending |
-| 401 | `hindu_push_up` | Hindu Push-up | pending |
-| 402 | `divebomber_push_up` | Divebomber Push-up | pending |
-| 403 | `spiderman_push_up` | Spiderman Push-up | pending |
-| 404 | `ring_push_up` | Ring Push-up | pending |
-| 405 | `ring_archer_push_up` | Ring Archer Push-up | pending |
-| 406 | `ring_fly` | Ring Fly | pending |
-| 407 | `bench_dip_feet_on_floor` | Bench Dip (Feet on Floor) | pending |
-| 408 | `bench_dip_feet_elevated` | Bench Dip (Feet Elevated) | pending |
-| 409 | `ring_dip_forward_lean` | Ring Dip - Forward Lean | pending |
-| 410 | `assisted_ring_dip` | Assisted Ring Dip | pending |
-| 411 | `isometric_dip_hold` | Isometric Dip Hold | pending |
-| 412 | `mixed_grip_pull_up` | Mixed-Grip Pull-up | pending |
-| 413 | `archer_pull_up` | Archer Pull-up | pending |
-| 414 | `typewriter_pull_up` | Typewriter Pull-up | pending |
-| 415 | `commando_pull_up` | Commando Pull-up | pending |
-| 416 | `behind_the_neck_pull_up` | Behind-the-Neck Pull-up | pending |
-| 417 | `one_arm_pull_up_assisted` | One-Arm Pull-up (Assisted) | pending |
-| 418 | `false_grip_pull_up` | False-Grip Pull-up | pending |
-| 419 | `chest_to_bar_pull_up_strict` | Chest-to-Bar Pull-up (Strict) | pending |
-| 420 | `inverted_row_underhand` | Inverted Row - Underhand | pending |
-| 421 | `inverted_row_wide_grip` | Inverted Row - Wide Grip | pending |
-| 422 | `ring_row_supinated` | Ring Row (Supinated) | pending |
-| 423 | `rope_climb_feet_clamp` | Rope Climb (Feet Clamp) | pending |
-| 424 | `rope_climb_legless` | Rope Climb (Legless) | pending |
-| 425 | `towel_pull_up` | Towel Pull-up | pending |
-| 426 | `skin_the_cat` | Skin-the-Cat | pending |
-| 427 | `german_hang` | German Hang | pending |
-| 428 | `front_lever_tuck_hold` | Front Lever Tuck Hold | pending |
-| 429 | `front_lever_advanced_tuck` | Front Lever Advanced Tuck | pending |
-| 430 | `back_lever_tuck_hold` | Back Lever Tuck Hold | pending |
-| 431 | `back_lever_full_hold` | Back Lever Full Hold | pending |
-| 432 | `hollow_rock` | Hollow Rock | pending |
-| 433 | `v_sit_hold` | V-Sit Hold | pending |
-| 434 | `straddle_l_sit` | Straddle L-Sit | pending |
-| 435 | `open_tuck_l_sit` | Open Tuck L-Sit | pending |
-| 436 | `manna_progression_hold` | Manna Progression Hold | pending |
-| 437 | `dragon_flag_eccentrics` | Dragon Flag Eccentrics | pending |
-| 438 | `dragon_flag_full` | Dragon Flag Full | pending |
-| 439 | `hip_raise_on_bench` | Hip Raise on Bench | pending |
-| 440 | `jackknife_sit_up` | Jackknife Sit-up | pending |
-| 441 | `bicycle_crunch` | Bicycle Crunch | pending |
-| 442 | `cross_body_mountain_climber` | Cross-Body Mountain Climber | pending |
-| 443 | `plank_with_shoulder_tap` | Plank with Shoulder Tap | pending |
-| 444 | `single_arm_single_leg_plank` | Single-Arm Single-Leg Plank | pending |
-| 445 | `side_plank_with_leg_lift` | Side Plank with Leg Lift | pending |
+| 400 | `planche_push_up` | Planche Push-up | generated_needs_review |
+| 401 | `hindu_push_up` | Hindu Push-up | generated_reviewed |
+| 402 | `divebomber_push_up` | Divebomber Push-up | generated_reviewed |
+| 403 | `spiderman_push_up` | Spiderman Push-up | generated_reviewed |
+| 404 | `ring_push_up` | Ring Push-up | generated_reviewed |
+| 405 | `ring_archer_push_up` | Ring Archer Push-up | generated_reviewed |
+| 406 | `ring_fly` | Ring Fly | generated_reviewed |
+| 407 | `bench_dip_feet_on_floor` | Bench Dip (Feet on Floor) | generated_reviewed |
+| 408 | `bench_dip_feet_elevated` | Bench Dip (Feet Elevated) | generated_reviewed |
+| 409 | `ring_dip_forward_lean` | Ring Dip - Forward Lean | generated_reviewed |
+| 410 | `assisted_ring_dip` | Assisted Ring Dip | generated_reviewed |
+| 411 | `isometric_dip_hold` | Isometric Dip Hold | generated_reviewed |
+| 412 | `mixed_grip_pull_up` | Mixed-Grip Pull-up | generated_needs_review |
+| 413 | `archer_pull_up` | Archer Pull-up | generated_reviewed |
+| 414 | `typewriter_pull_up` | Typewriter Pull-up | generated_reviewed |
+| 415 | `commando_pull_up` | Commando Pull-up | generated_needs_review |
+| 416 | `behind_the_neck_pull_up` | Behind-the-Neck Pull-up | generated_reviewed |
+| 417 | `one_arm_pull_up_assisted` | One-Arm Pull-up (Assisted) | generated_reviewed |
+| 418 | `false_grip_pull_up` | False-Grip Pull-up | generated_reviewed |
+| 419 | `chest_to_bar_pull_up_strict` | Chest-to-Bar Pull-up (Strict) | generated_needs_review |
+| 420 | `inverted_row_underhand` | Inverted Row - Underhand | generated_needs_review |
+| 421 | `inverted_row_wide_grip` | Inverted Row - Wide Grip | generated_reviewed |
+| 422 | `ring_row_supinated` | Ring Row (Supinated) | generated_reviewed |
+| 423 | `rope_climb_feet_clamp` | Rope Climb (Feet Clamp) | generated_reviewed |
+| 424 | `rope_climb_legless` | Rope Climb (Legless) | generated_needs_review |
+| 425 | `towel_pull_up` | Towel Pull-up | generated_reviewed |
+| 426 | `skin_the_cat` | Skin-the-Cat | generated_needs_review |
+| 427 | `german_hang` | German Hang | generated_needs_review |
+| 428 | `front_lever_tuck_hold` | Front Lever Tuck Hold | generated_needs_review |
+| 429 | `front_lever_advanced_tuck` | Front Lever Advanced Tuck | generated_needs_review |
+| 430 | `back_lever_tuck_hold` | Back Lever Tuck Hold | generated_reviewed |
+| 431 | `back_lever_full_hold` | Back Lever Full Hold | generated_reviewed |
+| 432 | `hollow_rock` | Hollow Rock | generated_reviewed |
+| 433 | `v_sit_hold` | V-Sit Hold | generated_reviewed |
+| 434 | `straddle_l_sit` | Straddle L-Sit | generated_reviewed |
+| 435 | `open_tuck_l_sit` | Open Tuck L-Sit | generated_reviewed |
+| 436 | `manna_progression_hold` | Manna Progression Hold | generated_needs_review |
+| 437 | `dragon_flag_eccentrics` | Dragon Flag Eccentrics | generated_needs_review |
+| 438 | `dragon_flag_full` | Dragon Flag Full | generated_needs_review |
+| 439 | `hip_raise_on_bench` | Hip Raise on Bench | generated_reviewed |
+| 440 | `jackknife_sit_up` | Jackknife Sit-up | generated_reviewed |
+| 441 | `bicycle_crunch` | Bicycle Crunch | generated_needs_review |
+| 442 | `cross_body_mountain_climber` | Cross-Body Mountain Climber | generated_needs_review |
+| 443 | `plank_with_shoulder_tap` | Plank with Shoulder Tap | generated_reviewed |
+| 444 | `single_arm_single_leg_plank` | Single-Arm Single-Leg Plank | generated_reviewed |
+| 445 | `side_plank_with_leg_lift` | Side Plank with Leg Lift | generated_pending_visual_review |
 | 446 | `copenhagen_side_plank_long_lever` | Copenhagen Side Plank - Long Lever | pending |
 | 447 | `crab_walk` | Crab Walk | pending |
 | 448 | `inchworm_walkout` | Inchworm Walkout | pending |
 | 449 | `walkout_to_push_up` | Walkout to Push-up | pending |
 | 450 | `hollow_body_arch_rock` | Hollow Body Arch Rock | pending |
-| 451 | `barbell_rack_pull` | Barbell Rack Pull | pending |
-| 452 | `deficit_romanian_deadlift` | Deficit Romanian Deadlift | pending |
-| 453 | `snatch_grip_romanian_deadlift` | Snatch-Grip Romanian Deadlift | pending |
-| 454 | `barbell_hip_thrust_single_leg` | Barbell Hip Thrust - Single-Leg | pending |
-| 455 | `barbell_glute_bridge` | Barbell Glute Bridge | pending |
+| 451 | `barbell_rack_pull` | Barbell Rack Pull | generated_needs_review |
+| 452 | `deficit_romanian_deadlift` | Deficit Romanian Deadlift | generated_reviewed |
+| 453 | `snatch_grip_romanian_deadlift` | Snatch-Grip Romanian Deadlift | generated_needs_review |
+| 454 | `barbell_hip_thrust_single_leg` | Barbell Hip Thrust - Single-Leg | generated_reviewed |
+| 455 | `barbell_glute_bridge` | Barbell Glute Bridge | generated_pending_visual_review |
 | 456 | `barbell_step_up` | Barbell Step-up | pending |
 | 457 | `barbell_walking_lunge_front_rack` | Barbell Walking Lunge (Front Rack) | pending |
 | 458 | `barbell_split_jerk` | Barbell Split Jerk | pending |
@@ -505,9 +505,9 @@ Assets: `public/exercise-assets/<catalog_id>.png`. Source CSV, prompts and statu
 | 487 | `sandbag_shouldering` | Sandbag Shouldering | pending |
 | 488 | `sandbag_over_the_shoulder_throw` | Sandbag Over-the-Shoulder Throw | pending |
 | 489 | `atlas_stone_to_platform` | Atlas Stone to Platform | pending |
-| 490 | `smith_machine_back_squat` | Smith Machine Back Squat | pending |
-| 491 | `smith_machine_bench_press` | Smith Machine Bench Press | pending |
-| 492 | `smith_machine_incline_bench_press` | Smith Machine Incline Bench Press | pending |
+| 490 | `smith_machine_back_squat` | Smith Machine Back Squat | generated_reviewed |
+| 491 | `smith_machine_bench_press` | Smith Machine Bench Press | generated_reviewed |
+| 492 | `smith_machine_incline_bench_press` | Smith Machine Incline Bench Press | generated_reviewed |
 | 493 | `smith_machine_shoulder_press` | Smith Machine Shoulder Press | pending |
 | 494 | `hack_squat_reverse` | Hack Squat - Reverse | pending |
 | 495 | `pendulum_squat_machine` | Pendulum Squat Machine | pending |
