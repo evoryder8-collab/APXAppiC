@@ -36,8 +36,17 @@ Before every release, compare the changed product with the last accepted impleme
 
 ## 0.1 Workspace and git safety
 
-Use only: `/Users/jaxoncorrey/APXAppiC-codex-main-repair`, branch `codex/main-critical-repair`,
-HEAD `c1b0e77`.
+Use only: `/Users/jaxoncorrey/Downloads/Fitness App`, branch `codex/main-critical-repair`.
+This is the authoritative local repository as of **2026-10-04**. The application files and
+the complete standalone `.git` directory physically reside here; there is no dependency on
+another checkout. The former `/Users/jaxoncorrey/APXAppiC-codex-main-repair` path is obsolete
+and its temporary compatibility symlink has been removed.
+
+For a fresh session, open this folder as the project and read this section plus the current
+workspace notice and latest entries in `docs/REPAIR-NOTES.md`. Quote paths containing spaces:
+`cd "/Users/jaxoncorrey/Downloads/Fitness App"`. Determine the actual HEAD and local changes
+with `git log -5 --oneline` and `git status --short`; never treat a historical handoff SHA as
+the current state. Preserve all existing dirty work, including exercise-asset corrections.
 
 Do not touch: `~/dev/apex` (clean main checkout), `~/APXAppiC-codex-release` (frozen, see below),
 `~/Desktop/my-video/APXAppiC` (stale, 104 commits behind — abandoned).

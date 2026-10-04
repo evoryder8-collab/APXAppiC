@@ -5,6 +5,14 @@ Never re-read source code to remember where you were.
 
 Format: date · task · files changed · commit SHA · tests run · result · next.
 
+## Current workspace — authoritative as of 2026-10-04
+
+- **Open this project:** `/Users/jaxoncorrey/Downloads/Fitness App`.
+- **Branch:** `codex/main-critical-repair`. Obtain the current commit and dirty state from Git; the dated handoffs below are historical records.
+- The application and its standalone `.git` directory physically live in this folder. The former `/Users/jaxoncorrey/APXAppiC-codex-main-repair` path and its compatibility symlink no longer exist. There is no Git storage dependency on `~/dev/apex`.
+- Fresh agents: start with `docs/ROADMAP.md` section 0, then the latest entries at the end of this file. Use `cd "/Users/jaxoncorrey/Downloads/Fitness App"` and inspect `git status --short` before editing. Preserve existing exercise-asset corrections and all other local changes.
+- This notice supersedes every older workspace path or pinned HEAD in the historical notes. Do not use `~/dev/apex`, `~/APXAppiC-codex-release`, or `~/Desktop/my-video/APXAppiC` for development.
+
 ---
 
 ## Seeded at handoff — 2026-08-22
@@ -2163,3 +2171,10 @@ Verification:
 - Added a dated public download at `public/exports/APEX-exercise-library-2026-10-03.csv`. Its 76 columns preserve canonical/web names, all nine native display-name languages, all available aliases, equipment, categories, anatomy, prescription defaults and existing catalogue metadata. The platform-specific columns preserve the native `Dead Bug` Romanian capitalization rather than silently substituting the web label.
 - Extended the existing exporter with `--output` for the complete owner download. It refuses to export if platform IDs differ or either library contains duplicate IDs. Existing stdout output and the historical checked-in catalogue CSV remain compatible.
 - Verification: all four existing export checks passed; an independent CSV parser checked all 549 IDs and **11,529 native field comparisons**, with zero mismatches. Empty-query web library search returns all 549 entries. Production build and publication verification follow; no iOS/Watch installation is necessary for this downloadable data export.
+
+## 2026-10-04 — Native repository relocation and fresh-agent handoff
+
+- Physically moved the full working folder to `/Users/jaxoncorrey/Downloads/Fitness App`, preserving the same directory inode on the same filesystem. Converted its linked-worktree Git storage into a complete standalone `.git` directory inside the new folder, including history, refs, configuration, the active branch/index and its worktree-specific metadata. The former path's compatibility symlink was removed at the owner's request.
+- Verified that relocation retained commit `57c268b99c5293f84b95014feaf09c8c96917246`, branch `codex/main-critical-repair`, the exact dirty status, the index and all refs. Git now resolves its common directory inside `Fitness App`; the original shared checkout remains untouched. No source changes, resets, checkouts, stashes, or build-cache deletions were performed by the relocation.
+- Updated `docs/ROADMAP.md` section 0.1 and the prominent current-workspace notice above so fresh sessions and other coding agents can locate the authoritative project. Historical build-result paths remain historical. Existing uncommitted exercise-asset corrections are preserved and excluded from this documentation commit.
+- Verification for the documentation change is limited to the scoped diff and whitespace checks. Next sessions must open `Fitness App` as their project, inspect live Git state and continue the queued work from the latest task notes. GitHub/Pages publication follows.
