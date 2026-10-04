@@ -574,6 +574,8 @@ First generation coverage: 548 generated; 1 supplied reference; 0 missing genera
 
 Existing selected images are retained and skipped during resume. The initial alpha validation incorrectly rejected valid transparency with a maximum alpha of 254; this is corrected. Three unnecessary alternate Dumbbell Romanian Deadlift generations are preserved in the draft folder. Pose and cropping concerns are tracked independently of transparency, without automatic regeneration.
 
+Latest handstand revision, 2026-10-04: the user accepted chest-to-wall v13, then requested a back-to-wall variant with the body facing away, buttocks touching the wall, head inverted, hair hanging down and fingers toward the wall. V19 is the current catalog selection; v13 is preserved as an accepted alternate. The prompt ledger records every intervening output and its review.
+
 ## Current file verification and historical review
 
 Verified 2026-10-04: all 549 catalog IDs have selected PNG files, including four versioned corrections and the supplied reference. Every selected PNG contains transparency and visible pixels. Checksums, dimensions and individual prompts are saved in the manifest. Original files and rejected correction drafts are retained.
