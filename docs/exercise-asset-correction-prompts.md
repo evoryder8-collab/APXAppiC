@@ -1,12 +1,14 @@
-# Exercise correction prompt ledger — 2026-10-04
+# Exercise generation and correction prompt ledger — 2026-10-04
 
-Generated with the built-in GPT Image tool. The tool does not expose the exact model version. All requests use true transparent output; original PNG alpha is preserved. Current selected paths are authoritative in `public/exercise-assets/manifest.json`.
+The complete-library audit and its fresh generation attempts are tracked separately in [audit prompts](exercise-asset-audit-prompts.md) and [visual audit](exercise-asset-visual-audit.md).
 
-The manifest retains the original generation prompt plus every correction attempt, source, checksum, selection status and review. A preparation reference or intermediate image is not a deliverable. Accepted alternates are retained separately from rejected drafts.
+Generated with the built-in GPT Image tool; exact model version is not exposed. Current deliverables use one canonical `<catalog_id>.png` per exercise. Corrected images replace old files at the user’s request. Earlier version names below are generation-history identifiers, not extra deliverables.
+
+The manifest records sources, prompts, checksums, review, rejection and acceptance for every attempt. Task drafts are outside the deliverable folder.
 
 ## Handstand Push-Up (`handstand_push_up`)
 
-Selected: `public/exercise-assets/corrections/handstand_push_up-v22.png`.
+Current PNG: `public/exercise-assets/handstand_push_up.png`.
 
 Fresh full two-pose generation from the original goblet-squat identity/style reference only. Both distinct supporting hands in each pose have palms down and fingers right toward the wall. Heads are inverted, faces left away and ponytails hang down. Whole body fronts, knees and shoe toes face left away; buttocks touch the right wall. Straight-arm top and bent-arm lower endpoints keep the same identity and orientation.
 
@@ -34,7 +36,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v3.png`.
 
 Rejected base: torso/abdomen and lower-limb front/back directions conflict. User identified mangled orientation.
 
-Input images: `/private/tmp/apex-handstand-top-reference.png`, `/Users/jaxoncorrey/Downloads/goblet squat.png`.
+Input images at generation time: `/private/tmp/apex-handstand-top-reference.png`, `/Users/jaxoncorrey/Downloads/goblet squat.png`.
 
 ```text
 Use case: scientific-educational. Create ONE single anatomically correct TOP LOCKOUT of a back-to-wall HANDSTAND PUSH-UP. Image 1 is a coaching reference page; use ONLY the far-left photo labeled CORRECT in its bottom row for straight body alignment. Do not copy any photo labeled Incorrect, any text, male identity, red wall, or scene. Image 2 supplies adult woman identity and photographic style only.
@@ -49,7 +51,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v4.png`.
 
 Rejected: rebuilding from inconsistent base preserved the torso/leg front-back conflict. Not selected.
 
-Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-5dee93de-35d6-4dbb-b5f8-7e0c15b77fcc.png`.
+Input images at generation time: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-5dee93de-35d6-4dbb-b5f8-7e0c15b77fcc.png`.
 
 ```text
 Build an anatomically corrected TWO-POSE wall handstand push-up from the attached single top-position athlete. Same adult woman, clothing, wall, exact side camera facing LEFT in BOTH poses. Preserve normal calf, knee and foot direction from the attached image: chest, shin fronts and shoe toes LEFT; back, calf fullness and heels toward wall RIGHT. Do not rotate or switch any limb.
@@ -64,7 +66,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v5.png`.
 
 Preparation only: upright source with coherent face/chest/abdomen/kneecap/toe direction. One hand reverses; corrected during rotation.
 
-Input images: `/Users/jaxoncorrey/Downloads/goblet squat.png`.
+Input images at generation time: `/Users/jaxoncorrey/Downloads/goblet squat.png`.
 
 ```text
 Create an UPRIGHT anatomical source photograph for a later handstand edit, NOT the final handstand yet. Use attached image only for same adult athletic woman's face, dark ponytail, realistic physique and photographic style. One full-body adult woman in fitted black opaque leggings, black long-sleeve athletic crop top, white trainers, viewed from exact LEFT-FACING side profile with a tiny offset to reveal both arms/hands.
@@ -79,7 +81,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v6.png`.
 
 Preparation only: coherent inverted base. Face, abdomen, knees and shoe toes viewer right; back, calf muscles and heels viewer left. Both fingers viewer right. Not a two-phase app asset yet.
 
-Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-215b3de4-a745-4e2b-9f75-1da3ca62a035.png`.
+Input images at generation time: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-215b3de4-a745-4e2b-9f75-1da3ca62a035.png`.
 
 ```text
 Use case: precise-object-edit. Rotate the entire attached UPRIGHT adult athlete photograph exactly 180 degrees in the image plane, as though rotating a photograph upside down. DO NOT re-pose, mirror, turn, rebuild or separately rotate her torso, hips or legs. Preserve her coherent anatomy and identity as a single rigid human body.
@@ -94,7 +96,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v7.png`.
 
 User rejected palm orientation: palms appear upward-facing. Coherent torso/leg direction improved but hand surface not correct.
 
-Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-39eee479-8fdc-4f2a-809d-a4ba43755763.png`.
+Input images at generation time: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-39eee479-8fdc-4f2a-809d-a4ba43755763.png`.
 
 ```text
 Use case: precise-object-edit. Produce the final two-position handstand push-up PNG using the attached COHERENT inverted athlete photograph. It has the correct front/back anatomy; preserve that as the master figure.
@@ -110,7 +112,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v8.png`.
 
 Palm surfaces corrected to dorsal/fingernail view. Lowered press still needs head/shoulder alignment correction before selection.
 
-Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-0dd61219-e380-4de1-93ab-2cbab22281c5.png`.
+Input images at generation time: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-0dd61219-e380-4de1-93ab-2cbab22281c5.png`.
 
 ```text
 Precise anatomy edit: correct ONLY the FOUR HANDS and their wrist connections in the attached two-pose handstand PNG. Do not change the adult woman's head, torso, abdomen, legs, feet, elbows, clothing, wall, camera or pose positions. The current hands show an upward-facing palm surface, which is WRONG for weight bearing.
@@ -125,7 +127,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v9.png`.
 
 Rejected: uses a back-to-wall setup. User explicitly requires chest-to-wall.
 
-Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-a63f1f53-b8db-445f-8d4b-00917fb38774.png`.
+Input images at generation time: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-a63f1f53-b8db-445f-8d4b-00917fb38774.png`.
 
 ```text
 Make ONE targeted biomechanics correction to the RIGHT / LOWERED panel of this transparent handstand push-up image. Preserve LEFT / TOP panel pixel-for-pixel if possible. Preserve BOTH palm-down hands in both panels: visible backs, knuckles and fingernails on top, palm pads against implied floor, same rightward fingers. Do NOT change foot, calf, hip, abdomen front/back directions or turn any limb.
@@ -141,7 +143,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v10.png`
 
 Rejected by user: fingers point toward wall; feet and pelvis remain reversed despite chest facing wall.
 
-Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9e9288a7-d914-4c00-b5d5-aaedbe35a740.png`.
+Input images at generation time: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9e9288a7-d914-4c00-b5d5-aaedbe35a740.png`.
 
 ```text
 Correct the attached handstand exercise into the user's EXACT CHEST-TO-WALL setup. The attached athlete now has coherent anatomy and palm-down hands; keep those. The WALL is on viewer RIGHT in BOTH panels, never on viewer left. Athlete's FRONT faces that wall on the RIGHT in BOTH poses.
@@ -157,7 +159,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v11.png`
 
 Rejected: hand direction and pelvis corrected, but shoe toes still point away from wall.
 
-Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-5b8c16ea-ed33-4451-992e-4aa290fae11f.png`.
+Input images at generation time: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-5b8c16ea-ed33-4451-992e-4aa290fae11f.png`.
 
 ```text
 Use case: precise-object-edit.
@@ -179,7 +181,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v12.png`
 
 Rejected: shoes are vertical with entire soles against wall; user requires toe-tip contact with heels away.
 
-Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-f7651d06-42b5-49a1-8d0d-8f8a504ef5bf.png`.
+Input images at generation time: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-f7651d06-42b5-49a1-8d0d-8f8a504ef5bf.png`.
 
 ```text
 Use case: precise-object-edit.
@@ -192,13 +194,13 @@ Repaint all shoe/foot areas, not the woman or wall. Do not leave the original le
 
 ### handstand_push_up-v13.png — accepted alternate
 
-Saved: `public/exercise-assets/corrections/handstand_push_up-v13.png`.
+Retired public filename: `public/exercise-assets/corrections/handstand_push_up-v13.png`. Historical source: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-a92c0430-e2ae-4819-b4f1-7420cd11bb08.png`.
 
 Targeted visual checks passed: chest, face and knee fronts face right toward wall; buttocks and back face left away; horizontal shoes point right with toe tips touching wall and heels clear; palms face down and fingers point left away from wall in both poses. Same side view and anatomy across top/lowered positions.
 
 User accepted this version. User confirmed chest-to-wall version correct, then requested a back-to-wall variant. Retained without modification.
 
-Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-7995f23c-b3f6-460a-b433-ac0c56f0ae26.png`.
+Input images at generation time: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-7995f23c-b3f6-460a-b433-ac0c56f0ae26.png`.
 
 ```text
 Precise local edit of ONLY BOTH PAIRS OF WHITE SHOES AND ANKLES in this transparent exercise PNG. Preserve everything else exactly.
@@ -214,7 +216,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v14.png`
 
 Rejected: requested back-to-wall body direction achieved, but heads were upright on inverted bodies. User confirmed this defect.
 
-Input images: `/Users/jaxoncorrey/APXAppiC-codex-main-repair/public/exercise-assets/corrections/handstand_push_up-v13.png`.
+Input images at generation time: `/Users/jaxoncorrey/APXAppiC-codex-main-repair/public/exercise-assets/corrections/handstand_push_up-v13.png`.
 
 ```text
 Use case: precise-object-edit.
@@ -234,7 +236,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v15.png`
 
 Intermediate: upside-down heads and downward hair corrected. User subsequently specified fingers toward wall; this image still has fingers away.
 
-Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-0f088edf-0270-4dd5-be92-687757c22be3.png`, `/Users/jaxoncorrey/APXAppiC-codex-main-repair/public/exercise-assets/corrections/handstand_push_up-v13.png`.
+Input images at generation time: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-0f088edf-0270-4dd5-be92-687757c22be3.png`, `/Users/jaxoncorrey/APXAppiC-codex-main-repair/public/exercise-assets/corrections/handstand_push_up-v13.png`.
 
 ```text
 Use case: precise-object-edit.
@@ -255,7 +257,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v16.png`
 
 Rejected: targeted hand edit did not change the finger direction.
 
-Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-8a29f106-bbe2-46be-80b7-a2efa98fe261.png`.
+Input images at generation time: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-8a29f106-bbe2-46be-80b7-a2efa98fe261.png`.
 
 ```text
 Use case: precise-object-edit.
@@ -274,7 +276,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v17.png`
 
 Rejected: near hands point toward wall, but overlapping far-hand shapes still appear to point away.
 
-Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-650ff012-72a3-4fde-8e37-0d9023a601ce.png`, `/Users/jaxoncorrey/APXAppiC-codex-main-repair/docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v10.png`.
+Input images at generation time: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-650ff012-72a3-4fde-8e37-0d9023a601ce.png`, `/Users/jaxoncorrey/APXAppiC-codex-main-repair/docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v10.png`.
 
 ```text
 Precise hand replacement.
@@ -292,7 +294,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v18.png`
 
 Rejected: remaining overlapping hand silhouette still creates ambiguous opposed finger directions.
 
-Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-06a7cb57-72b8-4308-aa1b-6fa43da7206f.png`.
+Input images at generation time: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-06a7cb57-72b8-4308-aa1b-6fa43da7206f.png`.
 
 ```text
 Hands-only correction in this transparent handstand pair.
@@ -304,13 +306,13 @@ Freeze ALL other pixels as closely as possible: upside-down heads look LEFT, pon
 
 ### handstand_push_up-v19.png — rejected correction
 
-Saved: `public/exercise-assets/corrections/handstand_push_up-v19.png`.
+Retired public filename: `public/exercise-assets/corrections/handstand_push_up-v19.png`. Historical source: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-e68b7064-0a42-461e-81f3-4623624816d8.png`.
 
 Requested back-to-wall variant: body front, knees and white shoe toes face left away from right wall; buttocks touch wall. Heads are upside down with chin above eyes, faces away, ponytails hanging down. Visible palms press down with fingers right toward wall in both poses; far hands align behind and are occluded in side view. Torso/legs preserve the requested direction.
 
 Earlier clearance withdrawn: User identified opposing palms still present. Earlier targeted visual clearance was insufficient.
 
-Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-2cc6685a-6401-400a-bed4-f1e251316873.png`.
+Input images at generation time: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-2cc6685a-6401-400a-bed4-f1e251316873.png`.
 
 ```text
 Precise local edit: clean up ONLY the overlapping HANDS at the bottom of each handstand pose.
@@ -326,7 +328,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v20.png`
 
 Preparation: separate right-pointing hand study. Created before user requested an entirely fresh full exercise image; not used as a reference for the final fresh pair.
 
-Input images: `/Users/jaxoncorrey/APXAppiC-codex-main-repair/public/exercise-assets/corrections/handstand_push_up-v19.png`.
+Input images at generation time: `/Users/jaxoncorrey/APXAppiC-codex-main-repair/public/exercise-assets/corrections/handstand_push_up-v19.png`.
 
 ```text
 Create a CLOSE-UP anatomical reference photo of ONE adult athletic woman's hand planted flat on an implied floor, connected naturally to her lower forearm. This is a hand study, not a full person.
@@ -342,7 +344,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v21.png`
 
 Discarded patch attempt: user requested fresh whole-image generation instead. Opposing far-hand direction remained in this edit.
 
-Input images: `/Users/jaxoncorrey/APXAppiC-codex-main-repair/public/exercise-assets/corrections/handstand_push_up-v19.png`, `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-24d5b8cd-28db-49b8-998d-deceb50f94a6.png`.
+Input images at generation time: `/Users/jaxoncorrey/APXAppiC-codex-main-repair/public/exercise-assets/corrections/handstand_push_up-v19.png`, `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-24d5b8cd-28db-49b8-998d-deceb50f94a6.png`.
 
 ```text
 Use case: precise-object-edit.
@@ -358,13 +360,13 @@ Freeze all of Image 1 above this local hand/wrist area: torso, shoulders, pelvis
 
 ### handstand_push_up-v22.png — selected fresh generation
 
-Saved: `public/exercise-assets/corrections/handstand_push_up-v22.png`.
+Saved: `public/exercise-assets/handstand_push_up.png`.
 
 Fresh full two-pose generation from the original goblet-squat identity/style reference only. Both distinct supporting hands in each pose have palms down and fingers right toward the wall. Heads are inverted, faces left away and ponytails hang down. Whole body fronts, knees and shoe toes face left away; buttocks touch the right wall. Straight-arm top and bent-arm lower endpoints keep the same identity and orientation.
 
 User accepted this version.
 
-Input images: `/Users/jaxoncorrey/Downloads/goblet squat.png`.
+Input images at generation time: `/Users/jaxoncorrey/Downloads/goblet squat.png`.
 
 ```text
 Use case: scientific-educational.
@@ -386,7 +388,7 @@ Style: realistic anatomy and clean studio photographic cutouts. True transparent
 
 ## Pull-Up (`pull_up`)
 
-Selected: `public/exercise-assets/corrections/pull_up-v4.png`.
+Current PNG: `public/exercise-assets/pull_up.png`.
 
 Same straight rear camera and overhand grip in both phases. Top position raised relative to bar; straight legs maintain same orientation. User found revised pull-up better.
 
@@ -419,11 +421,11 @@ Clean professional realistic sports photograph cutouts. Fully transparent backdr
 
 ### pull_up-v4.png — selected correction
 
-Saved: `public/exercise-assets/corrections/pull_up-v4.png`.
+Saved: `public/exercise-assets/pull_up.png`.
 
 Same straight rear camera and overhand grip in both phases. Top position raised relative to bar; straight legs maintain same orientation. User found revised pull-up better.
 
-Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9046bce5-1799-40ea-8594-875028678ceb.png`.
+Input images at generation time: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-9046bce5-1799-40ea-8594-875028678ceb.png`.
 
 ```text
 Targeted range-of-motion correction of attached two-pose rear-view overhand pull-up. Preserve left dead-hang pose, same rear camera, athlete identity, black outfit, rack and pronated grip in BOTH panels. Correct RIGHT top pose so the athlete is pulled HIGHER, chin clears bar: bar is at base-of-neck / upper chest level, BELOW the chin, never at the back of the skull. Back of head and shoulders remain square to camera, elbows bent deeply down beside torso, hands stay attached to the same fixed bar points with same OVERHAND grip and same normal opposite thumbs. Right athlete's shoulders and upper chest rise relative to bar as elbows flex further. No wrist turning or camera change. Legs remain straight together with same rear feet view and normal knees, hips and ankles.
@@ -432,7 +434,7 @@ Reframe the entire composition with more transparent space above rack so the hig
 
 ## Reverse Pec Deck (`reverse_pec_deck`)
 
-Selected: `public/exercise-assets/corrections/reverse_pec_deck-v3.png`.
+Current PNG: `public/exercise-assets/reverse_pec_deck.png`.
 
 Manufacturer-referenced machine. Same seated athlete, chest-pad orientation and leg geometry in both phases; palms-down horizontal handles move forward to outward. User found revised reverse fly better.
 
@@ -452,11 +454,11 @@ Realistic professional sports photography. Complete athlete and full identical m
 
 ### reverse_pec_deck-v3.png — selected correction
 
-Saved: `public/exercise-assets/corrections/reverse_pec_deck-v3.png`.
+Saved: `public/exercise-assets/reverse_pec_deck.png`.
 
 Manufacturer-referenced machine. Same seated athlete, chest-pad orientation and leg geometry in both phases; palms-down horizontal handles move forward to outward. User found revised reverse fly better.
 
-Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-087c3722-6203-41cd-8eb6-00ce4117b24e.png`.
+Input images at generation time: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-087c3722-6203-41cd-8eb6-00ce4117b24e.png`.
 
 ```text
 Create the final two-position REVERSE PEC DECK asset by duplicating the attached single exercise photo, preserving its real machine architecture and the EXACT adult woman, view, seat, torso, head direction, pelvis, legs, knees, shoes and clothing. The attached pose is the END position with arms swept outward, not the start.
@@ -471,7 +473,7 @@ Saved: `docs/exercise-asset-drafts/2026-10-04-quality/reverse_pec_deck-v4.png`.
 
 Preparation reference: single machine/end-position study, used as the input for selected two-pose v3. Not a separate app asset.
 
-Input images: `/private/tmp/apex-reverse-fly-reference-page.png`, `/Users/jaxoncorrey/Downloads/goblet squat.png`.
+Input images at generation time: `/private/tmp/apex-reverse-fly-reference-page.png`, `/Users/jaxoncorrey/Downloads/goblet squat.png`.
 
 ```text
 Use case: scientific-educational. Create ONE single complete photo realistic exercise pose on a transparent background: the START position of a seated REVERSE PEC DECK.
@@ -483,7 +485,7 @@ This is ONE starting pose only. Do not draw a second pose yet. Full athlete, all
 
 ## Cable External Rotation (`cable_external_rotation`)
 
-Selected: `public/exercise-assets/corrections/cable_external_rotation-v3.png`.
+Current PNG: `public/exercise-assets/cable_external_rotation.png`.
 
 Right arm works in both poses; starting forearm crosses abdomen, finish rotates outward; nonworking left arm, body, feet and camera stay consistent. Cable attachment continuous.
 
@@ -503,7 +505,7 @@ Thumb-up grip and neutral straight wrist in both positions. Keep torso, head, pe
 
 ### cable_external_rotation-v3.png — selected correction
 
-Saved: `public/exercise-assets/corrections/cable_external_rotation-v3.png`.
+Saved: `public/exercise-assets/cable_external_rotation.png`.
 
 Right arm works in both poses; starting forearm crosses abdomen, finish rotates outward; nonworking left arm, body, feet and camera stay consistent. Cable attachment continuous.
 

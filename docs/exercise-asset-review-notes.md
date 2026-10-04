@@ -4,7 +4,7 @@
 
 All 549 catalog entries have a transparent PNG. The first pass marked 444 images reviewed and flagged 104 with the historical concerns below. That inspection missed anatomical errors, so its clearances were withdrawn. The original reverse pec deck and cable external rotation findings now have selected corrections recorded in the recovery document. The supplied goblet squat is retained.
 
-Transparency was checked from PNG alpha data. A maximum alpha of 254 remains valid. Preview background appearance is not a reason to regenerate an asset. Saved originals are retained.
+Transparency was checked from PNG alpha data. A maximum alpha of 254 remains valid. Preview background appearance is not a reason to regenerate an asset. Corrected PNGs replace their canonical exercise filenames at the user's request; original generation metadata remains in the manifest.
 
 | Catalog ID | Exercise | Review note |
 | --- | --- | --- |
