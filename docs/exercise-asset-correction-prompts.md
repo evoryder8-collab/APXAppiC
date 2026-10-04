@@ -6,11 +6,13 @@ The manifest retains the original generation prompt plus every correction attemp
 
 ## Handstand Push-Up (`handstand_push_up`)
 
-Selected: `public/exercise-assets/corrections/handstand_push_up-v19.png`.
+Selected: `public/exercise-assets/corrections/handstand_push_up-v22.png`.
 
-Requested back-to-wall variant: body front, knees and white shoe toes face left away from right wall; buttocks touch wall. Heads are upside down with chin above eyes, faces away, ponytails hanging down. Visible palms press down with fingers right toward wall in both poses; far hands align behind and are occluded in side view. Torso/legs preserve the requested direction.
+Fresh full two-pose generation from the original goblet-squat identity/style reference only. Both distinct supporting hands in each pose have palms down and fingers right toward the wall. Heads are inverted, faces left away and ponytails hang down. Whole body fronts, knees and shoe toes face left away; buttocks touch the right wall. Straight-arm top and bent-arm lower endpoints keep the same identity and orientation.
 
-Final production specification: Back-to-wall, same side view in both poses. Wall on right. Face, chest, anterior pelvis, knees and horizontal shoe toes face left away from wall. Back, buttocks and heels face right toward wall; buttocks touch wall. Head fully inverted with chin above eyes, facing left; ponytail hangs down toward floor. Palms press down; visible fingers point right toward wall, far hand aligned behind and occluded. Left straight-arm hold, right lowered push-up. Black top/leggings, white trainers, same identity and transparent background.
+Explicitly approved by the user on 2026-10-04.
+
+Final production specification: Fresh complete two-pose back-to-wall handstand illustration, generated from original goblet-squat identity/style reference only. Wall on right in both poses; body front, knees and shoe toes face left away, buttocks touch wall. Head fully inverted, face left away, ponytail hangs down. Two distinct supporting hands per pose, all fingers right toward wall, palms down, wrists on left side of palms. Left straight-arm top and right bent-arm lower positions, same woman and camera. Black long-sleeve crop top/leggings and white trainers; actual transparent PNG.
 
 ### handstand_push_up-v2.png — rejected correction
 
@@ -194,7 +196,7 @@ Saved: `public/exercise-assets/corrections/handstand_push_up-v13.png`.
 
 Targeted visual checks passed: chest, face and knee fronts face right toward wall; buttocks and back face left away; horizontal shoes point right with toe tips touching wall and heels clear; palms face down and fingers point left away from wall in both poses. Same side view and anatomy across top/lowered positions.
 
-User accepted this variant. User confirmed chest-to-wall version correct, then requested a back-to-wall variant. Retained without modification.
+User accepted this version. User confirmed chest-to-wall version correct, then requested a back-to-wall variant. Retained without modification.
 
 Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-7995f23c-b3f6-460a-b433-ac0c56f0ae26.png`.
 
@@ -300,11 +302,13 @@ The upper/background hand STILL points LEFT, with its fingers protruding to the 
 Freeze ALL other pixels as closely as possible: upside-down heads look LEFT, ponytails hang DOWN, body fronts/knees/shoe toes LEFT away from wall, buttocks touch RIGHT wall, straight-arm and bent-arm poses, clothes, shoes, scale, camera, walls, foreground hands and transparency. No whole-body rotation. No added elements.
 ```
 
-### handstand_push_up-v19.png — selected variant
+### handstand_push_up-v19.png — rejected correction
 
 Saved: `public/exercise-assets/corrections/handstand_push_up-v19.png`.
 
 Requested back-to-wall variant: body front, knees and white shoe toes face left away from right wall; buttocks touch wall. Heads are upside down with chin above eyes, faces away, ponytails hanging down. Visible palms press down with fingers right toward wall in both poses; far hands align behind and are occluded in side view. Torso/legs preserve the requested direction.
+
+Earlier clearance withdrawn: User identified opposing palms still present. Earlier targeted visual clearance was insufficient.
 
 Input images: `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-2cc6685a-6401-400a-bed4-f1e251316873.png`.
 
@@ -314,6 +318,70 @@ Precise local edit: clean up ONLY the overlapping HANDS at the bottom of each ha
 In each panel keep ONE clearly readable near hand with palm flat DOWN, wrist and palm heel on LEFT, fingers extending RIGHT toward the wall. Put the far hand directly behind it, aligned in the SAME direction and fully occluded in this exact side view. Remove the extra finger/hand shapes protruding LEFT. No visible left-pointing fingertips should remain. Keep a natural connection: the forearm joins the wrist at the LEFT palm-heel end, not at the right fingertip end. Permit only a small distal wrist/forearm adjustment away from wall for a natural right-pointing palm.
 
 Freeze the rest of this image: inverted head looking LEFT, ponytail hanging DOWN, body front/knees/shoe toes LEFT away from wall, buttocks touching wall on RIGHT, torso, pelvis, legs, shoes, walls, clothing, two poses and transparent background. Show the same hand orientation in both panels. No labels or extra elements.
+```
+
+### handstand_push_up-v20.png — preparation reference
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v20.png`.
+
+Preparation: separate right-pointing hand study. Created before user requested an entirely fresh full exercise image; not used as a reference for the final fresh pair.
+
+Input images: `/Users/jaxoncorrey/APXAppiC-codex-main-repair/public/exercise-assets/corrections/handstand_push_up-v19.png`.
+
+```text
+Create a CLOSE-UP anatomical reference photo of ONE adult athletic woman's hand planted flat on an implied floor, connected naturally to her lower forearm. This is a hand study, not a full person.
+
+Exact SIDE VIEW: the forearm comes down from the TOP LEFT into the WRIST at the LEFT END of the hand. Wrist bends naturally about 90 degrees. The heel of the palm is LEFT. All four fingers extend horizontally RIGHT, with rounded fingertips and fingernails at the RIGHT END. The thumb rests naturally alongside the palm. Palm presses DOWN, back of hand and nails face UP. One wrist, one palm, five fingers total. No fingers or extra palm extend from the left side of the wrist. Do not draw a double-ended hand. Normal human anatomy and proportions.
+
+Use the attached exercise image ONLY for matching skin tone, fitted black sleeve fabric and photorealistic lighting. Show only the hand and a short section of black-sleeved forearm, not a head or body. True transparent PNG background, no floor object, shadows, labels, text or extra hands. Leave clear margins around the cutout.
+```
+
+### handstand_push_up-v21.png — discarded patch
+
+Saved: `docs/exercise-asset-drafts/2026-10-04-quality/handstand_push_up-v21.png`.
+
+Discarded patch attempt: user requested fresh whole-image generation instead. Opposing far-hand direction remained in this edit.
+
+Input images: `/Users/jaxoncorrey/APXAppiC-codex-main-repair/public/exercise-assets/corrections/handstand_push_up-v19.png`, `/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-24d5b8cd-28db-49b8-998d-deceb50f94a6.png`.
+
+```text
+Use case: precise-object-edit.
+IMAGE 1: edit target, two handstand poses.
+IMAGE 2: correct HAND ANATOMY reference, wrist LEFT, fingers RIGHT, palm DOWN.
+
+Replace ALL old hand shapes in BOTH panels of Image 1. Do not preserve or patch the old double-ended palms. Build TWO naturally connected supporting hands per woman using Image 2's clear wrist-to-palm-to-fingers structure. Both hands point RIGHT toward the wall in both panels. Wrist/heel of palm on LEFT, then knuckles, then fingers and nails ending on RIGHT. Palms press DOWN; backs face UP. Represent left/right handedness through thumb placement, NEVER by horizontally reversing one hand. Arrange the two hands parallel with a small depth offset so the same rightward direction is clear. No fingers, second palm or fleshy hand lobes protrude left from either wrist.
+
+Allow a small local shift of the wrists and lowest forearms LEFT away from wall, about a palm-width, to make room for the fingers to extend RIGHT and end before the wall. Forearms must join the LEFT heel/wrist end of each palm, not join its middle or fingertip end. Keep realistic finger lengths and proportions, no tiny compressed fingers. Remove the old opposing hand silhouettes completely.
+
+Freeze all of Image 1 above this local hand/wrist area: torso, shoulders, pelvis, legs, feet, clothing, inverted head looking LEFT, hair hanging DOWN, buttocks touching wall on RIGHT, shoe toes LEFT away, two-pose layout, scale and camera. Do not turn any body part. Preserve wall slabs. Photorealistic transparent PNG cutout, no text, labels or added objects.
+```
+
+### handstand_push_up-v22.png — selected fresh generation
+
+Saved: `public/exercise-assets/corrections/handstand_push_up-v22.png`.
+
+Fresh full two-pose generation from the original goblet-squat identity/style reference only. Both distinct supporting hands in each pose have palms down and fingers right toward the wall. Heads are inverted, faces left away and ponytails hang down. Whole body fronts, knees and shoe toes face left away; buttocks touch the right wall. Straight-arm top and bent-arm lower endpoints keep the same identity and orientation.
+
+User accepted this version.
+
+Input images: `/Users/jaxoncorrey/Downloads/goblet squat.png`.
+
+```text
+Use case: scientific-educational.
+Generate a COMPLETELY NEW photorealistic transparent exercise illustration from scratch. The attached goblet squat is ONLY a reference for the adult woman's identity, skin tone, dark ponytail, black workout clothing and white trainers. Do not depict a squat.
+
+Create TWO side-by-side full-body key poses of a BACK-TO-WALL HANDSTAND PUSH-UP. Same woman, same side-view camera and scale, narrow grey wall on RIGHT of each pose. Black fitted long-sleeve crop top and full leggings, white trainers. Both whole figures and wall slabs fit with transparent margins.
+
+CRITICAL HAND SETUP: all FOUR hands press palms flat DOWN on the implied floor, with fingers pointing RIGHT TOWARD THE WALL. Wrists and palm heels are LEFT of their fingers. Both hands of each woman are parallel and point the same way, even though their thumbs are opposite. Each hand has one wrist, one palm, five digits. Leave enough floor space between wrists and wall for the full finger lengths. No double-ended palms. No fingers or second palm pointing left. Separate the two supporting hands slightly in depth so each is readable. Arms and wrists connect normally to the LEFT end of each palm.
+
+WHOLE-BODY DIRECTION in both poses: face, nose, chest, abdomen, front pelvis, kneecaps and horizontal shoe TOES face LEFT AWAY from wall. Back, spine, buttocks, calves and shoe HEELS face RIGHT toward wall. Rounded buttocks lightly touch wall without penetration. Shoes have toes on LEFT and heels on RIGHT, soles on their upper side because she is upside down. All body segments share one coherent front/back orientation.
+
+HEAD AND HAIR: the head is truly UPSIDE DOWN with the body. Chin/mouth are ABOVE eyes, forehead/crown BELOW eyes. Face/nose point LEFT away from wall. Neck attaches from shoulders above the head. Ponytail hangs DOWN toward floor under gravity. No upright portrait head on inverted body.
+
+LEFT POSE: straight arms supporting a near-vertical inverted body, shoulders elevated, knees straight, buttocks touching wall. Position wrists a hand-length away from wall, enough space for fingers toward wall.
+RIGHT POSE: lowered phase with naturally bent elbows, forearms supporting the same parallel right-pointing palms, crown close to floor, legs straight, buttocks at wall. Preserve the same orientation, stance, grip and equipment. Show meaningful motion between top and lowered states.
+
+Style: realistic anatomy and clean studio photographic cutouts. True transparent PNG background. No text, arrows, phase labels, floor/background scenery, shadows or extra objects. Prioritize coherent hand/wrist anatomy, inverted heads and consistent whole-body orientation.
 ```
 
 ## Pull-Up (`pull_up`)
