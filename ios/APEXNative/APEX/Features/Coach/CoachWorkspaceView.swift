@@ -110,7 +110,7 @@ struct CoachWorkspaceView: View {
         return VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 5) {
-                    (Text(verbatim: "APEX") + Text(verbatim: " · ") + Text(language.text("Development access")))
+                    (Text(verbatim: "FitDee") + Text(verbatim: " · ") + Text(language.text("Development access")))
                         .font(APEXFont.mono(9, weight: .bold))
                         .tracking(1.6)
                         .foregroundStyle(.white.opacity(0.78))

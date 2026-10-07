@@ -133,10 +133,10 @@ test('Watch hydration keeps its title and settings in the native top bar', () =>
 
   assert.match(app, /NavigationStack/)
   assert.match(view, /ToolbarItem\(placement: \.topBarTrailing\)/)
-  assert.match(view, /Label\("APEX HYDRATION", systemImage: "drop.fill"\)/)
+  assert.match(view, /Label\("FitDee", systemImage: "drop.fill"\)/)
   assert.match(view, /\.accessibilityLabel\("Hydration settings"\)/)
   assert.match(view, /\.scrollBounceBehavior\(\.basedOnSize\)/)
-  assert.doesNotMatch(view, /\.navigationTitle\("APEX HYDRATION"\)/)
+  assert.doesNotMatch(view, /\.navigationTitle\("FitDee"\)/)
 })
 
 test('Watch hydration exposes configurable low-power presentation settings', () => {

@@ -62,7 +62,7 @@ export function Login({ onBack, onSuccess }: { onBack: () => void; onSuccess: (p
       >
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-white/7 backdrop-blur-xl"><ApexMark className="h-5 w-5" /></span>
-          <p className="text-[13px] font-bold tracking-[0.3em]">APEX</p>
+          <p className="text-[13px] font-bold tracking-[0.15em]">FitDee</p>
         </div>
         <p className="font-mono text-[8px] tracking-[0.2em] text-white/34 uppercase">{copy.encrypted}</p>
       </motion.header>

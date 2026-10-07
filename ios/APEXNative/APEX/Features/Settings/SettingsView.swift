@@ -165,8 +165,8 @@ struct SettingsView: View {
     }
 
     private var identityCard: some View {
-        let displayName = profile?.displayName ?? "APEX"
-        let personaName = profile?.persona.displayName ?? "APEX"
+        let displayName = profile?.displayName ?? "FitDee"
+        let personaName = profile?.persona.displayName ?? "FitDee"
         return GlassCard(radius: 31, padding: 21) {
             VStack(alignment: .leading, spacing: 17) {
                 HStack(alignment: .top, spacing: 14) {
@@ -175,7 +175,7 @@ struct SettingsView: View {
                         Text(language.text("ACTIVE IDENTITY"))
                             .font(APEXFont.mono(10)).tracking(2)
                             .foregroundStyle(APEXColor.secondaryInk)
-                        Text(profile?.displayName ?? "APEX")
+                        Text(profile?.displayName ?? "FitDee")
                             .font(APEXFont.display(26))
                             .lineLimit(1)
                             .allowsTightening(true)
@@ -646,7 +646,7 @@ struct SettingsView: View {
         GlassCard(radius: 31, padding: 20) {
             VStack(alignment: .leading, spacing: 14) {
                 Text(language.text("Account")).font(APEXFont.display(22))
-                Text(profile?.displayName ?? "APEX").font(APEXFont.body(15, weight: .bold))
+                Text(profile?.displayName ?? "FitDee").font(APEXFont.body(15, weight: .bold))
                 Text(language.text("Your records remain private under Supabase row-level security and are shared only between your authenticated APEX clients."))
                     .font(APEXFont.body(12, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
                 Button(role: .destructive) { showLogout = true } label: {

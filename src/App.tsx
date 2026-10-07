@@ -68,7 +68,7 @@ function AccountFeature({ capability, children }: { capability: keyof CoachClien
 function LoadingSurface({ page = false }: { page?: boolean }) {
   return (
     <div className={`flex items-center justify-center px-6 ${page ? 'min-h-[55dvh] pt-24' : 'min-h-dvh'}`}>
-      <div className="h-20 w-56 animate-pulse rounded-3xl border border-white/80 bg-white/75 shadow-lg" aria-label="Loading APEX" />
+      <div className="h-20 w-56 animate-pulse rounded-3xl border border-white/80 bg-white/75 shadow-lg" aria-label="Loading FitDee" />
     </div>
   )
 }
@@ -191,7 +191,7 @@ function Shell() {
   if (!ready) {
     return (
       <div className="flex min-h-dvh items-center justify-center">
-        <div className="glass skeleton h-24 w-64 rounded-3xl" aria-label="Loading APEX" />
+        <div className="glass skeleton h-24 w-64 rounded-3xl" aria-label="Loading FitDee" />
       </div>
     )
   }

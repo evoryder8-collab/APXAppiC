@@ -1,7 +1,14 @@
-# APEX — takeover brief
+# FitDee — takeover brief
 
-You are continuing development of APEX: a SwiftUI iOS app plus a web fallback, sharing one
+You are continuing development of FitDee (internal codename APEX): a SwiftUI iOS app plus a web fallback, sharing one
 Supabase backend. Work through the phases in order. Do not skip ahead.
+
+**Product naming, 2026-10-07:** the commercial and installed-app name is **FitDee**.
+Keep the existing APEX bundle identifiers, App Group, authentication scheme, backend and
+repository paths stable so installed accounts and Watch data remain connected. App Store
+Connect rejected the exact listing name `FitDee` as already in use; the owner has been
+asked to choose an available listing variant. Do not claim a TestFlight release exists
+until an uploaded build is processed and available there.
 
 ---
 

@@ -413,7 +413,7 @@ private struct WorkoutInsightsArtwork: View {
             VStack(alignment: .leading, spacing: 13) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("APEX")
+                        Text("FitDee")
                             .font(.system(size: 10, weight: .black, design: .monospaced))
                             .tracking(3)
                             .foregroundStyle(Color(red: 0.45, green: 0.16, blue: 0.78))

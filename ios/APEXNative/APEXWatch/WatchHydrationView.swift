@@ -76,7 +76,7 @@ struct WatchHydrationView: View {
                         }
                         .buttonStyle(.bordered)
                         .tint(violet)
-                        .accessibilityHint("Ends the APEX workout sensor session")
+                        .accessibilityHint("Ends the FitDee workout sensor session")
                     }
 
                     if !hydration.isAuthorized {
@@ -106,7 +106,7 @@ struct WatchHydrationView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: showHydrationSettings) {
                     HStack(spacing: 5) {
-                        Label("APEX HYDRATION", systemImage: "drop.fill")
+                        Label("FitDee", systemImage: "drop.fill")
                             .font(.system(size: 8, weight: .bold, design: .monospaced))
                             .tracking(0.7)
                             .foregroundStyle(aqua)
@@ -543,45 +543,6 @@ struct WatchHydrationSettingsView: View {
     }
 }
 
-private struct CustomHydrationAmountView: View {
-    @EnvironmentObject private var hydration: WatchHydrationStore
-    @Environment(\.dismiss) private var dismiss
-    @State private var milliliters = 350.0
-
-    var body: some View {
-        ScrollView {
-            VStack(spacing: 10) {
-                Label("CUSTOM WATER", systemImage: "drop.fill")
-                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
-                    .foregroundStyle(.cyan)
-
-                Stepper(value: $milliliters, in: 50...3_000, step: 10) {
-                    VStack(spacing: 2) {
-                        Text("\(Int(milliliters))")
-                            .font(.system(size: 29, weight: .bold, design: .rounded))
-                            .contentTransition(.numericText())
-                        Text("MILLILITRES")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                Button("Add \(Int(milliliters)) mL") {
-                    Task {
-                        await hydration.add(milliliters: milliliters)
-                        if hydration.isAuthorized { dismiss() }
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(.cyan)
-                .disabled(hydration.isSaving)
-            }
-            .padding(.horizontal, 6)
-        }
-        .navigationTitle("Custom")
-    }
-}
-
 private struct HydrationHistoryView: View {
     @EnvironmentObject private var hydration: WatchHydrationStore
     @State private var deletionCandidate: WatchHydrationEntry?
@@ -629,7 +590,7 @@ private struct HydrationHistoryView: View {
                 showsDeleteConfirmation = false
             }
         } message: {
-            Text("This removes the APEX Watch entry from Apple Health too.")
+            Text("This removes the FitDee Watch entry from Apple Health too.")
         }
     }
 

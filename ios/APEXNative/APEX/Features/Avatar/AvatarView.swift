@@ -1050,7 +1050,7 @@ private struct AvatarHero: View {
                     /* The name only. The overall score has its own card
                        directly underneath, and printing it twice made the
                        second one look like a different number. */
-                    Text(profile?.displayName ?? "APEX")
+                    Text(profile?.displayName ?? "FitDee")
                         .font(APEXFont.display(24))
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)

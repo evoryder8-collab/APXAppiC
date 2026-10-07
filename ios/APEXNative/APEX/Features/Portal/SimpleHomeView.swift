@@ -347,7 +347,7 @@ struct SimpleHomeView: View {
                 } label: {
                     CoachSimpleShortcut(
                         title: language.text("Your coach plan"),
-                        subtitle: language.format("Provided by %@", session.coachContext.sponsorship?.coachDisplayName ?? "APEX"),
+                        subtitle: language.format("Provided by %@", session.coachContext.sponsorship?.coachDisplayName ?? "FitDee"),
                         icon: "person.crop.circle.badge.checkmark"
                     )
                 }

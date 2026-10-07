@@ -27,7 +27,7 @@ settings:
     IPHONEOS_DEPLOYMENT_TARGET: 17.0
     DEVELOPMENT_TEAM: UG979XDY72
     CODE_SIGN_STYLE: Automatic
-    CURRENT_PROJECT_VERSION: 372
+    CURRENT_PROJECT_VERSION: 398
     MARKETING_VERSION: 1.0.0
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED: YES
@@ -58,20 +58,20 @@ targets:
     info:
       path: APEX/Info.plist
       properties:
-        CFBundleDisplayName: APEX
-        CFBundleName: APEX
+        CFBundleDisplayName: FitDee
+        CFBundleName: FitDee
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false
         SUPABASE_URL: $(SUPABASE_URL)
         SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
-        NSCameraUsageDescription: APEX uses the camera to scan food barcodes and capture private visual-progress photos.
-        NSPhotoLibraryUsageDescription: APEX can import a progress photo that you choose.
-        NSPhotoLibraryAddUsageDescription: APEX can save route posters and progress exports that you request.
-        NSHealthShareUsageDescription: APEX reads the health and activity data you choose so nutrition, recovery, Avatar, and Orbit stay aligned.
-        NSHealthUpdateUsageDescription: APEX writes completed workouts and water entries only when you choose to sync them with Apple Health.
-        NSLocationWhenInUseUsageDescription: APEX Orbit uses your location to record runs and plan routes while the app is open.
-        NSLocationAlwaysAndWhenInUseUsageDescription: APEX Orbit continues recording an active run when your screen is locked.
+        NSCameraUsageDescription: FitDee uses the camera to scan food barcodes and capture private visual-progress photos.
+        NSPhotoLibraryUsageDescription: FitDee can import a progress photo that you choose.
+        NSPhotoLibraryAddUsageDescription: FitDee can save route posters and progress exports that you request.
+        NSHealthShareUsageDescription: FitDee reads the health and activity data you choose so nutrition, recovery, Avatar, and Orbit stay aligned.
+        NSHealthUpdateUsageDescription: FitDee writes completed workouts and water entries only when you choose to sync them with Apple Health.
+        NSLocationWhenInUseUsageDescription: FitDee Orbit uses your location to record runs and plan routes while the app is open.
+        NSLocationAlwaysAndWhenInUseUsageDescription: FitDee Orbit continues recording an active run when your screen is locked.
         UIBackgroundModes:
           - location
           - processing
@@ -105,6 +105,7 @@ targets:
     deploymentTarget: "10.0"
     sources:
       - path: APEXWatch
+      - path: APEX/Core/Engine/WatchHydrationAmountAdjustment.swift
       - path: APEX/Core/Engine/HydrationLedger.swift
       - path: APEX/Core/Engine/WatchHydrationFillState.swift
       - path: APEX/Core/Engine/WatchHydrationPreferences.swift
@@ -122,8 +123,8 @@ targets:
     info:
       path: APEXWatch/Info.plist
       properties:
-        CFBundleDisplayName: APEX Water
-        CFBundleName: APEX Water
+        CFBundleDisplayName: FitDee
+        CFBundleName: FitDee
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         ITSAppUsesNonExemptEncryption: false
@@ -132,8 +133,8 @@ targets:
         WKBackgroundModes:
           - workout-processing
         WKRunsIndependentlyOfCompanionApp: true
-        NSHealthShareUsageDescription: APEX reads today's water total so the Watch and iPhone remain aligned.
-        NSHealthUpdateUsageDescription: APEX adds water to Apple Health when you tap a quantity on the Watch.
+        NSHealthShareUsageDescription: FitDee reads today's water total so the Watch and iPhone remain aligned.
+        NSHealthUpdateUsageDescription: FitDee adds water to Apple Health when you tap a quantity on the Watch.
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: ch.apexperformance.APEX.watchkitapp
@@ -161,11 +162,11 @@ targets:
     info:
       path: APEXWatchWidgets/Info.plist
       properties:
-        CFBundleDisplayName: APEX Water
+        CFBundleDisplayName: FitDee
         CFBundleName: APEXWatchWidgets
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        NSHealthShareUsageDescription: APEX reads today's water total so the complication stays current.
+        NSHealthShareUsageDescription: FitDee reads today's water total so the complication stays current.
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:

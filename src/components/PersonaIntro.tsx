@@ -189,7 +189,7 @@ export function PersonaIntro({ onSelect, onBack }: { onSelect: (persona: Persona
             <ApexMark className="h-5 w-5" />
           </span>
           <div>
-            <p className="text-[13px] font-bold tracking-[0.3em]">APEX</p>
+            <p className="text-[13px] font-bold tracking-[0.15em]">FitDee</p>
             <p className="mt-0.5 text-[8px] font-semibold tracking-[0.23em] text-white/38 uppercase">
               {copy.network}
             </p>

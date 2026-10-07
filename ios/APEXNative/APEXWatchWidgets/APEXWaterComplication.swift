@@ -32,7 +32,7 @@ enum WaterDisplayMode: String, AppEnum {
 }
 
 struct WaterConfigurationIntent: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource { "APEX Water" }
+    static var title: LocalizedStringResource { "FitDee" }
     static var description: IntentDescription { "Today's hydration against your target." }
 
     @Parameter(title: "Show")
@@ -123,7 +123,7 @@ struct WaterProvider: AppIntentTimelineProvider {
         WaterDisplayMode.allCases.map { mode in
             let intent = WaterConfigurationIntent()
             intent.displayMode = mode
-            return AppIntentRecommendation(intent: intent, description: "APEX Water · \(mode.rawValue)")
+            return AppIntentRecommendation(intent: intent, description: "FitDee · \(mode.rawValue)")
         }
     }
 
@@ -536,7 +536,7 @@ struct APEXWaterComplication: Widget {
             APEXWaterComplicationView(entry: entry)
                 .containerBackground(.clear, for: .widget)
         }
-        .configurationDisplayName("APEX Water")
+        .configurationDisplayName("FitDee")
         .description("Today's hydration against your target.")
         .supportedFamilies([
             .accessoryCircular,

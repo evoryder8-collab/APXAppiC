@@ -55,9 +55,9 @@ struct WelcomeView: View {
                     VStack(spacing: 18) {
                         APEXMark(size: 84)
                             .background { BreathingGlow(active: !reduceMotion) }
-                        Text("APEX")  // brand name, never translated
+                        Text(verbatim: "FitDee")  // brand name, never translated
                             .font(APEXFont.display(34))
-                            .tracking(9)
+                            .tracking(4)
                             .foregroundStyle(APEXColor.ink)
                     }
                 }
@@ -140,16 +140,16 @@ struct WelcomeView: View {
                 }
                 .floating(index: 0, active: !reduceMotion)
 
-            Text("APEX")  // brand name, never translated
+            Text(verbatim: "FitDee")  // brand name, never translated
                 .font(APEXFont.display(42))
-                .tracking(11)
+                .tracking(5)
                 .overlay {
                     /* A single slow sweep of light across the wordmark. It runs
                        once on entry: a shimmer that loops forever reads as a
                        loading state, not as craft. */
                     ShimmerSweep(active: appeared && !reduceMotion)
                 }
-                .mask(Text("APEX").font(APEXFont.display(42)).tracking(11))
+                .mask(Text(verbatim: "FitDee").font(APEXFont.display(42)).tracking(5))
                 .rise(appeared, delay: 0.10)
 
             Text(language.text("Train, eat and rest, and watch tomorrow adjust itself around what you actually did."))
