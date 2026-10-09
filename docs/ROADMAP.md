@@ -9,9 +9,12 @@ repository paths stable so installed accounts and Watch data remain connected. A
 Connect rejected `FitDee` and `FiTR` as already in use. The owner's next choice,
 **FITR-D**, was accepted on 2026-10-07; its App Store Connect app ID is `6820010832`.
 Build **1.0.0 (398)** still uses FitDee as its installed display name. It has been
-uploaded and processed by Apple (**Ready to Submit**, verified 2026-10-08). An
-external beta group and two-person public invitation link are configured, but
-reviewer/contact information and Apple's beta review still gate installation.
+uploaded and processed by Apple, then submitted to external beta review on
+2026-10-10 (**Waiting for Review**, verified in App Store Connect). The dedicated
+reviewer login has been verified and its credentials, contact details and review
+notes are saved in Apple's Test Information. The existing external beta group
+now contains build 398; its two-person public invitation link is configured.
+Apple's approval and build availability still gate installation.
 Do not call TestFlight delivery complete until the approved build is available to
 testers; see the latest `REPAIR-NOTES.md` entry for the exact continuation point.
 
