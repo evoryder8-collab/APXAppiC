@@ -20,7 +20,18 @@ public enum FBGoal: String, Codable, Sendable {
 public enum FBDayType: String, Codable, Sendable {
     case legsA = "legs_a"
     case legsB = "legs_b"
-    case push, pull, upper, mobility, fix, t25
+    case push, pull, upper, mobility, fix, t25, custom, cardio
+
+    /// A domain used to bound custom-workout credit; not a measured capacity.
+    var activityDomain: FBDayType? {
+        switch self {
+        case .push, .pull, .upper: return .upper
+        case .legsA, .legsB: return .legsA
+        case .mobility, .fix: return .mobility
+        case .t25, .cardio: return .cardio
+        case .custom: return nil
+        }
+    }
 }
 
 public struct FBProfile: Codable, Sendable {
@@ -117,9 +128,10 @@ public struct FBWorkoutSession: Codable, Sendable {
     public var isEventRecovery: Bool
     public var completed: Bool
     public var qualityScore: Double
+    public var notes: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, date, completed
+        case id, date, completed, notes
         case programDayID = "program_day_id"
         case isDeload = "is_deload"
         case isEventRecovery = "is_event_recovery"
@@ -128,7 +140,7 @@ public struct FBWorkoutSession: Codable, Sendable {
 
     public init(
         id: String, date: String, programDayID: String, isDeload: Bool,
-        isEventRecovery: Bool, completed: Bool, qualityScore: Double
+        isEventRecovery: Bool, completed: Bool, qualityScore: Double, notes: String? = nil
     ) {
         self.id = id
         self.date = date
@@ -137,6 +149,7 @@ public struct FBWorkoutSession: Codable, Sendable {
         self.isEventRecovery = isEventRecovery
         self.completed = completed
         self.qualityScore = qualityScore
+        self.notes = notes
     }
 }
 
@@ -148,6 +161,14 @@ public struct FBWorkoutLog: Codable, Sendable {
     public var weightKG: Double?
     public var skipped: Bool
     public var overrideFlag: Bool
+    public var movementID: String?
+    public var reps: Int?
+    public var durationSeconds: Int?
+    public var distanceMeters: Double?
+    public var contacts: Int?
+    public var rounds: Int?
+    public var workSeconds: Int?
+    public var performedTypes: [FBDayType]?
 
     enum CodingKeys: String, CodingKey {
         case id, skipped
@@ -156,11 +177,20 @@ public struct FBWorkoutLog: Codable, Sendable {
         case exerciseName = "exercise_name"
         case weightKG = "weight_kg"
         case overrideFlag = "override_flag"
+        case movementID = "movement_id"
+        case reps, contacts, rounds
+        case durationSeconds = "duration_seconds"
+        case distanceMeters = "distance_meters"
+        case workSeconds = "work_seconds"
+        case performedTypes = "performed_types"
     }
 
     public init(
         id: String, sessionID: String, exerciseID: String?, exerciseName: String,
-        weightKG: Double?, skipped: Bool, overrideFlag: Bool
+        weightKG: Double?, skipped: Bool, overrideFlag: Bool,
+        movementID: String? = nil, reps: Int? = nil, durationSeconds: Int? = nil,
+        distanceMeters: Double? = nil, contacts: Int? = nil, rounds: Int? = nil,
+        workSeconds: Int? = nil, performedTypes: [FBDayType]? = nil
     ) {
         self.id = id
         self.sessionID = sessionID
@@ -169,6 +199,24 @@ public struct FBWorkoutLog: Codable, Sendable {
         self.weightKG = weightKG
         self.skipped = skipped
         self.overrideFlag = overrideFlag
+        self.movementID = movementID
+        self.reps = reps
+        self.durationSeconds = durationSeconds
+        self.distanceMeters = distanceMeters
+        self.contacts = contacts
+        self.rounds = rounds
+        self.workSeconds = workSeconds
+        self.performedTypes = performedTypes
+    }
+
+    var hasPerformedWork: Bool {
+        !skipped && ((reps ?? 0) > 0 || (durationSeconds ?? 0) > 0
+            || ((distanceMeters?.isFinite ?? false) && (distanceMeters ?? 0) > 0)
+            || (contacts ?? 0) > 0 || ((rounds ?? 0) > 0 && (workSeconds ?? 0) > 0))
+    }
+
+    var hasRecordedWork: Bool {
+        hasPerformedWork || (!skipped && !(performedTypes ?? []).isEmpty)
     }
 }
 

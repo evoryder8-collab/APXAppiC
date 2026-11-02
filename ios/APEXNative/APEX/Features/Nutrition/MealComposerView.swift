@@ -933,8 +933,7 @@ struct MealComposerView: View {
     }
 
     private func food(for item: MealComposerItem) -> Food? {
-        guard let foodID = item.foodID else { return nil }
-        return session.data.foods.first { UUID(uuidString: $0.id) == foodID }
+        item.resolvedFood(in: session.data.foods)
     }
 
     private func isFavourite(_ item: MealComposerItem) -> Bool {
@@ -943,8 +942,11 @@ struct MealComposerView: View {
     }
 
     private func toggleFavourite(_ item: MealComposerItem) {
-        guard let food = food(for: item),
-              let operation = session.accountOperationLease() else { return }
+        guard let operation = session.accountOperationLease() else { return }
+        guard let food = food(for: item) else {
+            errorMessage = APEXServiceError.incompleteFood.localizedDescription
+            return
+        }
         let nextValue = !isFavourite(item)
         Task {
             do {
@@ -1189,8 +1191,7 @@ private struct MealComposerItemCard: View {
                         VStack(alignment: .leading, spacing: 1) {
                             Text(item.personalLabel.isEmpty ? item.name : item.personalLabel)
                                 .font(APEXFont.display(15))
-                                .lineLimit(1)
-                                .truncationMode(.tail)
+                                .fixedSize(horizontal: false, vertical: true)
                             Text(language.format(
                                 "%d kcal · P %.1f · C %.1f · F %.1f",
                                 Int(item.nutrients.kcal.rounded()), item.nutrients.proteinG,
@@ -1202,6 +1203,15 @@ private struct MealComposerItemCard: View {
                             waterBadge
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
+
+                        if !selecting {
+                            FoodFavouriteButton(
+                                id: item.id.uuidString,
+                                foodName: item.personalLabel.isEmpty ? item.name : item.personalLabel,
+                                isFavourite: favourite,
+                                action: onToggleFavourite
+                            )
+                        }
 
                         TextField(language.text("Amount"), value: Binding(
                             get: { item.quantity },
@@ -1271,11 +1281,12 @@ private struct MealComposerItemCard: View {
                     }
                     Spacer(minLength: 3)
                     if !selecting {
-                        Button(action: onToggleFavourite) {
-                            Image(systemName: favourite ? "star.fill" : "star")
-                                .foregroundStyle(favourite ? APEXColor.amber : APEXColor.secondaryInk)
-                        }
-                        .buttonStyle(.plain)
+                        FoodFavouriteButton(
+                            id: item.id.uuidString,
+                            foodName: item.personalLabel.isEmpty ? item.name : item.personalLabel,
+                            isFavourite: favourite,
+                            action: onToggleFavourite
+                        )
                     }
                 }
 
@@ -1334,6 +1345,7 @@ private struct MealComposerItemCard: View {
                 }
             }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("meal-item-card-\(item.id.uuidString)")
     }
 
@@ -1502,7 +1514,7 @@ private struct MealFoodPicker: View {
                                     Text(food.localizedName(language.language))
                                         .font(APEXFont.body(15, weight: .bold))
                                         .foregroundStyle(APEXColor.ink)
-                                        .lineLimit(1)
+                                        .fixedSize(horizontal: false, vertical: true)
                                     Text(foodSubtitle(food, remembered: remembered[food.id.lowercased()]))
                                         .font(APEXFont.body(10, weight: .medium))
                                         .foregroundStyle(APEXColor.secondaryInk)
@@ -1512,6 +1524,12 @@ private struct MealFoodPicker: View {
                             .buttonStyle(.plain)
                             .accessibilityIdentifier("food-row-\(food.id)")
                             .accessibilityHint(language.text("Configure amount"))
+
+                            FoodFavouriteButton(
+                                id: food.id,
+                                foodName: food.localizedName(language.language),
+                                isFavourite: preference(for: food)?.favourite == true
+                            ) { toggleFavourite(food) }
 
                             Button { quickAdd(food, remembered: remembered[food.id.lowercased()]) } label: {
                                 ZStack {
@@ -1574,6 +1592,21 @@ private struct MealFoodPicker: View {
     private func preference(for food: Food) -> FoodPreference? {
         UUID(uuidString: food.id).flatMap { id in
             session.data.foodPreferences.first { $0.foodID == id }
+        }
+    }
+
+    private func toggleFavourite(_ food: Food) {
+        guard let operation = session.accountOperationLease() else { return }
+        let nextValue = preference(for: food)?.favourite != true
+        Task {
+            do {
+                try await session.setFoodFavourite(food, favourite: nextValue, operation: operation)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                message = error.localizedDescription
+            }
         }
     }
 

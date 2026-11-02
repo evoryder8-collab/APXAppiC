@@ -136,6 +136,47 @@ enum PlayerTimeline {
         )
     }
 
+    /// Reaching the last set can follow a jump over earlier work. Ask for
+    /// those facts explicitly instead of manufacturing reps or silently
+    /// disabling completion. Existing measured rows are left untouched.
+    static func completionReviewInputs(
+        exercises: [Exercise],
+        recorded: [WorkoutSetInput]
+    ) -> [WorkoutSetInput] {
+        var review = recorded.filter { !ExerciseLogging.isResolved($0) }
+        for position in workSequence(exercises) {
+            let exercise = exercises[position.exerciseIndex]
+            guard !recorded.contains(where: {
+                $0.exerciseID == exercise.id && $0.setNumber == position.setNumber
+            }) else { continue }
+            review.append(WorkoutSetInput(
+                exerciseID: exercise.id, exerciseName: exercise.name,
+                setNumber: position.setNumber, weightKG: nil, reps: nil, rir: nil,
+                movementID: exercise.movementID, skipped: false
+            ))
+        }
+        return review
+    }
+
+    /// Match the web player's completed / required-set ratio. These exercises
+    /// already contain the selected lite/deload adjustment. Bilateral work and
+    /// decision checkpoints each remain one result per prescribed set.
+    static func completionQuality(
+        exercises: [Exercise],
+        recorded: [WorkoutSetInput]
+    ) -> Double {
+        let sequence = workSequence(exercises)
+        let planned = sequence.filter { !exercises[$0.exerciseIndex].optional }.count
+        guard planned > 0 else { return 1 }
+        let completed = sequence.filter { position in
+            recorded.last(where: {
+                $0.exerciseID == exercises[position.exerciseIndex].id
+                    && $0.setNumber == position.setNumber
+            })?.skipped == false
+        }.count
+        return min(1, Double(completed) / Double(planned))
+    }
+
     /// Both session modes can hand persistence exercise-major inputs. Once a
     /// valid linked group exists, canonical history must instead match the
     /// round-major sequence the athlete performed (A1, A2, A1, A2).
@@ -452,6 +493,8 @@ enum PlayerTimeline {
         var repElapsed: Double
         var announcedRep: Int
         var persistedAt: String
+        // Optional so unfinished sessions from older builds remain readable.
+        var setExecution: GuidedSetExecution? = nil
     }
 
     enum DraftStore {

@@ -4102,7 +4102,7 @@
 /* Interface sweep, continued */
 "Your index over time" = "Indicele tău în timp";
 "What this chart shows" = "Ce arată acest grafic";
-"One point for every day FITR MAX recorded a full picture of you. The line is your overall index, the same number shown at the top of this page, so you can see whether it is moving and not only where it stands today." = "Fiecare punct reprezintă o zi pentru care FITR MAX a avut toate datele necesare. Linia urmărește același indice general afișat în partea de sus, ca să vezi evoluția lui în timp, nu doar valoarea de azi.";
+"Daily estimates based on what you log. The line shows your overall index over time. Missing logs can affect the estimate." = "Estimări zilnice bazate pe ceea ce înregistrezi. Linia arată evoluția indicelui tău general. Înregistrările lipsă pot influența estimarea.";
 "COMPLETED" = "FINALIZAT";
 "BETWEEN" = "ÎNTRE";
 "WORKOUTS" = "ANTRENAMENTE";

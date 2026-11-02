@@ -3,6 +3,7 @@ import type { IntroLanguage } from './introLanguage'
 type Translation = Record<Exclude<IntroLanguage, 'en'>, string>
 
 const rows: Array<[string, string, string]> = [
+  ["Daily estimates based on what you log. The line shows your overall index over time. Missing logs can affect the estimate.", "Estimări zilnice bazate pe ceea ce înregistrezi. Linia arată evoluția indicelui tău general. Înregistrările lipsă pot influența estimarea.", "ค่าประมาณรายวันจากข้อมูลที่คุณบันทึก เส้นกราฟแสดงแนวโน้มดัชนีโดยรวมของคุณ ข้อมูลที่ไม่ได้บันทึกอาจมีผลต่อค่าประมาณ"],
   ['Morning circles, strength and Focus T25, with planned deload weeks.', 'Circuite matinale, forță și Focus T25, cu săptămâni de descărcare planificate.', 'วงจรฝึกตอนเช้า เวทเทรนนิง และ Focus T25 พร้อมสัปดาห์ลดภาระการฝึกที่วางแผนไว้'],
   ['Same as yesterday', 'La fel ca ieri', 'เหมือนเมื่อวาน'],
   // Global navigation, actions and states

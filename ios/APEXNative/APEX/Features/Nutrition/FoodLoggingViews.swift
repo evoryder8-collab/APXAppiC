@@ -1,5 +1,27 @@
 import SwiftUI
 
+struct FoodFavouriteButton: View {
+    @State private var language = LanguageState.shared
+    let id: String
+    let foodName: String
+    let isFavourite: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: isFavourite ? "star.fill" : "star")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(isFavourite ? APEXColor.amber : APEXColor.secondaryInk)
+                .frame(width: 44, height: 44)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(language.text("Toggle favourite") + " · " + foodName)
+        .accessibilityAddTraits(isFavourite ? .isSelected : [])
+        .accessibilityIdentifier("food-favourite-\(id)")
+    }
+}
+
 struct FoodSearchRequest: Sendable {
     fileprivate let generation: UInt64
 }
@@ -130,35 +152,42 @@ struct FoodSearchSheet: View {
                     }
 
                     ForEach(displayedFoods) { food in
-                        Button {
-                            searchFocused = false
-                            selectedFood = food
-                        } label: {
-                            HStack(spacing: 13) {
-                                Image(systemName: "leaf.fill")
-                                    .foregroundStyle(APEXColor.green)
-                                    .frame(width: 42, height: 42)
-                                    .background(APEXColor.green.opacity(0.1), in: Circle())
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(food.localizedName(language.language))
-                                        .font(APEXFont.body(15, weight: .bold))
-                                        .foregroundStyle(APEXColor.ink)
-                                    HStack(spacing: 6) {
-                                        if let brand = food.brand, !brand.isEmpty { Text(brand) }
-                                        Text(language.format("%d kcal / 100", Int((food.kcal100 ?? 0).rounded())))
+                        HStack(spacing: 4) {
+                            Button {
+                                searchFocused = false
+                                selectedFood = food
+                            } label: {
+                                HStack(spacing: 13) {
+                                    Image(systemName: "leaf.fill")
+                                        .foregroundStyle(APEXColor.green)
+                                        .frame(width: 42, height: 42)
+                                        .background(APEXColor.green.opacity(0.1), in: Circle())
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(food.localizedName(language.language))
+                                            .font(APEXFont.body(15, weight: .bold))
+                                            .foregroundStyle(APEXColor.ink)
+                                        HStack(spacing: 6) {
+                                            if let brand = food.brand, !brand.isEmpty { Text(brand) }
+                                            Text(language.format("%d kcal / 100", Int((food.kcal100 ?? 0).rounded())))
+                                        }
+                                        .font(APEXFont.body(11, weight: .medium))
+                                        .foregroundStyle(APEXColor.secondaryInk)
                                     }
-                                    .font(APEXFont.body(11, weight: .medium))
-                                    .foregroundStyle(APEXColor.secondaryInk)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .foregroundStyle(APEXColor.secondaryInk)
                                 }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .foregroundStyle(APEXColor.secondaryInk)
                             }
-                            .padding(14)
-                            .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
-                            .overlay(RoundedRectangle(cornerRadius: 22).stroke(.white.opacity(0.9)))
+                            .buttonStyle(.plain)
+                            FoodFavouriteButton(
+                                id: food.id,
+                                foodName: food.localizedName(language.language),
+                                isFavourite: isFavourite(food)
+                            ) { toggleFavourite(food) }
                         }
-                        .buttonStyle(.plain)
+                        .padding(14)
+                        .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 22).stroke(.white.opacity(0.9)))
                     }
 
                     if displayedFoods.isEmpty, !isSearching {
@@ -194,6 +223,25 @@ struct FoodSearchSheet: View {
                 FoodPortionSheet(food: food, date: date)
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
+            }
+        }
+    }
+
+    private func isFavourite(_ food: Food) -> Bool {
+        session.data.foodPreferences.first { $0.foodID.uuidString.lowercased() == food.id.lowercased() }?.favourite == true
+    }
+
+    private func toggleFavourite(_ food: Food) {
+        guard let operation = session.accountOperationLease() else { return }
+        let nextValue = !isFavourite(food)
+        Task {
+            do {
+                try await session.setFoodFavourite(food, favourite: nextValue, operation: operation)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                message = error.localizedDescription
             }
         }
     }

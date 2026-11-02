@@ -47,6 +47,150 @@ private struct Expected: Decodable, Sendable {
 }
 
 final class FitnessBrainParityTests: XCTestCase {
+    private func performedWorkoutInput() -> FBEngineInput {
+        let profile = FBProfile(
+            userID: "77777777-aaaa-4bbb-8ccc-777777777777", persona: .constantine,
+            sex: "male", weightKG: 80, bodyFatPct: 15, customBMR: nil,
+            heightCM: 180, birthdate: "1990-01-01", activityLevel: .moderate,
+            goal: .maintain, baselineDate: "2026-11-01")
+        return FBEngineInput(
+            profile: profile,
+            programDays: [FBProgramDayRef(id: "custom-day", dayType: .custom)],
+            workoutSessions: [FBWorkoutSession(
+                id: "session", date: "2026-11-02", programDayID: "custom-day",
+                isDeload: false, isEventRecovery: false, completed: true, qualityScore: 1)])
+    }
+
+    private func performedLog(_ movementID: String, reps: Int? = 10,
+                              duration: Int? = nil, distance: Double? = nil) -> FBWorkoutLog {
+        var log = FBWorkoutLog(
+            id: "log", sessionID: "session", exerciseID: nil, exerciseName: "Untrusted label",
+            weightKG: 80, skipped: false, overrideFlag: false,
+            movementID: movementID, reps: reps, durationSeconds: duration, distanceMeters: distance)
+        log.performedTypes = MovementTiming.performedWorkoutTypes(for: log)
+        return log
+    }
+
+    func testPerformedQuickLogsMatchWebNumericDomainCredit() throws {
+        // Same inputs and exact expected values as rpg-performed-workout.test.ts.
+        let empty = performedWorkoutInput()
+        let before = try XCTUnwrap(FitnessBrainEngine.compute(empty, throughDate: "2026-11-02").snapshots.last)
+        let cases: [(FBWorkoutLog, KeyPath<FBSnapshot, Double>, Double)] = [
+            (performedLog("barbell_back_squat"), \.strengthLower, 44),
+            (performedLog("push_up"), \.strengthUpper, 60.9),
+            (performedLog("cat_cow", reps: nil, duration: 120), \.flexibility, 41.8),
+            (performedLog("run_outdoor", reps: nil, duration: 1800, distance: 5000), \.endurance, 46.9),
+        ]
+        for (log, domain, expected) in cases {
+            var input = empty
+            input.workoutLogs = [log]
+            let result = try XCTUnwrap(FitnessBrainEngine.compute(input, throughDate: "2026-11-02").snapshots.last)
+            XCTAssertEqual(result[keyPath: domain], expected)
+            for other in [\FBSnapshot.strengthLower, \.strengthUpper, \.flexibility, \.endurance] where other != domain {
+                XCTAssertEqual(result[keyPath: other], before[keyPath: other])
+            }
+        }
+    }
+
+    func testQuickLogCreditRequiresKnownPerformedWorkAndIsBoundedPerDay() throws {
+        let empty = performedWorkoutInput()
+        let before = FitnessBrainEngine.compute(empty, throughDate: "2026-11-02").snapshots
+        for log in [performedLog("unknown"), performedLog("barbell_back_squat", reps: 0)] {
+            var input = empty
+            input.workoutLogs = [log]
+            XCTAssertEqual(FitnessBrainEngine.compute(input, throughDate: "2026-11-02").snapshots, before)
+        }
+        var input = empty
+        input.workoutLogs = [performedLog("barbell_back_squat")]
+        let once = FitnessBrainEngine.compute(input, throughDate: "2026-11-02").snapshots
+        input.workoutLogs.append(input.workoutLogs[0])
+        var another = input.workoutSessions[0]
+        another.id = "other"
+        input.workoutSessions.append(another)
+        var anotherLog = input.workoutLogs[0]
+        anotherLog.sessionID = "other"
+        input.workoutLogs.append(anotherLog)
+        XCTAssertEqual(FitnessBrainEngine.compute(input, throughDate: "2026-11-02").snapshots, once)
+        input.workoutSessions = input.workoutSessions.map { var value = $0; value.completed = false; return value }
+        XCTAssertEqual(FitnessBrainEngine.compute(input, throughDate: "2026-11-02").snapshots, before)
+    }
+
+    func testIncompleteOrSkippedLogsCannotAddOverloadOrOverridePenalty() {
+        var input = performedWorkoutInput()
+        input.programDays[0].dayType = .legsA
+        input.exercises = [FBExerciseRef(id: "exercise", programDayID: "custom-day")]
+        input.workoutSessions[0].date = "2026-11-01"
+        var first = performedLog("barbell_back_squat")
+        first.exerciseID = "exercise"
+        first.weightKG = 60
+        input.workoutLogs = [first]
+        let before = FitnessBrainEngine.compute(input, throughDate: "2026-11-02").snapshots
+        var pending = input.workoutSessions[0]
+        pending.id = "pending"
+        pending.date = "2026-11-02"
+        pending.completed = false
+        input.workoutSessions.append(pending)
+        var heavier = first
+        heavier.id = "heavier"
+        heavier.sessionID = "pending"
+        heavier.weightKG = 100
+        heavier.overrideFlag = true
+        input.workoutLogs.append(heavier)
+        XCTAssertEqual(FitnessBrainEngine.compute(input, throughDate: "2026-11-02").snapshots, before)
+        input.workoutSessions.removeLast()
+        heavier.sessionID = "session"
+        heavier.skipped = true
+        input.workoutLogs = [first, heavier]
+        XCTAssertEqual(FitnessBrainEngine.compute(input, throughDate: "2026-11-02").snapshots, before)
+    }
+
+    func testPlannedNoWorkAndZeroQualityDoNotEarnDomainCredit() {
+        let empty = performedWorkoutInput()
+        let baseline = FitnessBrainEngine.compute(empty, throughDate: "2026-11-02").snapshots
+        var skipped = performedLog("barbell_back_squat")
+        skipped.skipped = true
+        for (log, quality) in [
+            (skipped, 1.0),
+            (performedLog("barbell_back_squat", reps: 0), 0.0),
+            (performedLog("barbell_back_squat", reps: nil), 1.0),
+            (performedLog("barbell_back_squat"), 0.0),
+        ] {
+            var input = empty
+            input.programDays[0].dayType = .legsA
+            input.workoutSessions[0].qualityScore = quality
+            input.workoutLogs = [log]
+            XCTAssertEqual(FitnessBrainEngine.compute(input, throughDate: "2026-11-02").snapshots, baseline)
+        }
+    }
+
+    func testLegacyAndExplicitExternalReceiptsKeepTheirCompletionCredit() {
+        var input = performedWorkoutInput()
+        input.programDays[0].dayType = .legsA
+        let expected = FitnessBrainEngine.compute(input, throughDate: "2026-11-02").snapshots
+        input.workoutSessions[0].qualityScore = 0
+        XCTAssertEqual(FitnessBrainEngine.compute(input, throughDate: "2026-11-02").snapshots, expected)
+        var skipped = performedLog("barbell_back_squat")
+        skipped.skipped = true
+        input.workoutLogs = [skipped]
+        for notes in ["Completed externally from the APEX guided player", "Completed externally from the FITR MAX guided player"] {
+            input.workoutSessions[0].notes = notes
+            XCTAssertEqual(FitnessBrainEngine.compute(input, throughDate: "2026-11-02").snapshots, expected)
+        }
+    }
+
+    func testKnownMobilityCompletionNeedsNoInventedDuration() throws {
+        var input = performedWorkoutInput()
+        var log = performedLog("cat_cow", reps: nil)
+        log.weightKG = nil
+        input.workoutLogs = [log]
+        let custom = FitnessBrainEngine.compute(input, throughDate: "2026-11-02").snapshots
+        XCTAssertEqual(try XCTUnwrap(custom.last).flexibility, 41.8)
+        input.programDays[0].dayType = .mobility
+        XCTAssertEqual(FitnessBrainEngine.compute(input, throughDate: "2026-11-02").snapshots, custom)
+        XCTAssertNil(input.workoutLogs[0].reps)
+        XCTAssertNil(input.workoutLogs[0].durationSeconds)
+    }
+
     private static let fixture: Fixture = {
         guard let url = Bundle(for: FitnessBrainParityTests.self)
             .url(forResource: "engine-parity", withExtension: "json"),

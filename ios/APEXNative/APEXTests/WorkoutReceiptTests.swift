@@ -407,7 +407,7 @@ final class WorkoutReceiptTests: XCTestCase {
             contentsOf: nativeRoot.appending(path: "APEX/Features/Training/WorkoutReceiptSheet.swift")
         )
 
-        XCTAssertTrue(source.contains("Hide from APEX"))
+        XCTAssertTrue(source.contains("Hide from FITR MAX"))
         XCTAssertTrue(source.contains("The original workout stays in Apple Health."))
         XCTAssertTrue(source.contains("hideExternalWorkoutFromAPEX"))
         XCTAssertTrue(source.contains("externalHistoryCard"))
@@ -743,7 +743,7 @@ final class WorkoutReceiptTests: XCTestCase {
             to: "func updateWorkoutLog("
         ))
         XCTAssertTrue(completion.contains("asyncthrows->UUID?"))
-        XCTAssertTrue(completion.contains("saveLocalSnapshot(operation:operation)"))
+        XCTAssertTrue(completion.contains("tryawaitofflineStore.saveDashboard(candidate,for:ownerID)"))
         XCTAssertTrue(completion.contains("for:ownerID"))
         XCTAssertFalse(completion.contains("letaccountToken=accountGeneration.token"))
         XCTAssertTrue(completion.contains(
@@ -811,7 +811,10 @@ final class WorkoutReceiptTests: XCTestCase {
             XCTAssertLessThan(lease.lowerBound, task.lowerBound)
             XCTAssertLessThan(completion.lowerBound, revalidation.lowerBound)
             XCTAssertTrue(value.contains("operation:operation"))
-            XCTAssertTrue(value.contains("catchisCancellationError{return}"))
+            XCTAssertTrue(
+                value.contains("catchisCancellationError{return}")
+                    || value.contains("catchisCancellationError{ifsession.accountOperationIsCurrent(operation){completionError=true}return}")
+            )
             XCTAssertGreaterThanOrEqual(
                 value.components(
                     separatedBy: "guardsession.accountOperationIsCurrent(operation)else{return}"

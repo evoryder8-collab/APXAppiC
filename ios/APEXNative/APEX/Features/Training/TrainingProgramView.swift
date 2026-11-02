@@ -1607,23 +1607,57 @@ struct WorkoutDayView: View {
 private enum WorkoutPlayerPhase: String, Codable {
     case warmup
     case active
+    case sideSwitch
     case rest
     case review
     case complete
 }
 
 @MainActor
-private final class WorkoutAudioCoach {
+private final class WorkoutAudioCoach: NSObject, AVSpeechSynthesizerDelegate {
     static let shared = WorkoutAudioCoach()
     private let speaker = AVSpeechSynthesizer()
+    private var completion: (@MainActor () -> Void)?
+    private var completionUtterance: ObjectIdentifier?
 
-    func say(_ text: String, enabled: Bool) {
-        guard enabled else { return }
-        speaker.stopSpeaking(at: .word)
+    override private init() {
+        super.init()
+        speaker.delegate = self
+    }
+
+    func stop() {
+        completion = nil
+        completionUtterance = nil
+        speaker.stopSpeaking(at: .immediate)
+    }
+
+    func say(_ text: String, enabled: Bool, onFinished: (@MainActor () -> Void)? = nil) {
+        stop()
+        guard enabled else { onFinished?(); return }
         let utterance = AVSpeechUtterance(string: text)
         utterance.rate = 0.48
         utterance.volume = 0.82
+        completion = onFinished
+        completionUtterance = ObjectIdentifier(utterance)
         speaker.speak(utterance)
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        let identifier = ObjectIdentifier(utterance)
+        Task { @MainActor [weak self] in self?.finish(identifier) }
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        let identifier = ObjectIdentifier(utterance)
+        Task { @MainActor [weak self] in self?.finish(identifier) }
+    }
+
+    private func finish(_ identifier: ObjectIdentifier) {
+        guard completionUtterance == identifier else { return }
+        let callback = completion
+        completion = nil
+        completionUtterance = nil
+        callback?()
     }
 }
 
@@ -1660,6 +1694,8 @@ struct WorkoutPlayerView: View {
     @State private var didInitialize = false
     @State private var draftCleared = false
     @State private var completionError = false
+    @State private var completionReviewInputs: [WorkoutSetInput] = []
+    @State private var reviewedCompletionRows: Set<Int> = []
     @State private var lastClockTick = Date()
     @State private var suspendedAt: Date?
     @State private var lastDraftSave = Date.distantPast
@@ -1676,6 +1712,9 @@ struct WorkoutPlayerView: View {
     @State private var repElapsed: Double = 0
     @State private var announcedRep = 0
     @State private var subSecond: Double = 0
+    @State private var setExecution = GuidedSetExecution(perSide: false)
+    @State private var cadenceGate = GuidedCadenceGate()
+    @State private var announcementFallback: Task<Void, Never>?
 
     private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
@@ -1759,12 +1798,14 @@ struct WorkoutPlayerView: View {
                 exerciseIndex: currentIndex,
                 setNumber: currentSet,
                 totalSets: current.sets,
-                side: nil,
+                side: setExecution.side.flatMap { PlayerTimeline.Side(rawValue: $0.rawValue) },
                 resultKey: "\(currentIndex)-\(currentSet)",
                 targetReps: targetReps(current),
                 repDuration: repDuration(current),
                 timed: timedSeconds(current).map(Int.init)
             )
+        case .sideSwitch:
+            return .sideSwitch(exerciseIndex: currentIndex, setNumber: currentSet, duration: timerTotal)
         case .rest:
             return .rest(
                 exerciseIndex: currentIndex,
@@ -1793,10 +1834,7 @@ struct WorkoutPlayerView: View {
 
     /* Timed holds and video blocks: dead hangs, stretches, T25 */
     private func timedSeconds(_ exercise: Exercise) -> Double? {
-        let mid = Double((exercise.repMin + exercise.repMax) / 2)
-        if exercise.repUnit == "seconds" { return mid }
-        if exercise.repUnit == "minutes" { return mid * 60 }
-        return nil
+        PlayerTimeline.timedSeconds(exercise).map(Double.init)
     }
 
     /* What governs this set, or nothing at all.
@@ -1815,7 +1853,7 @@ struct WorkoutPlayerView: View {
        plank and a carry reported a number none of them contributed to. Only
        what was actually counted is summarised. */
     private var completionSummary: String {
-        let recorded = setInputs.filter { !$0.skipped }
+        let recorded = setInputs.filter { !$0.skipped && ExerciseLogging.isValid($0) }
         let reps = recorded.compactMap(\.reps).reduce(0, +)
         if reps > 0 {
             return language.format("%d recorded · %d total reps", recorded.count, reps)
@@ -1909,6 +1947,7 @@ struct WorkoutPlayerView: View {
         }
         .onDisappear {
             persistDraft()
+            cancelAnnouncement()
             watchWorkoutStartTask?.cancel()
             watchWorkoutStartTask = nil
             if let operation = watchWorkoutOperation,
@@ -1922,7 +1961,13 @@ struct WorkoutPlayerView: View {
             handleScenePhase(next)
         }
         .onChange(of: setInputs) { _, _ in persistDraft() }
-        .onChange(of: paused) { _, _ in persistDraft() }
+        .onChange(of: paused) { _, next in
+            if next { cancelAnnouncement() }
+            persistDraft()
+        }
+        .onChange(of: voiceOn) { _, enabled in
+            if !enabled { cancelAnnouncement() }
+        }
         .onChange(of: currentWeight) { _, _ in persistDraft() }
         .confirmationDialog(language.text("Leave this workout?"), isPresented: $showExit, titleVisibility: .visible) {
             Button(language.text("Leave workout")) {
@@ -2332,6 +2377,7 @@ struct WorkoutPlayerView: View {
             duration: warmupDuration
         ) else { return }
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        cancelAnnouncement()
         paused = false
         timerRemaining = seconds
         timerTotal = seconds
@@ -2347,6 +2393,8 @@ struct WorkoutPlayerView: View {
             warmupCard
         case .active:
             activeSetCard
+        case .sideSwitch:
+            sideSwitchCard
         case .rest:
             restCard
         case .review:
@@ -2400,6 +2448,13 @@ struct WorkoutPlayerView: View {
                     Text(language.text(current.name))
                         .font(APEXFont.display(32))
                         .multilineTextAlignment(.center)
+
+                    if let side = setExecution.side {
+                        Text(language.text(side == .left ? "Left side" : "Right side"))
+                            .font(APEXFont.body(15, weight: .bold))
+                            .foregroundStyle(accent)
+                            .accessibilityIdentifier("workout-current-side")
+                    }
 
                     if let hold = timedSeconds(current) {
                         /* Timed hold: countdown ring, auto-completes */
@@ -2489,6 +2544,41 @@ struct WorkoutPlayerView: View {
         .accessibilityIdentifier("workout-phase-active")
     }
 
+    private var sideSwitchCard: some View {
+        GlassCard(radius: 34, padding: 22) {
+            VStack(spacing: 18) {
+                Image(systemName: "arrow.left.arrow.right")
+                    .font(.title2)
+                    .foregroundStyle(accent)
+                    .accessibilityHidden(true)
+                Text(language.text("Right side"))
+                    .font(APEXFont.display(28))
+                    .multilineTextAlignment(.center)
+                if let current {
+                    Text(language.text(current.name))
+                        .font(APEXFont.body(16, weight: .semibold))
+                        .multilineTextAlignment(.center)
+                }
+                Text("\(timerRemaining)")
+                    .font(APEXFont.mono(56))
+                    .foregroundStyle(accent)
+                    .contentTransition(.numericText())
+                    .accessibilityIdentifier("workout-side-switch-countdown")
+                HStack(spacing: 12) {
+                    Button(language.text(paused ? "Resume" : "Pause")) { paused.toggle() }
+                        .buttonStyle(.bordered)
+                    Button(language.text("Continue")) { beginActiveSet(continuingRightSide: true) }
+                        .buttonStyle(.borderedProminent)
+                        .tint(accent)
+                        .accessibilityIdentifier("workout-continue-right-side")
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("workout-phase-side-switch")
+    }
+
     private var restCard: some View {
         GlassCard(radius: 34, padding: 22) {
             VStack(spacing: 18) {
@@ -2507,6 +2597,7 @@ struct WorkoutPlayerView: View {
                         .font(APEXFont.mono(48))
                         .foregroundStyle(accent)
                         .contentTransition(.numericText())
+                        .accessibilityIdentifier("workout-rest-countdown")
                 }
                 .frame(width: 180, height: 180)
 
@@ -2641,23 +2732,77 @@ struct WorkoutPlayerView: View {
                 Text(completionSummary)
                     .font(APEXFont.body(13, weight: .semibold))
                     .foregroundStyle(APEXColor.secondaryInk)
+                completionReview
                 Button {
                     finishWorkout()
                 } label: {
                     if isSaving {
-                        ProgressView().tint(.white)
+                        HStack {
+                            ProgressView().tint(.white)
+                            Text(language.text("Saving…"))
+                        }
                     } else {
                         Label(language.text("Save workout"), systemImage: "checkmark")
                     }
                 }
                 .buttonStyle(APEXPrimaryButtonStyle(color: accent))
-                .disabled(isSaving || !canSaveWorkout)
+                .disabled(isSaving)
+                .accessibilityIdentifier("workout-save")
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 18)
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("workout-phase-complete")
+    }
+
+    private var completionReview: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            ForEach(completionReviewInputs.indices, id: \.self) { index in
+                if !reviewedCompletionRows.contains(index) {
+                    let input = completionReviewInputs[index]
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(language.format("%@ · %@ %d", language.text(input.exerciseName), language.text("Set"), input.setNumber))
+                            .font(APEXFont.body(15, weight: .bold))
+                        Text(language.text("Complete the required facts or mark this set skipped."))
+                            .font(APEXFont.body(12))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                        ExerciseFactFieldsView(
+                            descriptor: ExerciseLogging.descriptor(movementNamed: input.exerciseName, movementID: input.movementID),
+                            values: guidedFactValues($completionReviewInputs[index])
+                        )
+                        HStack {
+                            Button(language.text("Mark set skipped")) { commitCompletionReview(index, skipped: true) }
+                                .buttonStyle(.bordered)
+                                .accessibilityIdentifier("workout-completion-skip-\(index)")
+                            Button(language.text("Save")) { commitCompletionReview(index, skipped: false) }
+                                .buttonStyle(.borderedProminent)
+                                .disabled(!ExerciseLogging.isResolved(input))
+                                .accessibilityIdentifier("workout-completion-confirm-\(index)")
+                        }
+                    }
+                    .padding(14)
+                    .background(accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
+                }
+            }
+        }
+    }
+
+    private func commitCompletionReview(_ index: Int, skipped: Bool) {
+        guard completionReviewInputs.indices.contains(index) else { return }
+        let input = skipped
+            ? ExerciseLogging.resolvingAsSkipped(completionReviewInputs[index])
+            : completionReviewInputs[index].normalizedForPersistence()
+        guard ExerciseLogging.isResolved(input) else { return }
+        if let existing = setInputs.firstIndex(where: {
+            $0.exerciseID == input.exerciseID && $0.setNumber == input.setNumber
+        }) {
+            setInputs[existing] = input
+        } else {
+            setInputs.append(input)
+        }
+        reviewedCompletionRows.insert(index)
+        persistDraft()
     }
 
     private var progressFraction: CGFloat {
@@ -2768,7 +2913,6 @@ struct WorkoutPlayerView: View {
     @discardableResult
     private func restore(_ draft: PlayerTimeline.SessionDraft, now: Date) -> Bool {
         guard let restoredPhase = WorkoutPlayerPhase(rawValue: draft.phase),
-              restoredPhase != .complete,
               exercises.indices.contains(draft.currentIndex),
               draft.currentSet >= 1,
               draft.currentSet <= max(1, exercises[draft.currentIndex].sets) else {
@@ -2786,6 +2930,7 @@ struct WorkoutPlayerView: View {
         startedAt = draft.startedAt
         repElapsed = max(0, draft.repElapsed.isFinite ? draft.repElapsed : 0)
         announcedRep = max(0, draft.announcedRep)
+        setExecution = draft.setExecution ?? GuidedSetExecution(perSide: usesSides(exercises[draft.currentIndex]))
 
         let reconciled = PlayerTimeline.reconcileCountdown(
             block: reconciliationBlock,
@@ -2822,7 +2967,8 @@ struct WorkoutPlayerView: View {
                 startedAt: startedAt,
                 repElapsed: repElapsed,
                 announcedRep: announcedRep,
-                persistedAt: persistedAt.ISO8601Format()
+                persistedAt: persistedAt.ISO8601Format(),
+                setExecution: setExecution
             )
         )
         lastDraftSave = .now
@@ -2867,6 +3013,7 @@ struct WorkoutPlayerView: View {
         }
 
         if suspendedAt == nil { suspendedAt = now }
+        cancelAnnouncement()
         if phase == .active { paused = true }
         persistDraft(persistedAt: suspendedAt ?? now)
     }
@@ -2875,6 +3022,8 @@ struct WorkoutPlayerView: View {
         guard timerRemaining == 0, !paused else { return }
         if phase == .warmup {
             beginActiveSet()
+        } else if phase == .sideSwitch {
+            beginActiveSet(continuingRightSide: true)
         } else if phase == .rest, lastSetResolved {
             advanceAfterRest()
         }
@@ -2889,8 +3038,10 @@ struct WorkoutPlayerView: View {
         guard !paused else { return }
         switch phase {
         case .active:
-            cadenceTick(delta: min(wallDelta, 0.25))
-        case .warmup, .rest:
+            if cadenceGate.allowsTick(paused: paused, foreground: scenePhase == .active) {
+                cadenceTick(delta: min(wallDelta, 0.25))
+            }
+        case .warmup, .rest, .sideSwitch:
             guard timerRemaining > 0 else {
                 resolveExpiredCountdown()
                 return
@@ -2952,10 +3103,36 @@ struct WorkoutPlayerView: View {
         }
     }
 
-    private func beginActiveSet() {
+    private func usesSides(_ exercise: Exercise) -> Bool {
+        exercise.perSide || MovementTiming.movement(named: exercise.name, movementID: exercise.movementID)?.unilateral == true
+    }
+
+    private func cancelAnnouncement() {
+        announcementFallback?.cancel()
+        announcementFallback = nil
+        cadenceGate.cancel()
+        WorkoutAudioCoach.shared.stop()
+    }
+
+    private func releaseAnnouncement(_ token: UUID) {
+        guard cadenceGate.finish(token) else { return }
+        announcementFallback?.cancel()
+        announcementFallback = nil
+        // Time spent hearing the instruction is not exercise time.
+        repElapsed = 0
+        lastClockTick = .now
+    }
+
+    private func beginActiveSet(continuingRightSide: Bool = false) {
         guard let exercise = current else {
             phase = .complete
             return
+        }
+        cancelAnnouncement()
+        if continuingRightSide {
+            setExecution.beginRightSide()
+        } else {
+            setExecution = GuidedSetExecution(perSide: usesSides(exercise))
         }
         paused = false
         actualReps = timedSeconds(exercise) == nil && !GuidedWorkout.usesAutomaticCadence(for: exercise)
@@ -2963,30 +3140,63 @@ struct WorkoutPlayerView: View {
             : 0
         repElapsed = 0
         announcedRep = 0
-        currentWeight = suggestedWeight
+        if !continuingRightSide { currentWeight = suggestedWeight }
         phase = .active
+        lastClockTick = .now
         persistDraft()
-        WorkoutAudioCoach.shared.say(
-            currentWorkPosition?.groupLabel.map {
+        let introduction = currentWorkPosition?.groupLabel.map {
                 "\($0). \(language.text(exercise.name)). \(language.text("Round")) \(currentSet) \(language.text("of")) \(exercise.sets)."
             } ?? language.format(
                 "%@. %@ %d of %d.", language.text(exercise.name),
                 language.text(MovementTiming.movement(named: exercise.name)?.setNoun
                     ?? MovementTiming.fallbackNoun(repUnit: exercise.repUnit)).capitalized,
                 currentSet, exercise.sets
-            ),
-            enabled: voiceOn
-        )
+            )
+        let side = setExecution.side.map { language.text($0 == .left ? "Left side" : "Right side") }
+        let announcement = side.map { "\(introduction) \($0)." } ?? introduction
+        let token = cadenceGate.begin(voiceEnabled: voiceOn)
+        WorkoutAudioCoach.shared.say(announcement, enabled: voiceOn) {
+            if let token { releaseAnnouncement(token) }
+        }
+        if let token {
+            // Mirrors the web's bounded speech fail-safe, without starting
+            // repetitions while a functioning voice is giving instructions.
+            let milliseconds = min(9_000, max(2_500, announcement.count * 65 + 1_000))
+            announcementFallback = Task { @MainActor in
+                do { try await Task.sleep(for: .milliseconds(milliseconds)) }
+                catch { return }
+                releaseAnnouncement(token)
+            }
+        }
     }
 
     private func endCurrentSet(skipped: Bool) {
-        guard let current else { return }
+        guard phase == .active, let current else { return }
+        cancelAnnouncement()
+        let measuredWork: Int
+        let recordSkipped: Bool
+        switch setExecution.finish(work: actualReps, skipped: skipped) {
+        case .switchSide:
+            let movement = MovementTiming.movement(named: current.name, movementID: current.movementID)
+            timerRemaining = MovementTiming.sideSwitchSeconds(for: movement)
+            timerTotal = timerRemaining
+            subSecond = 0
+            lastClockTick = .now
+            paused = false
+            phase = .sideSwitch
+            persistDraft()
+            WorkoutAudioCoach.shared.say(language.text("Right side"), enabled: voiceOn)
+            return
+        case .record(let work, let skipped):
+            measuredWork = work
+            recordSkipped = skipped
+        }
         let input = GuidedWorkout.setInput(
             for: current,
             setNumber: currentSet,
-            measuredWork: actualReps,
+            measuredWork: measuredWork,
             signedLoadKG: currentWeight,
-            skipped: skipped
+            skipped: recordSkipped
         )
         setInputs.removeAll { $0.exerciseID == current.id && $0.setNumber == currentSet }
         setInputs.append(input)
@@ -3035,9 +3245,9 @@ struct WorkoutPlayerView: View {
     }
 
     private var canSaveWorkout: Bool {
-        let expected = exercises.reduce(0) { $0 + max(1, $1.sets) }
-        return setInputs.count == expected
-            && setInputs.allSatisfy(ExerciseLogging.isResolved)
+        !setInputs.isEmpty && PlayerTimeline.completionReviewInputs(
+            exercises: exercises, recorded: setInputs
+        ).isEmpty
     }
 
     private func resolveLastSetAsSkipped() {
@@ -3080,22 +3290,41 @@ struct WorkoutPlayerView: View {
     /* The session used to save and vanish. Showing the receipt is the only
        moment the work reported during the workout is handed back. */
     private func finishWorkout() {
-        guard !isSaving,
-              canSaveWorkout,
-              let operation = session.accountOperationLease() else { return }
+        guard !isSaving else { return }
+        guard canSaveWorkout else {
+            let pending = completionReviewInputs.enumerated().compactMap { index, input in
+                reviewedCompletionRows.contains(index) ? nil : input
+            }
+            completionReviewInputs = PlayerTimeline.completionReviewInputs(exercises: exercises, recorded: setInputs).map { missing in
+                pending.first {
+                    $0.exerciseID == missing.exerciseID && $0.setNumber == missing.setNumber
+                } ?? missing
+            }
+            reviewedCompletionRows = []
+            persistDraft()
+            if completionReviewInputs.isEmpty { completionError = true }
+            return
+        }
+        guard let operation = session.accountOperationLease() else {
+            persistDraft()
+            completionError = true
+            return
+        }
+        persistDraft()
         isSaving = true
         Task {
+            defer { isSaving = false }
             do {
                 let finished = try await session.completeWorkout(
                     day: day,
                     setInputs: setInputs,
                     lite: lite,
                     startedAt: startedAt,
+                    qualityScore: PlayerTimeline.completionQuality(exercises: exercises, recorded: setInputs),
                     completionDate: date,
                     operation: operation
                 )
                 guard session.accountOperationIsCurrent(operation) else { return }
-                isSaving = false
                 if let finished {
                     clearDraft()
                     completedSession = FinishedSession(id: finished)
@@ -3103,10 +3332,10 @@ struct WorkoutPlayerView: View {
                     completionError = true
                 }
             } catch is CancellationError {
+                if session.accountOperationIsCurrent(operation) { completionError = true }
                 return
             } catch {
                 guard session.accountOperationIsCurrent(operation) else { return }
-                isSaving = false
                 completionError = true
             }
         }

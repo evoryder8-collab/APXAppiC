@@ -90,19 +90,24 @@ enum FitnessBrainService {
                 isDeload: $0.isDeload,
                 isEventRecovery: $0.isEventRecovery,
                 completed: $0.completed,
-                qualityScore: $0.qualityScore)
+                qualityScore: $0.qualityScore, notes: $0.notes)
         }
         let logs = data.workoutLogs
             .filter { $0.userID == ownerID && ownedSessionIDs.contains($0.sessionID) }
             .map {
-            FBWorkoutLog(
+            var log = FBWorkoutLog(
                 id: $0.id.uuidString.lowercased(),
                 sessionID: $0.sessionID.uuidString.lowercased(),
                 exerciseID: $0.exerciseID?.uuidString.lowercased(),
                 exerciseName: $0.exerciseName,
                 weightKG: $0.weightKG,
                 skipped: $0.skipped,
-                overrideFlag: $0.overrideFlag)
+                overrideFlag: $0.overrideFlag,
+                movementID: $0.movementID, reps: $0.reps,
+                durationSeconds: $0.durationSeconds, distanceMeters: $0.distanceMeters,
+                contacts: $0.contacts, rounds: $0.rounds, workSeconds: $0.workSeconds)
+            log.performedTypes = MovementTiming.performedWorkoutTypes(for: log)
+            return log
         }
         let dailyLogs = data.dailyLogs.filter { $0.userID == ownerID }.map {
             FBDailyLog(

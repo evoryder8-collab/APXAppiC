@@ -29,10 +29,21 @@ enum WaterDisplayMode: String, AppEnum {
             .progress: "Progress only",
         ]
     }
+
+    // WidgetKit rejects formatted/interpolated text while discovering these
+    // recommendations. Reuse the mode labels as literal localized text.
+    var recommendationDescription: Text {
+        switch self {
+        case .percent: Text("Percent")
+        case .liters: Text("Litres")
+        case .gallons: Text("US gallons")
+        case .progress: Text("Progress only")
+        }
+    }
 }
 
 struct WaterConfigurationIntent: WidgetConfigurationIntent {
-    static var title: LocalizedStringResource { "FITR MAX" }
+    static var title: LocalizedStringResource { "FITR MAX Watch" }
     static var description: IntentDescription { "Today's hydration against your target." }
 
     @Parameter(title: "Show")
@@ -89,10 +100,17 @@ struct WaterProvider: AppIntentTimelineProvider {
     }
 
     func snapshot(for configuration: WaterConfigurationIntent, in context: Context) async -> WaterEntry {
-        await Self.resolvedEntry(for: configuration).entry
+        // The face picker must be able to present the complication before
+        // Health access or an account snapshot exists. Never query HealthKit
+        // or write hydration state while constructing a gallery preview.
+        if context.isPreview { return previewEntry(for: configuration, in: context) }
+        return await Self.resolvedEntry(for: configuration).entry
     }
 
     func timeline(for configuration: WaterConfigurationIntent, in context: Context) async -> Timeline<WaterEntry> {
+        if context.isPreview {
+            return Timeline(entries: [previewEntry(for: configuration, in: context)], policy: .never)
+        }
         let resolved = await Self.resolvedEntry(for: configuration)
         if let delivered = resolved.visibleSignature.flatMap({
             HydrationComplicationDeliveryPolicy.acknowledgedSignature(
@@ -118,12 +136,20 @@ struct WaterProvider: AppIntentTimelineProvider {
         )
     }
 
+    private func previewEntry(for configuration: WaterConfigurationIntent, in context: Context) -> WaterEntry {
+        let example = placeholder(in: context)
+        return WaterEntry(
+            date: example.date, liters: example.liters, targetLiters: example.targetLiters,
+            displayMode: configuration.displayMode ?? .percent, composition: example.composition
+        )
+    }
+
     /* Offered in the watch-face complication gallery. */
     func recommendations() -> [AppIntentRecommendation<WaterConfigurationIntent>] {
         WaterDisplayMode.allCases.map { mode in
             let intent = WaterConfigurationIntent()
             intent.displayMode = mode
-            return AppIntentRecommendation(intent: intent, description: "FITR MAX · \(mode.rawValue)")
+            return AppIntentRecommendation(intent: intent, description: mode.recommendationDescription)
         }
     }
 
@@ -536,7 +562,7 @@ struct APEXWaterComplication: Widget {
             APEXWaterComplicationView(entry: entry)
                 .containerBackground(.clear, for: .widget)
         }
-        .configurationDisplayName("FITR MAX")
+        .configurationDisplayName("FITR MAX Watch")
         .description("Today's hydration against your target.")
         .supportedFamilies([
             .accessoryCircular,

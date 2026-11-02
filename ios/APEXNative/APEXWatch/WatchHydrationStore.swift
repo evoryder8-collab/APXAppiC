@@ -325,6 +325,7 @@ final class WatchHydrationStore: ObservableObject {
         #if DEBUG
         if isSupplementUITestFixture { return }
         #endif
+        refreshComplicationGalleryIfNeeded()
         synchronizeSupplements()
         guard HKHealthStore.isHealthDataAvailable(),
               let waterType = HKObjectType.quantityType(forIdentifier: .dietaryWater)
@@ -347,6 +348,18 @@ final class WatchHydrationStore: ObservableObject {
 
     func reconnect() async {
         await start()
+    }
+
+    private func refreshComplicationGalleryIfNeeded() {
+        guard let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String,
+              !build.isEmpty else { return }
+        let key = "ch.apexperformance.APEX.watch.complication-gallery-build"
+        guard defaults.string(forKey: key) != build else { return }
+        // Refresh preconfigured choices after installing/updating the app,
+        // including its renamed gallery entries. This is independent of
+        // Health authorization and does not reload timelines on every log.
+        WidgetCenter.shared.invalidateConfigurationRecommendations()
+        defaults.set(build, forKey: key)
     }
 
     func add(

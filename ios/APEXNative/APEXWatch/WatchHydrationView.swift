@@ -108,7 +108,7 @@ struct WatchHydrationView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: showHydrationSettings) {
                     HStack(spacing: 5) {
-                        Label("FITR MAX", systemImage: "drop.fill")
+                        Label("FITR MAX Watch", systemImage: "drop.fill")
                             .font(.system(size: 8, weight: .bold, design: .monospaced))
                             .tracking(0.7)
                             .foregroundStyle(aqua)

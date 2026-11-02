@@ -14,6 +14,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -28,6 +32,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -44,6 +52,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -58,6 +70,11 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes",
+    "erectors"
    ],
    "prescription": "sets_reps_load"
   },
@@ -74,6 +91,11 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "glutes",
+    "quadriceps",
+    "hamstrings"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -88,6 +110,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -104,6 +129,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -119,6 +147,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -133,6 +164,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -150,6 +184,9 @@
     "strength",
     "calisthenics"
    ],
+   "primary_muscles": [
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -166,6 +203,9 @@
     "strength",
     "calisthenics"
    ],
+   "primary_muscles": [
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -180,6 +220,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "erectors",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -198,6 +242,10 @@
     "hiit",
     "conditioning"
    ],
+   "primary_muscles": [
+    "glutes",
+    "hamstrings"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -212,6 +260,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "hamstrings",
+    "erectors"
    ],
    "prescription": "sets_reps_load"
   },
@@ -228,6 +280,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -242,6 +298,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -258,6 +318,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -272,6 +335,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -288,6 +355,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -303,6 +373,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -317,6 +390,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -334,6 +411,10 @@
     "calisthenics",
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -348,6 +429,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -364,6 +449,10 @@
    "disciplines": [
     "calisthenics"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -378,6 +467,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -394,6 +487,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -408,6 +505,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -424,6 +525,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -438,6 +543,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -454,6 +563,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -468,6 +581,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -484,6 +601,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -498,6 +619,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest"
    ],
    "prescription": "sets_reps_load"
   },
@@ -514,6 +638,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "chest"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -528,6 +655,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest",
+    "front_delts"
    ],
    "prescription": "sets_reps_load"
   },
@@ -544,6 +675,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -559,6 +694,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "chest"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -573,6 +711,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest",
+    "front_delts"
    ],
    "prescription": "sets_reps_load"
   },
@@ -591,6 +733,10 @@
     "strength",
     "hiit"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -607,6 +753,10 @@
     "calisthenics",
     "strength"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -621,6 +771,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -638,6 +792,10 @@
     "calisthenics",
     "strength"
    ],
+   "primary_muscles": [
+    "chest",
+    "front_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -654,6 +812,10 @@
     "calisthenics",
     "strength"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -668,6 +830,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "triceps",
+    "chest"
    ],
    "prescription": "sets_reps_load"
   },
@@ -685,6 +851,10 @@
     "calisthenics",
     "strength"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -699,6 +869,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest"
    ],
    "prescription": "sets_reps_load"
   },
@@ -715,6 +888,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "front_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -729,6 +905,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "front_delts"
    ],
    "prescription": "sets_reps_load"
   },
@@ -745,6 +924,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "front_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -759,6 +941,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "front_delts"
    ],
    "prescription": "sets_reps_load"
   },
@@ -775,6 +960,9 @@
    "disciplines": [
     "calisthenics"
    ],
+   "primary_muscles": [
+    "front_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -789,6 +977,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "front_delts"
    ],
    "prescription": "sets_reps_load"
   },
@@ -805,6 +996,10 @@
    "disciplines": [
     "calisthenics"
    ],
+   "primary_muscles": [
+    "front_delts",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -819,6 +1014,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
    ],
    "prescription": "sets_reps_load"
   },
@@ -835,6 +1034,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -849,6 +1052,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "upper_back",
+    "lats"
    ],
    "prescription": "sets_reps_load"
   },
@@ -865,6 +1072,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "upper_back",
+    "lats"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -879,6 +1090,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "upper_back",
+    "lats"
    ],
    "prescription": "sets_reps_load"
   },
@@ -895,6 +1110,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -909,6 +1128,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
    ],
    "prescription": "sets_reps_load"
   },
@@ -926,6 +1149,10 @@
     "calisthenics",
     "strength"
    ],
+   "primary_muscles": [
+    "upper_back",
+    "lats"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -941,6 +1168,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "upper_back",
+    "lats"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -955,6 +1186,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
    ],
    "prescription": "sets_reps_load"
   },
@@ -972,6 +1207,9 @@
     "calisthenics",
     "strength"
    ],
+   "primary_muscles": [
+    "lats"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -987,6 +1225,10 @@
    "disciplines": [
     "calisthenics",
     "strength"
+   ],
+   "primary_muscles": [
+    "lats",
+    "biceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -1004,6 +1246,9 @@
     "calisthenics",
     "strength"
    ],
+   "primary_muscles": [
+    "lats"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1019,6 +1264,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "lats"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1033,6 +1281,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats"
    ],
    "prescription": "sets_reps_load"
   },
@@ -1050,6 +1301,9 @@
     "calisthenics",
     "mobility"
    ],
+   "primary_muscles": [
+    "forearms"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -1064,6 +1318,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "lower_traps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -1080,6 +1337,10 @@
    "disciplines": [
     "calisthenics"
    ],
+   "primary_muscles": [
+    "lats",
+    "chest"
+   ],
    "prescription": "sets_duration_quality"
   },
   {
@@ -1095,6 +1356,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "obliques",
+    "forearms"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -1109,6 +1374,10 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "forearms",
+    "traps"
    ],
    "prescription": "sets_duration_load"
   },
@@ -1127,6 +1396,9 @@
     "strength",
     "yoga"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -1141,6 +1413,9 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_duration_load"
   },
@@ -1158,6 +1433,9 @@
     "calisthenics",
     "yoga"
    ],
+   "primary_muscles": [
+    "obliques"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -1172,6 +1450,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -1189,6 +1470,10 @@
     "strength",
     "mobility"
    ],
+   "primary_muscles": [
+    "core",
+    "erectors"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1203,6 +1488,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "obliques",
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -1220,6 +1509,9 @@
     "calisthenics",
     "strength"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1234,6 +1526,9 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_duration_load"
   },
@@ -1250,6 +1545,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "biceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1264,6 +1562,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "biceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -1280,6 +1581,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "biceps",
+    "forearms"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1294,6 +1599,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "biceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -1310,6 +1618,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "biceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1324,6 +1635,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -1340,6 +1654,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "side_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1354,6 +1671,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "side_delts"
    ],
    "prescription": "sets_reps_load"
   },
@@ -1370,6 +1690,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "side_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1384,6 +1707,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "rear_delts",
+    "lower_traps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -1400,6 +1727,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "rear_delts",
+    "lower_traps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1414,6 +1745,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "rear_delts",
+    "lower_traps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -1430,6 +1765,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "rear_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1444,6 +1782,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "rotator_cuff"
    ],
    "prescription": "sets_reps_load"
   },
@@ -1460,6 +1801,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1474,6 +1818,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "hamstrings"
    ],
    "prescription": "sets_reps_load"
   },
@@ -1491,6 +1838,9 @@
     "calisthenics",
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1507,6 +1857,9 @@
     "calisthenics",
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1521,6 +1874,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -1537,6 +1893,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "glute_medius"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1552,6 +1911,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "calves"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1566,6 +1928,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "soleus"
    ],
    "prescription": "sets_reps_load"
   },
@@ -1583,6 +1948,9 @@
     "calisthenics",
     "strength"
    ],
+   "primary_muscles": [
+    "calves"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1597,6 +1965,10 @@
    "entity_type": "skill_drill",
    "disciplines": [
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "core",
+    "hip_flexors"
    ],
    "prescription": "sets_duration_quality"
   },
@@ -1613,6 +1985,10 @@
    "disciplines": [
     "calisthenics"
    ],
+   "primary_muscles": [
+    "front_delts",
+    "core"
+   ],
    "prescription": "sets_duration_quality"
   },
   {
@@ -1627,6 +2003,10 @@
    "entity_type": "skill_drill",
    "disciplines": [
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "front_delts",
+    "core"
    ],
    "prescription": "sets_duration_quality"
   },
@@ -1643,6 +2023,10 @@
    "disciplines": [
     "calisthenics"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -1657,6 +2041,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -1674,6 +2062,9 @@
     "hiit",
     "conditioning"
    ],
+   "primary_muscles": [
+    "full_body"
+   ],
    "prescription": "rounds_work_rest"
   },
   {
@@ -1689,6 +2080,9 @@
    "disciplines": [
     "hiit",
     "conditioning"
+   ],
+   "primary_muscles": [
+    "full_body"
    ],
    "prescription": "rounds_work_rest"
   },
@@ -1706,6 +2100,10 @@
     "hiit",
     "conditioning"
    ],
+   "primary_muscles": [
+    "core",
+    "hip_flexors"
+   ],
    "prescription": "rounds_work_rest"
   },
   {
@@ -1721,6 +2119,10 @@
    "disciplines": [
     "hiit",
     "conditioning"
+   ],
+   "primary_muscles": [
+    "hip_flexors",
+    "calves"
    ],
    "prescription": "rounds_work_rest"
   },
@@ -1738,6 +2140,9 @@
     "hiit",
     "conditioning"
    ],
+   "primary_muscles": [
+    "hip_flexors"
+   ],
    "prescription": "rounds_work_rest"
   },
   {
@@ -1753,6 +2158,9 @@
    "disciplines": [
     "hiit",
     "conditioning"
+   ],
+   "primary_muscles": [
+    "full_body"
    ],
    "prescription": "rounds_work_rest"
   },
@@ -1770,6 +2178,10 @@
     "strength",
     "hiit"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_quality"
   },
   {
@@ -1786,6 +2198,10 @@
     "strength",
     "hiit"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_quality"
   },
   {
@@ -1800,6 +2216,10 @@
    "entity_type": "plyometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "glutes",
+    "quadriceps"
    ],
    "prescription": "sets_reps_quality"
   },
@@ -1817,6 +2237,10 @@
     "hiit",
     "conditioning"
    ],
+   "primary_muscles": [
+    "front_delts",
+    "core"
+   ],
    "prescription": "rounds_work_rest"
   },
   {
@@ -1832,6 +2256,10 @@
    "disciplines": [
     "yoga",
     "mobility"
+   ],
+   "primary_muscles": [
+    "hamstrings",
+    "lats"
    ],
    "prescription": "hold_breaths_or_duration"
   },
@@ -1849,6 +2277,9 @@
     "yoga",
     "mobility"
    ],
+   "primary_muscles": [
+    "lats"
+   ],
    "prescription": "hold_breaths_or_duration"
   },
   {
@@ -1864,6 +2295,9 @@
    "disciplines": [
     "yoga",
     "mobility"
+   ],
+   "primary_muscles": [
+    "erectors"
    ],
    "prescription": "hold_breaths_or_duration"
   },
@@ -1881,6 +2315,9 @@
     "yoga",
     "mobility"
    ],
+   "primary_muscles": [
+    "erectors"
+   ],
    "prescription": "hold_breaths_or_duration"
   },
   {
@@ -1896,6 +2333,10 @@
    "disciplines": [
     "yoga"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "hold_breaths_or_duration"
   },
   {
@@ -1910,6 +2351,10 @@
    "entity_type": "yoga_pose",
    "disciplines": [
     "yoga"
+   ],
+   "primary_muscles": [
+    "hamstrings",
+    "obliques"
    ],
    "prescription": "hold_breaths_or_duration"
   },
@@ -1927,6 +2372,10 @@
     "yoga",
     "mobility"
    ],
+   "primary_muscles": [
+    "glutes",
+    "hips"
+   ],
    "prescription": "hold_breaths_or_duration"
   },
   {
@@ -1942,6 +2391,9 @@
    "disciplines": [
     "yoga",
     "mobility"
+   ],
+   "primary_muscles": [
+    "hamstrings"
    ],
    "prescription": "hold_breaths_or_duration"
   },
@@ -1959,6 +2411,9 @@
     "yoga",
     "mobility"
    ],
+   "primary_muscles": [
+    "glutes"
+   ],
    "prescription": "hold_breaths_or_duration"
   },
   {
@@ -1974,6 +2429,9 @@
    "disciplines": [
     "yoga",
     "mobility"
+   ],
+   "primary_muscles": [
+    "full_body"
    ],
    "prescription": "hold_breaths_or_duration"
   },
@@ -1991,6 +2449,9 @@
     "mobility",
     "yoga"
    ],
+   "primary_muscles": [
+    "hips"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -2007,6 +2468,10 @@
     "mobility",
     "yoga"
    ],
+   "primary_muscles": [
+    "glutes",
+    "hips"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -2021,6 +2486,10 @@
    "entity_type": "mobility_drill",
    "disciplines": [
     "mobility"
+   ],
+   "primary_muscles": [
+    "hip_flexors",
+    "quadriceps"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -2038,6 +2507,9 @@
     "mobility",
     "yoga"
    ],
+   "primary_muscles": [
+    "hip_flexors"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -2053,6 +2525,9 @@
    "disciplines": [
     "mobility"
    ],
+   "primary_muscles": [
+    "thoracic_spine"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -2067,6 +2542,10 @@
    "entity_type": "mobility_drill",
    "disciplines": [
     "mobility"
+   ],
+   "primary_muscles": [
+    "lower_traps",
+    "rotator_cuff"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -2084,6 +2563,9 @@
     "mobility",
     "yoga"
    ],
+   "primary_muscles": [
+    "full_body"
+   ],
    "prescription": "rounds_duration"
   },
   {
@@ -2100,6 +2582,9 @@
     "mobility",
     "yoga"
    ],
+   "primary_muscles": [
+    "diaphragm"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -2114,6 +2599,9 @@
    "entity_type": "mobility_drill",
    "disciplines": [
     "mobility"
+   ],
+   "primary_muscles": [
+    "full_body"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -2130,6 +2618,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "chest"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2144,6 +2635,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest",
+    "front_delts"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2160,6 +2655,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2174,6 +2673,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2190,6 +2692,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "lats"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2204,6 +2709,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2220,6 +2728,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "biceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2234,6 +2745,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2250,6 +2764,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2264,6 +2781,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "traps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2280,6 +2800,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "side_delts",
+    "traps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2294,6 +2818,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "side_delts"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2310,6 +2837,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "adductors"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2324,6 +2854,9 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "adductors"
    ],
    "prescription": "sets_duration_load"
   },
@@ -2340,6 +2873,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2354,6 +2890,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2370,6 +2909,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2384,6 +2927,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2400,6 +2946,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "calves"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2414,6 +2963,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2430,6 +2982,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2444,6 +2999,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "erectors"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2460,6 +3018,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2474,6 +3035,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2490,6 +3055,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2505,6 +3074,9 @@
    "disciplines": [
     "pilates"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -2519,6 +3091,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "pilates"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2536,6 +3111,9 @@
     "pilates",
     "mobility"
    ],
+   "primary_muscles": [
+    "hips"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -2550,6 +3128,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "pilates"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2566,6 +3147,9 @@
    "disciplines": [
     "pilates"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2581,6 +3165,9 @@
    "disciplines": [
     "pilates"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2595,6 +3182,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "pilates"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2612,6 +3202,9 @@
     "pilates",
     "mobility"
    ],
+   "primary_muscles": [
+    "erectors"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -2627,6 +3220,10 @@
    "disciplines": [
     "pilates",
     "mobility"
+   ],
+   "primary_muscles": [
+    "obliques",
+    "hamstrings"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -2644,6 +3241,10 @@
     "pilates",
     "mobility"
    ],
+   "primary_muscles": [
+    "erectors",
+    "hamstrings"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -2658,6 +3259,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "pilates"
+   ],
+   "primary_muscles": [
+    "glute_medius"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2674,6 +3278,9 @@
    "disciplines": [
     "pilates"
    ],
+   "primary_muscles": [
+    "glute_medius"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2688,6 +3295,10 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "pilates"
+   ],
+   "primary_muscles": [
+    "erectors",
+    "glutes"
    ],
    "prescription": "sets_duration_load"
   },
@@ -2704,6 +3315,10 @@
    "disciplines": [
     "pilates"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2718,6 +3333,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "pilates"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2735,6 +3353,10 @@
     "pilates",
     "mobility"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "core"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -2750,6 +3372,9 @@
    "disciplines": [
     "pilates"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -2764,6 +3389,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "pilates"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -2781,6 +3409,9 @@
     "pilates",
     "mobility"
    ],
+   "primary_muscles": [
+    "obliques"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -2795,6 +3426,10 @@
    "entity_type": "yoga_pose",
    "disciplines": [
     "yoga"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "hold_breaths_or_duration"
   },
@@ -2811,6 +3446,9 @@
    "disciplines": [
     "yoga"
    ],
+   "primary_muscles": [
+    "glute_medius"
+   ],
    "prescription": "hold_breaths_or_duration"
   },
   {
@@ -2825,6 +3463,10 @@
    "entity_type": "yoga_pose",
    "disciplines": [
     "yoga"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "hip_flexors"
    ],
    "prescription": "hold_breaths_or_duration"
   },
@@ -2841,6 +3483,10 @@
    "disciplines": [
     "yoga"
    ],
+   "primary_muscles": [
+    "glutes",
+    "hamstrings"
+   ],
    "prescription": "hold_breaths_or_duration"
   },
   {
@@ -2856,6 +3502,10 @@
    "disciplines": [
     "yoga"
    ],
+   "primary_muscles": [
+    "glute_medius",
+    "obliques"
+   ],
    "prescription": "hold_breaths_or_duration"
   },
   {
@@ -2870,6 +3520,10 @@
    "entity_type": "yoga_pose",
    "disciplines": [
     "yoga"
+   ],
+   "primary_muscles": [
+    "obliques",
+    "adductors"
    ],
    "prescription": "hold_breaths_or_duration"
   },
@@ -2887,6 +3541,10 @@
     "yoga",
     "mobility"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "obliques"
+   ],
    "prescription": "hold_breaths_or_duration"
   },
   {
@@ -2903,6 +3561,10 @@
     "yoga",
     "calisthenics"
    ],
+   "primary_muscles": [
+    "front_delts",
+    "core"
+   ],
    "prescription": "sets_duration_quality"
   },
   {
@@ -2917,6 +3579,10 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "yoga"
+   ],
+   "primary_muscles": [
+    "core",
+    "hip_flexors"
    ],
    "prescription": "sets_duration_load"
   },
@@ -2934,6 +3600,10 @@
     "yoga",
     "mobility"
    ],
+   "primary_muscles": [
+    "hip_flexors",
+    "chest"
+   ],
    "prescription": "hold_breaths_or_duration"
   },
   {
@@ -2949,6 +3619,10 @@
    "disciplines": [
     "yoga"
    ],
+   "primary_muscles": [
+    "hip_flexors",
+    "chest"
+   ],
    "prescription": "hold_breaths_or_duration"
   },
   {
@@ -2963,6 +3637,10 @@
    "entity_type": "yoga_pose",
    "disciplines": [
     "yoga"
+   ],
+   "primary_muscles": [
+    "erectors",
+    "glutes"
    ],
    "prescription": "hold_breaths_or_duration"
   },
@@ -2980,6 +3658,9 @@
     "yoga",
     "mobility"
    ],
+   "primary_muscles": [
+    "hamstrings"
+   ],
    "prescription": "hold_breaths_or_duration"
   },
   {
@@ -2995,6 +3676,10 @@
    "disciplines": [
     "yoga",
     "mobility"
+   ],
+   "primary_muscles": [
+    "adductors",
+    "hips"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -3012,6 +3697,10 @@
     "yoga",
     "mobility"
    ],
+   "primary_muscles": [
+    "hips",
+    "adductors"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -3027,6 +3716,10 @@
    "disciplines": [
     "yoga",
     "mobility"
+   ],
+   "primary_muscles": [
+    "thoracic_spine",
+    "obliques"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -3044,6 +3737,9 @@
     "yoga",
     "mobility"
    ],
+   "primary_muscles": [
+    "hamstrings"
+   ],
    "prescription": "hold_breaths_or_duration"
   },
   {
@@ -3058,6 +3754,9 @@
    "entity_type": "yoga_pose",
    "disciplines": [
     "yoga"
+   ],
+   "primary_muscles": [
+    "full_body"
    ],
    "prescription": "hold_breaths_or_duration"
   },
@@ -3074,6 +3773,10 @@
    "disciplines": [
     "yoga"
    ],
+   "primary_muscles": [
+    "triceps",
+    "chest"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -3088,6 +3791,10 @@
    "entity_type": "yoga_pose",
    "disciplines": [
     "yoga"
+   ],
+   "primary_muscles": [
+    "chest",
+    "hip_flexors"
    ],
    "prescription": "hold_breaths_or_duration"
   },
@@ -3105,6 +3812,9 @@
     "yoga",
     "mobility"
    ],
+   "primary_muscles": [
+    "hip_flexors"
+   ],
    "prescription": "hold_breaths_or_duration"
   },
   {
@@ -3120,6 +3830,10 @@
    "disciplines": [
     "yoga",
     "mobility"
+   ],
+   "primary_muscles": [
+    "hips",
+    "adductors"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -3137,6 +3851,10 @@
     "yoga",
     "mobility"
    ],
+   "primary_muscles": [
+    "hips",
+    "adductors"
+   ],
    "prescription": "hold_breaths_or_duration"
   },
   {
@@ -3152,6 +3870,9 @@
    "disciplines": [
     "yoga"
    ],
+   "primary_muscles": [
+    "glute_medius"
+   ],
    "prescription": "hold_breaths_or_duration"
   },
   {
@@ -3166,6 +3887,10 @@
    "entity_type": "yoga_pose",
    "disciplines": [
     "yoga"
+   ],
+   "primary_muscles": [
+    "hip_flexors",
+    "chest"
    ],
    "prescription": "hold_breaths_or_duration"
   },
@@ -3183,6 +3908,10 @@
     "conditioning",
     "hiit"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "rounds_work_rest"
   },
   {
@@ -3198,6 +3927,10 @@
    "disciplines": [
     "conditioning",
     "hiit"
+   ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
    ],
    "prescription": "rounds_work_rest"
   },
@@ -3215,6 +3948,9 @@
     "conditioning",
     "hiit"
    ],
+   "primary_muscles": [
+    "full_body"
+   ],
    "prescription": "rounds_work_rest"
   },
   {
@@ -3230,6 +3966,10 @@
    "disciplines": [
     "conditioning",
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -3248,6 +3988,11 @@
     "hiit",
     "crossfit"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes",
+    "front_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -3263,6 +4008,10 @@
    "disciplines": [
     "crossfit",
     "conditioning"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "front_delts"
    ],
    "prescription": "sets_reps_load"
   },
@@ -3280,6 +4029,11 @@
     "crossfit",
     "strength"
    ],
+   "primary_muscles": [
+    "glutes",
+    "hamstrings",
+    "traps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -3295,6 +4049,11 @@
    "disciplines": [
     "crossfit",
     "strength"
+   ],
+   "primary_muscles": [
+    "glutes",
+    "hamstrings",
+    "traps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -3312,6 +4071,11 @@
     "crossfit",
     "strength"
    ],
+   "primary_muscles": [
+    "glutes",
+    "quadriceps",
+    "front_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -3328,6 +4092,9 @@
     "crossfit",
     "strength"
    ],
+   "primary_muscles": [
+    "front_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -3342,6 +4109,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "crossfit"
+   ],
+   "primary_muscles": [
+    "quadriceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -3359,6 +4129,10 @@
     "crossfit",
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -3374,6 +4148,9 @@
    "disciplines": [
     "crossfit",
     "hiit"
+   ],
+   "primary_muscles": [
+    "calves"
    ],
    "prescription": "rounds_work_rest"
   },
@@ -3392,6 +4169,9 @@
     "hiit",
     "conditioning"
    ],
+   "primary_muscles": [
+    "calves"
+   ],
    "prescription": "rounds_work_rest"
   },
   {
@@ -3407,6 +4187,9 @@
    "disciplines": [
     "crossfit",
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -3425,6 +4208,10 @@
     "strength",
     "kettlebell_sport"
    ],
+   "primary_muscles": [
+    "glutes",
+    "hamstrings"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -3440,6 +4227,10 @@
    "disciplines": [
     "crossfit",
     "strength"
+   ],
+   "primary_muscles": [
+    "core",
+    "front_delts"
    ],
    "prescription": "sets_duration_quality"
   },
@@ -3457,6 +4248,9 @@
     "crossfit",
     "hiit"
    ],
+   "primary_muscles": [
+    "full_body"
+   ],
    "prescription": "rounds_work_rest"
   },
   {
@@ -3472,6 +4266,9 @@
    "disciplines": [
     "crossfit",
     "hiit"
+   ],
+   "primary_muscles": [
+    "full_body"
    ],
    "prescription": "rounds_work_rest"
   },
@@ -3489,6 +4286,10 @@
     "conditioning",
     "strength"
    ],
+   "primary_muscles": [
+    "glutes",
+    "hamstrings"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -3503,6 +4304,10 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "conditioning"
+   ],
+   "primary_muscles": [
+    "glutes",
+    "quadriceps"
    ],
    "prescription": "sets_duration_load"
   },
@@ -3522,6 +4327,10 @@
     "conditioning",
     "crossfit"
    ],
+   "primary_muscles": [
+    "core",
+    "front_delts"
+   ],
    "prescription": "rounds_work_rest"
   },
   {
@@ -3536,6 +4345,10 @@
    "entity_type": "conditioning_complex",
    "disciplines": [
     "conditioning"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "rounds_work_rest"
   },
@@ -3552,6 +4365,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "front_delts",
+    "core"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -3566,6 +4383,10 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "core",
+    "upper_back"
    ],
    "prescription": "sets_duration_load"
   },
@@ -3583,6 +4404,10 @@
     "conditioning",
     "strength"
    ],
+   "primary_muscles": [
+    "core",
+    "upper_back"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -3597,6 +4422,10 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "strongman"
+   ],
+   "primary_muscles": [
+    "core",
+    "traps"
    ],
    "prescription": "sets_duration_load"
   },
@@ -3614,6 +4443,10 @@
     "strongman",
     "strength"
    ],
+   "primary_muscles": [
+    "core",
+    "upper_back"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -3628,6 +4461,9 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "front_delts"
    ],
    "prescription": "sets_duration_load"
   },
@@ -3644,6 +4480,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "rotator_cuff",
+    "forearms"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -3658,6 +4498,10 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "obliques",
+    "forearms"
    ],
    "prescription": "sets_duration_load"
   },
@@ -3674,6 +4518,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_quality"
   },
   {
@@ -3688,6 +4536,10 @@
    "entity_type": "plyometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "glutes",
+    "hamstrings"
    ],
    "prescription": "sets_reps_quality"
   },
@@ -3704,6 +4556,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "glute_medius",
+    "quadriceps"
+   ],
    "prescription": "sets_reps_quality"
   },
   {
@@ -3719,6 +4575,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "calves",
+    "glute_medius"
+   ],
    "prescription": "sets_reps_quality"
   },
   {
@@ -3733,6 +4593,9 @@
    "entity_type": "plyometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "calves"
    ],
    "prescription": "sets_reps_quality"
   },
@@ -3750,6 +4613,10 @@
     "strength",
     "hiit"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "hip_flexors"
+   ],
    "prescription": "sets_reps_quality"
   },
   {
@@ -3764,6 +4631,10 @@
    "entity_type": "plyometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_quality"
   },
@@ -3780,6 +4651,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "calves",
+    "quadriceps"
+   ],
    "prescription": "sets_reps_quality"
   },
   {
@@ -3794,6 +4669,10 @@
    "entity_type": "plyometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "calves"
    ],
    "prescription": "sets_reps_quality"
   },
@@ -3811,6 +4690,10 @@
     "strength",
     "hiit"
    ],
+   "primary_muscles": [
+    "core",
+    "lats"
+   ],
    "prescription": "sets_reps_quality"
   },
   {
@@ -3825,6 +4708,10 @@
    "entity_type": "plyometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_quality"
   },
@@ -3841,6 +4728,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "obliques",
+    "core"
+   ],
    "prescription": "sets_reps_quality"
   },
   {
@@ -3855,6 +4746,10 @@
    "entity_type": "plyometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "glutes",
+    "quadriceps"
    ],
    "prescription": "sets_reps_quality"
   },
@@ -3871,6 +4766,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "obliques",
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -3885,6 +4784,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "obliques",
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -3901,6 +4804,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "obliques",
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -3915,6 +4822,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "core",
+    "obliques"
    ],
    "prescription": "sets_reps_load"
   },
@@ -3931,6 +4842,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "obliques",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -3945,6 +4860,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "core",
+    "front_delts"
    ],
    "prescription": "sets_reps_load"
   },
@@ -3961,6 +4880,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "core",
+    "obliques"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -3975,6 +4898,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "core",
+    "lats"
    ],
    "prescription": "sets_reps_load"
   },
@@ -3991,6 +4918,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "front_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4005,6 +4935,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4021,6 +4955,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "chest"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4035,6 +4972,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "front_delts"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4051,6 +4991,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "chest"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4065,6 +5008,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "front_delts"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4081,6 +5027,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "front_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4095,6 +5044,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4111,6 +5063,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "chest"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4125,6 +5080,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4141,6 +5099,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4155,6 +5116,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4171,6 +5135,10 @@
    "disciplines": [
     "calisthenics"
    ],
+   "primary_muscles": [
+    "lats",
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4185,6 +5153,10 @@
    "entity_type": "skill_drill",
    "disciplines": [
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "obliques",
+    "lats"
    ],
    "prescription": "sets_duration_quality"
   },
@@ -4201,6 +5173,10 @@
    "disciplines": [
     "mobility"
    ],
+   "primary_muscles": [
+    "hips",
+    "thoracic_spine"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -4216,6 +5192,10 @@
    "disciplines": [
     "mobility"
    ],
+   "primary_muscles": [
+    "rotator_cuff",
+    "front_delts"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -4230,6 +5210,10 @@
    "entity_type": "mobility_drill",
    "disciplines": [
     "mobility"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "calves"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -4247,6 +5231,9 @@
     "balance",
     "mobility"
    ],
+   "primary_muscles": [
+    "ankle_stabilisers"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -4261,6 +5248,9 @@
    "entity_type": "balance_drill",
    "disciplines": [
     "balance"
+   ],
+   "primary_muscles": [
+    "ankle_stabilisers"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -4277,6 +5267,9 @@
    "disciplines": [
     "balance"
    ],
+   "primary_muscles": [
+    "ankle_stabilisers"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -4291,6 +5284,9 @@
    "entity_type": "balance_drill",
    "disciplines": [
     "balance"
+   ],
+   "primary_muscles": [
+    "glutes"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -4308,6 +5304,9 @@
     "balance",
     "yoga"
    ],
+   "primary_muscles": [
+    "glutes"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -4322,6 +5321,9 @@
    "entity_type": "balance_drill",
    "disciplines": [
     "balance"
+   ],
+   "primary_muscles": [
+    "ankle_stabilisers"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -4339,6 +5341,9 @@
     "balance",
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -4353,6 +5358,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats",
+    "mid_traps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4369,6 +5378,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "lats",
+    "mid_traps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4383,6 +5396,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats",
+    "mid_traps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4399,6 +5416,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "mid_traps",
+    "rear_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4413,6 +5434,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats",
+    "mid_traps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4429,6 +5454,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "lats",
+    "mid_traps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4443,6 +5472,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4459,6 +5491,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "lats"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4473,6 +5508,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4489,6 +5527,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "lats"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4504,6 +5545,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "lats"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4518,6 +5562,9 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps"
    ],
    "prescription": "sets_duration_load"
   },
@@ -4535,6 +5582,10 @@
     "strength",
     "mobility"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "adductors"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4549,6 +5600,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "adductors",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4566,6 +5621,9 @@
     "calisthenics",
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4580,6 +5638,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4596,6 +5658,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4610,6 +5675,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "hamstrings"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4626,6 +5694,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4641,6 +5712,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4655,6 +5730,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "front_delts"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4672,6 +5750,9 @@
     "calisthenics",
     "conditioning"
    ],
+   "primary_muscles": [
+    "front_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4686,6 +5767,10 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "core",
+    "forearms"
    ],
    "prescription": "sets_duration_load"
   },
@@ -4702,6 +5787,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "obliques",
+    "forearms"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -4717,6 +5806,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "tibialis"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4731,6 +5823,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "tibialis"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4748,6 +5843,9 @@
     "mobility",
     "balance"
    ],
+   "primary_muscles": [
+    "foot_intrinsics"
+   ],
    "prescription": "sets_duration_quality"
   },
   {
@@ -4762,6 +5860,9 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "forearms"
    ],
    "prescription": "sets_duration_load"
   },
@@ -4778,6 +5879,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "forearms"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -4792,6 +5896,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "forearms"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4808,6 +5915,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "neck"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -4822,6 +5932,9 @@
    "entity_type": "mobility_drill",
    "disciplines": [
     "mobility"
+   ],
+   "primary_muscles": [
+    "deep_neck_flexors"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -4838,6 +5951,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "obliques"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -4852,6 +5968,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "obliques"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4869,6 +5988,10 @@
     "strength",
     "kettlebell_sport"
    ],
+   "primary_muscles": [
+    "full_body",
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4883,6 +6006,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "full_body",
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4900,6 +6027,10 @@
     "strength",
     "kettlebell_sport"
    ],
+   "primary_muscles": [
+    "obliques",
+    "hamstrings"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4914,6 +6045,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -4930,6 +6064,10 @@
    "disciplines": [
     "mobility"
    ],
+   "primary_muscles": [
+    "thoracic_spine",
+    "rotator_cuff"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -4945,6 +6083,10 @@
    "disciplines": [
     "conditioning"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "rounds_work_rest"
   },
   {
@@ -4959,6 +6101,10 @@
    "entity_type": "conditioning_complex",
    "disciplines": [
     "conditioning"
+   ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
    ],
    "prescription": "rounds_work_rest"
   },
@@ -4977,6 +6123,10 @@
     "crossfit",
     "kettlebell_sport"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -4994,6 +6144,10 @@
     "crossfit",
     "kettlebell_sport"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5009,6 +6163,10 @@
    "disciplines": [
     "strength",
     "crossfit"
+   ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5027,6 +6185,10 @@
     "crossfit",
     "kettlebell_sport"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5042,6 +6204,10 @@
    "disciplines": [
     "strength",
     "crossfit"
+   ],
+   "primary_muscles": [
+    "forearms",
+    "core"
    ],
    "prescription": "sets_duration_load"
   },
@@ -5059,6 +6225,10 @@
     "conditioning",
     "crossfit"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "rounds_work_rest"
   },
   {
@@ -5074,6 +6244,10 @@
    "disciplines": [
     "strength",
     "crossfit"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5091,6 +6265,10 @@
     "strength",
     "crossfit"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5105,6 +6283,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5121,6 +6303,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5135,6 +6321,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5152,6 +6342,10 @@
     "strength",
     "crossfit"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5168,6 +6362,10 @@
     "strength",
     "crossfit"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5182,6 +6380,10 @@
    "entity_type": "conditioning_complex",
    "disciplines": [
     "conditioning"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "rounds_work_rest"
   },
@@ -5198,6 +6400,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5212,6 +6418,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5228,6 +6438,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5242,6 +6456,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5258,6 +6476,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5272,6 +6494,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5289,6 +6515,10 @@
     "strength",
     "crossfit"
    ],
+   "primary_muscles": [
+    "lats",
+    "chest"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5303,6 +6533,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5319,6 +6553,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5333,6 +6571,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5349,6 +6591,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5363,6 +6609,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5379,6 +6629,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5393,6 +6647,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5410,6 +6668,10 @@
     "strength",
     "crossfit"
    ],
+   "primary_muscles": [
+    "front_delts",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5424,6 +6686,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "front_delts",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5440,6 +6706,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5454,6 +6724,10 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "forearms",
+    "core"
    ],
    "prescription": "sets_duration_load"
   },
@@ -5470,6 +6744,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "forearms",
+    "core"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -5485,6 +6763,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "forearms",
+    "core"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -5499,6 +6781,10 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "forearms",
+    "core"
    ],
    "prescription": "sets_duration_load"
   },
@@ -5517,6 +6803,10 @@
     "hyrox",
     "conditioning"
    ],
+   "primary_muscles": [
+    "forearms",
+    "core"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -5532,6 +6822,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "forearms",
+    "core"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -5546,6 +6840,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5563,6 +6861,10 @@
     "strength",
     "crossfit"
    ],
+   "primary_muscles": [
+    "lats",
+    "chest"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5577,6 +6879,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5593,6 +6898,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "obliques",
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5607,6 +6916,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "obliques",
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5623,6 +6936,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5637,6 +6953,9 @@
    "entity_type": "resistance_isometric",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_duration_load"
   },
@@ -5653,6 +6972,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5667,6 +6989,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5683,6 +7008,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "obliques",
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5697,6 +7026,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5713,6 +7045,10 @@
    "disciplines": [
     "mobility"
    ],
+   "primary_muscles": [
+    "thoracic_spine",
+    "rotator_cuff"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -5728,6 +7064,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "full_body"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5742,6 +7081,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5759,6 +7102,9 @@
     "strength",
     "crossfit"
    ],
+   "primary_muscles": [
+    "full_body"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5773,6 +7119,10 @@
    "entity_type": "plyometric",
    "disciplines": [
     "conditioning"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_quality"
   },
@@ -5789,6 +7139,10 @@
    "disciplines": [
     "conditioning"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_quality"
   },
   {
@@ -5804,6 +7158,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5818,6 +7176,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5835,6 +7197,10 @@
     "strength",
     "calisthenics"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5850,6 +7216,10 @@
    "disciplines": [
     "strength",
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5867,6 +7237,10 @@
     "conditioning",
     "calisthenics"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_quality"
   },
   {
@@ -5881,6 +7255,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5897,6 +7275,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5911,6 +7293,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5927,6 +7313,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -5941,6 +7331,10 @@
    "entity_type": "conditioning_complex",
    "disciplines": [
     "conditioning"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "rounds_work_rest"
   },
@@ -5957,6 +7351,10 @@
    "disciplines": [
     "conditioning"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "rounds_work_rest"
   },
   {
@@ -5971,6 +7369,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -5987,6 +7389,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "calves"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6002,6 +7407,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "calves"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6016,6 +7424,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "calves"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6033,6 +7444,10 @@
     "strength",
     "calisthenics"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6048,6 +7463,10 @@
    "disciplines": [
     "conditioning",
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_quality"
   },
@@ -6065,6 +7484,10 @@
     "strength",
     "calisthenics"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6080,6 +7503,10 @@
    "disciplines": [
     "strength",
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6097,6 +7524,10 @@
     "conditioning",
     "calisthenics"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "rounds_work_rest"
   },
   {
@@ -6112,6 +7543,10 @@
    "disciplines": [
     "calisthenics",
     "street_workout"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_duration_quality"
   },
@@ -6129,6 +7564,10 @@
     "calisthenics",
     "street_workout"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_duration_quality"
   },
   {
@@ -6143,6 +7582,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6159,6 +7602,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6174,6 +7621,10 @@
    "disciplines": [
     "strength",
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6192,6 +7643,10 @@
     "calisthenics",
     "gymnastics"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6208,6 +7663,10 @@
     "strength",
     "calisthenics",
     "gymnastics"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6226,6 +7685,10 @@
     "calisthenics",
     "gymnastics"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6241,6 +7704,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "front_delts",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6255,6 +7722,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "front_delts",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6273,6 +7744,10 @@
     "calisthenics",
     "gymnastics"
    ],
+   "primary_muscles": [
+    "front_delts",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6289,6 +7764,10 @@
     "strength",
     "calisthenics",
     "gymnastics"
+   ],
+   "primary_muscles": [
+    "front_delts",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6307,6 +7786,10 @@
     "calisthenics",
     "gymnastics"
    ],
+   "primary_muscles": [
+    "front_delts",
+    "triceps"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -6323,6 +7806,10 @@
     "strength",
     "calisthenics",
     "street_workout"
+   ],
+   "primary_muscles": [
+    "lats",
+    "biceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6341,6 +7828,10 @@
     "calisthenics",
     "street_workout"
    ],
+   "primary_muscles": [
+    "lats",
+    "biceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6357,6 +7848,10 @@
     "strength",
     "calisthenics",
     "street_workout"
+   ],
+   "primary_muscles": [
+    "lats",
+    "biceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6375,6 +7870,10 @@
     "calisthenics",
     "street_workout"
    ],
+   "primary_muscles": [
+    "lats",
+    "biceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6389,6 +7888,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats",
+    "biceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6405,6 +7908,10 @@
    "disciplines": [
     "calisthenics",
     "street_workout"
+   ],
+   "primary_muscles": [
+    "lats",
+    "biceps"
    ],
    "prescription": "sets_duration_quality"
   },
@@ -6423,6 +7930,10 @@
     "calisthenics",
     "gymnastics"
    ],
+   "primary_muscles": [
+    "lats",
+    "biceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6440,6 +7951,10 @@
     "crossfit",
     "calisthenics"
    ],
+   "primary_muscles": [
+    "lats",
+    "biceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6456,6 +7971,10 @@
     "strength",
     "calisthenics"
    ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6471,6 +7990,10 @@
    "disciplines": [
     "strength",
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6489,6 +8012,10 @@
     "calisthenics",
     "gymnastics"
    ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6504,6 +8031,10 @@
    "disciplines": [
     "strength",
     "crossfit"
+   ],
+   "primary_muscles": [
+    "lats",
+    "biceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6521,6 +8052,10 @@
     "strength",
     "crossfit"
    ],
+   "primary_muscles": [
+    "lats",
+    "biceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6536,6 +8071,10 @@
    "disciplines": [
     "strength",
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "lats",
+    "biceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6553,6 +8092,10 @@
     "calisthenics",
     "gymnastics"
    ],
+   "primary_muscles": [
+    "full_body",
+    "core"
+   ],
    "prescription": "sets_duration_quality"
   },
   {
@@ -6568,6 +8111,9 @@
    "disciplines": [
     "calisthenics",
     "gymnastics"
+   ],
+   "primary_muscles": [
+    "hips"
    ],
    "prescription": "sets_duration_quality"
   },
@@ -6585,6 +8131,10 @@
     "calisthenics",
     "street_workout"
    ],
+   "primary_muscles": [
+    "full_body",
+    "core"
+   ],
    "prescription": "sets_duration_quality"
   },
   {
@@ -6600,6 +8150,10 @@
    "disciplines": [
     "calisthenics",
     "street_workout"
+   ],
+   "primary_muscles": [
+    "full_body",
+    "core"
    ],
    "prescription": "sets_duration_quality"
   },
@@ -6617,6 +8171,10 @@
     "calisthenics",
     "gymnastics"
    ],
+   "primary_muscles": [
+    "full_body",
+    "core"
+   ],
    "prescription": "sets_duration_quality"
   },
   {
@@ -6632,6 +8190,10 @@
    "disciplines": [
     "calisthenics",
     "gymnastics"
+   ],
+   "primary_muscles": [
+    "full_body",
+    "core"
    ],
    "prescription": "sets_duration_quality"
   },
@@ -6651,6 +8213,9 @@
     "calisthenics",
     "crossfit"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6666,6 +8231,9 @@
    "disciplines": [
     "calisthenics",
     "gymnastics"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_duration_quality"
   },
@@ -6683,6 +8251,9 @@
     "calisthenics",
     "gymnastics"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "sets_duration_quality"
   },
   {
@@ -6698,6 +8269,9 @@
    "disciplines": [
     "calisthenics",
     "gymnastics"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_duration_quality"
   },
@@ -6715,6 +8289,9 @@
     "gymnastics",
     "calisthenics"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "sets_duration_quality"
   },
   {
@@ -6730,6 +8307,9 @@
    "disciplines": [
     "strength",
     "calisthenics"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6747,6 +8327,9 @@
     "strength",
     "calisthenics"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6761,6 +8344,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6777,6 +8363,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6791,6 +8380,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6807,6 +8399,10 @@
    "disciplines": [
     "conditioning"
    ],
+   "primary_muscles": [
+    "obliques",
+    "core"
+   ],
    "prescription": "rounds_work_rest"
   },
   {
@@ -6821,6 +8417,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "obliques",
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6837,6 +8437,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6851,6 +8454,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "obliques",
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6867,6 +8474,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "obliques",
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6881,6 +8492,9 @@
    "entity_type": "conditioning_complex",
    "disciplines": [
     "conditioning"
+   ],
+   "primary_muscles": [
+    "full_body"
    ],
    "prescription": "rounds_work_rest"
   },
@@ -6897,6 +8511,9 @@
    "disciplines": [
     "conditioning"
    ],
+   "primary_muscles": [
+    "full_body"
+   ],
    "prescription": "rounds_work_rest"
   },
   {
@@ -6911,6 +8528,9 @@
    "entity_type": "conditioning_complex",
    "disciplines": [
     "conditioning"
+   ],
+   "primary_muscles": [
+    "full_body"
    ],
    "prescription": "rounds_work_rest"
   },
@@ -6930,6 +8550,9 @@
     "calisthenics",
     "crossfit"
    ],
+   "primary_muscles": [
+    "core"
+   ],
    "prescription": "rounds_work_rest"
   },
   {
@@ -6946,6 +8569,10 @@
     "strength",
     "powerlifting"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6960,6 +8587,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -6977,6 +8608,10 @@
     "strength",
     "olympic_weightlifting"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -6991,6 +8626,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7007,6 +8646,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7021,6 +8664,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7037,6 +8684,10 @@
    "disciplines": [
     "strength",
     "crossfit"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7055,6 +8706,10 @@
     "olympic_weightlifting",
     "crossfit"
    ],
+   "primary_muscles": [
+    "front_delts",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7071,6 +8726,10 @@
     "strength",
     "olympic_weightlifting",
     "crossfit"
+   ],
+   "primary_muscles": [
+    "front_delts",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7089,6 +8748,10 @@
     "olympic_weightlifting",
     "crossfit"
    ],
+   "primary_muscles": [
+    "front_delts",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7103,6 +8766,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7119,6 +8786,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7133,6 +8804,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7149,6 +8824,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7163,6 +8842,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7179,6 +8862,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "front_delts",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7193,6 +8880,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7209,6 +8900,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7224,6 +8919,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7238,6 +8937,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7255,6 +8958,10 @@
     "strength",
     "crossfit"
    ],
+   "primary_muscles": [
+    "lats",
+    "chest"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7269,6 +8976,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7285,6 +8995,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7299,6 +9013,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "biceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7315,6 +9032,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "biceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7329,6 +9049,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "biceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7345,6 +9068,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "rear_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7359,6 +9085,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lower_traps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7375,6 +9104,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "rotator_cuff",
+    "rear_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7389,6 +9122,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7405,6 +9141,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "chest"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7419,6 +9158,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7436,6 +9179,10 @@
     "strength",
     "strongman"
    ],
+   "primary_muscles": [
+    "forearms",
+    "core"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -7451,6 +9198,10 @@
    "disciplines": [
     "strength",
     "strongman"
+   ],
+   "primary_muscles": [
+    "forearms",
+    "core"
    ],
    "prescription": "sets_duration_load"
   },
@@ -7468,6 +9219,10 @@
     "strength",
     "strongman"
    ],
+   "primary_muscles": [
+    "forearms",
+    "core"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -7483,6 +9238,10 @@
    "disciplines": [
     "strength",
     "strongman"
+   ],
+   "primary_muscles": [
+    "forearms",
+    "core"
    ],
    "prescription": "sets_duration_load"
   },
@@ -7500,6 +9259,11 @@
     "strength",
     "strongman"
    ],
+   "primary_muscles": [
+    "glutes",
+    "hamstrings",
+    "upper_back"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7515,6 +9279,10 @@
    "disciplines": [
     "conditioning",
     "strongman"
+   ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
    ],
    "prescription": "sets_reps_quality"
   },
@@ -7532,6 +9300,11 @@
     "strength",
     "strongman"
    ],
+   "primary_muscles": [
+    "glutes",
+    "hamstrings",
+    "upper_back"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7546,6 +9319,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7562,6 +9339,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7576,6 +9357,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7592,6 +9377,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "front_delts",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7606,6 +9395,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7622,6 +9415,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7636,6 +9433,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7652,6 +9453,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7666,6 +9471,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7682,6 +9491,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7696,6 +9509,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7712,6 +9529,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7726,6 +9547,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "side_delts"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7742,6 +9566,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "rear_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7756,6 +9583,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7772,6 +9602,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "biceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7786,6 +9619,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "biceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7802,6 +9638,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "hip_flexors"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7816,6 +9655,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "glutes"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7832,6 +9674,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "hamstrings",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7846,6 +9692,9 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "full_body"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7862,6 +9711,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "lats",
+    "biceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7876,6 +9729,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7892,6 +9749,9 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "rear_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7906,6 +9766,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "lats",
+    "upper_back"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7922,6 +9786,10 @@
    "disciplines": [
     "strength"
    ],
+   "primary_muscles": [
+    "chest",
+    "triceps"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -7936,6 +9804,10 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "strength"
+   ],
+   "primary_muscles": [
+    "front_delts",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -7952,6 +9824,9 @@
    "disciplines": [
     "mobility"
    ],
+   "primary_muscles": [
+    "hips"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -7966,6 +9841,10 @@
    "entity_type": "mobility_drill",
    "disciplines": [
     "mobility"
+   ],
+   "primary_muscles": [
+    "thoracic_spine",
+    "rotator_cuff"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -7982,6 +9861,9 @@
    "disciplines": [
     "mobility"
    ],
+   "primary_muscles": [
+    "ankle_stabilisers"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -7996,6 +9878,9 @@
    "entity_type": "mobility_drill",
    "disciplines": [
     "mobility"
+   ],
+   "primary_muscles": [
+    "hips"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -8012,6 +9897,9 @@
    "disciplines": [
     "mobility"
    ],
+   "primary_muscles": [
+    "hips"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -8026,6 +9914,9 @@
    "entity_type": "mobility_drill",
    "disciplines": [
     "mobility"
+   ],
+   "primary_muscles": [
+    "hips"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -8042,6 +9933,10 @@
    "disciplines": [
     "mobility"
    ],
+   "primary_muscles": [
+    "thoracic_spine",
+    "rotator_cuff"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -8056,6 +9951,10 @@
    "entity_type": "mobility_drill",
    "disciplines": [
     "mobility"
+   ],
+   "primary_muscles": [
+    "thoracic_spine",
+    "rotator_cuff"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -8072,6 +9971,10 @@
    "disciplines": [
     "mobility"
    ],
+   "primary_muscles": [
+    "spinal_erectors",
+    "hamstrings"
+   ],
    "prescription": "sets_duration_or_reps"
   },
   {
@@ -8086,6 +9989,10 @@
    "entity_type": "balance_drill",
    "disciplines": [
     "mobility"
+   ],
+   "primary_muscles": [
+    "ankle_stabilisers",
+    "glute_medius"
    ],
    "prescription": "sets_duration_or_reps"
   },
@@ -8103,6 +10010,11 @@
     "strength",
     "street_workout"
    ],
+   "primary_muscles": [
+    "front_delts",
+    "side_delts",
+    "core"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -8118,6 +10030,11 @@
    "disciplines": [
     "strength",
     "street_workout"
+   ],
+   "primary_muscles": [
+    "front_delts",
+    "side_delts",
+    "core"
    ],
    "prescription": "sets_reps_load"
   },
@@ -8135,6 +10052,10 @@
     "strength",
     "street_workout"
    ],
+   "primary_muscles": [
+    "obliques",
+    "front_delts"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -8150,6 +10071,10 @@
    "disciplines": [
     "strength",
     "street_workout"
+   ],
+   "primary_muscles": [
+    "front_delts",
+    "triceps"
    ],
    "prescription": "sets_reps_load"
   },
@@ -8167,6 +10092,10 @@
     "strength",
     "street_workout"
    ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -8182,6 +10111,11 @@
    "disciplines": [
     "strength",
     "street_workout"
+   ],
+   "primary_muscles": [
+    "quadriceps",
+    "glutes",
+    "obliques"
    ],
    "prescription": "sets_reps_load"
   },
@@ -8199,6 +10133,10 @@
     "strength",
     "street_workout"
    ],
+   "primary_muscles": [
+    "glutes",
+    "hamstrings"
+   ],
    "prescription": "sets_reps_load"
   },
   {
@@ -8215,6 +10153,10 @@
     "strength",
     "street_workout"
    ],
+   "primary_muscles": [
+    "core",
+    "front_delts"
+   ],
    "prescription": "sets_duration_load"
   },
   {
@@ -8230,6 +10172,7 @@
    "disciplines": [
     "cardio"
    ],
+   "primary_muscles": [],
    "prescription": "duration_distance"
   },
   {
@@ -8245,6 +10188,7 @@
    "disciplines": [
     "cardio"
    ],
+   "primary_muscles": [],
    "prescription": "duration_distance"
   },
   {
@@ -8260,6 +10204,7 @@
    "disciplines": [
     "cardio"
    ],
+   "primary_muscles": [],
    "prescription": "duration_distance"
   },
   {
@@ -8275,6 +10220,7 @@
    "disciplines": [
     "cardio"
    ],
+   "primary_muscles": [],
    "prescription": "duration_distance"
   },
   {
@@ -8290,6 +10236,7 @@
    "disciplines": [
     "cardio"
    ],
+   "primary_muscles": [],
    "prescription": "duration_distance"
   },
   {
@@ -8305,6 +10252,7 @@
    "disciplines": [
     "cardio"
    ],
+   "primary_muscles": [],
    "prescription": "duration_distance"
   },
   {
@@ -8320,6 +10268,7 @@
    "disciplines": [
     "cardio"
    ],
+   "primary_muscles": [],
    "prescription": "duration_distance"
   },
   {
@@ -8335,6 +10284,7 @@
    "disciplines": [
     "cardio"
    ],
+   "primary_muscles": [],
    "prescription": "duration_distance"
   },
   {
@@ -8350,6 +10300,7 @@
    "disciplines": [
     "cardio"
    ],
+   "primary_muscles": [],
    "prescription": "duration_distance"
   },
   {
@@ -8365,6 +10316,7 @@
    "disciplines": [
     "cardio"
    ],
+   "primary_muscles": [],
    "prescription": "duration_distance"
   },
   {
@@ -8380,6 +10332,7 @@
    "disciplines": [
     "cardio"
    ],
+   "primary_muscles": [],
    "prescription": "duration_distance"
   },
   {
@@ -8395,6 +10348,7 @@
    "disciplines": [
     "cardio"
    ],
+   "primary_muscles": [],
    "prescription": "duration_distance"
   },
   {
@@ -8410,6 +10364,7 @@
    "disciplines": [
     "cardio"
    ],
+   "primary_muscles": [],
    "prescription": "duration_distance"
   },
   {
@@ -8425,6 +10380,7 @@
    "disciplines": [
     "cardio"
    ],
+   "primary_muscles": [],
    "prescription": "duration_distance"
   },
   {
@@ -8440,6 +10396,7 @@
    "disciplines": [
     "cardio"
    ],
+   "primary_muscles": [],
    "prescription": "duration_distance"
   }
  ],

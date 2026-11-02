@@ -29,6 +29,7 @@ enum MovementTiming {
         let entityType: String
         let disciplines: [String]
         let prescription: String
+        let primaryMuscles: [String]?
 
         private enum CodingKeys: String, CodingKey {
             case id, name, unilateral, repositioning, loadable
@@ -37,6 +38,7 @@ enum MovementTiming {
             case prescriptionMode = "prescription_mode"
             case entityType = "entity_type"
             case disciplines, prescription
+            case primaryMuscles = "primary_muscles"
         }
 
         /// Whether counting a rep cadence means anything here. A stretch flow,
@@ -138,6 +140,38 @@ enum MovementTiming {
         if let aliased = payload.aliases[name], let hit = byID[aliased] { return hit }
         let key = normalise(name)
         return byNormalisedAlias[key] ?? byNormalisedName[key]
+    }
+
+    /// Attribution uses a saved catalogue ID and observed work. Names, body
+    /// shape and stabilizer muscles never invent upper/lower training evidence.
+    static func performedWorkoutTypes(for log: FBWorkoutLog) -> [FBDayType] {
+        guard !log.skipped, let movementID = log.movementID,
+              let movement = byID[movementID] else { return [] }
+        let hasDistance = (log.distanceMeters?.isFinite ?? false) && (log.distanceMeters ?? 0) > 0
+        switch movement.entityType {
+        case "cardio_modality":
+            return (log.durationSeconds ?? 0) > 0 && hasDistance ? [.cardio] : []
+        case "mobility_drill", "yoga_pose":
+            // The canonical logger permits an explicit completion checkmark;
+            // this credits completion without manufacturing minutes or reps.
+            return [.mobility]
+        case "conditioning_complex":
+            return (log.rounds ?? 0) > 0 && (log.workSeconds ?? 0) > 0 ? [.cardio] : []
+        case "resistance_dynamic":
+            guard (log.reps ?? 0) > 0 else { return [] }
+        case "resistance_isometric":
+            guard (log.durationSeconds ?? 0) > 0 || hasDistance else { return [] }
+        case "plyometric":
+            guard (log.contacts ?? 0) > 0 || (log.reps ?? 0) > 0 else { return [] }
+        default: return []
+        }
+        let muscles = Set(movement.primaryMuscles ?? [])
+        let lower: Set<String> = ["hamstrings", "glutes", "quadriceps", "glute_medius", "calves", "soleus", "adductors", "hip_flexors", "tibialis"]
+        let upper: Set<String> = ["chest", "front_delts", "triceps", "lats", "upper_back", "biceps", "forearms", "lower_traps", "traps", "side_delts", "rear_delts", "rotator_cuff", "mid_traps"]
+        var types: [FBDayType] = []
+        if !muscles.isDisjoint(with: upper) { types.append(.upper) }
+        if !muscles.isDisjoint(with: lower) { types.append(.legsA) }
+        return types
     }
 
     /// How long switching sides genuinely takes.

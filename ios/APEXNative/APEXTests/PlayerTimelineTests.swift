@@ -64,6 +64,83 @@ final class PlayerTimelineTests: XCTestCase {
         XCTAssertEqual(positions.count, 1)
     }
 
+    func testCompletionFindsMissingJuneSplitSquatSetWithoutInventingWork() throws {
+        let exercises = [
+            exercise("Hip Thrust", sets: 4),
+            exercise("Bulgarian Split Squat", sets: 3, perSide: true),
+            exercise("DB Romanian Deadlift", sets: 3),
+            exercise("Band Abduction", sets: 2),
+        ]
+        let recorded = PlayerTimeline.workSequence(exercises).compactMap { position -> WorkoutSetInput? in
+            guard !(position.exerciseIndex == 1 && position.setNumber == 3) else { return nil }
+            let exercise = exercises[position.exerciseIndex]
+            return WorkoutSetInput(
+                exerciseID: exercise.id, exerciseName: exercise.name,
+                setNumber: position.setNumber, weightKG: 10, reps: 10, rir: 2,
+                movementID: exercise.movementID, skipped: false
+            )
+        }
+        XCTAssertEqual(recorded.count, 11)
+        let review = PlayerTimeline.completionReviewInputs(exercises: exercises, recorded: recorded)
+        XCTAssertEqual(review.count, 1)
+        let missing = try XCTUnwrap(review.first)
+        XCTAssertEqual(missing.exerciseID, exercises[1].id)
+        XCTAssertEqual(missing.setNumber, 3)
+        XCTAssertNil(missing.reps)
+        XCTAssertNil(missing.weightKG)
+        XCTAssertFalse(missing.skipped)
+        let repaired = recorded + [ExerciseLogging.resolvingAsSkipped(missing)]
+        XCTAssertTrue(PlayerTimeline.completionReviewInputs(exercises: exercises, recorded: repaired).isEmpty)
+        XCTAssertEqual(Array(repaired.prefix(11)), recorded, "Repair must retain every actual set unchanged.")
+
+        var unresolved = recorded
+        unresolved[0].reps = nil
+        XCTAssertEqual(PlayerTimeline.completionReviewInputs(exercises: exercises, recorded: unresolved).count, 2)
+
+        let check = exercise("Pain check", sets: 3, repUnit: "check")
+        let explicitCheck = WorkoutSetInput(
+            exerciseID: check.id, exerciseName: check.name, setNumber: 1,
+            weightKG: nil, reps: nil, rir: nil, skipped: true
+        )
+        XCTAssertTrue(PlayerTimeline.completionReviewInputs(exercises: [check], recorded: [explicitCheck]).isEmpty)
+    }
+
+    @MainActor
+    func testRetryingCompletedWorkoutKeepsOneReceiptWithLatestEditedFacts() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(session.profile?.userID)
+        session.data = APEXDebugFixture.dashboard(userID: owner)
+        let exercise = try XCTUnwrap(session.data.exercises.first)
+        let day = try XCTUnwrap(session.data.programDays.first { $0.id == exercise.programDayID })
+        let operation = try XCTUnwrap(session.accountOperationLease())
+        let inputs = [WorkoutSetInput(
+            exerciseID: exercise.id, exerciseName: exercise.name, setNumber: 1,
+            weightKG: nil, reps: 8, rir: 2, movementID: exercise.movementID, skipped: false
+        )]
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let first = try await session.completeWorkout(
+            day: day, setInputs: inputs, lite: false, startedAt: start,
+            completionDate: "2026-11-02", operation: operation
+        )
+        let receiptID = try XCTUnwrap(first)
+        let originalLogs = session.data.workoutLogs.filter { $0.sessionID == receiptID }
+        XCTAssertEqual(originalLogs.count, 1)
+        var corrected = inputs
+        corrected[0].reps = 10
+        corrected[0].weightKG = 5
+        let retry = try await session.completeWorkout(
+            day: day, setInputs: corrected, lite: false, startedAt: start,
+            qualityScore: 0.5,
+            completionDate: "2026-11-02", operation: operation
+        )
+        XCTAssertEqual(retry, receiptID)
+        XCTAssertEqual(session.data.workoutSessions.filter { $0.id == receiptID }.count, 1)
+        XCTAssertEqual(session.data.workoutLogs.filter { $0.sessionID == receiptID }.map(\.id), originalLogs.map(\.id))
+        XCTAssertEqual(session.data.workoutLogs.filter { $0.sessionID == receiptID }.first?.reps, 10)
+        XCTAssertEqual(session.data.workoutLogs.filter { $0.sessionID == receiptID }.first?.weightKG, 5)
+        XCTAssertEqual(session.data.workoutSessions.first { $0.id == receiptID }?.qualityScore, 0.5)
+    }
+
     func testLinkedExercisesRunAsRoundsWithRecoveryAfterThePair() throws {
         let groupID = UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee")!
         func grouped(_ source: Exercise, position: Int) throws -> Exercise {
@@ -354,6 +431,35 @@ final class PlayerTimelineTests: XCTestCase {
             persistedAt: "1970-01-01T00:16:40Z"
         )
 
+        var legacyJSON = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(draft)) as? [String: Any]
+        )
+        legacyJSON.removeValue(forKey: "setExecution")
+        let legacyDraft = try JSONDecoder().decode(
+            PlayerTimeline.SessionDraft.self,
+            from: JSONSerialization.data(withJSONObject: legacyJSON)
+        )
+        XCTAssertNil(legacyDraft.setExecution, "pre-side-sequencing drafts remain readable")
+
+        var completedDraft = legacyDraft
+        completedDraft.phase = "complete"
+        PlayerTimeline.DraftStore.save(completedDraft, defaults: defaults)
+        XCTAssertEqual(PlayerTimeline.DraftStore.load(
+            userID: userID, dayID: dayID, date: draft.date, lite: false,
+            exerciseIDs: [exerciseID], defaults: defaults
+        ), completedDraft, "A completed but unsaved old draft must retain its actual facts.")
+
+        var sideDraft = draft
+        var sideExecution = GuidedSetExecution(perSide: true)
+        XCTAssertEqual(sideExecution.finish(work: 8, skipped: false), .switchSide)
+        sideDraft.phase = "sideSwitch"
+        sideDraft.setExecution = sideExecution
+        XCTAssertEqual(
+            try JSONDecoder().decode(PlayerTimeline.SessionDraft.self, from: JSONEncoder().encode(sideDraft)),
+            sideDraft,
+            "the completed left side survives an interrupted side-change countdown"
+        )
+
         PlayerTimeline.DraftStore.save(draft, defaults: defaults)
         XCTAssertEqual(
             PlayerTimeline.DraftStore.load(
@@ -390,6 +496,27 @@ final class PlayerTimelineTests: XCTestCase {
             exerciseIDs: [exerciseID],
             defaults: defaults
         ))
+    }
+
+    func testSideSwitchTimerUsesWallTimeButDoesNotCompleteTheRightSide() throws {
+        let now = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-11-02T12:01:00Z"))
+        var execution = GuidedSetExecution(perSide: true)
+        XCTAssertEqual(execution.finish(work: 10, skipped: false), .switchSide)
+        let block = PlayerTimeline.Block.sideSwitch(exerciseIndex: 0, setNumber: 1, duration: 27)
+        let resumed = PlayerTimeline.reconcileCountdown(
+            block: block, remaining: 20, paused: false,
+            persistedAt: "2026-11-02T12:00:00Z",
+            now: now
+        )
+        XCTAssertEqual(resumed.remaining, 0)
+        XCTAssertEqual(execution.side, .left, "time away cannot manufacture the other side's repetitions")
+        let paused = PlayerTimeline.reconcileCountdown(
+            block: block, remaining: 20, paused: true,
+            persistedAt: "2026-11-02T12:00:00Z",
+            now: now
+        )
+        XCTAssertEqual(paused.remaining, 20)
+        XCTAssertTrue(paused.paused)
     }
 
     func testPrefillsPreferTheClosestRealEntry() {
@@ -430,6 +557,42 @@ final class PlayerTimelineTests: XCTestCase {
             "one side recorded is better than nothing"
         )
         XCTAssertNil(PlayerTimeline.countedReps([:], exerciseIndex: 0, setNumber: 1, perSide: true))
+    }
+
+    func testCompletionQualityMatchesWebForSkippedOptionalAndAdjustedSets() {
+        func inputs(_ exercises: [Exercise]) -> [WorkoutSetInput] {
+            PlayerTimeline.workSequence(exercises).map { position in
+                let exercise = exercises[position.exerciseIndex]
+                return WorkoutSetInput(
+                    exerciseID: exercise.id, exerciseName: exercise.name,
+                    setNumber: position.setNumber, weightKG: nil, reps: 10, rir: nil,
+                    skipped: false
+                )
+            }
+        }
+        let june = [
+            exercise("Hip Thrust", sets: 4),
+            exercise("Bulgarian Split Squat", sets: 3, perSide: true),
+            exercise("DB Romanian Deadlift", sets: 3),
+            exercise("Band Abduction", sets: 2),
+        ]
+        var recorded = inputs(june)
+        XCTAssertEqual(PlayerTimeline.completionQuality(exercises: june, recorded: recorded), 1)
+        recorded[11].skipped = true
+        XCTAssertEqual(PlayerTimeline.completionQuality(exercises: june, recorded: recorded), 11.0 / 12, accuracy: 0.000001)
+        XCTAssertEqual(PlayerTimeline.completionQuality(exercises: june, recorded: []), 0)
+
+        // The caller supplies the selected lite/deload prescription, not the
+        // unadjusted programme. Optional sets do not increase its denominator.
+        let adjusted = [exercise("Hip Thrust", sets: 2), exercise("Extra mobility", sets: 2, optional: true)]
+        var adjustedInputs = Array(inputs(adjusted).prefix(2))
+        XCTAssertEqual(PlayerTimeline.completionQuality(exercises: adjusted, recorded: adjustedInputs), 1)
+        adjustedInputs[1].skipped = true
+        XCTAssertEqual(PlayerTimeline.completionQuality(exercises: adjusted, recorded: adjustedInputs), 0.5)
+
+        let check = [exercise("Pain check", sets: 3, repUnit: "check")]
+        XCTAssertEqual(PlayerTimeline.completionQuality(exercises: check, recorded: inputs(check)), 1,
+                       "A decision checkpoint is one planned result even when legacy sets exceed one.")
     }
 
     func testEstimateAndPlannedSetCount() {

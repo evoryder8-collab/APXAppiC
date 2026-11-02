@@ -529,6 +529,16 @@ export function MealComposer({
     }
   }, [language, query, store.widerSearch])
 
+  const privateFoodFor = (food: FoodRecord): FoodRecord | undefined => store.foods.find((candidate) => candidate.owner_user_id && (
+    Boolean(food.provider_product_id && candidate.provider_product_id === food.provider_product_id)
+    || Boolean(food.barcode && candidate.barcode === food.barcode)
+  ))
+
+  const preferenceForFood = (food: FoodRecord) => {
+    const storedFood = foodNeedsPrivateMaterialization(food) ? privateFoodFor(food) ?? food : food
+    return store.preferences.find((value) => value.food_id === storedFood.id)
+  }
+
   const materializeFood = async (food: FoodRecord): Promise<FoodRecord> => {
     /*
      * Offline protocol references are intentionally shipped in the client so
@@ -538,9 +548,7 @@ export function MealComposer({
      * otherwise valid meal on first use.
      */
     if (!foodNeedsPrivateMaterialization(food)) return food
-    const existing = store.foods.find((candidate) => candidate.owner_user_id && (
-      candidate.provider_product_id === food.provider_product_id || Boolean(food.barcode && candidate.barcode === food.barcode)
-    ))
+    const existing = privateFoodFor(food)
     if (existing) return existing
     return store.savePrivateFood({
       name: food.name,
@@ -571,6 +579,16 @@ export function MealComposer({
       confidence: food.confidence,
       nutrient_evidence: food.nutrient_evidence,
     })
+  }
+
+  const toggleFoodFavourite = async (food: FoodRecord) => {
+    const favourite = preferenceForFood(food)?.favourite === true
+    try {
+      const trackableFood = await materializeFood(food)
+      await store.setPreference(trackableFood.id, { favourite: !favourite })
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : t('This food could not be added. Please try again.'))
+    }
   }
 
   const selectionDraftForFood = (food: FoodRecord): FoodSelectionDraft => {
@@ -1174,7 +1192,7 @@ export function MealComposer({
                   </p>
                 </div>
                 {visibleDisplayedFoods.map((food) => {
-                  const preference = store.preferences.find((value) => value.food_id === food.id)
+                  const preference = preferenceForFood(food)
                   const rememberedSelection = rememberedSelectionByFoodId.get(food.id)
                   const quickSelection = beginFoodSelection(food, preference, rememberedSelection)
                   const quickPortion = calculatePortion(food, quickSelection.quantity, quickSelection.unit)
@@ -1199,7 +1217,7 @@ export function MealComposer({
                         aria-label={`${t('Configure amount')} · ${displayFoodName(food, language)}`}
                       >
                         <span className="flex min-w-0 items-center gap-2">
-                          <span className="block min-w-0 truncate font-display text-[1.05rem] leading-tight font-bold text-ink">
+                          <span className="block min-w-0 break-words font-display text-[1.05rem] leading-tight font-bold text-ink">
                             {displayFoodName(food, language)}
                           </span>
                           <AnimatePresence initial={false}>
@@ -1222,6 +1240,15 @@ export function MealComposer({
                         <span className="mt-1 block truncate text-[11px] leading-snug font-medium text-ink-faint">
                           {food.brand || t(food.preparation_state.replace('_', ' '))}
                         </span>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label={`${t('Toggle favourite')} · ${displayFoodName(food, language)}`}
+                        aria-pressed={preference?.favourite === true}
+                        onClick={() => void toggleFoodFavourite(food)}
+                        className={`my-auto grid h-11 w-11 shrink-0 place-items-center rounded-xl text-xl outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${preference?.favourite ? 'text-amber-600' : 'text-ink-faint'}`}
+                      >
+                        <span aria-hidden="true">{preference?.favourite ? '★' : '☆'}</span>
                       </button>
                       <div className="grid w-[4.75rem] shrink-0 place-items-center border-l border-ink/6 bg-amber-500/[0.035] px-2">
                         <motion.button
@@ -1329,6 +1356,18 @@ export function MealComposer({
               const portion = calculatePortion(item.food, item.quantity, item.unit)
               const units = availableFoodUnits(item.food)
               const itemSelected = selectedItemIds.includes(item.id)
+              const favourite = preferenceForFood(item.food)?.favourite === true
+              const favouriteButton = (
+                <button
+                  type="button"
+                  onClick={() => void toggleFoodFavourite(item.food)}
+                  aria-label={`${t('Toggle favourite')} · ${displayFoodName(item.food, language)}`}
+                  aria-pressed={favourite}
+                  className={`ml-auto grid h-11 w-11 shrink-0 place-items-center rounded-xl text-xl outline-none focus-visible:ring-2 focus-visible:ring-amber-400 ${favourite ? 'text-amber-600' : 'text-ink-faint'}`}
+                >
+                  <span aria-hidden="true">{favourite ? '★' : '☆'}</span>
+                </button>
+              )
               if (itemLayout === 'compact') {
                 return (
                   <GlassCard key={item.id} accent={amber} className={`px-2.5 py-2 ${itemSelected ? 'ring-2 ring-amber-400/55' : ''}`}>
@@ -1345,11 +1384,12 @@ export function MealComposer({
                         </button>
                       )}
                       <div className="min-w-0 flex-1">
-                        <h3 className="truncate font-display text-[13px] leading-tight font-black text-ink">{displayFoodName(item.food, language)}</h3>
+                        <h3 className="break-words font-display text-[13px] leading-tight font-black text-ink">{displayFoodName(item.food, language)}</h3>
                         <p className="mt-0.5 truncate font-mono text-[8px] font-bold text-ink-faint">
                           {portion?.kcal ?? '?'} kcal · P {portion?.protein_g ?? '?'} · C {portion?.carbs_g ?? '?'} · F {portion?.fat_g ?? '?'}
                         </p>
                       </div>
+                      {!itemSelectionMode && favouriteButton}
                       <input
                         aria-label={`Amount for ${item.food.name}`}
                         inputMode="decimal"
@@ -1403,7 +1443,7 @@ export function MealComposer({
                     <select value={item.unit} onChange={(event) => patchItem(item.id, { unit: event.target.value as FoodUnit })} className="rounded-xl border border-white/90 bg-white/80 px-3 py-2.5 text-base font-bold">
                       {units.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
                     </select>
-                    <button type="button" onClick={() => void store.setPreference(item.food.id, { favourite: !store.preferences.find((value) => value.food_id === item.food.id)?.favourite })} className="ml-auto text-xl" aria-label="Toggle favourite">{store.preferences.find((value) => value.food_id === item.food.id)?.favourite ? '★' : '☆'}</button>
+                    {favouriteButton}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 rounded-xl bg-white/45 px-3 py-2 font-mono text-[11px] font-bold text-ink-soft">
                     <span>{portion?.kcal ?? '?'} kcal</span><span>P {portion?.protein_g ?? '?'}</span><span>C {portion?.carbs_g ?? '?'}</span><span>F {portion?.fat_g ?? '?'}</span>

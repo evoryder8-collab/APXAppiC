@@ -119,7 +119,7 @@ test('wearable recovery copy is authored in Romanian and Thai', () => {
     'Linked wearable effort',
     'Device metrics are read-only and are not added to HealthKit energy twice.',
     'That wearable activity is no longer available. Choose it again.',
-    'Completed externally from the APEX guided player',
+    'Completed externally from the FITR MAX guided player',
   ]) {
     assert.ok(UI_TRANSLATIONS[key]?.ro)
     assert.ok(UI_TRANSLATIONS[key]?.th)

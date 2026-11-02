@@ -28,6 +28,7 @@ import { computeTargets, nutritionPlanContext } from './nutrition.ts'
 import { isConditioningFocusT25 } from './focusT25.ts'
 import { normalizeMealRhythmHistory, type MealRhythmVerdict } from './mealRhythm.ts'
 import { signalBearingImportedActivitiesForOwner } from './importedActivityVisibility.ts'
+import { hasPerformedWorkoutFacts, performedWorkoutTypes, recordedWorkoutQuality, workoutActivityDomain, type PerformedWorkoutType } from './performedWorkoutAttribution.ts'
 
 export interface StatBlock {
   health: number
@@ -261,8 +262,10 @@ function applyCapacityCalibration(
   return applied
 }
 
+type WorkoutActivityType = DayType | PerformedWorkoutType
+
 interface DayActivity {
-  types: Array<{ type: DayType; quality: number; deload: boolean; recovery: boolean }>
+  types: Array<{ type: WorkoutActivityType; quality: number; deload: boolean; recovery: boolean }>
   overrides: number
   overloadUpper: number
   overloadLower: number
@@ -281,9 +284,9 @@ interface DayActivity {
   streak: number
 }
 
-const UPPER_TYPES: DayType[] = ['push', 'pull', 'upper']
-const LOWER_TYPES: DayType[] = ['legs_a', 'legs_b']
-const FLEX_TYPES: DayType[] = ['mobility', 'fix']
+const UPPER_TYPES: WorkoutActivityType[] = ['push', 'pull', 'upper']
+const LOWER_TYPES: WorkoutActivityType[] = ['legs_a', 'legs_b']
+const FLEX_TYPES: WorkoutActivityType[] = ['mobility', 'fix']
 
 function hasScorableNutritionTargets(targets: ReturnType<typeof computeTargets>): boolean {
   return targets.isPublishable
@@ -336,20 +339,32 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
   }
 
   const sessionById = new Map(workoutSessions.map((s) => [s.id, s]))
+  const logsBySession = new Map<string, typeof workoutLogs>()
+  for (const log of workoutLogs) {
+    const logs = logsBySession.get(log.session_id) ?? []
+    logs.push(log)
+    logsBySession.set(log.session_id, logs)
+  }
+  const qualityBySession = new Map(workoutSessions.map((session) => [
+    session.id, recordedWorkoutQuality(session, logsBySession.get(session.id) ?? []),
+  ]))
   for (const s of workoutSessions) {
-    if (!s.completed) continue
+    const quality = qualityBySession.get(s.id) ?? 0
+    if (quality === 0) continue
     const type = dayTypeById.get(s.program_day_id)
-    if (!type) continue
+    if (!type || type === 'custom') continue
     getDay(s.date).types.push({
       type,
-      quality: s.quality_score || 1,
+      quality,
       deload: s.is_deload,
       recovery: s.is_event_recovery,
     })
   }
   for (const log of workoutLogs) {
     const session = sessionById.get(log.session_id)
-    if (!session?.completed || log.skipped || !isConditioningFocusT25(log.exercise_name)) continue
+    if (!session?.completed || !(qualityBySession.get(session.id) ?? 0) || !hasPerformedWorkoutFacts(log)
+      || dayTypeById.get(session.program_day_id) === 'custom'
+      || !isConditioningFocusT25(log.exercise_name)) continue
     const day = getDay(session.date)
     if (!day.types.some((entry) => entry.type === 't25')) {
       day.types.push({
@@ -360,17 +375,43 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
       })
     }
   }
+  // Quick Logs have no authored programme-day category. Use only performed
+  // catalogue movements, at most once per domain/day, without stacking onto
+  // a recognised planned session or counting each saved set as a workout.
+  const customByDate = new Map<string, Map<PerformedWorkoutType, number>>()
+  for (const log of workoutLogs) {
+    const session = sessionById.get(log.session_id)
+    if (!session?.completed || session.is_event_recovery
+      || dayTypeById.get(session.program_day_id) !== 'custom') continue
+    const quality = qualityBySession.get(session.id) ?? 0
+    if (quality === 0) continue
+    for (const type of performedWorkoutTypes(log)) {
+      const domains = customByDate.get(session.date) ?? new Map<PerformedWorkoutType, number>()
+      domains.set(type, Math.max(domains.get(type) ?? 0, quality))
+      customByDate.set(session.date, domains)
+    }
+  }
+  for (const [date, domains] of customByDate) {
+    const activity = getDay(date)
+    for (const type of ['upper', 'legs_a', 'mobility', 'cardio'] as const) {
+      const quality = domains.get(type)
+      if (quality == null || activity.types.some((entry) => !entry.recovery
+        && workoutActivityDomain(entry.type) === type)) continue
+      activity.types.push({ type, quality, deload: false, recovery: false })
+    }
+  }
   for (const log of workoutLogs) {
     const s = sessionById.get(log.session_id)
-    if (!s) continue
+    if (!s?.completed || !(qualityBySession.get(s.id) ?? 0) || !hasPerformedWorkoutFacts(log)) continue
     if (log.override_flag) getDay(s.date).overrides += 1
   }
   /* Progressive overload events: top weight for an exercise rises vs previous session */
   const byExercise = new Map<string, Array<{ date: string; w: number }>>()
   for (const log of workoutLogs) {
-    if (!log.exercise_id || log.skipped || log.weight_kg == null) continue
+    if (!log.exercise_id || !hasPerformedWorkoutFacts(log)
+      || log.weight_kg == null || !Number.isFinite(log.weight_kg)) continue
     const s = sessionById.get(log.session_id)
-    if (!s) continue
+    if (!s?.completed || !(qualityBySession.get(s.id) ?? 0)) continue
     const arr = byExercise.get(log.exercise_id) ?? []
     arr.push({ date: s.date, w: log.weight_kg })
     byExercise.set(log.exercise_id, arr)
@@ -386,7 +427,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
         const type = dayId ? dayTypeById.get(dayId) : undefined
         const a = getDay(dates[i])
         if (type && LOWER_TYPES.includes(type)) a.overloadLower += 1
-        else a.overloadUpper += 1
+        else if (type && UPPER_TYPES.includes(type)) a.overloadUpper += 1
       }
     }
   }
@@ -546,9 +587,9 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
             fed.joint = true
             synergies.push({ date, kind: 'deload_honored', label: 'Deload honored. Joint Health banked the recovery' })
           }
-          if (t.type === 't25') {
+          if (t.type === 't25' || t.type === 'cardio') {
             let m = 1
-            if (hydrated) {
+            if (hydrated && t.type === 't25') {
               m = 1.1
               synergies.push({ date, kind: 'hydration_endurance', label: 'Hydration at target fueled the T25 engine. Endurance XP +10%' })
             }

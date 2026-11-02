@@ -60,6 +60,34 @@ struct FitnessPlanDisclosureState: Equatable, Sendable {
 }
 
 enum SimpleHomeLogic {
+    struct DailyGuidedSession: Identifiable {
+        let day: ProgramDay
+        let completedSessionID: UUID?
+        let resumeLite: Bool?
+        var id: UUID { day.id }
+        var statusLabel: String {
+            completedSessionID != nil ? "Completed" : resumeLite != nil ? "Continue" : "Start"
+        }
+    }
+
+    /// Plans must already be resolved through the active programme and calendar.
+    static func dailyGuidedSessions(
+        plans: [PlannedDay], sessions: [WorkoutSession], ownerID: UUID?, date: String,
+        resumableModes: [UUID: Bool] = [:]
+    ) -> [DailyGuidedSession] {
+        guard let ownerID else { return [] }
+        var seen = Set<UUID>()
+        return plans.compactMap { plan in
+            guard let day = plan.programDay, day.userID == ownerID, day.isActive,
+                  !seen.contains(day.id),
+                  plan.exercises.contains(where: { $0.exercise.userID == ownerID && $0.exercise.programDayID == day.id }) else { return nil }
+            seen.insert(day.id)
+            let completedID = completedSessionID(sessions: sessions, ownerID: ownerID, date: date, programDayID: day.id)
+            return DailyGuidedSession(day: day, completedSessionID: completedID,
+                                      resumeLite: completedID == nil ? resumableModes[day.id] : nil)
+        }
+    }
+
     static func guidedProgramSlug(
         persona: Persona?,
         mainIsUsable: Bool,
@@ -201,12 +229,14 @@ enum SimpleHomeLogic {
 
     static func completedSessionID(
         sessions: [WorkoutSession],
+        ownerID: UUID,
         date: String,
         programDayID: UUID
     ) -> UUID? {
         sessions
             .filter {
                 $0.completed
+                    && $0.userID == ownerID
                     && $0.date == date
                     && $0.programDayID == programDayID
             }

@@ -698,6 +698,39 @@ final class AppSession {
             }
             LanguageState.shared.language = .english
             data = APEXDebugFixture.dashboard()
+            if ProcessInfo.processInfo.arguments.contains("-fitr-ui-test-completion-repair"),
+               var exercise = data.exercises.first {
+                exercise.sets = 2
+                data.exercises.removeAll { $0.programDayID == exercise.programDayID }
+                data.exercises.append(exercise)
+                data.settings?.voiceOn = false
+                // A pre-update completed draft with the first set absent.
+                // It must reopen, request explicit facts, and survive failed saving.
+                PlayerTimeline.DraftStore.save(PlayerTimeline.SessionDraft(
+                    userID: exercise.userID, dayID: exercise.programDayID,
+                    date: Date().apexDateKey, lite: false, exerciseIDs: [exercise.id],
+                    phase: "complete", currentIndex: 0, currentSet: 2,
+                    actualReps: 8, currentWeight: 0,
+                    timerRemaining: 0, timerTotal: 0, paused: false,
+                    setInputs: [WorkoutSetInput(
+                        exerciseID: exercise.id, exerciseName: exercise.name,
+                        setNumber: 2, weightKG: nil, reps: 8, rir: nil,
+                        movementID: exercise.movementID, skipped: false
+                    )],
+                    startedAt: Date().addingTimeInterval(-120),
+                    repElapsed: 0, announcedRep: 8, persistedAt: Date().ISO8601Format()
+                ))
+            }
+            if ProcessInfo.processInfo.arguments.contains("-fitr-ui-test-unilateral"),
+               !data.exercises.isEmpty {
+                data.settings?.voiceOn = false
+                data.exercises[0].name = "Bulgarian Split Squat"
+                data.exercises[0].perSide = true
+                data.exercises[0].sets = 2
+                data.exercises[0].repMin = 2
+                data.exercises[0].repMax = 2
+                data.exercises[0].restSeconds = 120
+            }
             if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-bespoke-v85") {
                 let owner = UUID(uuidString: "9a0fffbc-bb02-40ac-834a-d4e339b32574")!
                 data = APEXDebugFixture.dashboard(userID: owner)
@@ -2041,6 +2074,15 @@ final class AppSession {
      */
     private func recomputeBrain() {
         guard !brainRecomputing else { return }
+        #if DEBUG
+        // This explicit visual fixture supplies synthetic history; replaying
+        // its single day of sample logs would replace the 90 plotted dates.
+        if ProcessInfo.processInfo.arguments.contains("-apex-ui-test"),
+           ProcessInfo.processInfo.arguments.contains("-fitr-ui-test-avatar-history") {
+            brainSynergies = []
+            return
+        }
+        #endif
         guard let userID = data.profile?.userID,
               let input = FitnessBrainService.engineInput(from: data) else {
             brainSynergies = []
@@ -5243,7 +5285,13 @@ final class AppSession {
         operation: AccountOperationLease
     ) async throws {
         try requireCurrentAccountOperation(operation)
-        guard let foodID = UUID(uuidString: food.id) else { return }
+        guard food.ownerUserID == nil || food.ownerUserID == operation.ownerID else { throw CancellationError() }
+        guard let foodID = UUID(uuidString: food.id) else { throw APEXServiceError.incompleteFood }
+        // Only explicitly referenced foods enter the account's existing cache.
+        // Keep canonical catalogue values when a saved-meal snapshot is older.
+        if !data.foods.contains(where: { UUID(uuidString: $0.id) == foodID }) {
+            data.foods.append(food)
+        }
         let existing = data.foodPreferences.first {
             $0.userID == operation.ownerID && $0.foodID == foodID
         }
@@ -5665,6 +5713,10 @@ final class AppSession {
         return url
     }
 
+    #if DEBUG
+    private var uiTestWorkoutSaveFailureInjected = false
+    #endif
+
     /// Returns the finished session's id so the caller can show its receipt.
     @discardableResult
     func completeWorkout(
@@ -5672,6 +5724,7 @@ final class AppSession {
         setInputs: [WorkoutSetInput],
         lite: Bool,
         startedAt: Date,
+        qualityScore: Double? = nil,
         wearableLinkRequest: WearableLinkRequest = .automatic,
         completionDate: String? = nil,
         operation: AccountOperationLease
@@ -5697,22 +5750,47 @@ final class AppSession {
         }
         let now = Date().ISO8601Format()
         let completedDate = completionDate ?? Date().apexDateKey
+        let startedAtISO = startedAt.ISO8601Format()
+        // A failed local write or outbox enqueue leaves the draft available.
+        // Its retry must persist the same receipt graph, not create another.
+        let existingWorkout = data.workoutSessions.first {
+            $0.userID == ownerID && $0.programDayID == day.id
+                && $0.date == completedDate && $0.isLite == lite
+                && $0.startedAt == startedAtISO && $0.completed
+        }
         let isDeload = TrainingAdjustmentEngine.isDeload(
             on: completedDate,
             marks: (data.deloadMarks ?? []).filter { $0.userID == ownerID }
         )
-        let workout = WorkoutSession(
-            id: UUID(), userID: ownerID, date: completedDate,
+        var workout = existingWorkout ?? WorkoutSession(
+            id: APEXStableID.scopedUUID(
+                namespace: "guided-workout-receipt",
+                date: "\(day.id):\(completedDate):\(lite):\(startedAtISO)",
+                userID: ownerID
+            ), userID: ownerID, date: completedDate,
             programDayID: day.id, isLite: lite, isDeload: isDeload,
             isEventRecovery: false, completed: true, qualityScore: 1,
-            startedAt: startedAt.ISO8601Format(), completedAt: now,
+            startedAt: startedAtISO, completedAt: now,
             notes: wearableLinkRequest == .automatic
                 ? "Completed in APEX iOS"
                 : "Completed externally from the APEX guided player"
         )
+        if let qualityScore, qualityScore.isFinite {
+            workout.qualityScore = min(1, max(0, qualityScore))
+        }
+        let existingLogs = data.workoutLogs.filter { $0.userID == ownerID && $0.sessionID == workout.id }
         let logs = normalizedInputs.map { input in
+            let oldLog = existingLogs.first {
+                $0.exerciseID == input.exerciseID && $0.exerciseName == input.exerciseName
+                    && $0.setNumber == input.setNumber
+            }
+            let movementKey = input.exerciseID?.uuidString ?? input.movementID ?? input.exerciseName
             return WorkoutLog(
-                id: UUID(), userID: ownerID, sessionID: workout.id,
+                id: oldLog?.id ?? APEXStableID.scopedUUID(
+                    namespace: "guided-workout-log",
+                    date: "\(workout.id):\(movementKey):\(input.setNumber)",
+                    userID: ownerID
+                ), userID: ownerID, sessionID: workout.id,
                 exerciseID: input.exerciseID, exerciseName: input.exerciseName,
                 setNumber: input.setNumber, weightKG: input.weightKG,
                 reps: input.reps, rir: input.rir,
@@ -5724,10 +5802,12 @@ final class AppSession {
                 workSeconds: input.workSeconds,
                 recoverySeconds: input.recoverySeconds,
                 skipped: input.skipped,
-                overrideFlag: false, createdAt: now
+                overrideFlag: oldLog?.overrideFlag ?? false, createdAt: oldLog?.createdAt ?? now
             )
         }
-        var linkedWearable: ImportedActivity?
+        var linkedWearable = data.importedActivities.first {
+            $0.userID == ownerID && $0.apexWorkoutSessionID == workout.id
+        }
         if case let .activity(activityID) = wearableLinkRequest {
             guard let selected = data.importedActivities.first(where: {
                       $0.id == activityID && $0.userID == ownerID
@@ -5738,22 +5818,27 @@ final class AppSession {
             linkedWearable = linked
         }
 
-        data.workoutSessions.append(workout)
-        data.workoutLogs.append(contentsOf: logs)
+        var candidate = data
+        candidate.workoutSessions.removeAll { $0.userID == ownerID && $0.id == workout.id }
+        candidate.workoutSessions.append(workout)
+        candidate.workoutLogs.removeAll { $0.userID == ownerID && $0.sessionID == workout.id }
+        candidate.workoutLogs.append(contentsOf: logs)
         if wearableLinkRequest == .automatic {
             linkedWearable = WearableWorkoutLinking.automaticLinks(
-                sessions: data.workoutSessions,
-                activities: data.importedActivities,
+                sessions: candidate.workoutSessions,
+                activities: candidate.importedActivities,
                 ownerID: ownerID
-            ).first { $0.apexWorkoutSessionID == workout.id }
+            ).first { $0.apexWorkoutSessionID == workout.id } ?? linkedWearable
         }
         if let linkedWearable {
-            data.importedActivities.removeAll { $0.id == linkedWearable.id }
-            data.importedActivities.append(linkedWearable)
+            candidate.importedActivities.removeAll { $0.id == linkedWearable.id }
+            candidate.importedActivities.append(linkedWearable)
         }
 
-        var linkedActivity: ActivityLog?
-        if wearableLinkRequest == .automatic,
+        var linkedActivity = data.activityLogs.first {
+            $0.userID == ownerID && $0.id == WorkoutReceipt.generatedActivityID(for: workout)
+        }
+        if linkedActivity == nil, wearableLinkRequest == .automatic,
            let profile, profile.userID == ownerID,
            let activityType = data.activityTypes.first(where: { $0.id == "apex-strength" }) {
             let elapsed = max(1, Int(Date().timeIntervalSince(startedAt) / 60))
@@ -5779,18 +5864,50 @@ final class AppSession {
                 createdAt: now,
                 updatedAt: now
             )
-            data.activityLogs.append(activity)
+            candidate.activityLogs.append(activity)
             linkedActivity = activity
+        }
+
+        func publishReceipt() {
+            // Nutrition or other account edits may happen during storage awaits.
+            // Publish only this receipt graph into the current dashboard.
+            var current = data
+            current.workoutSessions.removeAll { $0.userID == ownerID && $0.id == workout.id }
+            current.workoutSessions.append(workout)
+            current.workoutLogs.removeAll { $0.userID == ownerID && $0.sessionID == workout.id }
+            current.workoutLogs.append(contentsOf: logs)
+            if let linkedWearable {
+                current.importedActivities.removeAll { $0.id == linkedWearable.id }
+                current.importedActivities.append(linkedWearable)
+            }
+            if let linkedActivity {
+                current.activityLogs.removeAll { $0.id == linkedActivity.id }
+                current.activityLogs.append(linkedActivity)
+            }
+            data = current
         }
 
         /* The receipt is part of completing the workout, so it must not wait
            for a chain of remote writes. Preserve one complete local snapshot
            first, durably enqueue its dependency bundle, then let the normal
            offline-aware sync path drain in the background. */
-        try await saveLocalSnapshot(operation: operation)
+        #if DEBUG
+        if APEXRuntimeEnvironment.usesLocalUITestFixture(),
+           ProcessInfo.processInfo.arguments.contains("-fitr-ui-test-save-failure"),
+           !uiTestWorkoutSaveFailureInjected {
+            uiTestWorkoutSaveFailureInjected = true
+            throw CocoaError(.fileWriteOutOfSpace)
+        }
+        #endif
+        // Completion may clear the player's only recovery draft, so unlike
+        // best-effort background snapshots this write must report failure.
+        if !isDeveloperSandbox && !APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            try await offlineStore.saveDashboard(candidate, for: ownerID)
+        }
         try requireCurrentAccountOperation(operation)
         if isDeveloperSandbox || APEXRuntimeEnvironment.usesLocalUITestFixture() {
             try requireCurrentAccountOperation(operation)
+            publishReceipt()
             lastSyncAt = .now
             return workout.id
         }
@@ -5799,32 +5916,50 @@ final class AppSession {
             guard TrainingInduction.belongsToAccount(data, userID: ownerID) else {
                 throw CancellationError()
             }
-            let parent = try OfflineOperation.upsert(
+            func completionOperation<T: Encodable & Sendable>(
+                _ value: T, table: String, recordID: UUID, onConflict: String? = nil
+            ) throws -> OfflineOperation {
+                // A changed retry gets its own operation, even if the earlier
+                // payload is already syncing. Identical retries still coalesce.
+                let encoder = JSONEncoder()
+                encoder.dateEncodingStrategy = .iso8601
+                encoder.outputFormatting = [.sortedKeys]
+                let payload = try encoder.encode(value).base64EncodedString()
+                return try OfflineOperation.upsert(
+                    value, table: table, onConflict: onConflict,
+                    id: APEXStableID.scopedUUID(
+                        namespace: "workout-completion-outbox",
+                        date: "\(table):\(recordID):\(payload)", userID: ownerID
+                    )
+                )
+            }
+            let parent = try completionOperation(
                 workout,
                 table: "workout_sessions",
-                onConflict: nil
+                recordID: workout.id
             )
             var dependents = try logs.map {
-                try OfflineOperation.upsert(
+                try completionOperation(
                     $0,
                     table: "workout_logs",
-                    onConflict: nil
+                    recordID: $0.id
                 )
             }
             if let linkedActivity {
                 dependents.append(
-                    try OfflineOperation.upsert(
+                    try completionOperation(
                         linkedActivity,
                         table: "activity_logs",
-                        onConflict: nil
+                        recordID: linkedActivity.id
                     )
                 )
             }
             if let linkedWearable {
                 dependents.append(
-                    try OfflineOperation.upsert(
+                    try completionOperation(
                         linkedWearable,
                         table: "imported_activities",
+                        recordID: linkedWearable.id,
                         onConflict: "user_id,healthkit_workout_id"
                     )
                 )
@@ -5844,11 +5979,11 @@ final class AppSession {
             throw CancellationError()
         } catch {
             try requireCurrentAccountOperation(operation)
-            alertMessage = error.localizedDescription
-            return workout.id
+            throw error
         }
 
         try requireCurrentAccountOperation(operation)
+        publishReceipt()
         workoutSyncTask?.cancel()
         workoutSyncTask = Task { @MainActor [weak self] in
             guard let self,

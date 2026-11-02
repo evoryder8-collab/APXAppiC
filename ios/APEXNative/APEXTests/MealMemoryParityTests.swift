@@ -229,6 +229,71 @@ final class MealMemoryParityTests: XCTestCase {
         XCTAssertEqual(preference.lastUsedAt, usedAt)
     }
 
+    @MainActor
+    func testMealFavouriteResolvesRemoteSelectionAndSavedSnapshotOutsideCatalogue() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        let ownerID = try XCTUnwrap(session.profile?.userID)
+        session.data = APEXDebugFixture.dashboard(userID: ownerID)
+        var seededBread = try XCTUnwrap(Self.fixture.foods.first { UUID(uuidString: $0.id) != nil })
+        seededBread.name = "Bread, seeded"
+        seededBread.source = "apex_cache"
+        seededBread.providerProductID = "corpus:uk-cofid:11-947"
+        let foodID = try XCTUnwrap(UUID(uuidString: seededBread.id))
+        session.data.foods.removeAll { UUID(uuidString: $0.id) == foodID }
+        let existingFoods = session.data.foods
+        let savedEntry = LoggedFoodEntry(
+            id: UUID(), mealID: UUID(), userID: ownerID, foodID: foodID, sortOrder: 0,
+            snapshotName: seededBread.name, snapshotBrand: seededBread.brand,
+            snapshotPreparationState: seededBread.preparationState,
+            snapshotNutritionBasis: seededBread.nutritionBasis,
+            snapshotKcal100: seededBread.kcal100 ?? 0,
+            snapshotProtein100: seededBread.protein100 ?? 0,
+            snapshotCarbs100: seededBread.carbs100 ?? 0,
+            snapshotFat100: seededBread.fat100 ?? 0,
+            quantity: 100, unit: "g", equivalentAmount: 100,
+            kcal: seededBread.kcal100 ?? 0, proteinG: seededBread.protein100 ?? 0,
+            carbsG: seededBread.carbs100 ?? 0, fatG: seededBread.fat100 ?? 0
+        )
+        let restoredEntry = try JSONDecoder().decode(
+            LoggedFoodEntry.self, from: JSONEncoder().encode(savedEntry)
+        )
+        seededBread = MealMemory.food(from: restoredEntry)
+        seededBread.providerProductID = "corpus:uk-cofid:11-947"
+        let operation = try XCTUnwrap(session.accountOperationLease())
+
+        for item in [
+            MealComposerItem(food: seededBread, quantity: 100, unit: "g"),
+            MealComposerItem(entry: restoredEntry),
+        ] {
+            session.data.foods = existingFoods
+            let resolved = try XCTUnwrap(item.resolvedFood(in: session.data.foods))
+            XCTAssertEqual(UUID(uuidString: resolved.id), foodID)
+            XCTAssertEqual(resolved.kcal100, item.kcal100)
+            try await session.setFoodFavourite(resolved, favourite: true, operation: operation)
+            let restored = try JSONDecoder().decode(
+                DashboardData.self, from: JSONEncoder().encode(session.data)
+            )
+            XCTAssertTrue(restored.foodPreferences.contains {
+                $0.userID == ownerID && $0.foodID == foodID && $0.favourite
+            })
+            XCTAssertEqual(restored.foods.filter { UUID(uuidString: $0.id) == foodID }.count, 1)
+            XCTAssertEqual(Array(restored.foods.prefix(existingFoods.count)), existingFoods)
+            XCTAssertEqual(item.quantity, 100)
+            XCTAssertEqual(item.unit, "g")
+
+            try await session.setFoodFavourite(resolved, favourite: false, operation: operation)
+            XCTAssertEqual(session.data.foodPreferences.filter { $0.foodID == foodID }.count, 1)
+            XCTAssertFalse(try XCTUnwrap(session.data.foodPreferences.first { $0.foodID == foodID }).favourite)
+        }
+        var canonicalBread = seededBread
+        canonicalBread.kcal100 = (seededBread.kcal100 ?? 0) + 1
+        XCTAssertEqual(
+            MealComposerItem(entry: restoredEntry).resolvedFood(in: [canonicalBread]),
+            canonicalBread,
+            "An available canonical food must outrank the historical fallback."
+        )
+    }
+
     func testFoodMemorySearchMatchesLocalizedNamesAndPrivateAliasesOffline() throws {
         let food = try XCTUnwrap(Self.fixture.foods.first { UUID(uuidString: $0.id) != nil })
         var localizedFood = food

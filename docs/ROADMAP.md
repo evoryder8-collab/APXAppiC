@@ -1109,3 +1109,7 @@ relevant, remaining limitations, and any external configuration still required i
 Supabase or Apple Developer.
 
 Do not claim anything is complete without that evidence.
+
+### 2026-11-02 owner feedback — build 401 delivery in progress
+
+The active local checkout remains `/Users/jaxoncorrey/Downloads/Fitness App`. The current release combines the owner's guided-save dead-end, separate daily workout controls, food favourites/search, rest execution, Quick Log attribution, chart labels and reproduced Watch recommendation crash. See the latest `REPAIR-NOTES.md` entry and `docs/superpowers/audits/2026-11-02-rest-avatar-and-watch-audit.md` for evidence and remaining limits. Final device/TestFlight and Pages delivery must be recorded before this release is called complete. This does not close unresolved Supabase hardening (2.3), activate Fitness Brain V2, or reorder the main roadmap.

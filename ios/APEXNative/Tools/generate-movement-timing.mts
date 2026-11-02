@@ -47,6 +47,7 @@ const movements = MOVEMENTS.map((m) => ({
   loadable: m.loadable,
   entity_type: m.entityType,
   disciplines: m.disciplines,
+  primary_muscles: m.primaryMuscles,
   prescription: m.prescription,
 })).concat(CARDIO_MODALITIES.map((modality) => ({
   id: modality.id,
@@ -59,6 +60,7 @@ const movements = MOVEMENTS.map((m) => ({
   loadable: false,
   entity_type: 'cardio_modality',
   disciplines: ['cardio'],
+  primary_muscles: [],
   prescription: 'duration_distance',
 })))
 

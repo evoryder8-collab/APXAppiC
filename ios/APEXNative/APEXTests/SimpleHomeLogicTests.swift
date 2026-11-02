@@ -58,6 +58,47 @@ struct SponsoredSimpleWorkoutTests {
 }
 
 final class SimpleHomeLogicTests: XCTestCase {
+    func testDailySessionsKeepMorningOfficialAndCardioCompletionIndependent() {
+        let owner = UUID(), foreignOwner = UUID(), programID = UUID()
+        let date = "2026-11-04"
+        func plan(_ name: String, ownerID: UUID? = nil, active: Bool = true) -> PlannedDay {
+            let ownerID = ownerID ?? owner
+            let day = ProgramDay(id: UUID(), userID: ownerID, programID: programID,
+                                 weekday: 3, name: name, dayType: "push", estimatedMinutes: 20,
+                                 warmupNote: "", sortOrder: 0, isActive: active)
+            let exercise = Exercise(id: UUID(), userID: ownerID, programDayID: day.id, name: "Push-up",
+                                    sets: 3, repMin: 8, repMax: 12, repUnit: "reps", perSide: false,
+                                    restSeconds: 90, tempoUp: 1, tempoDown: 2, tempoPause: 0, tempoNote: "", notes: "",
+                                    incrementKG: 0, isLite: false, optional: false, sortOrder: 0)
+            return PlannedDay(programDay: day, exercises: [PlannedExercise(exercise: exercise, plannedSets: 3, swapped: false)])
+        }
+        let plans = [plan("AM · Morning circle"), plan("Pull A · Strength"), plan("Focus T25")]
+        let ids = plans.map { $0.programDay!.id }
+        func receipt(_ dayID: UUID, ownerID: UUID? = nil, on date: String = "2026-11-04", completed: Bool = true) -> WorkoutSession {
+            WorkoutSession(id: UUID(), userID: ownerID ?? owner, date: date, programDayID: dayID,
+                           isLite: false, isDeload: false, isEventRecovery: false, completed: completed,
+                           qualityScore: 1, startedAt: nil, completedAt: nil, notes: "")
+        }
+        let morningReceipt = receipt(ids[0])
+        let receipts = [morningReceipt, receipt(ids[1], on: "2026-11-03"),
+                        receipt(ids[1], ownerID: foreignOwner), receipt(ids[2], completed: false), receipt(UUID())]
+        let rows = SimpleHomeLogic.dailyGuidedSessions(plans: plans, sessions: receipts, ownerID: owner, date: date,
+                                                      resumableModes: [ids[2]: true])
+        XCTAssertEqual(rows.map(\.id), ids)
+        XCTAssertEqual(rows.map(\.statusLabel), ["Completed", "Start", "Continue"])
+        XCTAssertEqual(rows[0].completedSessionID, morningReceipt.id)
+        XCTAssertEqual(rows[2].resumeLite, true)
+        XCTAssertFalse(rows.allSatisfy { $0.completedSessionID != nil })
+        XCTAssertTrue(SimpleHomeLogic.dailyGuidedSessions(plans: plans, sessions: ids.map { receipt($0) }, ownerID: owner, date: date)
+            .allSatisfy { $0.completedSessionID != nil })
+        XCTAssertTrue(SimpleHomeLogic.dailyGuidedSessions(plans: plans, sessions: receipts, ownerID: owner, date: "2026-11-05")
+            .allSatisfy { $0.statusLabel == "Start" })
+        let extraPlans = [plans[0], plans[0], plan("Foreign", ownerID: foreignOwner), plan("Old", active: false),
+                          PlannedDay(programDay: plans[1].programDay)]
+        XCTAssertEqual(SimpleHomeLogic.dailyGuidedSessions(plans: extraPlans, sessions: [], ownerID: owner, date: date).count, 1)
+        XCTAssertTrue(SimpleHomeLogic.dailyGuidedSessions(plans: plans, sessions: [], ownerID: nil, date: date).isEmpty)
+    }
+
     func testFitnessPlanIntroductionPersistsOnlyAfterBothPhaseSubtitlesAppear() {
         var state = FitnessPlanDisclosureState()
 
@@ -346,6 +387,7 @@ final class SimpleHomeLogicTests: XCTestCase {
         XCTAssertEqual(
             SimpleHomeLogic.completedSessionID(
                 sessions: sessions,
+                ownerID: userID,
                 date: "2026-08-21",
                 programDayID: dayID
             ),
@@ -354,6 +396,7 @@ final class SimpleHomeLogicTests: XCTestCase {
         XCTAssertNil(
             SimpleHomeLogic.completedSessionID(
                 sessions: sessions,
+                ownerID: userID,
                 date: "2026-08-21",
                 programDayID: UUID()
             )

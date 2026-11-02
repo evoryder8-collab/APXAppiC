@@ -126,7 +126,8 @@ struct OfflineOperation: Codable, Identifiable, Sendable {
     static func upsert<T: Encodable & Sendable>(
         _ value: T,
         table: String,
-        onConflict: String?
+        onConflict: String?,
+        id: UUID = UUID()
     ) throws -> OfflineOperation {
         let payload: Data
         if table == "profile" {
@@ -135,7 +136,7 @@ struct OfflineOperation: Codable, Identifiable, Sendable {
             payload = try JSONEncoder.apex.encode(value)
         }
         return OfflineOperation(
-            id: UUID(),
+            id: id,
             kind: .upsert,
             table: table,
             payload: payload,

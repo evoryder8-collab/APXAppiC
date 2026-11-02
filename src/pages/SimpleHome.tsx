@@ -20,6 +20,7 @@ import { useFoodStore } from '../store/FoodStore'
 import { ACCENTS } from '../lib/theme'
 import { ACTIVITY_MULTIPLIERS, activityLevelLabel, buildTargetMealPlan, computeTargets, goalPresetsForPlan, nutritionPlanContext, type TargetMeal } from '../lib/nutrition'
 import { planForDate, programDaysForDate } from '../lib/plan'
+import { dailyGuidedSessions, guidedPlayerDraftKey, guidedPlayerDraftMatches } from '../lib/dailyGuidedSessions'
 import { dailyLogId } from '../lib/ids'
 import type { ActivityLevel, DailyLog, ProgramSlug, Supplement } from '../lib/types'
 import { aggregateConsumedMeals, displayFoodName, reconcileConsumedMeals, type ComposerFoodItem, type FoodRecord, type LoggedMeal, type MealSlot } from '../lib/food'
@@ -44,7 +45,7 @@ import { RecoveryCheckinCard } from '../components/RecoveryCheckinCard'
 import { WatchActivityCheckin } from '../components/WatchActivityCheckin'
 import { personaBySlug } from '../lib/persona'
 import { catalogExerciseByName, displayExerciseName } from '../data/exerciseCatalog'
-import { estimatedTimelineMinutes } from '../lib/playerTimeline'
+import { buildTimeline, estimatedTimelineMinutes } from '../lib/playerTimeline'
 import { isFocusT25Name } from '../lib/focusT25'
 import { calendarDayState, loadActiveDate, rememberActiveDate } from '../lib/activeDate'
 import { activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
@@ -342,9 +343,32 @@ export function SimpleHome() {
     ?? lightPlans[0]
     ?? planForDate(data, guidedProgramSlug, selectedDate, true, plan.programDay?.id)
   const completedWorkoutSessions = useMemo(() => data.workout_sessions
-    .filter((session) => session.date === selectedDate && session.completed)
+    .filter((session) => session.user_id === profile?.user_id && session.date === selectedDate && session.completed)
     .sort((left, right) => (right.completed_at ?? right.started_at ?? '').localeCompare(left.completed_at ?? left.started_at ?? '')),
-  [data.workout_sessions, selectedDate])
+  [data.workout_sessions, profile?.user_id, selectedDate])
+  const dailyTrainingSessions = useMemo(() => {
+    const ownerId = profile?.user_id
+    const resumableModes = new Map<string, boolean>()
+    if (ownerId) for (const fullPlan of plans) {
+      const programDayId = fullPlan.programDay?.id
+      if (!programDayId) continue
+      for (const lite of [false, true]) {
+        const candidate = lite ? lightPlans.find((item) => item.programDay?.id === programDayId) : fullPlan
+        if (!candidate) continue
+        const identity = { ownerId, slug: guidedProgramSlug, date: selectedDate, lite, programDayId,
+          exerciseIds: candidate.exercises.map((exercise) => exercise.id) }
+        try {
+          const draft = JSON.parse(localStorage.getItem(guidedPlayerDraftKey(identity)) ?? 'null')
+          const block = draft ? buildTimeline(candidate)[draft.idx] : undefined
+          if (guidedPlayerDraftMatches(draft, identity) && block) {
+            resumableModes.set(programDayId, lite)
+            break
+          }
+        } catch { /* Unreadable local draft leaves a normal Start action. */ }
+      }
+    }
+    return dailyGuidedSessions(plans, data.workout_sessions, ownerId, selectedDate, resumableModes)
+  }, [plans, lightPlans, data.workout_sessions, profile?.user_id, selectedDate, guidedProgramSlug])
   const completedProgramDayIds = useMemo(
     () => new Set(completedWorkoutSessions.map((session) => session.program_day_id).filter(Boolean)),
     [completedWorkoutSessions],
@@ -352,7 +376,9 @@ export function SimpleHome() {
   const incompleteGuidedPlans = plans.filter((candidate) =>
     candidate.exercises.length > 0 && !completedProgramDayIds.has(candidate.programDay?.id ?? ''),
   )
-  const workoutDone = completedWorkoutSessions.length > 0
+  const workoutDone = dailyTrainingSessions.length > 0
+    ? dailyTrainingSessions.every((item) => item.completedSessionID != null)
+    : completedWorkoutSessions.length > 0
   const dailyLog = data.daily_logs.find((log) => log.date === selectedDate)
   const water = dailyLog?.water_l ?? 0
   /* Water eaten rather than drunk stays separately attributable. The new
@@ -462,8 +488,8 @@ export function SimpleHome() {
     const catalogExercise = catalogExerciseByName(name)
     return catalogExercise ? displayExerciseName(catalogExercise, language) : t(name)
   }
-  const trainingPanelTitle = workoutDone ? t('Completed training') : t('Training preview')
-  const trainingPanelSubtitle = workoutDone
+  const trainingPanelTitle = dailyTrainingSessions.length > 1 ? t('Training') : workoutDone ? t('Completed training') : t('Training preview')
+  const trainingPanelSubtitle = dailyTrainingSessions.length > 1 ? selectedDate : workoutDone
     ? `${completedWorkoutSessions.length} ${t(completedWorkoutSessions.length === 1 ? 'completed workout' : 'completed workouts')}`
     : hasWorkout
       ? `${previewPlan.exercises.length} ${t(previewPlan.exercises.length === 1 ? 'exercise' : 'exercises')} · ${previewWorkoutMinutes} min`
@@ -1027,6 +1053,27 @@ export function SimpleHome() {
     chooseDate(date)
   }
 
+  const dailyTrainingList = (
+    <div className="space-y-2" data-simple-local-gesture data-testid="simple-daily-training-sessions">
+      {dailyTrainingSessions.map((item) => {
+        const day = item.plan.programDay!
+        return (
+          <button key={day.id} type="button" data-testid={`simple-training-session-${day.id}`}
+            onClick={() => {
+              setQuickPanel(null)
+              if (item.completedSessionID) setWorkoutStatsSessionId(item.completedSessionID)
+              else navigate(`/player/${guidedProgramSlug}/${selectedDate}?day=${day.id}${item.resumeLite ? '&lite=1' : ''}`)
+            }}
+            className="flex min-h-12 w-full items-center gap-3 rounded-2xl border border-white/80 bg-white/70 px-3.5 py-3 text-left shadow-sm">
+            <span aria-hidden="true" className={`text-xl ${item.completedSessionID ? 'text-emerald-600' : 'text-violet-600'}`}>{item.completedSessionID ? '✓' : item.resumeLite != null ? '▶' : '○'}</span>
+            <span className="min-w-0 flex-1 break-words font-display text-sm font-bold text-ink">{t(day.name)}</span>
+            <span className={`shrink-0 text-xs font-bold ${item.completedSessionID ? 'text-emerald-700' : 'text-violet-700'}`}>{t(item.status)}</span>
+          </button>
+        )
+      })}
+    </div>
+  )
+
   return (
     <div
       className="ios-focus-safe mx-auto w-full max-w-3xl touch-pan-y touch-pinch-zoom"
@@ -1193,8 +1240,9 @@ export function SimpleHome() {
                     onClick={() => navigate('/avatar')}
                     ariaLabel={t('Open body stats')}
                   />
-                  <SimpleMetric icon={<DumbbellIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${fullWorkoutMinutes}m` : t('Rest')} label={t('Training')} done={workoutDone} onClick={() => { setTrainingPreviewMode('full'); setQuickPanel('training') }} ariaLabel={t('Preview training')} />
+                  <SimpleMetric icon={<DumbbellIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : dailyTrainingSessions.length > 1 ? `${dailyTrainingSessions.filter((item) => item.completedSessionID).length}/${dailyTrainingSessions.length}` : hasWorkout ? `${fullWorkoutMinutes}m` : t('Rest')} label={t('Training')} done={workoutDone} onClick={() => { setTrainingPreviewMode('full'); setQuickPanel('training') }} ariaLabel={t('Preview training')} />
                 </div>
+                {dailyTrainingSessions.length > 1 && dailyTrainingList}
               </div>
             ) : blockId === 'activity' ? (
               <div className="space-y-3" data-simple-local-gesture>
@@ -1409,7 +1457,9 @@ export function SimpleHome() {
 
               {quickPanel === 'training' ? (
                 <div className="mt-3">
-                  {workoutDone ? (
+                  {dailyTrainingSessions.length > 1 ? (
+                    <div className="max-h-[52dvh] overflow-y-auto">{dailyTrainingList}</div>
+                  ) : workoutDone ? (
                     <div className="max-h-[52dvh] space-y-2 overflow-y-auto pr-0.5">
                       {completedWorkoutSessions.map((session) => {
                         const sessionLogs = data.workout_logs.filter((log) => log.session_id === session.id)

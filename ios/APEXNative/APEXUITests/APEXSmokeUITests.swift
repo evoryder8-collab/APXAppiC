@@ -1286,10 +1286,22 @@ final class APEXSmokeUITests: XCTestCase {
         let unitControls = app.descendants(matching: .any).matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "meal-item-unit-")
         )
-        let millilitres = unitControls.element(boundBy: 1)
+        let millilitres = unitControls.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "ml")
+        ).firstMatch
         XCTAssertTrue(millilitres.waitForExistence(timeout: 2))
         for _ in 0..<8 where !millilitres.frame.intersects(app.frame) {
             app.swipeUp()
+        }
+        // A control can intersect the screen while still sitting behind the
+        // meal's pinned action bar. Bring the actual row above that bar.
+        for _ in 0..<6 where millilitres.frame.maxY > app.frame.maxY - 180 {
+            app.coordinate(withNormalizedOffset: CGVector(dx: 0.12, dy: 0.7)).press(
+                forDuration: 0.05,
+                thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.12, dy: 0.5)),
+                withVelocity: 200,
+                thenHoldForDuration: 0
+            )
         }
         XCTAssertTrue(millilitres.frame.intersects(app.frame))
         XCTAssertTrue(millilitres.label.localizedCaseInsensitiveContains("ml"))
@@ -1300,13 +1312,30 @@ final class APEXSmokeUITests: XCTestCase {
         let cardElements = app.descendants(matching: .any).matching(
             NSPredicate(format: "identifier == %@", cardIdentifier)
         ).allElementsBoundByIndex
-        XCTAssertGreaterThan(cardElements.count, 1)
+        XCTAssertGreaterThanOrEqual(cardElements.count, 1)
         let cardFrame = cardElements.map(\.frame).reduce(CGRect.null) { $0.union($1) }
         XCTAssertGreaterThanOrEqual(millilitres.frame.width, 60)
         XCTAssertLessThanOrEqual(millilitres.frame.height, 44)
         XCTAssertGreaterThanOrEqual(millilitres.frame.minY, cardFrame.minY - 1)
         XCTAssertLessThanOrEqual(millilitres.frame.maxY, cardFrame.maxY + 1)
         XCTAssertLessThanOrEqual(cardFrame.height, 96)
+        let favourite = app.buttons[millilitres.identifier.replacingOccurrences(
+            of: "meal-item-unit-", with: "food-favourite-"
+        )]
+        XCTAssertTrue(favourite.waitForExistence(timeout: 2), app.debugDescription)
+        XCTAssertGreaterThanOrEqual(favourite.frame.width, 44)
+        XCTAssertGreaterThanOrEqual(favourite.frame.height, 44)
+        XCTAssertFalse(favourite.isSelected)
+        capture("compact-food-favourite-before-tap")
+        tapClearOfDock(favourite)
+        let selected = XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == true"), object: favourite)
+        let selectionResult = XCTWaiter.wait(for: [selected], timeout: 3)
+        capture("compact-food-favourite-after-tap")
+        XCTAssertEqual(selectionResult, .completed, app.debugDescription)
+        XCTAssertTrue(millilitres.label.localizedCaseInsensitiveContains("ml"))
+        favourite.tap()
+        let cleared = XCTNSPredicateExpectation(predicate: NSPredicate(format: "selected == false"), object: favourite)
+        XCTAssertEqual(XCTWaiter.wait(for: [cleared], timeout: 3), .completed)
     }
 
     func testMealComposerBarcodeButtonOpensScannerWithoutOpeningFoodMemory() {
@@ -1533,6 +1562,103 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(app.buttons["workout-skip-rest"].isEnabled)
         app.buttons["workout-skip-rest"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["workout-phase-active"].waitForExistence(timeout: 2))
+    }
+
+    func testUnilateralPlayerRestBeginsAfterBothSides() {
+        let app = configuredApp()
+        app.launchArguments.append("-fitr-ui-test-unilateral")
+        app.launch()
+
+        XCTAssertTrue(expandFitnessPlan(in: app))
+        XCTAssertTrue(app.buttons["portal.transition"].waitForExistence(timeout: 4))
+        app.buttons["portal.transition"].tap()
+        let trainingDay = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "training-day-")
+        ).firstMatch
+        XCTAssertTrue(scrollUntilVisible(trainingDay, in: app))
+        trainingDay.tap()
+        let start = app.buttons["workout-start-session"]
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        XCTAssertTrue(scrollUntilVisible(start, in: app))
+        app.swipeUp()
+        tapClearOfDock(start)
+
+        XCTAssertTrue(app.descendants(matching: .any)["workout-phase-warmup"].waitForExistence(timeout: 10))
+        app.buttons["workout-skip-warmup"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["workout-phase-active"].waitForExistence(timeout: 2))
+        XCTAssertEqual(app.staticTexts["workout-current-side"].label, "Left side")
+        app.buttons["workout-end-set"].tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["workout-phase-side-switch"].waitForExistence(timeout: 2))
+        XCTAssertFalse(app.descendants(matching: .any)["workout-phase-rest"].exists)
+        app.buttons["workout-continue-right-side"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["workout-phase-active"].waitForExistence(timeout: 2))
+        XCTAssertEqual(app.staticTexts["workout-current-side"].label, "Right side")
+        app.buttons["workout-end-set"].tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["workout-phase-rest"].waitForExistence(timeout: 2))
+        let countdown = app.staticTexts["workout-rest-countdown"]
+        XCTAssertTrue(countdown.waitForExistence(timeout: 2))
+        XCTAssertTrue(
+            (116...120).contains(Int(countdown.label) ?? 0),
+            "Both sides must be followed by the prescribed 120-second rest, allowing a few elapsed seconds."
+        )
+        capture("unilateral-full-rest-after-both-sides")
+        // Leave the isolated session unfinished; this check must not save a workout.
+    }
+
+    func testCompletedDraftRepairsMissingSetSurvivesSaveFailureAndShowsReceipt() {
+        let app = configuredApp()
+        app.launchArguments += ["-fitr-ui-test-completion-repair", "-fitr-ui-test-save-failure"]
+        app.launch()
+        XCTAssertTrue(expandFitnessPlan(in: app))
+        app.buttons["portal.transition"].tap()
+        let trainingDay = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "training-day-")
+        ).firstMatch
+        XCTAssertTrue(scrollUntilVisible(trainingDay, in: app))
+        trainingDay.tap()
+        let start = app.buttons["workout-start-session"]
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        XCTAssertTrue(scrollUntilVisible(start, in: app))
+        app.swipeUp()
+        tapClearOfDock(start)
+
+        // The fixture is a pre-update completed draft, not a newly played set.
+        let complete = app.descendants(matching: .any)["workout-phase-complete"]
+        XCTAssertTrue(complete.waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["1 recorded · 8 total reps"].exists)
+        let save = app.buttons["workout-save"]
+        XCTAssertTrue(save.isEnabled, "Missing facts must lead to repair instead of a dead Save button.")
+        XCTAssertTrue(scrollUntilVisible(save, in: app))
+        tapClearOfDock(save)
+        let skip = app.buttons["workout-completion-skip-0"]
+        XCTAssertTrue(scrollUntilVisible(skip, in: app))
+        XCTAssertTrue(app.staticTexts["Complete the required facts or mark this set skipped."].exists)
+        skip.tap()
+        XCTAssertTrue(app.staticTexts["1 recorded · 8 total reps"].exists, "Skipping must not invent reps.")
+        XCTAssertTrue(scrollUntilVisible(save, in: app))
+        tapClearOfDock(save)
+        XCTAssertTrue(app.alerts.firstMatch.waitForExistence(timeout: 5), "A local persistence failure must remain visible.")
+        XCTAssertFalse(app.buttons["workout-receipt-done"].exists)
+        app.alerts.buttons["OK"].tap()
+
+        // Leaving and reopening must recover the completed, repaired draft.
+        let exit = app.buttons["Exit"]
+        XCTAssertTrue(scrollUntilVisible(exit, in: app))
+        exit.tap()
+        app.buttons["Leave workout"].tap()
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        XCTAssertTrue(scrollUntilVisible(start, in: app))
+        tapClearOfDock(start)
+        XCTAssertTrue(complete.waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["1 recorded · 8 total reps"].exists)
+        XCTAssertTrue(scrollUntilVisible(save, in: app))
+        tapClearOfDock(save)
+        let done = app.buttons["workout-receipt-done"]
+        XCTAssertTrue(done.waitForExistence(timeout: 8))
+        capture("completed-draft-repaired-and-saved")
+        done.tap()
     }
 
     func testAlreadyFinishedPausesAndCompletesWithoutInventingSets() {

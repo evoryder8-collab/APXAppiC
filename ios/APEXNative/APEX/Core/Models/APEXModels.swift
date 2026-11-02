@@ -1192,6 +1192,9 @@ struct StructuredMealRPCPayload: Codable, Sendable {
 /// through `log_structured_meal`, which atomically replaces the meal and
 /// recalculates the shared daily nutrition row.
 struct MealComposerItem: Identifiable, Hashable, Sendable {
+    /// Keep the selected or saved record available when it is outside the
+    /// bounded catalogue. This never changes the meal's nutrient snapshot.
+    private var sourceFood: Food? = nil
     var recordedPortionMass: Double?
     var id: UUID
     var foodID: UUID?
@@ -1237,6 +1240,11 @@ struct MealComposerItem: Identifiable, Hashable, Sendable {
         max(0, waterML100 ?? 0) * max(0, equivalentAmount) / 100
     }
 
+    func resolvedFood(in catalogue: [Food]) -> Food? {
+        guard let foodID else { return sourceFood }
+        return catalogue.first { UUID(uuidString: $0.id) == foodID } ?? sourceFood
+    }
+
     mutating func setQuantity(_ value: Double, food: Food? = nil) {
         let recordedMass = equivalentAmountPerUnit
         quantity = max(0, value)
@@ -1259,6 +1267,7 @@ struct MealComposerItem: Identifiable, Hashable, Sendable {
     }
 
     init(food: Food, quantity: Double, unit: String) {
+        sourceFood = food
         let equivalent: Double
         switch unit {
         case "piece": equivalent = quantity * (food.pieceGramsOrML ?? 0)
@@ -1289,6 +1298,7 @@ struct MealComposerItem: Identifiable, Hashable, Sendable {
     }
 
     init(entry: LoggedFoodEntry) {
+        sourceFood = MealMemory.food(from: entry)
         id = entry.id
         foodID = entry.foodID
         name = entry.snapshotName

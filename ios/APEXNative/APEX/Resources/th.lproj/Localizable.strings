@@ -4102,7 +4102,7 @@
 /* Interface sweep, continued */
 "Your index over time" = "ดัชนีของคุณตามช่วงเวลา";
 "What this chart shows" = "กราฟนี้แสดงอะไร";
-"One point for every day FITR MAX recorded a full picture of you. The line is your overall index, the same number shown at the top of this page, so you can see whether it is moving and not only where it stands today." = "แต่ละจุดคือหนึ่งวันที่ FITR MAX บันทึกข้อมูลของคุณได้ครบ เส้นนี้แสดงดัชนีรวมตัวเดียวกับตัวเลขด้านบนของหน้า จึงดูได้ทั้งค่าปัจจุบันและแนวโน้มการเปลี่ยนแปลง";
+"Daily estimates based on what you log. The line shows your overall index over time. Missing logs can affect the estimate." = "ค่าประมาณรายวันจากข้อมูลที่คุณบันทึก เส้นกราฟแสดงแนวโน้มดัชนีโดยรวมของคุณ ข้อมูลที่ไม่ได้บันทึกอาจมีผลต่อค่าประมาณ";
 "COMPLETED" = "เสร็จสิ้น";
 "BETWEEN" = "ระหว่าง";
 "WORKOUTS" = "การฝึก";

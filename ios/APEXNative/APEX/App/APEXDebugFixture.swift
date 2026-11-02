@@ -159,6 +159,21 @@ enum APEXDebugFixture {
             id: UUID(), userID: userID, date: priorDate, overall: 62, health: 69, joint: 58,
             flexibility: 53, endurance: 60, strength: 66, strengthUpper: 70, strengthLower: 61
         )
+        var snapshots = [priorSnapshot, snapshot]
+        if ProcessInfo.processInfo.arguments.contains("-apex-ui-test"),
+           ProcessInfo.processInfo.arguments.contains("-fitr-ui-test-avatar-history") {
+            snapshots = (0..<90).reversed().compactMap { daysAgo in
+                guard let date = Calendar.current.date(byAdding: .day, value: -daysAgo, to: currentDate) else { return nil }
+                return RPGSnapshot(
+                    id: UUID(), userID: userID, date: date.apexDateKey,
+                    overall: 68 - Double(daysAgo) / 15 + sin(Double(daysAgo) / 5) * 2,
+                    health: snapshot.health, joint: snapshot.joint,
+                    flexibility: snapshot.flexibility, endurance: snapshot.endurance,
+                    strength: snapshot.strength, strengthUpper: snapshot.strengthUpper,
+                    strengthLower: snapshot.strengthLower
+                )
+            }
+        }
         let workoutSession = WorkoutSession(
             id: UUID(), userID: userID, date: today, programDayID: transitionDayID,
             isLite: false, isDeload: false, isEventRecovery: false, completed: true,
@@ -207,7 +222,7 @@ enum APEXDebugFixture {
             mealPresetItems: presetItems,
             loggedMeals: [loggedBreakfast],
             loggedFoodEntries: loggedEntries,
-            snapshots: [priorSnapshot, snapshot],
+            snapshots: snapshots,
             healthMetrics: healthMetrics,
             orbitRuns: [run]
         )

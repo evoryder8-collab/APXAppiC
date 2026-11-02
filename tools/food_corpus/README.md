@@ -68,3 +68,19 @@ node tools/food_corpus/build_natural_food_evidence.mjs \
 ```
 
 The generator pairs each staged manifest's artifact filename with the approved registry path and checksum, preserves the reviewed macro delta when choosing Foundation energy methods, and derives the JSON rejection report from `rejections.tsv`.
+
+## Search checks after a large corpus load
+
+After activating a source batch, refresh planner statistics for the affected corpus projection tables with targeted maintenance (never a database-wide rebuild):
+
+```sql
+ANALYZE public.food_corpus_sources;
+ANALYZE public.food_corpus_batches;
+ANALYZE public.food_corpus_records;
+ANALYZE public.food_corpus_search;
+ANALYZE public.food_corpus_nutrients;
+```
+
+The search RPC first uses `idx_food_corpus_search_document` for whole-word matches in any order. `seed`, `seeds`, and `seeded` share a small explicit word family; this does not match unrelated `breadnut` or `breadcrumbs` when the query asks for `bread`. The existing typo/connected-word fallback runs only when no active source and active batch provide a strong match. Do not replace it with a broad first-token scan, expand the client wait indefinitely, or increase the authenticated statement timeout.
+
+Validate `bread seeds`, `BRead sunflower`, a supported typo such as `strawbery`, and a basic food under the existing authenticated 8-second statement timeout. Check that the indexed branch runs and the broad fallback has zero loops for strong matches. A successful administrator query without that time limit does not prove the user path is healthy. Keep full Edge-request verification separate from direct RPC evidence; it requires an existing test-account session.

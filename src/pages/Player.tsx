@@ -52,7 +52,7 @@ import {
   wearableCandidatesForDay,
 } from '../lib/wearableWorkoutLinking'
 
-const PERSIST_KEY = 'apex.player.v1'
+import { guidedPlayerDraftKey, guidedPlayerDraftMatches } from '../lib/dailyGuidedSessions'
 
 interface SetResult extends SetEntry {
   skipped: boolean
@@ -176,13 +176,18 @@ export function Player() {
   const accent: Accent = slug === 'main' || slug === 'custom' ? ACCENTS.violet : ACCENTS.teal
   const plan = useMemo(() => planForDate(data, slug as ProgramSlug, date, lite, programDayId), [data, slug, date, lite, programDayId])
   const blocks = useMemo(() => buildTimeline(plan), [plan])
+  const draftIdentity = useMemo(() => ({
+    ownerId: ownerId ?? '', slug, date, lite, programDayId: plan.programDay?.id ?? programDayId,
+    exerciseIds: plan.exercises.map((exercise) => exercise.id),
+  }), [ownerId, slug, date, lite, programDayId, plan])
+  const persistKey = guidedPlayerDraftKey(draftIdentity)
 
   const [state, dispatch] = useReducer(reducer, null, (): PlayerState => {
     try {
-      const saved = JSON.parse(localStorage.getItem(PERSIST_KEY) ?? 'null') as
+      const saved = JSON.parse(localStorage.getItem(persistKey) ?? 'null') as
         | (PlayerState & { slug: string; date: string; lite: boolean; programDayId?: string; persistedAt?: string })
         | null
-      if (saved && saved.slug === slug && saved.date === date && saved.lite === lite && saved.programDayId === programDayId) {
+      if (ownerId && saved && guidedPlayerDraftMatches(saved, draftIdentity)) {
         const restoredResults = Object.fromEntries(Object.entries(saved.results ?? {}).map(([key, result]) => [key, {
           ...result,
           sets: (result.sets ?? []).map((set) => ({ ...set, weight: set.weight ?? result.weight ?? null })),
@@ -210,11 +215,12 @@ export function Player() {
 
   /* persist on change so backgrounding mid-session loses nothing */
   useEffect(() => {
+    if (!ownerId) return
     localStorage.setItem(
-      PERSIST_KEY,
-      JSON.stringify({ ...state, slug, date, lite, programDayId, persistedAt: new Date().toISOString() }),
+      persistKey,
+      JSON.stringify({ ...state, ...draftIdentity, persistedAt: new Date().toISOString() }),
     )
-  }, [state, slug, date, lite, programDayId])
+  }, [state, ownerId, persistKey, draftIdentity])
 
   const block: Block | undefined = blocks[state.idx]
   const voiceOn = data.settings?.voice_on ?? true
@@ -275,15 +281,12 @@ export function Player() {
           stopSpeech()
           dispatch({ type: 'pause', paused: true })
         }
-        localStorage.setItem(
-          PERSIST_KEY,
+        if (ownerId) localStorage.setItem(
+          persistKey,
           JSON.stringify({
             ...current.state,
             paused: current.block?.kind === 'set' ? true : current.state.paused,
-            slug,
-            date,
-            lite,
-            programDayId,
+            ...draftIdentity,
             persistedAt: new Date().toISOString(),
           }),
         )
@@ -298,7 +301,7 @@ export function Player() {
       window.clearInterval(id)
       document.removeEventListener('visibilitychange', visibility)
     }
-  }, [date, lite, programDayId, slug])
+  }, [ownerId, persistKey, draftIdentity])
 
   /* block entry announcements */
   useEffect(() => {
@@ -343,7 +346,7 @@ export function Player() {
     } else if (block.kind === 'warmup' && voice) {
       speak(voiceText('Warm up. Get ready for the first exercise.'), language)
     } else if (block.kind === 'side_switch' && voice) {
-      speak(`${voiceText('Change legs')}. ${voiceText('Right side')} ${voiceText('in three seconds')}.`, language)
+      speak(`${voiceText('Change legs')}. ${voiceText('Right side')}.`, language)
     } else if (block.kind === 'rest' && voice) {
       if (block.duration <= 30.5) {
         announcedRestThirty.current = state.idx
@@ -607,7 +610,7 @@ export function Player() {
         upsert('activity_logs', activityLogFromBlock(focusBlock, data.profile, date, activityCatalog))
       }
     }
-    localStorage.removeItem(PERSIST_KEY)
+    localStorage.removeItem(persistKey)
 
     const t = plan.programDay.day_type
     const deltas =

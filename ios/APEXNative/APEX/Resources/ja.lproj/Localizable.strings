@@ -2359,7 +2359,7 @@
 /* Translation coverage closure 561-595 · 2026-08-27 */
 "Off route by about %d m. Return to the violet line when practical." = "オフルートについて %d m. 実用的にバイオレットラインに戻る。";
 "One leg at a time exposes the side that has been quietly doing less, and asks the hip to stabilise rather than just extend. Both sides get the same work regardless of which is stronger." = "片脚ずつ行うと左右差が見えやすくなり、股関節を支える力も鍛えられます。強い側に任せず、両脚に同じだけ仕事をさせましょう。";
-"One point for every day FITR MAX recorded a full picture of you. The line is your overall index, the same number shown at the top of this page, so you can see whether it is moving and not only where it stands today." = "各点は、FITR MAXがあなたの状態を一通り記録できた1日分です。線はページ上部と同じ総合指数の推移を表し、今の値だけでなく変化の方向も確認できます。";
+"Daily estimates based on what you log. The line shows your overall index over time. Missing logs can affect the estimate." = "記録した情報に基づく日々の推定値です。線は総合指数の変化を示します。記録がない日は、推定値に影響することがあります。";
 "One quiet reminder in the evening, only on days you are short on protein or have not taken your creatine. Without it, the same reminders wait for you inside the app." = "夕方に1つの静かなリマインダー、あなたがタンパク質に不足しているか、あなたのクレアチンを服用していない日だけ。 それなしで、同じリマインダーはアプリ内であなたを待っています。";
 "One set removed from each exercise. Keep 3 to 4 reps in reserve and use lighter loads." = "各演習から削除された1セット。 予備の3〜4個の担当者を保ち、より軽い負荷を使用します。";
 "One-Arm" = "ワンアーム";

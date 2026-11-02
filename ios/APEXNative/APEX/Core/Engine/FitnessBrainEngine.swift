@@ -184,6 +184,17 @@ public enum FitnessBrainEngine {
     static let lowerTypes: Set<FBDayType> = [.legsA, .legsB]
     static let flexTypes: Set<FBDayType> = [.mobility, .fix]
 
+    private static func recordedQuality(_ session: FBWorkoutSession, logs: [FBWorkoutLog]) -> Double {
+        guard session.completed else { return 0 }
+        let external = session.notes == "Completed externally from the APEX guided player"
+            || session.notes == "Completed externally from the FITR MAX guided player"
+        if !logs.isEmpty && !external && !logs.contains(where: \.hasRecordedWork) { return 0 }
+        guard session.qualityScore.isFinite, session.qualityScore >= 0 else { return 0 }
+        // Old receipts may have no set detail; absence is not proof of no work.
+        if session.qualityScore == 0 && (logs.isEmpty || external) { return 1 }
+        return min(1, session.qualityScore)
+    }
+
     /* Mirrors focusT25.isConditioningFocusT25: a Focus T25 log name that is
        not a pure stretch session counts as conditioning. */
     static func isConditioningFocusT25(_ name: String) -> Bool {
@@ -253,26 +264,57 @@ public enum FitnessBrainEngine {
 
         var sessionByID: [String: FBWorkoutSession] = [:]
         for s in input.workoutSessions { sessionByID[s.id] = s }
+        let logsBySession = Dictionary(grouping: input.workoutLogs, by: \.sessionID)
+        var qualityBySession: [String: Double] = [:]
+        for session in input.workoutSessions {
+            qualityBySession[session.id] = recordedQuality(session, logs: logsBySession[session.id] ?? [])
+        }
 
         for s in input.workoutSessions where s.completed {
-            guard let type = dayTypeByID[s.programDayID] else { continue }
+            guard let quality = qualityBySession[s.id], quality > 0 else { continue }
+            guard let type = dayTypeByID[s.programDayID], type != .custom else { continue }
             day(s.date).types.append(TypeEntry(
                 type: type,
-                quality: s.qualityScore == 0 ? 1 : s.qualityScore,
+                quality: quality,
                 deload: s.isDeload,
                 recovery: s.isEventRecovery))
         }
         /* Focus T25 conditioning logged inside any completed session */
         for log in input.workoutLogs {
-            guard let s = sessionByID[log.sessionID], s.completed, !log.skipped,
+            guard let s = sessionByID[log.sessionID], s.completed, log.hasPerformedWork,
+                  (qualityBySession[s.id] ?? 0) > 0,
+                  dayTypeByID[s.programDayID] != .custom,
                   isConditioningFocusT25(log.exerciseName) else { continue }
             let d = day(s.date)
             if !d.types.contains(where: { $0.type == .t25 }) {
                 d.types.append(TypeEntry(type: .t25, quality: 1, deload: s.isDeload, recovery: false))
             }
         }
+        // Custom receipts use performed catalogue movements, once per domain
+        // and day. Existing planned-session credit takes precedence.
+        var customByDate: [String: [FBDayType: Double]] = [:]
         for log in input.workoutLogs {
-            guard let s = sessionByID[log.sessionID] else { continue }
+            guard log.hasRecordedWork,
+                  let session = sessionByID[log.sessionID], session.completed,
+                  !session.isEventRecovery, dayTypeByID[session.programDayID] == .custom,
+                  let quality = qualityBySession[session.id], quality > 0 else { continue }
+            for type in log.performedTypes ?? [] {
+                guard let domain = type.activityDomain else { continue }
+                customByDate[session.date, default: [:]][domain] = max(
+                    customByDate[session.date]?[domain] ?? 0, quality)
+            }
+        }
+        for date in customByDate.keys.sorted() {
+            let activity = day(date)
+            for type in [FBDayType.upper, .legsA, .mobility, .cardio] {
+                guard let quality = customByDate[date]?[type],
+                      !activity.types.contains(where: { !$0.recovery && $0.type.activityDomain == type }) else { continue }
+                activity.types.append(TypeEntry(type: type, quality: quality, deload: false, recovery: false))
+            }
+        }
+        for log in input.workoutLogs {
+            guard let s = sessionByID[log.sessionID], s.completed, log.hasPerformedWork,
+                  (qualityBySession[s.id] ?? 0) > 0 else { continue }
             if log.overrideFlag { day(s.date).overrides += 1 }
         }
 
@@ -280,8 +322,9 @@ public enum FitnessBrainEngine {
         var byExercise: [String: [(date: String, w: Double)]] = [:]
         var exerciseOrder: [String] = []
         for log in input.workoutLogs {
-            guard let exID = log.exerciseID, !log.skipped, let w = log.weightKG,
-                  let s = sessionByID[log.sessionID] else { continue }
+            guard let exID = log.exerciseID, log.hasPerformedWork, let w = log.weightKG, w.isFinite,
+                  let s = sessionByID[log.sessionID], s.completed,
+                  (qualityBySession[s.id] ?? 0) > 0 else { continue }
             if byExercise[exID] == nil { exerciseOrder.append(exID) }
             byExercise[exID, default: []].append((s.date, w))
         }
@@ -298,7 +341,7 @@ public enum FitnessBrainEngine {
                     let type = exerciseDayByID[exID].flatMap { dayTypeByID[$0] }
                     let a = day(dates[i])
                     if let type, lowerTypes.contains(type) { a.overloadLower += 1 }
-                    else { a.overloadUpper += 1 }
+                    else if let type, upperTypes.contains(type) { a.overloadUpper += 1 }
                 }
             }
         }
@@ -462,9 +505,9 @@ public enum FitnessBrainEngine {
                             date: date, kind: .deloadHonored,
                             label: "Deload honored. Joint Health banked the recovery"))
                     }
-                    if t.type == .t25 {
+                    if t.type == .t25 || t.type == .cardio {
                         var m = 1.0
-                        if hydrated {
+                        if hydrated && t.type == .t25 {
                             m = 1.1
                             synergies.append(FBSynergyEvent(
                                 date: date, kind: .hydrationEndurance,

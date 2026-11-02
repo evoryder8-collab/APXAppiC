@@ -18,8 +18,9 @@
  */
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const ROOT = new URL('../APEX', import.meta.url).pathname
+const ROOT = fileURLToPath(new URL('../APEX', import.meta.url))
 
 const ALLOWED = new Set([
   'APEX', 'Orbit', 'Europe/Zurich', 'kcal', 'km', 'kg', 'g', 'ml', 'CHF',

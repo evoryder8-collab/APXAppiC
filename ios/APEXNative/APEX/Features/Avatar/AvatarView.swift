@@ -423,15 +423,34 @@ struct AvatarView: View {
                         .accessibilityLabel(language.text("What this chart shows"))
                     }
                     if showEvolutionInfo {
-                        Text(language.text("One point for every day FITR MAX recorded a full picture of you. The line is your overall index, the same number shown at the top of this page, so you can see whether it is moving and not only where it stands today."))
+                        Text(language.text("Daily estimates based on what you log. The line shows your overall index over time. Missing logs can affect the estimate."))
                             .font(APEXFont.body(12))
                             .foregroundStyle(APEXColor.secondaryInk)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Chart(Array(snapshots.suffix(trendDays))) { point in
-                        LineMark(x: .value("Date", point.date), y: .value("Overall", point.overall)).foregroundStyle(APEXColor.violet.gradient).interpolationMethod(.catmullRom)
-                        AreaMark(x: .value("Date", point.date), y: .value("Overall", point.overall)).foregroundStyle(APEXColor.violet.opacity(0.1).gradient)
-                    }.chartYAxis(.hidden).frame(height: 155)
+                        if let date = ISO8601DateFormatter.apexDateOnly.date(from: point.date) {
+                            LineMark(x: .value("Date", date), y: .value("Overall", point.overall)).foregroundStyle(APEXColor.violet.gradient).interpolationMethod(.catmullRom)
+                            AreaMark(x: .value("Date", date), y: .value("Overall", point.overall)).foregroundStyle(APEXColor.violet.opacity(0.1).gradient)
+                        }
+                    }
+                    .chartXAxis {
+                        AxisMarks(values: .automatic(desiredCount: 3)) { _ in
+                            AxisGridLine()
+                            AxisValueLabel(
+                                format: Date.FormatStyle(
+                                    locale: language.language.locale,
+                                    calendar: ISO8601DateFormatter.apexDateOnly.calendar,
+                                    timeZone: ISO8601DateFormatter.apexDateOnly.timeZone
+                                ).day().month(.abbreviated),
+                                collisionResolution: .greedy(minimumSpacing: 12)
+                            )
+                            .font(.caption2)
+                            .foregroundStyle(APEXColor.secondaryInk)
+                        }
+                    }
+                    .chartYAxis(.hidden)
+                    .frame(height: 155)
                 }
             }
         }
