@@ -442,7 +442,7 @@ export function Nutrition() {
     if (!food) {
       food = await foodStore.savePrivateFood({
         name: `${meal.name} · planned prescription`, names_i18n: { en: `${meal.name} · planned prescription` },
-        brand: 'APEX plan', barcode: null, provider_product_id: providerId, external_image_url: null,
+        brand: 'FITR MAX plan', barcode: null, provider_product_id: providerId, external_image_url: null,
         package_quantity: '1 planned meal', nutrition_basis: 'per_100g', preparation_state: 'prepared',
         kcal_100: meal.kcal, protein_100: meal.protein_g, carbs_100: meal.carbs_g, fat_100: meal.fat_g,
         fibre_100: null, sugar_100: null, saturated_fat_100: null, salt_100: null,
@@ -1133,10 +1133,10 @@ export function Nutrition() {
               {targets.bmrSource === 'custom'
                 ? tx('Measured resting energy replaces the formula for formula-based targets. Bespoke whole-day protocols remain authoritative; Katch-McArdle stays visible only as a reference.')
                 : language === 'ro'
-                  ? `Katch-McArdle calculează din masa corporală slabă, nu din greutatea totală, astfel încât masa grasă măsurată să nu umfle estimarea. Valoarea actuală de ${profile.body_fat_pct}% grăsime corporală produce TDEE-ul de referință de mai sus. APEX îl combină cu activitatea și obiectivul selectate pentru ținta live.`
+                  ? `Katch-McArdle calculează din masa corporală slabă, nu din greutatea totală, astfel încât masa grasă măsurată să nu umfle estimarea. Valoarea actuală de ${profile.body_fat_pct}% grăsime corporală produce TDEE-ul de referință de mai sus. FITR MAX îl combină cu activitatea și obiectivul selectate pentru ținta live.`
                   : language === 'th'
-                    ? `Katch-McArdle คำนวณจากมวลไร้ไขมันแทนน้ำหนักรวม จึงไม่ทำให้ค่าประมาณสูงเกินจากไขมันที่วัดได้ ค่าไขมันร่างกายปัจจุบัน ${profile.body_fat_pct}% สร้าง TDEE อ้างอิงด้านบน และ APEX จะรวมค่านี้กับกิจกรรมและเป้าหมายที่เลือกเพื่อสร้างเป้าปัจจุบัน`
-                    : `Katch-McArdle computes from lean body mass instead of total weight, so measured fat mass does not inflate the estimate. Your current ${profile.body_fat_pct}% body-fat entry produces the reference TDEE above. APEX uses that estimate with your selected activity and goal to build the live target.`}
+                    ? `Katch-McArdle คำนวณจากมวลไร้ไขมันแทนน้ำหนักรวม จึงไม่ทำให้ค่าประมาณสูงเกินจากไขมันที่วัดได้ ค่าไขมันร่างกายปัจจุบัน ${profile.body_fat_pct}% สร้าง TDEE อ้างอิงด้านบน และ FITR MAX จะรวมค่านี้กับกิจกรรมและเป้าหมายที่เลือกเพื่อสร้างเป้าปัจจุบัน`
+                    : `Katch-McArdle computes from lean body mass instead of total weight, so measured fat mass does not inflate the estimate. Your current ${profile.body_fat_pct}% body-fat entry produces the reference TDEE above. FITR MAX uses that estimate with your selected activity and goal to build the live target.`}
             </motion.p>
           )}
 
@@ -1386,7 +1386,7 @@ export function Nutrition() {
           <GlassCard accent={amber} className="flex items-center justify-between p-4">
             <div>
               <p className="text-sm font-bold text-ink">Meal + stack reminders</p>
-              <p className="text-xs font-medium text-ink-soft">Fires while APEX is open in a tab</p>
+              <p className="text-xs font-medium text-ink-soft">Fires while FITR MAX is open in a tab</p>
             </div>
             <Toggle
               accent={amber}

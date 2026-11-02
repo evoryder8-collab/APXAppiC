@@ -283,7 +283,7 @@ export function BaselineCalibrationDialog({ profile, onClose }: { profile: Profi
       >
         <header className="flex items-center justify-between gap-3 border-b border-ink/8 px-5 py-4">
           <div className="min-w-0">
-            <p className="font-mono text-[9px] font-bold tracking-[.2em] text-emerald uppercase">APEX AVATAR</p>
+            <p className="font-mono text-[9px] font-bold tracking-[.2em] text-emerald uppercase">FITR MAX AVATAR</p>
             <h2 id="baseline-calibration-title" className="font-display text-xl leading-tight font-bold text-ink">{t('Calibrate my baseline')}</h2>
           </div>
           <button ref={closeRef} type="button" onClick={onClose} disabled={saveState === 'saving'} className="grid min-h-11 min-w-11 place-items-center rounded-full bg-white/90 text-xl font-bold text-ink shadow-sm" aria-label={t('Close')}>×</button>
@@ -344,7 +344,7 @@ export function BaselineCalibrationDialog({ profile, onClose }: { profile: Profi
 
           {route === 'recent_result' && resultRoute === 'chooser' && (
             <div className="space-y-4">
-              <div><p className="font-mono text-[10px] font-bold tracking-[.16em] text-violet uppercase">{t('Evidence, not guesswork')}</p><h3 className="mt-2 font-display text-3xl font-bold text-ink">{t('What are you adding?')}</h3><p className="mt-2 text-sm leading-relaxed font-medium text-ink-soft">{t('Choose the report you have. APEX will only ask for values that belong to it.')}</p></div>
+              <div><p className="font-mono text-[10px] font-bold tracking-[.16em] text-violet uppercase">{t('Evidence, not guesswork')}</p><h3 className="mt-2 font-display text-3xl font-bold text-ink">{t('What are you adding?')}</h3><p className="mt-2 text-sm leading-relaxed font-medium text-ink-soft">{t('Choose the report you have. FITR MAX will only ask for values that belong to it.')}</p></div>
               <RouteButton title="DEXA body composition report" detail="Save body fat and any resting-energy estimate printed on the same report." icon="◫" tint={ACCENTS.violet.bright} onClick={() => setResultRoute('dexa')} t={t} />
               <RouteButton title="Other health or fitness result" detail="Add VO₂ max, resting heart rate, waist or a metabolic test." icon="＋" tint={ACCENTS.ice.bright} onClick={() => setResultRoute('other')} t={t} />
             </div>
@@ -353,7 +353,7 @@ export function BaselineCalibrationDialog({ profile, onClose }: { profile: Profi
           {route === 'recent_result' && resultRoute === 'dexa' && (
             <ResultShell eyebrow="DEXA REPORT" title="Add your DEXA results" detail="Enter either value or both. Leave a field blank when it is not printed on your report." t={t}>
               {saveState === 'saved' ? <SavedResultPanel results={savedResults} onDone={onClose} onAnother={resetResult} t={t} /> : <>
-                <div className="rounded-2xl bg-violet-500/8 p-4 text-xs leading-relaxed font-semibold text-ink-soft">{t('DEXA measures body composition. Some reports also print an estimated BMR or RMR; APEX stores that number as report-supplied, not as a direct metabolic measurement.')}</div>
+                <div className="rounded-2xl bg-violet-500/8 p-4 text-xs leading-relaxed font-semibold text-ink-soft">{t('DEXA measures body composition. Some reports also print an estimated BMR or RMR; FITR MAX stores that number as report-supplied, not as a direct metabolic measurement.')}</div>
                 <ResultField label={t('Body fat (optional)')} value={dxaBodyFat} onChange={(value) => { setDxaBodyFat(value); setSaveState('idle') }} placeholder="18.4" unit="%" identifier="calibration.result.dexa-body-fat" />
                 <ResultField label={t('Resting metabolism printed on the report (optional)')} value={dxaRestingEnergy} onChange={(value) => { setDxaRestingEnergy(value); setSaveState('idle') }} placeholder="1683" unit={t('kcal/day')} identifier="calibration.result.dexa-resting-energy" />
                 <SourceAndDate source={resultSource} setSource={(value) => { setResultSource(value); setSaveState('idle') }} date={resultDate} setDate={setResultDate} t={t} />
@@ -378,7 +378,7 @@ export function BaselineCalibrationDialog({ profile, onClose }: { profile: Profi
           {route === 'health' && (
             <div className="space-y-4">
               <h3 className="font-display text-3xl font-bold text-ink">{t('Apple Health')}</h3>
-              <p className="text-sm leading-relaxed font-medium text-ink-soft">{t('Apple Health connects through the APEX iPhone app, where iOS lets you choose each category. Denial or missing data never lowers your baseline.')}</p>
+              <p className="text-sm leading-relaxed font-medium text-ink-soft">{t('Apple Health connects through the FITR MAX iPhone app, where iOS lets you choose each category. Denial or missing data never lowers your baseline.')}</p>
               <p className="rounded-2xl bg-cyan-500/8 p-4 text-xs leading-relaxed font-semibold text-ink-soft">{t('Open Avatar on your iPhone and choose Edit, then Connect what you track. Your manual routes remain available here.')}</p>
             </div>
           )}

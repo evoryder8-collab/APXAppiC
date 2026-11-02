@@ -93,7 +93,7 @@ function missionExecution(run: OrbitRun, stability: number | null): MissionExecu
     return {
       state: 'harder_than_planned',
       headline: 'This run was harder than the selected mission.',
-      details: ['APEX will protect the next demanding session rather than treating extra effort as automatically better.'],
+      details: ['FITR MAX will protect the next demanding session rather than treating extra effort as automatically better.'],
     }
   }
   if (run.mission === 'recovery' && effort != null && effort <= 4) {

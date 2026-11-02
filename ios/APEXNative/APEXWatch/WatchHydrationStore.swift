@@ -192,7 +192,7 @@ final class WatchHydrationStore: ObservableObject {
                 options: [.alert, .sound]
             )) ?? false
             if !granted {
-                message = "Watch notifications are off. Enable FitDee in Notification settings."
+                message = "Watch notifications are off. Enable FITR MAX in Notification settings."
             }
         }
         guard operationScope?.matches(
@@ -245,7 +245,7 @@ final class WatchHydrationStore: ObservableObject {
               let waterType = HKObjectType.quantityType(forIdentifier: .dietaryWater)
         else { return }
         guard let activeOwnerID else {
-            message = "Open FitDee on iPhone once to connect this Watch."
+            message = "Open FITR MAX on iPhone once to connect this Watch."
             return
         }
         let localDate = Date().apexDateKey
@@ -352,11 +352,11 @@ final class WatchHydrationStore: ObservableObject {
 
     func delete(_ entry: WatchHydrationEntry) async {
         guard entry.canDelete else {
-            message = "Only water added by FitDee on this Watch can be removed here."
+            message = "Only water added by FITR MAX on this Watch can be removed here."
             return
         }
         guard let activeOwnerID else {
-            message = "Open FitDee on iPhone once to connect this Watch."
+            message = "Open FITR MAX on iPhone once to connect this Watch."
             return
         }
         let localDate = Date().apexDateKey
@@ -422,7 +422,7 @@ final class WatchHydrationStore: ObservableObject {
             liters = 0
             entries = []
             composition = []
-            message = "Open FitDee on iPhone once to connect this Watch."
+            message = "Open FITR MAX on iPhone once to connect this Watch."
             return
         }
         defer {
@@ -487,11 +487,11 @@ final class WatchHydrationStore: ObservableObject {
                 )
                 let sourceName: String
                 if isFood {
-                    sourceName = "FitDee food"
+                    sourceName = "FITR MAX food"
                 } else if canDelete {
-                    sourceName = "FitDee Watch"
+                    sourceName = "FITR MAX Watch"
                 } else if bundle == "ch.apexperformance.APEX" {
-                    sourceName = "FitDee iPhone"
+                    sourceName = "FITR MAX iPhone"
                 } else {
                     sourceName = sample.sourceRevision.source.name
                 }
@@ -1114,7 +1114,7 @@ final class WatchHydrationStore: ObservableObject {
     }
 
     private var permissionMessage: String {
-        "Water access is off. On iPhone open Health > profile > Apps and Services > FitDee, then enable Water."
+        "Water access is off. On iPhone open Health > profile > Apps and Services > FITR MAX, then enable Water."
     }
 
     private func refreshAuthorizationStatus(_ waterType: HKQuantityType) {

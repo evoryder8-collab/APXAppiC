@@ -20,6 +20,10 @@ import {
   manualWorkoutNotes,
   manualWorkoutTitle,
   rankManualWorkoutPresets,
+  rankQuickLogExercises,
+  rememberQuickLogExercise,
+  loadQuickLogRecents,
+  saveQuickLogRecents,
   reconcileManualWorkoutLogs,
   resequenceManualWorkoutLogs,
   type ManualExerciseDraft,
@@ -128,6 +132,9 @@ export function ManualWorkoutLogger({
   const [title, setTitle] = useState('')
   const [query, setQuery] = useState('')
   const [exercises, setExercises] = useState<ManualExerciseDraft[]>([])
+  const ownerId = data.profile?.user_id
+  const [recentChoices, setRecentChoices] = useState<string[]>([])
+  useEffect(() => { setRecentChoices(loadQuickLogRecents(ownerId)) }, [ownerId, open])
   const [focusedExercise, setFocusedExercise] = useState<string | null>(null)
   const loadedEditorRef = useRef<string | undefined>(undefined)
   const presets = useMemo(() => rankManualWorkoutPresets(data, date), [data, date])
@@ -144,16 +151,16 @@ export function ManualWorkoutLogger({
         if (exercise.catalogId && !predicted.has(exercise.catalogId)) predicted.set(exercise.catalogId, predicted.size)
       }
     }
-    return matches
+    const suggestions = matches
       .map((item, searchIndex) => ({ item, searchIndex, predictedIndex: predicted.get(item.id) }))
       .sort((left, right) => {
         const leftPrediction = left.predictedIndex == null ? Number.MAX_SAFE_INTEGER : left.predictedIndex
         const rightPrediction = right.predictedIndex == null ? Number.MAX_SAFE_INTEGER : right.predictedIndex
         return leftPrediction - rightPrediction || left.searchIndex - right.searchIndex
       })
-      .slice(0, query.trim() ? 10 : 8)
       .map(({ item }) => item)
-  }, [language, presets, query])
+    return rankQuickLogExercises(suggestions, recentChoices).slice(0, query.trim() ? 10 : 8)
+  }, [language, presets, query, recentChoices])
 
   useEffect(() => {
     if (!open) {
@@ -189,7 +196,10 @@ export function ManualWorkoutLogger({
   }, [editSessionId, focusExerciseId, open])
 
   const addExercise = (item: ExerciseCatalogItem): void => {
-    setExercises((current) => [...current, draftFromCatalog(item)])
+    setExercises((current) => [draftFromCatalog(item), ...current])
+    const recent = rememberQuickLogExercise(item.id, loadQuickLogRecents(ownerId))
+    saveQuickLogRecents(ownerId, recent)
+    setRecentChoices(recent)
     setQuery('')
     window.setTimeout(() => searchRef.current?.focus(), 50)
   }

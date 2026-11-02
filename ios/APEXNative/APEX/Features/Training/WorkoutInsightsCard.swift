@@ -100,7 +100,7 @@ struct WorkoutInsightsCard: View {
                 Button(action: toggleExpanded) {
                     HStack(spacing: 10) {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(language.text("APEX WORKOUT INSIGHTS"))
+                            Text(language.text("FITR MAX WORKOUT INSIGHTS"))
                                 .font(APEXFont.mono(9, weight: .bold))
                                 .tracking(1.5)
                                 .foregroundStyle(accent)
@@ -324,7 +324,7 @@ struct WorkoutInsightsCard: View {
         do {
             renderedURL = try WorkoutInsightsPoster.render(
                 summary: summary,
-                athleteName: session.profile?.displayName ?? language.text("APEX athlete"),
+                athleteName: session.profile?.displayName ?? language.text("FITR MAX athlete"),
                 rangeLabel: localizedRange(summary.from, summary.to),
                 accent: accent,
                 labels: .init(language: language)
@@ -413,7 +413,7 @@ private struct WorkoutInsightsArtwork: View {
             VStack(alignment: .leading, spacing: 13) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("FitDee")
+                        Text("FITR MAX")
                             .font(.system(size: 10, weight: .black, design: .monospaced))
                             .tracking(3)
                             .foregroundStyle(Color(red: 0.45, green: 0.16, blue: 0.78))

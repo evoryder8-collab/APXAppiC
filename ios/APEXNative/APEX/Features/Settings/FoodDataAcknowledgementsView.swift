@@ -16,14 +16,14 @@ struct FoodDataAcknowledgementsView: View {
                         .font(APEXFont.display(29))
                         .foregroundStyle(APEXColor.ink)
 
-                    Text(language.text("See where APEX food data comes from and how it is adapted."))
+                    Text(language.text("See where FITR MAX food data comes from and how it is adapted."))
                         .font(APEXFont.body(14))
                         .foregroundStyle(APEXColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
 
                     GlassCard(radius: 25, padding: 18) {
                         VStack(alignment: .leading, spacing: 14) {
-                            Text(language.text("APEX uses adapted data from:"))
+                            Text(language.text("FITR MAX uses adapted data from:"))
                                 .font(APEXFont.body(16, weight: .bold))
 
                             Text(language.text("Marija Langwagen, Jette Jakobsen and Anders Poulsen: The Danish Food Composition Database, version 6.1, May 2026, National Food Institute, Technical University of Denmark."))
@@ -57,7 +57,7 @@ struct FoodDataAcknowledgementsView: View {
 
                     GlassCard(radius: 25, padding: 18) {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text(language.text("APEX extracted, normalized and mapped selected source records to reviewed APEX food entries. These changes are by APEX; DTU does not endorse APEX."))
+                            Text(language.text("FITR MAX extracted, normalized and mapped selected source records to reviewed FITR MAX food entries. These changes are by FITR MAX; DTU does not endorse FITR MAX."))
                                 .font(APEXFont.body(13, weight: .medium))
                                 .fixedSize(horizontal: false, vertical: true)
 

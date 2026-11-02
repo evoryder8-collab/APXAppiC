@@ -36,7 +36,7 @@
 "Return here after a long break to rebuild consistency, movement quality and training tolerance." = "ブランク後の土台づくり";
 "Choose this when regular training feels manageable and you're ready to build strength, muscle and performance." = "筋力と筋肉を伸ばす";
 "APPLE HEALTH" = "APPLE HEALTH";
-"Hide from APEX" = "APEXで非表示";
+"Hide from FITR MAX" = "FITR MAXで非表示";
 "Already finished?" = "もう完了？";
 "Wearable linked" = "ウォッチ連携";
 "Day" = "日";
@@ -99,3 +99,7 @@
 "Coach's client" = "クライアント";
 "Trial (active)" = "体験版";
 "Non-subscribed (no access)" = "未契約";
+
+"Manage water access" = "水分のアクセス";
+"Enable water sharing" = "水分を共有";
+"Open Health" = "ヘルスケアを開く";

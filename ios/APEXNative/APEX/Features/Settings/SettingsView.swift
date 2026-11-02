@@ -16,6 +16,9 @@ enum ProfileIdentityPresentation {
 }
 
 struct SettingsView: View {
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var showsWaterAccessHelp = false
+    @State private var isRequestingWaterAccess = false
     @State private var previewRole: DeveloperSandboxRole?
     @Environment(AppSession.self) private var session
     @State private var health = HealthKitManager.shared
@@ -66,6 +69,14 @@ struct SettingsView: View {
         }
         .navigationTitle(language.text(.settings))
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear { health.refreshWaterWriteState() }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active, !session.isDeveloperSandbox else { return }
+            // Permission changes are local; do not wait for a network refresh.
+            health.refreshWaterWriteState()
+            if health.waterWriteState == .authorized { showsWaterAccessHelp = false }
+        }
+        .sheet(isPresented: $showsWaterAccessHelp) { HealthWaterAccessHelpView() }
         .task(id: profile?.userID) {
             timeZoneDraft = addonString("time_zone", default: TimeZone.current.identifier)
             measuredBMRDraft = profile
@@ -147,7 +158,7 @@ struct SettingsView: View {
         case .sponsored:
             language.text("Access provided by your coach.")
         case .updateRequired:
-            language.text("Update APEX to continue.")
+            language.text("Update FITR MAX to continue.")
         case .locked:
             language.text("Access is not available for this account.")
         }
@@ -165,8 +176,8 @@ struct SettingsView: View {
     }
 
     private var identityCard: some View {
-        let displayName = profile?.displayName ?? "FitDee"
-        let personaName = profile?.persona.displayName ?? "FitDee"
+        let displayName = profile?.displayName ?? "FITR MAX"
+        let personaName = profile?.persona.displayName ?? "FITR MAX"
         return GlassCard(radius: 31, padding: 21) {
             VStack(alignment: .leading, spacing: 17) {
                 HStack(alignment: .top, spacing: 14) {
@@ -175,7 +186,7 @@ struct SettingsView: View {
                         Text(language.text("ACTIVE IDENTITY"))
                             .font(APEXFont.mono(10)).tracking(2)
                             .foregroundStyle(APEXColor.secondaryInk)
-                        Text(profile?.displayName ?? "FitDee")
+                        Text(profile?.displayName ?? "FITR MAX")
                             .font(APEXFont.display(26))
                             .lineLimit(1)
                             .allowsTightening(true)
@@ -228,7 +239,7 @@ struct SettingsView: View {
                 }
                 VStack(spacing: 0) {
                     if session.coachClientPolicy.canUseOrbit {
-                        simpleToggle("Show APEX Orbit shortcut", key: "simple_show_orbit", default: true)
+                        simpleToggle("Show FITR MAX Orbit shortcut", key: "simple_show_orbit", default: true)
                         Divider()
                     }
                     simpleToggle("Show Body Index shortcut", key: "simple_show_body_index", default: true)
@@ -299,7 +310,7 @@ struct SettingsView: View {
                                 ) {
                                     setAddon("comparison_export_mode", .string($0))
                                 }
-                                Text(language.text("Minimal exports show only APEX, Before/After, and each photo's date and time."))
+                                Text(language.text("Minimal exports show only FITR MAX, Before/After, and each photo's date and time."))
                                     .font(APEXFont.body(9))
                                     .foregroundStyle(APEXColor.secondaryInk)
                                     .fixedSize(horizontal: false, vertical: true)
@@ -568,7 +579,7 @@ struct SettingsView: View {
                             .font(APEXFont.body(11, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
                     }
                 }
-                Text(language.text("Anything logged manually in APEX wins over imported values. Imports only add signal and never create decay."))
+                Text(language.text("Anything logged manually in FITR MAX wins over imported values. Imports only add signal and never create decay."))
                     .font(APEXFont.body(11, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
                 Button {
                     guard let operation = session.accountOperationLease() else { return }
@@ -594,7 +605,8 @@ struct SettingsView: View {
                     }
                 }
                 waterSharingStatus
-                if let message = health.message {
+                if let message = health.message,
+                   message != HealthWaterWriteError.denied.localizedDescription {
                     Text(language.text(message)).font(APEXFont.body(11, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
                 }
             }
@@ -609,36 +621,36 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(language.text("Apple Health water sharing"))
                     .font(APEXFont.body(12, weight: .bold))
-                Text(language.text(waterSharingExplanation))
+                Text(language.text(health.waterWriteState.explanation))
                     .font(APEXFont.body(11, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
 
-        if health.waterWriteState != .authorized {
+        if health.waterWriteState.action != .none {
             Button {
+                health.refreshWaterWriteState()
+                if health.waterWriteState.action == .openHealth {
+                    showsWaterAccessHelp = true
+                    return
+                }
+                guard health.waterWriteState.action == .requestPermission else { return }
                 guard let operation = session.accountOperationLease() else { return }
-                Task { await session.reconnectHealthWaterAccess(operation: operation) }
+                isRequestingWaterAccess = true
+                Task {
+                    await session.reconnectHealthWaterAccess(operation: operation)
+                    isRequestingWaterAccess = false
+                    guard session.accountOperationIsCurrent(operation) else { return }
+                    showsWaterAccessHelp = health.waterWriteState == .denied
+                }
             } label: {
-                Label(language.text("Reconnect water access"), systemImage: "drop.fill")
+                Label(language.text(health.waterWriteState.actionTitle), systemImage: "drop.fill")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .tint(APEXColor.teal)
-        }
-    }
-
-    private var waterSharingExplanation: String {
-        switch health.waterWriteState {
-        case .authorized:
-            return "Connected. APEX, your Watch and other allowed apps share the HealthKit dietary-water ledger."
-        case .denied:
-            return "Water write access is off. Open Health > profile > Apps and Services > APEX and enable Water."
-        case .notDetermined:
-            return "Connect to publish APEX drink and food water and import water recorded by your Watch or other apps."
-        case .unavailable:
-            return "Apple Health water tracking is unavailable on this device."
+            .disabled(isRequestingWaterAccess || health.isSyncing)
         }
     }
 
@@ -646,8 +658,8 @@ struct SettingsView: View {
         GlassCard(radius: 31, padding: 20) {
             VStack(alignment: .leading, spacing: 14) {
                 Text(language.text("Account")).font(APEXFont.display(22))
-                Text(profile?.displayName ?? "FitDee").font(APEXFont.body(15, weight: .bold))
-                Text(language.text("Your records remain private under Supabase row-level security and are shared only between your authenticated APEX clients."))
+                Text(profile?.displayName ?? "FITR MAX").font(APEXFont.body(15, weight: .bold))
+                Text(language.text("Your records remain private under Supabase row-level security and are shared only between your authenticated FITR MAX clients."))
                     .font(APEXFont.body(12, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
                 Button(role: .destructive) { showLogout = true } label: {
                     Label(language.text("Log out"), systemImage: "rectangle.portrait.and.arrow.right").frame(maxWidth: .infinity)
@@ -672,7 +684,7 @@ struct SettingsView: View {
                         VStack(alignment: .leading, spacing: 3) {
                             Text(language.text("Food data acknowledgements"))
                                 .font(APEXFont.body(14, weight: .bold))
-                            Text(language.text("See where APEX food data comes from and how it is adapted."))
+                            Text(language.text("See where FITR MAX food data comes from and how it is adapted."))
                                 .font(APEXFont.body(11))
                                 .foregroundStyle(APEXColor.secondaryInk)
                                 .fixedSize(horizontal: false, vertical: true)

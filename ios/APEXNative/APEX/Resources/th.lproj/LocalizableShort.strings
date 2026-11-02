@@ -36,7 +36,7 @@
 "Return here after a long break to rebuild consistency, movement quality and training tolerance." = "เรียกพื้นฐานกลับมาหลังพักนาน";
 "Choose this when regular training feels manageable and you're ready to build strength, muscle and performance." = "พร้อมเพิ่มแรงและกล้ามเนื้อ";
 "APPLE HEALTH" = "APPLE HEALTH";
-"Hide from APEX" = "ซ่อนจาก APEX";
+"Hide from FITR MAX" = "ซ่อนจาก FITR MAX";
 "Already finished?" = "เสร็จแล้ว?";
 "Wearable linked" = "เชื่อมต่อนาฬิกา";
 "Day" = "วัน";
@@ -99,3 +99,7 @@
 "Coach's client" = "ลูกค้าโค้ช";
 "Trial (active)" = "ทดลองใช้";
 "Non-subscribed (no access)" = "ไม่มีสมาชิก";
+
+"Manage water access" = "สิทธิ์ข้อมูลน้ำ";
+"Enable water sharing" = "แชร์ข้อมูลน้ำ";
+"Open Health" = "เปิดแอปสุขภาพ";

@@ -329,7 +329,7 @@ export function CustomWorkoutBuilder({
         <div className="pointer-events-none absolute -top-16 right-0 h-44 w-44 rounded-full bg-violet-500/25 blur-3xl" aria-hidden />
         <div className="relative flex items-start justify-between gap-3">
           <div>
-            <p className="font-mono text-[9px] font-black tracking-[.2em] text-cyan-200 uppercase">{t('APEX WORKOUT STUDIO')}</p>
+            <p className="font-mono text-[9px] font-black tracking-[.2em] text-cyan-200 uppercase">{t('FITR MAX WORKOUT STUDIO')}</p>
             <h2 className="mt-1 font-display text-2xl font-bold">{t('Build a workout')}</h2>
             <p className="mt-1 max-w-md text-xs leading-relaxed text-slate-300">{t('Search, choose and tune. The hologram updates every time you add a movement.')}</p>
           </div>
@@ -375,7 +375,7 @@ export function CustomWorkoutBuilder({
                 </button>
               ))}
             </div>
-            <p className="mt-1 text-[10px] leading-relaxed text-ink-faint">{t('If that day already has a workout, APEX will ask before replacing it.')}</p>
+            <p className="mt-1 text-[10px] leading-relaxed text-ink-faint">{t('If that day already has a workout, FITR MAX will ask before replacing it.')}</p>
           </div>
         </div>
         <Suspense fallback={<div className="h-[188px] animate-pulse rounded-3xl bg-slate-900" />}>

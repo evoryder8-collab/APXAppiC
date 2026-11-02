@@ -99,7 +99,7 @@ export function WatchActivityCheckin({
   const copy = language === 'ro'
     ? {
         title: 'Activitate de pe dispozitiv',
-        body: 'Introdu valorile de pe ceas sau brățara de fitness. APEX recomandă un mod pentru întreaga zi fără să dubleze antrenamentul APEX.',
+        body: 'Introdu valorile de pe ceas sau brățara de fitness. FITR MAX recomandă un mod pentru întreaga zi fără să dubleze antrenamentul FITR MAX.',
         steps: 'Pași',
         calories: 'Calorii active',
         minutes: 'Minute de exercițiu',
@@ -110,7 +110,7 @@ export function WatchActivityCheckin({
     : language === 'th'
       ? {
           title: 'กิจกรรมจากอุปกรณ์สวมใส่',
-          body: 'กรอกค่าจากนาฬิกาหรืออุปกรณ์ติดตามฟิตเนส APEX จะแนะนำโหมดทั้งวันโดยไม่บวกการฝึก APEX ซ้ำ',
+          body: 'กรอกค่าจากนาฬิกาหรืออุปกรณ์ติดตามฟิตเนส FITR MAX จะแนะนำโหมดทั้งวันโดยไม่บวกการฝึก FITR MAX ซ้ำ',
           steps: 'ก้าว',
           calories: 'แคลอรีที่เคลื่อนไหว',
           minutes: 'นาทีออกกำลังกาย',
@@ -120,7 +120,7 @@ export function WatchActivityCheckin({
         }
       : {
           title: 'Wearable activity',
-          body: 'Enter values from your watch or fitness tracker. APEX recommends one whole-day mode without counting an APEX workout twice.',
+          body: 'Enter values from your watch or fitness tracker. FITR MAX recommends one whole-day mode without counting an FITR MAX workout twice.',
           steps: 'Steps',
           calories: 'Active calories',
           minutes: 'Exercise minutes',

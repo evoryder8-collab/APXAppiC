@@ -132,14 +132,14 @@ struct BarcodeScannerView: View {
                         if permissionDenied {
                             Text(language.text("Camera access is off"))
                                 .font(APEXFont.display(20))
-                            Text(language.text("Enable Camera for APEX in Settings to scan food labels."))
+                            Text(language.text("Enable Camera for FITR MAX in Settings to scan food labels."))
                                 .font(APEXFont.body(13, weight: .medium))
                                 .multilineTextAlignment(.center)
                         } else if isLookingUp {
                             ProgressView()
                             Text(language.text("Reading nutrition data"))
                                 .font(APEXFont.display(20))
-                            Text(language.text("Checking APEX Food Memory and Open Food Facts"))
+                            Text(language.text("Checking FITR MAX Food Memory and Open Food Facts"))
                                 .font(APEXFont.body(12, weight: .medium))
                                 .foregroundStyle(APEXColor.secondaryInk)
                         } else if let food {
@@ -179,7 +179,7 @@ struct BarcodeScannerView: View {
                         } else {
                             Text(language.text("Hold the barcode inside the frame"))
                                 .font(APEXFont.display(18))
-                            Text(language.text("APEX detects EAN-8, EAN-13 and UPC labels automatically."))
+                            Text(language.text("FITR MAX detects EAN-8, EAN-13 and UPC labels automatically."))
                                 .font(APEXFont.body(12, weight: .medium))
                                 .foregroundStyle(APEXColor.secondaryInk)
                         }

@@ -56,7 +56,7 @@ struct TrainingInductionPanel: View {
                 Text(language.text(slug == "main" ? "Your personal main phase" : "Your personal training plan"))
                     .font(APEXFont.display(21))
                 Text(language.text(hasActiveGeneratedPlan ? "Your generated plan is active. Rebuild it any time, or restore your original programme from Settings."
-                    : "Answer a few questions and APEX writes a starting programme around your equipment, your recovery and the days you can train."))
+                    : "Answer a few questions and FITR MAX writes a starting programme around your equipment, your recovery and the days you can train."))
                     .font(APEXFont.body(12, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
 
@@ -263,7 +263,7 @@ struct TrainingInductionPanel: View {
     private var builderHeader: some View {
         HStack(alignment: .top, spacing: 14) {
             VStack(alignment: .leading, spacing: 5) {
-                Text(language.text("APEX PLAN INTELLIGENCE"))
+                Text(language.text("FITR MAX PLAN INTELLIGENCE"))
                     .font(APEXFont.mono(9, weight: .bold))
                     .tracking(1.8)
                     .foregroundStyle(APEXColor.violet)
@@ -336,7 +336,7 @@ struct TrainingInductionPanel: View {
             sectionHeading(
                 eyebrow: "TRAINING ENVIRONMENT",
                 title: "Where will the work happen?",
-                body: "APEX keeps every prescribed movement inside the setup you actually have."
+                body: "FITR MAX keeps every prescribed movement inside the setup you actually have."
             )
             ForEach(venueOptions) { option in
                 selectionCard(
@@ -374,7 +374,7 @@ struct TrainingInductionPanel: View {
         VStack(alignment: .leading, spacing: 16) {
             sectionHeading(
                 eyebrow: "YOUR EQUIPMENT",
-                title: draft.venue == "gym" ? "What do you prefer to use?" : "What can APEX build around?",
+                title: draft.venue == "gym" ? "What do you prefer to use?" : "What can FITR MAX build around?",
                 body: draft.venue == "gym"
                     ? "Your gym floor is assumed. Select personal tools you reliably have so the plan can prefer them."
                     : "No equipment is required. Select only what is genuinely available."
@@ -405,7 +405,7 @@ struct TrainingInductionPanel: View {
             sectionHeading(
                 eyebrow: "PLAN HORIZON",
                 title: "How long should your plan be?",
-                body: "Choose the period you can commit to. APEX stores a real end date, so the plan cannot repeat forever."
+                body: "Choose the period you can commit to. FITR MAX stores a real end date, so the plan cannot repeat forever."
             )
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
@@ -788,7 +788,7 @@ struct TrainingInductionPanel: View {
                             .font(APEXFont.body(13, weight: .medium))
                             .foregroundStyle(APEXColor.secondaryInk)
 
-                        advisoryGroup("HOW APEX ADAPTS", items: advisory.adaptations, icon: "arrow.triangle.2.circlepath")
+                        advisoryGroup("HOW FITR MAX ADAPTS", items: advisory.adaptations, icon: "arrow.triangle.2.circlepath")
                         advisoryGroup("RECOVERY ANCHORS", items: advisory.recoveryTips, icon: "heart.text.square.fill")
 
                         Text(language.text(advisory.disclaimer))

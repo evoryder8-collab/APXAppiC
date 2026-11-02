@@ -19,7 +19,7 @@ function normalizePath(value: string): string {
   return value.trim().replaceAll(/\s+/g, ' ')
 }
 
-test('Watch hydration uses the exact canonical APEX body silhouette', () => {
+test('Watch hydration uses the exact canonical FITR MAX body silhouette', () => {
   const canonical = readFileSync(canonicalPath, 'utf8')
   const watchAsset = readFileSync(watchPath, 'utf8')
   const canonicalBody = canonical.match(
@@ -133,10 +133,10 @@ test('Watch hydration keeps its title and settings in the native top bar', () =>
 
   assert.match(app, /NavigationStack/)
   assert.match(view, /ToolbarItem\(placement: \.topBarTrailing\)/)
-  assert.match(view, /Label\("FitDee", systemImage: "drop.fill"\)/)
+  assert.match(view, /Label\("FITR MAX", systemImage: "drop.fill"\)/)
   assert.match(view, /\.accessibilityLabel\("Hydration settings"\)/)
   assert.match(view, /\.scrollBounceBehavior\(\.basedOnSize\)/)
-  assert.doesNotMatch(view, /\.navigationTitle\("FitDee"\)/)
+  assert.doesNotMatch(view, /\.navigationTitle\("FITR MAX"\)/)
 })
 
 test('Watch hydration exposes configurable low-power presentation settings', () => {

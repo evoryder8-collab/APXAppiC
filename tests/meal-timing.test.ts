@@ -2,6 +2,8 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import type { LoggedFoodEntry, LoggedMeal } from '../src/lib/food.ts'
+import { completedWorkoutHistoryForDate } from '../src/lib/completedWorkoutHistory.ts'
+import { manualWorkoutNotes } from '../src/lib/manualWorkout.ts'
 import {
   analyzeMealTiming,
   comfortZone,
@@ -25,7 +27,7 @@ import {
   zonedClock,
   zonedDateTimeToIso,
 } from '../src/lib/mealTiming.ts'
-import type { WorkoutSession } from '../src/lib/types.ts'
+import { EMPTY_DATA, type WorkoutSession } from '../src/lib/types.ts'
 
 function meal(patch: Partial<LoggedMeal> = {}): LoggedMeal {
   return {
@@ -248,6 +250,48 @@ test('completed workouts become exact dayline events in the selected timezone', 
   assert.equal(event.completedTime, '16:30')
   assert.equal(event.completedMinute, 16 * 60 + 30)
   assert.equal(timedWorkout(session({ completed: false }), 'UTC'), null)
+})
+
+test('historical Quick Log save times do not become Dayline finishes or recovery windows', () => {
+  for (const [assignedDate, savedAt] of [
+    ['2026-11-01', '2026-11-02T18:38:00.000Z'],
+    ['2026-10-14', '2026-11-02T18:55:00.000Z'],
+  ]) {
+    const receipt = session({
+      date: assignedDate,
+      started_at: savedAt,
+      completed_at: savedAt,
+      notes: manualWorkoutNotes('Quick Log'),
+    })
+    assert.equal(timedWorkout(receipt, 'Europe/Zurich'), null)
+    assert.deepEqual(resolvePostWorkoutNutrition({
+      sessions: [receipt], meals: [], timeZone: 'Europe/Zurich',
+    }), [])
+    const data = {
+      ...EMPTY_DATA,
+      settings: { ...EMPTY_DATA.settings!, user_id: receipt.user_id },
+      workout_sessions: [receipt],
+    }
+    assert.deepEqual(completedWorkoutHistoryForDate(data, assignedDate).map((item) => item.session.id), [receipt.id])
+    assert.deepEqual(completedWorkoutHistoryForDate(data, '2026-11-02'), [])
+  }
+})
+
+test('a Quick Log with an assigned-day finish retains its overnight Dayline event without inventing a start', () => {
+  const receipt = session({
+    date: '2026-11-01',
+    started_at: null,
+    completed_at: '2026-11-02T01:40:00.000Z',
+    notes: manualWorkoutNotes('Late workout'),
+  })
+  const event = timedWorkout(receipt, 'Europe/Zurich')
+  assert.ok(event)
+  assert.equal(event.completedTime, '02:40')
+  assert.equal(event.completedLineMinute, 26 * 60 + 40)
+  assert.equal(event.startedTime, null)
+  assert.equal(resolvePostWorkoutNutrition({
+    sessions: [receipt], meals: [], timeZone: 'Europe/Zurich',
+  }).length, 1)
 })
 
 test('a 02:40 workout remains visible and editable on the previous training day', () => {

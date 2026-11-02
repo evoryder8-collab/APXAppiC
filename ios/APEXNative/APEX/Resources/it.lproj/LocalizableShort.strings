@@ -36,7 +36,7 @@
 "Return here after a long break to rebuild consistency, movement quality and training tolerance." = "Ritrova la base dopo la pausa";
 "Choose this when regular training feels manageable and you're ready to build strength, muscle and performance." = "Forza e massa, si parte";
 "APPLE HEALTH" = "APPLE HEALTH";
-"Hide from APEX" = "Nascondi da APEX";
+"Hide from FITR MAX" = "Nascondi da FITR MAX";
 "Already finished?" = "Già finito?";
 "Wearable linked" = "Orologio collegato";
 "Day" = "Giorno";
@@ -99,3 +99,7 @@
 "Coach's client" = "Cliente";
 "Trial (active)" = "Prova";
 "Non-subscribed (no access)" = "Senza abbonamento";
+
+"Manage water access" = "Accesso acqua";
+"Enable water sharing" = "Condividi acqua";
+"Open Health" = "Apri Salute";

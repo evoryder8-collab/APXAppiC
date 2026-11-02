@@ -174,7 +174,7 @@ private struct ActivityEntryForm: View {
                         TextField("kcal", value: $watchKcal, format: .number)
                             .keyboardType(.decimalPad)
                             .textFieldStyle(.roundedBorder)
-                        Text(language.text("APEX counts 80% because wrist estimates commonly run hot. If distance is also present, APEX uses the larger estimate, never both."))
+                        Text(language.text("FITR MAX counts 80% because wrist estimates commonly run hot. If distance is also present, FITR MAX uses the larger estimate, never both."))
                             .font(APEXFont.body(11, weight: .medium))
                             .foregroundStyle(APEXColor.secondaryInk)
                     }

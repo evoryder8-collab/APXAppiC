@@ -77,14 +77,14 @@ export function RecoveryPlannerDialog({
           <div className="min-w-0">
             <p className="font-mono text-[10px] font-black tracking-[0.18em] text-emerald uppercase">{t('RECOVERY RHYTHM')}</p>
             <h2 id="recovery-planner-title" className="mt-1 font-display text-3xl leading-tight font-bold text-ink">{t(target === 'joint' ? 'Plan joint care' : 'Plan flexibility')}</h2>
-            <p className="mt-2 text-sm leading-relaxed font-medium text-ink-soft">{t('Four weeks, two short sessions each week. APEX favours lower-load days and never replaces your current programme.')}</p>
+            <p className="mt-2 text-sm leading-relaxed font-medium text-ink-soft">{t('Four weeks, two short sessions each week. FITR MAX favours lower-load days and never replaces your current programme.')}</p>
           </div>
           <button ref={closeButton} type="button" onClick={onClose} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/80 text-xl font-bold text-ink-soft" aria-label={t('Close')}>×</button>
         </div>
 
         <div className="mt-5 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label={t('Session style')}>
           {([
-            ['guided', 'APEX guided', 'A short follow-along routine using reviewed movements.'],
+            ['guided', 'FITR MAX guided', 'A short follow-along routine using reviewed movements.'],
             ['external', 'My own session', 'Follow a mobility or recovery video or routine you trust, then log it honestly.'],
           ] as const).map(([value, title, detail]) => {
             const active = source === value

@@ -151,7 +151,7 @@ struct AvatarView: View {
         let delta = comparisonSnapshot.map { overall - $0.overall }
         return VStack(alignment: .leading, spacing: 18) {
             HStack {
-                Text(language.text("APEX BODY INDEX")).font(APEXFont.mono(10)).tracking(2.6)
+                Text(language.text("FITR MAX BODY INDEX")).font(APEXFont.mono(10)).tracking(2.6)
                 Spacer()
                 Text(language.text("TRAINING ESTIMATE")).font(APEXFont.mono(9)).tracking(1.1)
                     .lineLimit(2).multilineTextAlignment(.center)
@@ -302,7 +302,7 @@ struct AvatarView: View {
                 Spacer(); Image(systemName: "heart.text.square.fill").font(.system(size: 27)).foregroundStyle(APEXColor.cyan)
             }
             if metrics.isEmpty {
-                Text(language.text("No supported Health data is available yet. Connect Apple Health in Settings to add VO₂ max and resting-heart-rate evidence. APEX will not invent missing recovery values."))
+                Text(language.text("No supported Health data is available yet. Connect Apple Health in Settings to add VO₂ max and resting-heart-rate evidence. FITR MAX will not invent missing recovery values."))
                     .font(APEXFont.body(13, weight: .medium)).foregroundStyle(.white.opacity(0.62)).lineSpacing(4)
                 Button(language.text("Open Settings")) { session.openPortalDestination(.settings) }
                     .buttonStyle(.borderedProminent).tint(APEXColor.violet)
@@ -373,12 +373,12 @@ struct AvatarView: View {
     private var assessmentCard: some View {
         GlassCard(radius: 32, padding: 20) {
             VStack(alignment: .leading, spacing: 15) {
-                Text(language.text("APEX ASSESSMENT")).font(APEXFont.mono(10)).tracking(2).foregroundStyle(APEXColor.secondaryInk)
+                Text(language.text("FITR MAX ASSESSMENT")).font(APEXFont.mono(10)).tracking(2).foregroundStyle(APEXColor.secondaryInk)
                 Text(language.text(assessmentHeadline)).font(APEXFont.display(25))
                 Text(assessment).font(APEXFont.body(14, weight: .medium)).foregroundStyle(APEXColor.secondaryInk).lineSpacing(4)
                 assessmentBlock("WHAT IS WORKING", lines: workingLines, tint: APEXColor.green)
                 assessmentBlock("HIGHEST-RETURN IMPROVEMENTS", lines: improvementLines, tint: APEXColor.amber)
-                Text(language.text("Performance guidance generated from your APEX logs and trends. It is not a medical diagnosis."))
+                Text(language.text("Performance guidance generated from your FITR MAX logs and trends. It is not a medical diagnosis."))
                     .font(APEXFont.body(10, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
             }
         }
@@ -423,7 +423,7 @@ struct AvatarView: View {
                         .accessibilityLabel(language.text("What this chart shows"))
                     }
                     if showEvolutionInfo {
-                        Text(language.text("One point for every day APEX recorded a full picture of you. The line is your overall index, the same number shown at the top of this page, so you can see whether it is moving and not only where it stands today."))
+                        Text(language.text("One point for every day FITR MAX recorded a full picture of you. The line is your overall index, the same number shown at the top of this page, so you can see whether it is moving and not only where it stands today."))
                             .font(APEXFont.body(12))
                             .foregroundStyle(APEXColor.secondaryInk)
                             .fixedSize(horizontal: false, vertical: true)
@@ -513,7 +513,7 @@ struct AvatarView: View {
         let delta = stats.first?.delta
         var text = language.format("%@ currently leads at %d. %@ is the clearest limiter at %d.", language.text(strongest.name), Int(strongest.value.rounded()), language.text(weakest.name), Int(weakest.value.rounded()))
         if let delta { text += " " + language.format("Your Overall score changed %@ points across the selected comparison window.", signed(delta)) }
-        text += " " + language.text("APEX will protect the strongest signal while directing the smallest useful dose toward the limiter.")
+        text += " " + language.text("FITR MAX will protect the strongest signal while directing the smallest useful dose toward the limiter.")
         return text
     }
 
@@ -555,7 +555,7 @@ struct AvatarView: View {
     private func needExplanation(for stat: AvatarStat) -> String {
         switch stat.key {
         case "health": return "Hydration, calories near target, protein and sleep evidence feed this signal. Log the day consistently before changing the plan."
-        case "joint": return "Use the weekly load-tolerance check and keep demanding sessions pain-free. APEX uses the trend for load guidance, not diagnosis."
+        case "joint": return "Use the weekly load-tolerance check and keep demanding sessions pain-free. FITR MAX uses the trend for load guidance, not diagnosis."
         case "flexibility": return "Two short mobility exposures this week are a higher-return choice than one exhausting stretch session."
         case "endurance": return "Add one controlled aerobic session that preserves the surrounding strength and recovery work."
         case "upper": return "Keep two clean upper-body exposures and progress only after the top of the rep range is repeatable."
@@ -1050,7 +1050,7 @@ private struct AvatarHero: View {
                     /* The name only. The overall score has its own card
                        directly underneath, and printing it twice made the
                        second one look like a different number. */
-                    Text(profile?.displayName ?? "FitDee")
+                    Text(profile?.displayName ?? "FITR MAX")
                         .font(APEXFont.display(24))
                         .lineLimit(2)
                         .fixedSize(horizontal: false, vertical: true)

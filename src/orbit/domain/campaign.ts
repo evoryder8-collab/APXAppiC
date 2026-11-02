@@ -431,7 +431,7 @@ export function readinessComponents(runs: OrbitRun[], sessions: CampaignSession[
     },
     {
       key: 'strength', label: 'Strength coordination', state: campaign.family === 'hybrid' ? 'on_track' : 'moderate',
-      reason: campaign.family === 'hybrid' ? 'The campaign is scheduled around the existing APEX strength week.' : 'Strength work remains visible when Orbit adapts the run week.',
+      reason: campaign.family === 'hybrid' ? 'The campaign is scheduled around the existing FITR MAX strength week.' : 'Strength work remains visible when Orbit adapts the run week.',
     },
   ]
   if (campaign.phase === 'race_week' || campaign.phase === 'taper') {

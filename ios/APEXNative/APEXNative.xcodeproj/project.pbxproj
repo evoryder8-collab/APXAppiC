@@ -290,7 +290,13 @@
 		A39800000000000000000005 /* CustomHydrationAmountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A39800000000000000000004 /* CustomHydrationAmountView.swift */; };
 		A39800000000000000000007 /* WatchHydrationAmountControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = A39800000000000000000006 /* WatchHydrationAmountControl.swift */; };
 		A39800000000000000000009 /* WatchAmount.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A39800000000000000000008 /* WatchAmount.xcstrings */; };
+		A39900000000000000000002 /* AppBrand.swift in Sources */ = {isa = PBXBuildFile; fileRef = A39900000000000000000001 /* AppBrand.swift */; };
+		A39900000000000000000004 /* HealthWaterAccess.swift in Sources */ = {isa = PBXBuildFile; fileRef = A39900000000000000000003 /* HealthWaterAccess.swift */; };
+		A39900000000000000000006 /* HealthWaterAccessHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A39900000000000000000005 /* HealthWaterAccessHelpView.swift */; };
+		A39900000000000000000008 /* FoodLibraryHydration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A39900000000000000000007 /* FoodLibraryHydration.swift */; };
+		A39900000000000000000010 /* FoodLibraryHydrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A39900000000000000000009 /* FoodLibraryHydrationTests.swift */; };
 /* End PBXBuildFile section */
+
 
 /* Begin PBXContainerItemProxy section */
 		4352B7CB29C809F30397F968 /* PBXContainerItemProxy */ = {
@@ -640,6 +646,11 @@
 		A39800000000000000000004 /* CustomHydrationAmountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomHydrationAmountView.swift; sourceTree = "<group>"; };
 		A39800000000000000000006 /* WatchHydrationAmountControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHydrationAmountControl.swift; sourceTree = "<group>"; };
 		A39800000000000000000008 /* WatchAmount.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = WatchAmount.xcstrings; sourceTree = "<group>"; };
+		A39900000000000000000001 /* AppBrand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppBrand.swift; sourceTree = "<group>"; };
+		A39900000000000000000003 /* HealthWaterAccess.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthWaterAccess.swift; sourceTree = "<group>"; };
+		A39900000000000000000005 /* HealthWaterAccessHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthWaterAccessHelpView.swift; sourceTree = "<group>"; };
+		A39900000000000000000007 /* FoodLibraryHydration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLibraryHydration.swift; sourceTree = "<group>"; };
+		A39900000000000000000009 /* FoodLibraryHydrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLibraryHydrationTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -778,6 +789,7 @@
 			children = (
 				5C5DD87DC31AEF8E5A0A6905 /* APEXConfiguration.swift */,
 				23AEEB8E0AD3A0C9528B48E5 /* SupabaseService.swift */,
+				A39900000000000000000007 /* FoodLibraryHydration.swift */,
 			);
 			path = Networking;
 			sourceTree = "<group>";
@@ -888,6 +900,7 @@
 				74C7E3CF4E5AE5C8DEA117E5 /* LocalisationCoverageTests.swift */,
 				192E8BBA9FDA6A45AE0F11E8 /* LocalizationTests.swift */,
 				39EEEB9F8DC5CFCF18BFFF4E /* ManualAndInductionTests.swift */,
+				A39900000000000000000009 /* FoodLibraryHydrationTests.swift */,
 				1461F2B1B2C5B0A79D5BE0B3 /* MealComposerTests.swift */,
 				CDC9B41B4934D3F2405AA4C3 /* MealMacroGuidanceParityTests.swift */,
 				833B254C2F34F220EBBF200A /* MealMemoryParityTests.swift */,
@@ -1003,6 +1016,7 @@
 				2CD5EA29A6CF5B32C5C07DA6 /* AccessRecoveryView.swift */,
 				30E466A7F4101C8729453FCE /* ProfileAvatarPicker.swift */,
 				E95C814C0119931140528180 /* SettingsView.swift */,
+				A39900000000000000000005 /* HealthWaterAccessHelpView.swift */,
                 E50908000000000000000001 /* DeveloperSandboxView.swift */,
 			);
 			path = Settings;
@@ -1139,6 +1153,8 @@
 				B64FC8D2C776DE0378E7E796 /* TrainingPlanEngine.swift */,
 				407B3620EF50A8D62330040F /* WatchHydrationFillState.swift */,
 				A39800000000000000000001 /* WatchHydrationAmountAdjustment.swift */,
+				A39900000000000000000001 /* AppBrand.swift */,
+				A39900000000000000000003 /* HealthWaterAccess.swift */,
 				BB12EB0FE52C548FE1823E88 /* WatchHydrationPreferences.swift */,
 				FA7CE3D3151538B0EEDAA8E6 /* WatchHydrationReminderPolicy.swift */,
 				636F0435092BB2310EEEEF2B /* WeightTrend.swift */,
@@ -1450,6 +1466,9 @@
 				DB36DC6830D491E7D91EC4CB /* APEXDebugFixture.swift in Sources */,
 				D50908000000000000000002 /* DeveloperSandbox.swift in Sources */,
 				B4DEFD97649C463825AECC4E /* APEXLocalization.swift in Sources */,
+				A39900000000000000000002 /* AppBrand.swift in Sources */,
+				A39900000000000000000004 /* HealthWaterAccess.swift in Sources */,
+				A39900000000000000000006 /* HealthWaterAccessHelpView.swift in Sources */,
 				1EDB0BA3C3FE40F5B256B247 /* APEXModels.swift in Sources */,
 				FA1100000000000000000002 /* ProfileIntegrityPolicy.swift in Sources */,
 				33DAA6A737476F0C4FAC1727 /* APEXPopover.swift in Sources */,
@@ -1572,6 +1591,7 @@
 				4E8109D8E62DD0784BBFDF3A /* SimpleHomeView.swift in Sources */,
 				8F8F28A4C1D48840624E3517 /* StrengthProgress.swift in Sources */,
 				4C3430D0B040A751B27CA88D /* SupabaseService.swift in Sources */,
+				A39900000000000000000008 /* FoodLibraryHydration.swift in Sources */,
 				2C0C4EFB8089AF18E47CC813 /* SupplementCatalogue.swift in Sources */,
 				0982ED571F7852F158375B39 /* SyncIssuesSheet.swift in Sources */,
 				9632A64865B548AC3A1EB5F5 /* TrainingAdjustmentEngine.swift in Sources */,
@@ -1638,6 +1658,7 @@
 				FB4AFC5F48F1651E0E7B1D52 /* LocalisationCoverageTests.swift in Sources */,
 				BEB1F478F3008351ADF7F2AE /* LocalizationTests.swift in Sources */,
 				355C40F68B13A6FBC400F7D5 /* ManualAndInductionTests.swift in Sources */,
+				A39900000000000000000010 /* FoodLibraryHydrationTests.swift in Sources */,
 				0EE7E6645CFDDEC729502C7D /* MealComposerTests.swift in Sources */,
 				76C3F2FEE9DED4CD82BF8A01 /* MealMacroGuidanceParityTests.swift in Sources */,
 				D6E3A2C4EC98342E02B5BBCC /* MealMemoryParityTests.swift in Sources */,
@@ -1915,7 +1936,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 398;
+				CURRENT_PROJECT_VERSION = 399;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1979,7 +2000,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 398;
+				CURRENT_PROJECT_VERSION = 399;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;

@@ -354,7 +354,7 @@ struct BaselineCalibrationSheet: View {
             Text(language.text("What are you adding?"))
                 .font(APEXFont.display(30))
                 .fixedSize(horizontal: false, vertical: true)
-            Text(language.text("Choose the report you have. APEX will only ask for values that belong to it."))
+            Text(language.text("Choose the report you have. FITR MAX will only ask for values that belong to it."))
                 .font(APEXFont.body(13, weight: .medium))
                 .foregroundStyle(APEXColor.secondaryInk)
                 .fixedSize(horizontal: false, vertical: true)
@@ -390,7 +390,7 @@ struct BaselineCalibrationSheet: View {
             if saveState == .saved {
                 savedResultPanel
             } else {
-                Text(language.text("DEXA measures body composition. Some reports also print an estimated BMR or RMR; APEX stores that number as report-supplied, not as a direct metabolic measurement."))
+                Text(language.text("DEXA measures body composition. Some reports also print an estimated BMR or RMR; FITR MAX stores that number as report-supplied, not as a direct metabolic measurement."))
                     .font(APEXFont.body(12, weight: .semibold))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .lineSpacing(3)
@@ -577,7 +577,7 @@ struct BaselineCalibrationSheet: View {
         VStack(alignment: .leading, spacing: 16) {
             Text(language.text("Apple Health"))
                 .font(APEXFont.display(29))
-            Text(language.text("You choose what APEX can read. Denial or missing data never lowers your baseline, and manual calibration always remains available."))
+            Text(language.text("You choose what FITR MAX can read. Denial or missing data never lowers your baseline, and manual calibration always remains available."))
                 .font(APEXFont.body(13, weight: .medium))
                 .foregroundStyle(APEXColor.secondaryInk)
                 .lineSpacing(3)

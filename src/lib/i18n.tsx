@@ -9,6 +9,7 @@ import {
 import { ACTIVITY_TRANSLATIONS, DATE_WORDS, UI_TRANSLATIONS } from './translations'
 import { translateAvatarAssessmentSummary } from './avatarLocalization'
 import { replaceInterfaceSegment } from './translationSegments'
+import { displayBrand } from './brand'
 
 interface LanguageContextValue {
   language: IntroLanguage
@@ -140,7 +141,7 @@ function translateDynamic(value: string, language: Exclude<IntroLanguage, 'en'>)
     const action = translateInterfaceText(mealAction[1], language)
     return language === 'ro' ? `${action} · ${mealAction[2]} kcal` : `${action} · ${mealAction[2]} แคลอรี`
   }
-  const adaptiveSuggestion = value.match(/^APEX suggests you (increase|reduce) this adjustable item\. (.+)$/)
+  const adaptiveSuggestion = value.match(/^FITR MAX suggests you (increase|reduce) this adjustable item\. (.+)$/)
   if (adaptiveSuggestion) {
     const direction = adaptiveSuggestion[1]
     const rationale = adaptiveSuggestion[2]
@@ -149,8 +150,8 @@ function translateDynamic(value: string, language: Exclude<IntroLanguage, 'en'>)
       : (direction === 'increase' ? 'เพิ่มปริมาณรายการที่ปรับได้' : 'ลดปริมาณรายการที่ปรับได้')
     if (rationale === 'Protein is meaningfully below today’s protected target.') {
       return language === 'ro'
-        ? `APEX îți sugerează ${action}. Proteinele sunt semnificativ sub obiectivul protejat de azi.`
-        : `APEX แนะนำให้${action} โปรตีนยังต่ำกว่าเป้าหมายที่ระบบปกป้องไว้สำหรับวันนี้อย่างชัดเจน`
+        ? `FITR MAX îți sugerează ${action}. Proteinele sunt semnificativ sub obiectivul protejat de azi.`
+        : `FITR MAX แนะนำให้${action} โปรตีนยังต่ำกว่าเป้าหมายที่ระบบปกป้องไว้สำหรับวันนี้อย่างชัดเจน`
     }
     const flexibleEnergy = rationale.match(/^(.+?)( training)? leaves (more|less) flexible energy for this meal\.$/)
     if (flexibleEnergy) {
@@ -158,9 +159,9 @@ function translateDynamic(value: string, language: Exclude<IntroLanguage, 'en'>)
       const training = Boolean(flexibleEnergy[2])
       const more = flexibleEnergy[3] === 'more'
       if (language === 'ro') {
-        return `APEX îți sugerează ${action}. Nivelul ${activity}${training ? ' și antrenamentul' : ''} lasă ${more ? 'mai multă' : 'mai puțină'} energie flexibilă pentru această masă.`
+        return `FITR MAX îți sugerează ${action}. Nivelul ${activity}${training ? ' și antrenamentul' : ''} lasă ${more ? 'mai multă' : 'mai puțină'} energie flexibilă pentru această masă.`
       }
-      return `APEX แนะนำให้${action} ระดับ${activity}${training ? 'และการฝึก' : ''}ทำให้มื้อนี้มีพลังงานที่ปรับได้${more ? 'มากขึ้น' : 'น้อยลง'}`
+      return `FITR MAX แนะนำให้${action} ระดับ${activity}${training ? 'และการฝึก' : ''}ทำให้มื้อนี้มีพลังงานที่ปรับได้${more ? 'มากขึ้น' : 'น้อยลง'}`
     }
   }
   const foodAmount = value.match(/^Amount for (.+)$/)
@@ -199,7 +200,7 @@ function translateDynamic(value: string, language: Exclude<IntroLanguage, 'en'>)
   if (namedDaysRemaining) return language === 'ro' ? `${namedDaysRemaining[1]} · ${namedDaysRemaining[2]} zile rămase` : `${namedDaysRemaining[1]} · เหลือ ${namedDaysRemaining[2]} วัน`
   const questionProgress = value.match(/^QUESTION (\d+) OF (\d+)$/)
   if (questionProgress) return language === 'ro' ? `ÎNTREBAREA ${questionProgress[1]} DIN ${questionProgress[2]}` : `คำถาม ${questionProgress[1]} จาก ${questionProgress[2]}`
-  const knownProfile = value.match(/^APEX already knows: (age unavailable|age \d+) · (weight unavailable|[\d.]+ kg) · (\d+) strength days in the Main Phase\.$/)
+  const knownProfile = value.match(/^FITR MAX already knows: (age unavailable|age \d+) · (weight unavailable|[\d.]+ kg) · (\d+) strength days in the Main Phase\.$/)
   if (knownProfile) {
     const age = knownProfile[1] === 'age unavailable'
       ? (language === 'ro' ? 'vârstă indisponibilă' : 'ไม่พบข้อมูลอายุ')
@@ -208,8 +209,8 @@ function translateDynamic(value: string, language: Exclude<IntroLanguage, 'en'>)
       ? (language === 'ro' ? 'greutate indisponibilă' : 'ไม่พบข้อมูลน้ำหนัก')
       : (language === 'ro' ? knownProfile[2] : knownProfile[2].replace(' kg', ' กก.'))
     return language === 'ro'
-      ? `APEX știe deja: ${age} · ${weight} · ${knownProfile[3]} zile de antrenament de forță în Faza principală.`
-      : `APEX รู้แล้ว: ${age} · ${weight} · ฝึกแรง ${knownProfile[3]} วันในโปรแกรมหลัก`
+      ? `FITR MAX știe deja: ${age} · ${weight} · ${knownProfile[3]} zile de antrenament de forță în Faza principală.`
+      : `FITR MAX รู้แล้ว: ${age} · ${weight} · ฝึกแรง ${knownProfile[3]} วันในโปรแกรมหลัก`
   }
   const shortVersion = value.match(/^Short on time\? (\d+) min$/)
   if (shortVersion) return language === 'ro' ? `Ai puțin timp? Fă versiunea de ${shortVersion[1]} min` : `เวลาน้อยใช่ไหม? ทำเวอร์ชัน ${shortVersion[1]} นาที`
@@ -472,7 +473,8 @@ function translateDynamic(value: string, language: Exclude<IntroLanguage, 'en'>)
   return null
 }
 
-export function translateInterfaceText(value: string, language: IntroLanguage): string {
+export function translateInterfaceText(source: string, language: IntroLanguage): string {
+  const value = displayBrand(source)
   if (language === 'en' || !value.trim()) return value
   const leading = value.match(/^\s*/)?.[0] ?? ''
   const trailing = value.match(/\s*$/)?.[0] ?? ''
@@ -482,7 +484,7 @@ export function translateInterfaceText(value: string, language: IntroLanguage): 
   const dynamic = translateDynamic(core, language)
   if (dynamic) return `${leading}${dynamic}${trailing}`
 
-  /* June is a person's immutable name throughout APEX. Mask it from the
+  /* June is a person's immutable name throughout FITR MAX. Mask it from the
      generic month translator unless it is clearly adjacent to a day number. */
   const juneIsDate = /(?:\bJune\s+\d{1,2}|\d{1,2}\s+June\b)/.test(core)
   const protectedJune = juneIsDate ? core : core.replace(/\bJune\b/g, '\uE000APEX_PERSON_JUNE\uE001')

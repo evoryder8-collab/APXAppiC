@@ -509,8 +509,8 @@ export function Player() {
       startedAt: state.startedAt,
       completedAt,
       notes: externallyCompleted
-        ? 'Completed externally from the APEX guided player'
-        : 'Completed in APEX web',
+        ? 'Completed externally from the FITR MAX guided player'
+        : 'Completed in FITR MAX web',
       exercises: exercisesToPersist.map(({ exercise: e, exIdx, result: r }) => {
         const isRealExercise = data.exercises.some((x) => x.id === e.id)
         const persistedSetCount = externallyCompleted ? (r?.sets.length ?? 0) : e.planned_sets
@@ -842,14 +842,14 @@ export function Player() {
                 </div>
                 <button type="button" onClick={closeAlreadyFinished} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/6 text-lg font-black text-ink" aria-label={voiceText('Close')}>×</button>
               </div>
-              <p className="mt-3 text-sm leading-relaxed font-semibold text-ink-soft">{voiceText('APEX has paused the follow-along. Keep only the facts you already recorded here, then optionally attach the wearable effort that belongs to this session.')}</p>
+              <p className="mt-3 text-sm leading-relaxed font-semibold text-ink-soft">{voiceText('FITR MAX has paused the follow-along. Keep only the facts you already recorded here, then optionally attach the wearable effort that belongs to this session.')}</p>
 
               {choosingWearableActivity ? (
                 <div className="mt-4">
                   <p className="font-display text-sm font-black text-ink">{voiceText('Choose the wearable activity that matches this workout')}</p>
                   <div className="mt-3 max-h-[42dvh] space-y-2 overflow-y-auto pr-1">
                     {wearableActivityCandidates.length === 0 ? (
-                      <p className="rounded-2xl border border-sky-100 bg-sky-50/80 p-4 text-xs leading-relaxed font-semibold text-sky-950/75">{voiceText('No wearable workouts were found for this day. They appear here after the activity reaches Apple Health and syncs to APEX.')}</p>
+                      <p className="rounded-2xl border border-sky-100 bg-sky-50/80 p-4 text-xs leading-relaxed font-semibold text-sky-950/75">{voiceText('No wearable workouts were found for this day. They appear here after the activity reaches Apple Health and syncs to FITR MAX.')}</p>
                     ) : wearableActivityCandidates.map((activity) => {
                       const receipt = externalWorkoutReceiptPresentation(
                         activity,

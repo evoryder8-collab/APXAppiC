@@ -11,9 +11,23 @@ import {
   manualSessionsForDate,
   parseTreadmillLog,
   rankManualWorkoutPresets,
+  rememberQuickLogExercise,
+  rankQuickLogExercises,
   reconcileManualWorkoutLogs,
   resequenceManualWorkoutLogs,
 } from '../src/lib/manualWorkout.ts'
+
+test('Quick Log remembers the latest selection first without duplicates or unbounded growth', () => {
+  assert.deepEqual(rememberQuickLogExercise('row', ['curl', 'row', 'squat']), ['row', 'curl', 'squat'])
+  assert.equal(rememberQuickLogExercise('new', Array.from({ length: 80 }, (_, i) => String(i))).length, 64)
+})
+
+test('Quick Log promotes recent matching exercises while retaining the search result boundary and tie order', () => {
+  const matches = [{ id: 'squat' }, { id: 'row' }, { id: 'curl' }, { id: 'lunge' }]
+  assert.deepEqual(rankQuickLogExercises(matches, ['unrelated', 'curl', 'row']).map(item => item.id),
+    ['curl', 'row', 'squat', 'lunge'])
+  assert.deepEqual(rankQuickLogExercises(matches, []), matches)
+})
 
 function session(id: string, date: string, title: string): WorkoutSession {
   return {

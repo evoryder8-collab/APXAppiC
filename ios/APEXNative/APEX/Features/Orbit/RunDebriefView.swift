@@ -53,7 +53,7 @@ struct RunDebriefView: View {
                         .mapStyle(.standard(elevation: .realistic, emphasis: .muted, pointsOfInterest: .excludingAll))
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(language.text("APEX PERFORMANCE DEBRIEF"))
+                            Text(language.text("FITR MAX PERFORMANCE DEBRIEF"))
                                 .font(APEXFont.mono(9))
                                 .tracking(1.4)
                             Text(language.text(missionTitle))
@@ -190,7 +190,7 @@ struct RunDebriefView: View {
 
                     GlassCard(radius: 30, padding: 20) {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text(language.text("APEX RESPONSE"))
+                            Text(language.text("FITR MAX RESPONSE"))
                                 .font(APEXFont.mono(9))
                                 .tracking(1.2)
                                 .foregroundStyle(APEXColor.green)

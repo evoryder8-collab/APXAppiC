@@ -41,7 +41,7 @@ export function OrbitFrame({ title, subtitle, backTo = '/', children, action, hi
             </Link>
             <div className="flex min-w-0 items-center gap-2 text-sky-200">
               <OrbitIcon className="h-5 w-5 shrink-0" />
-              <p className="truncate font-mono text-[9px] font-bold tracking-[0.2em]">{t('APEX ORBIT')}</p>
+              <p className="truncate font-mono text-[9px] font-bold tracking-[0.2em]">{t('FITR MAX ORBIT')}</p>
             </div>
             <div className="flex min-w-12 justify-end">{action}</div>
           </div>

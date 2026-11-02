@@ -36,7 +36,7 @@
 "Return here after a long break to rebuild consistency, movement quality and training tolerance." = "Rebuild your base after a break.";
 "Choose this when regular training feels manageable and you're ready to build strength, muscle and performance." = "Ready to build strength and muscle.";
 "APPLE HEALTH" = "APPLE HEALTH";
-"Hide from APEX" = "Hide from APEX";
+"Hide from FITR MAX" = "Hide from FITR MAX";
 "Already finished?" = "Already done?";
 "Wearable linked" = "Watch linked";
 "Day" = "Day";
@@ -99,3 +99,7 @@
 "Coach's client" = "Coach’s client";
 "Trial (active)" = "Trial";
 "Non-subscribed (no access)" = "No subscription";
+
+"Manage water access" = "Water access";
+"Enable water sharing" = "Share water";
+"Open Health" = "Open Health";

@@ -12,16 +12,24 @@ struct ManualWorkoutLoggerView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var language = LanguageState.shared
 
-    var date: String = Date().apexDateKey
+    let date: String
     var editing: WorkoutSession?
     var onSaved: () -> Void = {}
 
     @State private var title = ""
-    @State private var day: String = Date().apexDateKey
+    @State private var day: String
+    @State private var didLoad = false
     @State private var exercises: [ManualWorkout.ExerciseDraft] = []
     @State private var query = ""
     @State private var showSearch = false
     @State private var problem: String?
+
+    init(date: String, editing: WorkoutSession? = nil, onSaved: @escaping () -> Void = {}) {
+        self.date = date
+        self.editing = editing
+        self.onSaved = onSaved
+        _day = State(initialValue: editing?.date ?? date)
+    }
 
     private var canSave: Bool {
         !exercises.isEmpty && exercises.allSatisfy { draft in
@@ -61,6 +69,8 @@ struct ManualWorkoutLoggerView: View {
                                 displayedComponents: .date
                             )
                             .font(APEXFont.body(13, weight: .semibold))
+                            .accessibilityIdentifier("manual-workout-date")
+                            .accessibilityValue(day)
                         }
                     }
 
@@ -103,12 +113,12 @@ struct ManualWorkoutLoggerView: View {
                 }
             }
             .sheet(isPresented: $showSearch) {
-                MovementPicker(query: $query) { item in
+                MovementPicker(query: $query, recentIDs: recentExerciseIDs) { item in
                     let descriptor = ExerciseLogging.descriptor(movementNamed: item.name)
                     let duration: Int? = descriptor.fields.contains(.duration)
                         ? (item.unit == "minutes" ? item.reps * 60 : item.unit == "seconds" ? item.reps : nil)
                         : nil
-                    exercises.append(
+                    exercises.insert(
                         ManualWorkout.ExerciseDraft(
                             catalogID: item.id,
                             name: item.name,
@@ -123,8 +133,15 @@ struct ManualWorkoutLoggerView: View {
                                     ? item.reps : nil
                             )],
                             treadmill: nil
-                        )
+                        ), at: 0
                     )
+                    if let ownerID = session.accountOperationLease()?.ownerID {
+                        UserDefaults.standard.set(
+                            ManualWorkout.rememberExercise(item.id, in: recentExerciseIDs),
+                            forKey: ManualWorkout.recentExercisesKey(ownerID: ownerID)
+                        )
+                    }
+                    query = ""
                     showSearch = false
                 }
             }
@@ -137,8 +154,15 @@ struct ManualWorkoutLoggerView: View {
         }
     }
 
+    private var recentExerciseIDs: [String] {
+        guard let ownerID = session.accountOperationLease()?.ownerID else { return [] }
+        return UserDefaults.standard.stringArray(forKey: ManualWorkout.recentExercisesKey(ownerID: ownerID)) ?? []
+    }
+
     private func load() {
-        day = date
+        // Returning from the movement picker must not erase the in-progress draft.
+        guard !didLoad else { return }
+        didLoad = true
         guard let editing else { return }
         title = ManualWorkout.hasAutomaticTitle(editing.notes)
             ? ""
@@ -283,12 +307,15 @@ struct ManualWorkoutLoggerView: View {
 /// The same movement library the studio searches, in a picker.
 private struct MovementPicker: View {
     @Binding var query: String
+    let recentIDs: [String]
     @State private var language = LanguageState.shared
     let onPick: (ExerciseCatalogItem) -> Void
 
     var body: some View {
         NavigationStack {
-            List(ExerciseCatalog.search(query, category: "all", language: language.language)) { item in
+            List(ManualWorkout.rankExercises(
+                ExerciseCatalog.search(query, category: "all", language: language.language), recentIDs: recentIDs
+            )) { item in
                 Button {
                     onPick(item)
                 } label: {

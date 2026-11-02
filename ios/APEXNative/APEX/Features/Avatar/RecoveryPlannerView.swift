@@ -68,7 +68,7 @@ struct RecoveryPlannerView: View {
             Text(language.text(target == .joint ? "Plan joint care" : "Plan flexibility"))
                 .font(APEXFont.display(32))
                 .fixedSize(horizontal: false, vertical: true)
-            Text(language.text("Four weeks, two short sessions each week. APEX favours lower-load days and never replaces your current programme."))
+            Text(language.text("Four weeks, two short sessions each week. FITR MAX favours lower-load days and never replaces your current programme."))
                 .font(APEXFont.body(14, weight: .medium))
                 .foregroundStyle(APEXColor.secondaryInk)
                 .lineSpacing(3)
@@ -82,7 +82,7 @@ struct RecoveryPlannerView: View {
                 .font(APEXFont.body(15, weight: .bold))
             choice(
                 .guided,
-                title: "APEX guided",
+                title: "FITR MAX guided",
                 detail: "A short follow-along routine using reviewed movements."
             )
             choice(

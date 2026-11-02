@@ -115,7 +115,7 @@ struct FoodSearchSheet: View {
             ScrollView {
                 LazyVStack(spacing: 10) {
                     if isSearching {
-                        ProgressView("Searching APEX Food Memory")
+                        ProgressView("Searching FITR MAX Food Memory")
                             .font(APEXFont.body(13, weight: .semibold))
                             .padding(.vertical, 24)
                     }

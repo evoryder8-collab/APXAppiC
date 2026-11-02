@@ -24,21 +24,21 @@ const COPY = {
     exercise: 'Exercise', noData: 'Your first weighted workout will create this curve automatically.', bestLoad: 'Best working load', estimated: 'Estimated strength', change: 'Range change', sessions: 'Sessions',
     months: 'Months', window: 'History window', weekly: 'WEEKLY LOAD-TOLERANCE CHECK', weeklyTitle: 'How are your joints this week?', weeklyBody: 'Rate fatigue or pain, not normal muscle soreness. One minute now can prevent a bad load decision later.',
     arms: 'Arms', armsDetail: 'shoulders · elbows · wrists', core: 'Core', coreDetail: 'lower/middle back · hips', legs: 'Legs', legsDetail: 'knees · ankles',
-    save: 'Save weekly check-in', due: 'Due now', current: 'Current guidance', update: 'Update now', nextWeek: 'Recorded this week', method: 'APEX combines your trend with the actual training load. This is training guidance, not a diagnosis.',
+    save: 'Save weekly check-in', due: 'Due now', current: 'Current guidance', update: 'Update now', nextWeek: 'Recorded this week', method: 'FITR MAX combines your trend with the actual training load. This is training guidance, not a diagnosis.',
   },
   ro: {
     eyebrow: 'ISTORICUL FORȚEI', title: 'Progres pe care chiar îl poți vedea', subtitle: 'Fiecare curbă provine din greutățile și repetările înregistrate în antrenamente.',
     exercise: 'Exercițiu', noData: 'Primul antrenament cu greutăți va crea automat această curbă.', bestLoad: 'Cea mai bună greutate de lucru', estimated: 'Forță estimată', change: 'Schimbare în interval', sessions: 'Sesiuni',
     months: 'Luni', window: 'Interval istoric', weekly: 'VERIFICARE SĂPTĂMÂNALĂ A TOLERANȚEI', weeklyTitle: 'Cum se simt articulațiile săptămâna aceasta?', weeklyBody: 'Evaluează oboseala sau durerea, nu febra musculară normală. Un minut acum poate preveni o decizie proastă de încărcare.',
     arms: 'Brațe', armsDetail: 'umeri · coate · încheieturi', core: 'Trunchi', coreDetail: 'spate inferior/mediu · șolduri', legs: 'Picioare', legsDetail: 'genunchi · glezne',
-    save: 'Salvează verificarea săptămânală', due: 'De completat acum', current: 'Recomandarea actuală', update: 'Actualizează acum', nextWeek: 'Înregistrat săptămâna aceasta', method: 'APEX combină tendința ta cu încărcarea reală. Este ghidaj de antrenament, nu un diagnostic.',
+    save: 'Salvează verificarea săptămânală', due: 'De completat acum', current: 'Recomandarea actuală', update: 'Actualizează acum', nextWeek: 'Înregistrat săptămâna aceasta', method: 'FITR MAX combină tendința ta cu încărcarea reală. Este ghidaj de antrenament, nu un diagnostic.',
   },
   th: {
     eyebrow: 'ประวัติความแข็งแรง', title: 'เห็นพัฒนาการได้จริง', subtitle: 'ทุกเส้นโค้งมาจากน้ำหนักและจำนวนครั้งที่บันทึกระหว่างการฝึก',
     exercise: 'ท่าออกกำลังกาย', noData: 'การฝึกด้วยน้ำหนักครั้งแรกจะสร้างเส้นโค้งนี้ให้อัตโนมัติ', bestLoad: 'น้ำหนักฝึกที่ดีที่สุด', estimated: 'ความแข็งแรงโดยประมาณ', change: 'การเปลี่ยนแปลงในช่วง', sessions: 'เซสชัน',
     months: 'เดือน', window: 'ช่วงประวัติ', weekly: 'ตรวจความทนต่อโหลดประจำสัปดาห์', weeklyTitle: 'สัปดาห์นี้ข้อต่อเป็นอย่างไร?', weeklyBody: 'ให้คะแนนความล้าหรือความเจ็บ ไม่ใช่อาการปวดกล้ามเนื้อปกติ ใช้เวลาเพียงหนึ่งนาทีเพื่อช่วยเลี่ยงการเพิ่มโหลดที่ไม่เหมาะสม',
     arms: 'แขน', armsDetail: 'ไหล่ · ศอก · ข้อมือ', core: 'แกนกลาง', coreDetail: 'หลังล่าง/กลาง · สะโพก', legs: 'ขา', legsDetail: 'เข่า · ข้อเท้า',
-    save: 'บันทึกการตรวจประจำสัปดาห์', due: 'ถึงเวลาตรวจ', current: 'คำแนะนำปัจจุบัน', update: 'อัปเดตตอนนี้', nextWeek: 'บันทึกแล้วในสัปดาห์นี้', method: 'APEX ใช้ทั้งแนวโน้มของคุณและโหลดการฝึกจริง นี่คือคำแนะนำการฝึก ไม่ใช่การวินิจฉัยโรค',
+    save: 'บันทึกการตรวจประจำสัปดาห์', due: 'ถึงเวลาตรวจ', current: 'คำแนะนำปัจจุบัน', update: 'อัปเดตตอนนี้', nextWeek: 'บันทึกแล้วในสัปดาห์นี้', method: 'FITR MAX ใช้ทั้งแนวโน้มของคุณและโหลดการฝึกจริง นี่คือคำแนะนำการฝึก ไม่ใช่การวินิจฉัยโรค',
   },
 } satisfies Record<IntroLanguage, Record<string, string>>
 

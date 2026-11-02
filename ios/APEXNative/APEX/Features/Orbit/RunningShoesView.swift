@@ -180,7 +180,7 @@ private struct ShoeEditorView: View {
                         .lineLimit(3...6)
                 }
                 Section {
-                    Text(language.text("Mileage is shown factually. APEX does not label shoes unsafe from distance alone."))
+                    Text(language.text("Mileage is shown factually. FITR MAX does not label shoes unsafe from distance alone."))
                         .font(APEXFont.body(10, weight: .medium))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }

@@ -136,7 +136,7 @@ export function CompletedWorkoutHistoryCards({
     })
     setRevealedSessionId(null)
     setPendingHide(null)
-    toast(t('Workout hidden from APEX.'), 'ok')
+    toast(t('Workout hidden from FITR MAX.'), 'ok')
   }
 
   return (
@@ -160,9 +160,9 @@ export function CompletedWorkoutHistoryCards({
                   type="button"
                   onClick={() => setPendingHide({ id: activity.id, title: receipt.title })}
                   className="absolute inset-y-0 right-0 grid w-[88px] place-items-center bg-sky-700 font-mono text-[8px] font-black tracking-wide text-white uppercase"
-                  aria-label={`${t('Hide from APEX')}: ${receipt.title}`}
+                  aria-label={`${t('Hide from FITR MAX')}: ${receipt.title}`}
                 >
-                  <span className="grid gap-1 px-1 text-center"><span className="text-xl">⊘</span>{t('Hide from APEX')}</span>
+                  <span className="grid gap-1 px-1 text-center"><span className="text-xl">⊘</span>{t('Hide from FITR MAX')}</span>
                 </button>
               )}
               <div
@@ -198,14 +198,14 @@ export function CompletedWorkoutHistoryCards({
                   )}
                   <div className="mt-3 rounded-2xl border border-white/90 bg-white/72 p-3">
                     <p className="font-mono text-[8px] font-black tracking-[.14em] text-sky-800 uppercase">{t('READ-ONLY RECEIPT')}</p>
-                    <p className="mt-2 text-xs leading-relaxed text-ink-soft">{t('Imported from Apple Health. This receipt is read-only in APEX.')}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-ink-soft">{t('Imported from Apple Health. This receipt is read-only in FITR MAX.')}</p>
                     <p className="mt-2 break-words font-mono text-[9px] font-bold leading-relaxed text-ink-faint">{t('Source')}: {activity.source}</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setPendingHide({ id: activity.id, title: receipt.title })}
                     className="mt-3 w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 text-xs font-black text-sky-800"
-                  >{t('Hide from APEX')}</button>
+                  >{t('Hide from FITR MAX')}</button>
                 </div>
               )}
               </div>
@@ -336,12 +336,12 @@ export function CompletedWorkoutHistoryCards({
         <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/38 px-5 backdrop-blur-sm" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setPendingHide(null) }}>
           <div role="alertdialog" aria-modal="true" aria-labelledby="hide-external-workout-title" className="w-full max-w-sm rounded-[28px] border border-white/90 bg-white p-5 shadow-2xl">
             <p className="font-mono text-[9px] font-black tracking-[.15em] text-sky-700 uppercase">{t('APPLE HEALTH')}</p>
-            <h3 id="hide-external-workout-title" className="mt-2 font-display text-xl font-black text-ink">{t('Hide this Apple Health workout from APEX?')}</h3>
+            <h3 id="hide-external-workout-title" className="mt-2 font-display text-xl font-black text-ink">{t('Hide this Apple Health workout from FITR MAX?')}</h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-soft">{t('The original workout stays in Apple Health.')}</p>
             <p className="mt-3 rounded-2xl bg-slate-50 px-3 py-2 font-mono text-xs font-bold text-ink">{t(pendingHide.title)}</p>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button type="button" onClick={() => setPendingHide(null)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-ink">{t('Cancel')}</button>
-              <button type="button" onClick={confirmHide} className="rounded-2xl bg-sky-700 px-4 py-3 text-xs font-black text-white">{t('Hide from APEX')}</button>
+              <button type="button" onClick={confirmHide} className="rounded-2xl bg-sky-700 px-4 py-3 text-xs font-black text-white">{t('Hide from FITR MAX')}</button>
             </div>
           </div>
         </div>

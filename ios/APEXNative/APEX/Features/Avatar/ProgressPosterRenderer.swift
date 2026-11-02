@@ -98,7 +98,7 @@ enum ProgressPosterRenderer {
             drawDivider(cg, x: photoX + paneWidth - 1, y: photoY, height: photoHeight)
 
             if input.content.stats {
-                text("APEX • PRIVATE PROGRESS", at: CGPoint(x: 72, y: 88 - 21),
+                text("FITR MAX • PRIVATE PROGRESS", at: CGPoint(x: 72, y: 88 - 21),
                      font: mono(21, .black), colour: UIColor(red: 0.773, green: 0.722, blue: 1, alpha: 1))
                 if input.content.athlete, !input.athleteName.isEmpty {
                     text(input.athleteName, at: CGPoint(x: 72, y: 128 - 25),

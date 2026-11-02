@@ -31,7 +31,7 @@ struct MarathonInductionView: View {
                     }
                     ProgressView(value: progress)
                         .tint(APEXColor.cyan)
-                    Text(language.text("APEX reuses your age, profile and strength plan. It asks only for missing running context."))
+                    Text(language.text("FITR MAX reuses your age, profile and strength plan. It asks only for missing running context."))
                         .font(APEXFont.body(11, weight: .medium))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
@@ -390,7 +390,7 @@ private extension MarathonInductionView {
                 .init(value: "continuous", label: "Mostly continuous running"), .init(value: "run_walk", label: "Mostly run-walk"),
                 .init(value: "either", label: "Comfortable with either"), .init(value: "unsure", label: "Not sure yet")
             ])),
-            .init(key: "available_days", title: "How many running days are realistic?", helper: "Orbit will coordinate these with your existing APEX strength plan.", icon: "calendar.day.timeline.leading", kind: .single([
+            .init(key: "available_days", title: "How many running days are realistic?", helper: "Orbit will coordinate these with your existing FITR MAX strength plan.", icon: "calendar.day.timeline.leading", kind: .single([
                 .init(value: "three", label: "Three days"), .init(value: "four", label: "Four days"),
                 .init(value: "five", label: "Five days"), .init(value: "six", label: "Six days"), .init(value: "variable", label: "Variable schedule")
             ])),
@@ -402,7 +402,7 @@ private extension MarathonInductionView {
                 .init(value: "1", label: "Monday"), .init(value: "2", label: "Tuesday"), .init(value: "3", label: "Wednesday"),
                 .init(value: "4", label: "Thursday"), .init(value: "5", label: "Friday"), .init(value: "6", label: "Saturday"), .init(value: "0", label: "Sunday")
             ])),
-            .init(key: "constraints", title: "Which lifestyle constraints recur?", helper: "Select every relevant constraint. APEX calendar events are also considered automatically.", icon: "person.crop.circle.badge.clock", kind: .multiple([
+            .init(key: "constraints", title: "Which lifestyle constraints recur?", helper: "Select every relevant constraint. FITR MAX calendar events are also considered automatically.", icon: "person.crop.circle.badge.clock", kind: .multiple([
                 .init(value: "physical_work", label: "Physically demanding work"), .init(value: "travel", label: "Travel"),
                 .init(value: "shift_work", label: "Shift work"), .init(value: "childcare", label: "Childcare"), .init(value: "events", label: "Events")
             ])),
@@ -431,7 +431,7 @@ private extension MarathonInductionView {
                 .init(value: "recent_illness_or_operation", label: "A recent significant illness or operation"),
                 .init(value: "professional_restriction", label: "A professional restriction on strenuous exercise")
             ])),
-            .init(key: "medication", title: "Is medication relevant to exercise response?", helper: "APEX does not request names, doses or interpret interactions.", icon: "pills", kind: .single([
+            .init(key: "medication", title: "Is medication relevant to exercise response?", helper: "FITR MAX does not request names, doses or interpret interactions.", icon: "pills", kind: .single([
                 .init(value: "none", label: "No medication relevant to exercise"),
                 .init(value: "clinician_knows", label: "Yes, and my prescribing clinician knows about my training"),
                 .init(value: "not_discussed", label: "Yes, but I have not discussed marathon training"),

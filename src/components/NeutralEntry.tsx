@@ -33,7 +33,7 @@ export function NeutralEntry({ onLogin }: { onLogin: () => void }) {
         <div className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/12 bg-white/7 backdrop-blur-xl"><ApexMark className="h-5 w-5" /></span>
           <div>
-            <p className="text-[13px] font-bold tracking-[0.3em]">APEX</p>
+            <p className="text-[13px] font-bold tracking-[0.3em]">FITR MAX</p>
             <p className="mt-0.5 text-[8px] font-semibold tracking-[0.23em] text-white/38 uppercase">{copy.network}</p>
           </div>
         </div>

@@ -295,10 +295,10 @@ struct InductionView: View {
 
     private var subtitle: String? {
         switch step {
-        case 0: language.text("APEX needs clear permission before it processes body, nutrition or training data.")
+        case 0: language.text("FITR MAX needs clear permission before it processes body, nutrition or training data.")
         case 1: language.text("These measured facts calculate your starting calories and macros. You can change them later.")
         case 3: language.text("Choose the week you usually live, not your most active one.")
-        case 4: language.text("Four quick, observable signals give APEX a broad starting range. There is no penalty for not knowing.")
+        case 4: language.text("Four quick, observable signals give FITR MAX a broad starting range. There is no penalty for not knowing.")
         case 5: language.text("Pick what you can reliably use on a busy week. You can change it later.")
         case 6: language.text("This decides what gets adapted or paused. Nothing here is shared with anyone.")
         case 7: language.text("Broad early bands, never invented precision. You can sharpen them later from your Avatar.")
@@ -353,7 +353,7 @@ struct InductionView: View {
                     Label(language.text("Swiss-first privacy"), systemImage: "lock.shield.fill")
                         .font(APEXFont.body(17, weight: .bold))
                         .foregroundStyle(APEXColor.violet)
-                    Text(language.text("APEX uses the account, body, nutrition and training data you provide to calculate, save and sync your experience. Health data is treated as sensitive data. APEX does not sell it."))
+                    Text(language.text("FITR MAX uses the account, body, nutrition and training data you provide to calculate, save and sync your experience. Health data is treated as sensitive data. FITR MAX does not sell it."))
                         .font(APEXFont.body(13))
                         .foregroundStyle(APEXColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
@@ -378,7 +378,7 @@ struct InductionView: View {
                 }
             }
 
-            Text(language.text("Without both permissions APEX cannot create a personalised fitness profile. Optional Apple Health and notification access are requested separately later."))
+            Text(language.text("Without both permissions FITR MAX cannot create a personalised fitness profile. Optional Apple Health and notification access are requested separately later."))
                 .font(APEXFont.body(12))
                 .foregroundStyle(APEXColor.secondaryInk)
                 .fixedSize(horizontal: false, vertical: true)
@@ -387,7 +387,7 @@ struct InductionView: View {
                 .font(APEXFont.body(13, weight: .semibold))
                 .frame(minHeight: 44)
                 .buttonStyle(.plain)
-                .alert(language.text("APEX cannot personalise without permission"), isPresented: $showDeclineExplanation) {
+                .alert(language.text("FITR MAX cannot personalise without permission"), isPresented: $showDeclineExplanation) {
                     Button(language.text("Review consent"), role: .cancel) {}
                     Button(language.text("Sign out"), role: .destructive) {
                         Task { await session.signOut() }
@@ -471,7 +471,7 @@ struct InductionView: View {
                     .foregroundStyle(APEXColor.amberDeep)
             }
 
-            Text(language.text("APEX derives age from your birthdate so it stays accurate. These facts initialise nutrition; they never become public profile text."))
+            Text(language.text("FITR MAX derives age from your birthdate so it stays accurate. These facts initialise nutrition; they never become public profile text."))
                 .font(APEXFont.body(12))
                 .foregroundStyle(APEXColor.secondaryInk)
                 .fixedSize(horizontal: false, vertical: true)
@@ -827,10 +827,10 @@ struct InductionView: View {
             }
 
             DisclosureGroup(
-                language.text("How APEX estimated this"),
+                language.text("How FITR MAX estimated this"),
                 isExpanded: $showEstimateDetails
             ) {
-                Text(language.text("These are broad early bands from your answers, not measured test results. Self-report stays low confidence. Overall Fitness remains Building your baseline until APEX has enough region-specific evidence."))
+                Text(language.text("These are broad early bands from your answers, not measured test results. Self-report stays low confidence. Overall Fitness remains Building your baseline until FITR MAX has enough region-specific evidence."))
                     .font(APEXFont.body(13))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)
@@ -1140,17 +1140,17 @@ private struct OnboardingLegalDocumentView: View {
         switch document {
         case .terms:
             [
-                ("What APEX is", "APEX is a fitness and nutrition planning tool. It is not medical diagnosis or emergency care, and it does not replace advice from a qualified clinician."),
+                ("What FITR MAX is", "FITR MAX is a fitness and nutrition planning tool. It is not medical diagnosis or emergency care, and it does not replace advice from a qualified clinician."),
                 ("Safe use", "Use honest inputs, follow exercise setup and stop rules, and stop immediately for sharp, escalating or unusual symptoms. Contact emergency services when symptoms may be urgent."),
-                ("Food and nutrition data", "Nutrition values may come from product labels, public food-composition datasets, barcode providers or foods you create. Coverage and methods vary. APEX preserves unavailable and trace values instead of turning them into zero. Check the current package label when exact product values matter."),
+                ("Food and nutrition data", "Nutrition values may come from product labels, public food-composition datasets, barcode providers or foods you create. Coverage and methods vary. FITR MAX preserves unavailable and trace values instead of turning them into zero. Check the current package label when exact product values matter."),
                 ("Your account", "Keep sign-in details secure. You are responsible for entries and edits made through your account. Beta features may change as reliability and safety improve."),
-                ("Availability and law", "APEX aims to preserve and sync your records but cannot promise uninterrupted beta availability. Swiss law applies, without limiting mandatory consumer rights where you live."),
+                ("Availability and law", "FITR MAX aims to preserve and sync your records but cannot promise uninterrupted beta availability. Swiss law applies, without limiting mandatory consumer rights where you live."),
             ]
         case .privacy:
             [
                 ("What is collected", "Account identifiers plus the body, nutrition, hydration, activity and training facts you choose to enter. Apple Health is accessed only after its separate system permission."),
                 ("Why it is used", "To calculate your targets, generate and adapt plans, show progress, sync your account and protect the service. Data is not sold or used for third-party advertising."),
-                ("Who helps operate APEX", "Contracted infrastructure providers may process only the data needed for authentication, storage, sync and purchases. Processing outside Switzerland must use applicable safeguards."),
+                ("Who helps operate FITR MAX", "Contracted infrastructure providers may process only the data needed for authentication, storage, sync and purchases. Processing outside Switzerland must use applicable safeguards."),
                 ("Your control", "You can correct entries, revoke Apple Health access, export records and request account deletion. Withdrawing consent stops future optional processing but cannot undo processing already required to deliver your request."),
                 ("Privacy by default", "Only data needed for the feature is requested. Optional permissions remain off until you choose them, and health or fitness data is never made a public profile by default."),
             ]

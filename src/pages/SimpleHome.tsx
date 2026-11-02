@@ -515,7 +515,7 @@ export function SimpleHome() {
     if (!food) {
       food = await foodStore.savePrivateFood({
         name: `${meal.name} · planned prescription`, names_i18n: { en: `${meal.name} · planned prescription` },
-        brand: 'APEX plan', barcode: null, provider_product_id: providerId, external_image_url: null,
+        brand: 'FITR MAX plan', barcode: null, provider_product_id: providerId, external_image_url: null,
         package_quantity: '1 planned meal', nutrition_basis: 'per_100g', preparation_state: 'prepared',
         kcal_100: meal.kcal, protein_100: meal.protein_g, carbs_100: meal.carbs_g, fat_100: meal.fat_g,
         fibre_100: null, sugar_100: null, saturated_fat_100: null, salt_100: null,
@@ -1199,7 +1199,10 @@ export function SimpleHome() {
             ) : blockId === 'activity' ? (
               <div className="space-y-3" data-simple-local-gesture>
               {simpleWorkoutEvidenceOrder().map((section) => section === 'finished-workouts' ? (
-                <CompletedWorkoutHistoryCards key={section} date={selectedDate} accent={ACCENTS.teal} />
+                <div key={section} className="space-y-3">
+                  {canCreateManualWorkouts && <button type="button" onClick={openNewManualWorkout} className="min-h-11 w-full rounded-2xl border border-teal-500/25 bg-teal-50/60 px-4 py-3 text-sm font-bold text-teal-800">{t('Quick log')}</button>}
+                  <CompletedWorkoutHistoryCards date={selectedDate} accent={ACCENTS.teal} />
+                </div>
               ) : section === 'wearable-activity' ? (
               <div key={section} className={`${selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') ? 'grid grid-cols-[minmax(0,1fr)_5.25rem]' : 'flex justify-end'} items-stretch gap-2`}>
                 {selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') && (
@@ -1253,7 +1256,7 @@ export function SimpleHome() {
             ) : blockId === 'orbit' ? (
               !adhdMode && showOrbitShortcut && coachPolicy.can_use_orbit ? <Link to={orbit.state.active_run ? '/orbit/run' : orbitSession ? '/orbit/campaign' : '/orbit'} className="block">
                 <GlassCard accent={ACCENTS.ice} className="p-4">
-                  <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl text-white" style={{ background: ACCENTS.ice.gradient }}><OrbitIcon className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="font-display text-base font-bold text-ink">APEX Orbit</p><p className="truncate text-[11px] font-medium text-ink-soft">{orbit.state.active_run ? t('Continue interrupted run') : orbitSession ? `${orbitSession.adapted.duration_min} min · ${t(missionLabel(orbitSession.adapted.mission))}` : t('Your next run, already reasoned through')}</p></div><span className="font-mono text-[10px] font-bold text-sky-700">{t('RUN')}</span></div>
+                  <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl text-white" style={{ background: ACCENTS.ice.gradient }}><OrbitIcon className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="font-display text-base font-bold text-ink">FITR MAX Orbit</p><p className="truncate text-[11px] font-medium text-ink-soft">{orbit.state.active_run ? t('Continue interrupted run') : orbitSession ? `${orbitSession.adapted.duration_min} min · ${t(missionLabel(orbitSession.adapted.mission))}` : t('Your next run, already reasoned through')}</p></div><span className="font-mono text-[10px] font-bold text-sky-700">{t('RUN')}</span></div>
                 </GlassCard>
               </Link> : null
             ) : blockId === 'body-index' ? (

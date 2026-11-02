@@ -1,7 +1,7 @@
-"NSCameraUsageDescription" = "FitDee ใช้กล้องเพื่อสแกนบาร์โค้ดอาหารและถ่ายภาพความก้าวหน้าส่วนตัว";
-"NSPhotoLibraryUsageDescription" = "FitDee สามารถนำเข้าภาพความก้าวหน้าที่คุณเลือก";
-"NSPhotoLibraryAddUsageDescription" = "FitDee สามารถบันทึกโปสเตอร์เส้นทางและไฟล์ความก้าวหน้าที่คุณขอ";
-"NSHealthShareUsageDescription" = "FitDee อ่านข้อมูลสุขภาพและกิจกรรมที่คุณอนุญาต เพื่อประสานโภชนาการ การฟื้นตัว Avatar และ Orbit";
-"NSHealthUpdateUsageDescription" = "FitDee จะเขียนข้อมูลการออกกำลังกายที่เสร็จแล้วและการดื่มน้ำเมื่อคุณเลือกซิงก์กับ Apple Health เท่านั้น";
-"NSLocationWhenInUseUsageDescription" = "FitDee Orbit ใช้ตำแหน่งเพื่อบันทึกการวิ่งและวางแผนเส้นทางขณะเปิดแอป";
-"NSLocationAlwaysAndWhenInUseUsageDescription" = "FitDee Orbit จะบันทึกการวิ่งต่อเมื่อหน้าจอล็อก";
+"NSCameraUsageDescription" = "FITR MAX ใช้กล้องเพื่อสแกนบาร์โค้ดอาหารและถ่ายภาพความก้าวหน้าส่วนตัว";
+"NSPhotoLibraryUsageDescription" = "FITR MAX สามารถนำเข้าภาพความก้าวหน้าที่คุณเลือก";
+"NSPhotoLibraryAddUsageDescription" = "FITR MAX สามารถบันทึกโปสเตอร์เส้นทางและไฟล์ความก้าวหน้าที่คุณขอ";
+"NSHealthShareUsageDescription" = "FITR MAX อ่านข้อมูลสุขภาพและกิจกรรมที่คุณอนุญาต เพื่อประสานโภชนาการ การฟื้นตัว Avatar และ Orbit";
+"NSHealthUpdateUsageDescription" = "FITR MAX จะเขียนข้อมูลการออกกำลังกายที่เสร็จแล้วและการดื่มน้ำเมื่อคุณเลือกซิงก์กับ Apple Health เท่านั้น";
+"NSLocationWhenInUseUsageDescription" = "FITR MAX Orbit ใช้ตำแหน่งเพื่อบันทึกการวิ่งและวางแผนเส้นทางขณะเปิดแอป";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "FITR MAX Orbit จะบันทึกการวิ่งต่อเมื่อหน้าจอล็อก";

@@ -78,6 +78,7 @@ enum APEXDebugFixture {
         let programs = [
             Program(id: transitionID, userID: userID, slug: "transition", name: "Transition Phase", description: "Build movement quality and resilient consistency."),
             Program(id: mainID, userID: userID, slug: "main", name: "Main Phase", description: "Progress strength, power and athletic capacity."),
+            Program(id: UUID(), userID: userID, slug: "custom", name: "Custom Workouts", description: "Your own workouts."),
         ]
         let days = [
             ProgramDay(id: transitionDayID, userID: userID, programID: transitionID, weekday: weekday, name: "Full-body foundation", dayType: "upper", estimatedMinutes: 28, warmupNote: "Controlled movement quality", sortOrder: 1),

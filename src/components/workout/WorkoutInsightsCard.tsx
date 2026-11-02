@@ -101,7 +101,7 @@ export function WorkoutInsightsCard({
       const rangeLabel = localizedRange(summary.from, summary.to, language)
       const blob = await workoutInsightsCardBlob(summary, {
         accent,
-        athleteName: data.profile?.display_name ?? t('APEX athlete'),
+        athleteName: data.profile?.display_name ?? t('FITR MAX athlete'),
         locale: language,
         rangeLabel,
         labels: {
@@ -145,7 +145,7 @@ export function WorkoutInsightsCard({
       className="flex min-h-11 w-full items-center justify-between gap-4 text-left"
     >
       <div>
-        <p className="font-mono text-[9px] font-black tracking-[.2em] uppercase" style={{ color: accent.deep }}>{t('APEX WORKOUT INSIGHTS')}</p>
+        <p className="font-mono text-[9px] font-black tracking-[.2em] uppercase" style={{ color: accent.deep }}>{t('FITR MAX WORKOUT INSIGHTS')}</p>
         <h2 className="mt-1 font-display text-2xl font-bold text-ink">{t('Workout insights')}</h2>
       </div>
       <span aria-hidden="true" className={`text-sm font-black text-ink-soft transition-transform motion-reduce:transition-none ${expanded ? 'rotate-180' : ''}`}>⌄</span>

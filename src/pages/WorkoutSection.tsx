@@ -35,6 +35,7 @@ import { CompletedWorkoutHistoryCards } from '../components/workout/CompletedWor
 import { WorkoutInsightsCard } from '../components/workout/WorkoutInsightsCard'
 import { clientPolicyForAccount } from '../lib/coachAccess'
 import { activeCustomWorkoutDays, stageCustomWorkoutArchive } from '../lib/customWorkout'
+import { loadActiveDate, rememberActiveDate } from '../lib/activeDate'
 
 const CustomWorkoutBuilder = lazy(() =>
   import('../components/CustomWorkoutBuilder').then((module) => ({ default: module.CustomWorkoutBuilder })),
@@ -330,13 +331,13 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
             slug={slug}
             accent={accent}
             orbitSessions={visibleOrbitSessions}
-            onSelectDay={(date) => { setSelectedProgramDayId(null); setSelectedDay(date) }}
+            onSelectDay={(date) => { rememberActiveDate(ownerId, date); setSelectedProgramDayId(null); setSelectedDay(date) }}
             onLongPressDay={toggleDeload}
           />
           {detailedInterface && <p className="mt-3 text-center text-[11px] font-medium text-ink-faint">
             Tap a day to plan it. Hold to mark deload.
           </p>}
-          {visibleOrbitSessions.length > 0 && <div className="mt-4 space-y-2 border-t border-white/70 pt-4"><p className="font-mono text-[10px] font-bold tracking-widest text-sky-800">{t('APEX ORBIT · PRESCRIBED / COMPLETED')}</p>{visibleOrbitSessions.slice(0, 8).map((session) => <div key={session.id} className="flex items-center justify-between gap-3 rounded-2xl bg-sky-50/65 px-3 py-2.5"><div className="min-w-0"><p className="truncate text-xs font-bold text-ink">{session.date} · {t(session.adapted.title)}</p><p className="text-[10px] text-ink-soft">{t(missionLabel(session.adapted.mission))} · {session.adapted.duration_min} min · {t(session.status)}</p></div><button type="button" onClick={() => session.completion_run_id ? navigate(`/orbit/debrief/${session.completion_run_id}`) : navigate('/orbit/run', { state: { mission: session.adapted.mission, campaignSessionId: session.id } })} className="shrink-0 rounded-xl bg-sky-900 px-3 py-2 text-[10px] font-bold text-white">{t(session.completion_run_id ? 'Debrief' : 'Start run')}</button></div>)}</div>}
+          {visibleOrbitSessions.length > 0 && <div className="mt-4 space-y-2 border-t border-white/70 pt-4"><p className="font-mono text-[10px] font-bold tracking-widest text-sky-800">{t('FITR MAX ORBIT · PRESCRIBED / COMPLETED')}</p>{visibleOrbitSessions.slice(0, 8).map((session) => <div key={session.id} className="flex items-center justify-between gap-3 rounded-2xl bg-sky-50/65 px-3 py-2.5"><div className="min-w-0"><p className="truncate text-xs font-bold text-ink">{session.date} · {t(session.adapted.title)}</p><p className="text-[10px] text-ink-soft">{t(missionLabel(session.adapted.mission))} · {session.adapted.duration_min} min · {t(session.status)}</p></div><button type="button" onClick={() => session.completion_run_id ? navigate(`/orbit/debrief/${session.completion_run_id}`) : navigate('/orbit/run', { state: { mission: session.adapted.mission, campaignSessionId: session.id } })} className="shrink-0 rounded-xl bg-sky-900 px-3 py-2 text-[10px] font-bold text-white">{t(session.completion_run_id ? 'Debrief' : 'Start run')}</button></div>)}</div>}
         </GlassCard>
         </div>
 
@@ -370,7 +371,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
             <div className="pointer-events-none absolute -bottom-28 left-[-4rem] h-56 w-56 rounded-full bg-cyan-400/15 blur-3xl" aria-hidden />
             <div className="relative grid items-center gap-5 sm:grid-cols-[minmax(0,1fr)_auto]">
               <div>
-                <p className="font-mono text-[9px] font-black tracking-[.2em] text-cyan-200 uppercase">{t('APEX WORKOUT STUDIO')}</p>
+                <p className="font-mono text-[9px] font-black tracking-[.2em] text-cyan-200 uppercase">{t('FITR MAX WORKOUT STUDIO')}</p>
                 <h2 className="mt-2 font-display text-2xl font-bold">{t('Create your own workout')}</h2>
                 {detailedInterface && <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-300">{t('Search machines, free weights, calisthenics, street training, HIIT and mobility. Your muscle map updates as you build.')}</p>}
               </div>
@@ -422,7 +423,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           {data.events.length === 0 ? (
             <p className="mt-2 text-sm font-medium text-ink-soft">
               Important events and travel go here. The five days before an event ramp amber to
-              crimson so APEX can protect your taper and recovery.
+              crimson so FITR MAX can protect your taper and recovery.
             </p>
           ) : (
             <div className="mt-3 space-y-2">
@@ -502,7 +503,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
             setEditingManualSessionId(null)
             setEditingManualExerciseId(null)
           }}
-          date={today}
+          date={data.workout_sessions.find((session) => session.id === editingManualSessionId && session.user_id === ownerId)?.date ?? loadActiveDate(ownerId, today, selectedDay)}
           editSessionId={editingManualSessionId}
           focusExerciseId={editingManualExerciseId}
           accent={accent}

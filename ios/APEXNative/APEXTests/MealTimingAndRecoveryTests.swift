@@ -120,6 +120,59 @@ final class MealTimingEngineTests: XCTestCase {
         XCTAssertEqual(MealTimingEngine.snapDaylineMinute(12 * 60 + 31, increment: 60), 13 * 60)
     }
 
+    func testHistoricalQuickLogsKeepTheirReceiptsWithoutUsingSaveTimeAsAWorkoutFinish() {
+        for (assignedDate, savedAt) in [
+            ("2026-11-01", "2026-11-02T18:38:00Z"),
+            ("2026-10-14", "2026-11-02T18:55:00Z")
+        ] {
+            var workout = session(date: assignedDate, started: savedAt, completed: savedAt)
+            workout.notes = ManualWorkout.notes(title: "Quick Log")
+
+            for visibleDate in [assignedDate, "2026-11-02"] {
+                XCTAssertNil(MealTimingEngine.daylineWorkoutTiming(
+                    workout, localDate: visibleDate, timeZone: "Europe/Zurich"
+                ))
+            }
+            XCTAssertTrue(MealTimingEngine.postWorkoutNutrition(
+                sessions: [workout], meals: [], timeZone: "Europe/Zurich"
+            ).isEmpty)
+            XCTAssertEqual(WorkoutReceipt.history(
+                sessions: [workout], days: [], date: assignedDate, ownerID: user
+            ).map(\.session.id), [workout.id])
+            XCTAssertTrue(WorkoutReceipt.history(
+                sessions: [workout], days: [], date: "2026-11-02", ownerID: user
+            ).isEmpty)
+        }
+    }
+
+    func testQuickLogWithARecordedFinishOnItsAssignedDayRemainsOnTheDayline() throws {
+        var workout = session(
+            date: "2026-11-01", started: nil, completed: "2026-11-02T01:40:00Z"
+        )
+        workout.notes = ManualWorkout.notes(title: "Late workout")
+        let timing = try XCTUnwrap(MealTimingEngine.daylineWorkoutTiming(
+            workout, localDate: "2026-11-01", timeZone: "Europe/Zurich"
+        ))
+        XCTAssertEqual(timing.lineMinute, 26 * 60 + 40)
+        XCTAssertNil(workout.startedAt)
+        XCTAssertEqual(MealTimingEngine.postWorkoutNutrition(
+            sessions: [workout], meals: [], timeZone: "Europe/Zurich"
+        ).count, 1)
+    }
+
+    func testTrackedWorkoutKeepsItsActualCompletionDayWhenDifferentFromItsAssignedDate() throws {
+        let workout = session(
+            date: "2026-11-01", started: "2026-11-02T17:00:00Z", completed: "2026-11-02T18:38:00Z"
+        )
+        let timing = try XCTUnwrap(MealTimingEngine.daylineWorkoutTiming(
+            workout, localDate: "2026-11-02", timeZone: "Europe/Zurich"
+        ))
+        XCTAssertEqual(timing.minute, 19 * 60 + 38)
+        XCTAssertNil(MealTimingEngine.daylineWorkoutTiming(
+            workout, localDate: "2026-11-01", timeZone: "Europe/Zurich"
+        ))
+    }
+
     func testCompletedWorkoutAppearsAtItsFinishTimeInTheConfiguredZone() throws {
         let workout = session(
             started: "2026-01-05T17:00:00Z",

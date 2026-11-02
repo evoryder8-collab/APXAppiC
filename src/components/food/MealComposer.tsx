@@ -1433,10 +1433,10 @@ export function MealComposer({
                           </p>
                           <p className="mt-0.5 text-[10px] leading-relaxed font-medium text-amber-950/70">
                             {controlHelp.kind === 'adaptive'
-                              ? 'APEX may suggest a portion change when your activity or remaining macros change.'
+                              ? 'FITR MAX may suggest a portion change when your activity or remaining macros change.'
                               : controlHelp.kind === 'lock'
                                 ? 'Keep this exact amount today. Lock overrides adaptation, so Adaptive can stay on for later meals or future use.'
-                                : 'Choose which macro this food is allowed to balance. Fixed means APEX never changes its amount.'}
+                                : 'Choose which macro this food is allowed to balance. Fixed means FITR MAX never changes its amount.'}
                           </p>
                         </div>
                       </motion.div>

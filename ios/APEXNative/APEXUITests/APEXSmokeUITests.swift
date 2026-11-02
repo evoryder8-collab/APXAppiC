@@ -6,6 +6,37 @@ final class APEXSmokeUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    func testQuickLogKeepsSelectedCalendarDateAcrossSimpleAndAdvanced() {
+        let app = configuredApp()
+        app.launch()
+        app.buttons["SIMPLE"].tap()
+        let previousDay = app.buttons["Previous day"].firstMatch
+        XCTAssertTrue(previousDay.waitForExistence(timeout: 5))
+        previousDay.tap()
+        let yesterday = calendarKey(offset: -1)
+        let quickLog = app.buttons["simple-quick-log"]
+        XCTAssertTrue(scrollUntilVisible(quickLog, in: app, attempts: 10))
+        quickLog.tap()
+        let date = app.descendants(matching: .any)["manual-workout-date"].firstMatch
+        XCTAssertTrue(date.waitForExistence(timeout: 5))
+        XCTAssertEqual(date.value as? String, yesterday)
+        app.buttons["Cancel"].tap()
+        for _ in 0..<8 {
+            if app.buttons["ADVANCED"].isHittable { break }
+            app.swipeDown()
+        }
+        app.buttons["ADVANCED"].tap()
+        let custom = app.buttons["portal.custom"]
+        XCTAssertTrue(scrollUntilVisible(custom, in: app, attempts: 8))
+        custom.tap()
+        let advancedLog = app.buttons["training-quick-log"]
+        XCTAssertTrue(scrollUntilVisible(advancedLog, in: app, attempts: 8))
+        advancedLog.tap()
+        XCTAssertTrue(date.waitForExistence(timeout: 5))
+        XCTAssertEqual(date.value as? String, yesterday)
+        app.buttons["Cancel"].tap()
+    }
+
     func testDecliningConsentCanSignOutWithoutSupplyingHealthData() {
         let app = XCUIApplication()
         app.launchArguments = [
@@ -15,7 +46,7 @@ final class APEXSmokeUITests: XCTestCase {
         app.launch()
 
         app.buttons["I don't accept"].tap()
-        let alert = app.alerts["APEX cannot personalise without permission"]
+        let alert = app.alerts["FITR MAX cannot personalise without permission"]
         XCTAssertTrue(alert.waitForExistence(timeout: 3))
         XCTAssertTrue(alert.buttons["Review consent"].exists)
         XCTAssertTrue(alert.buttons["Sign out"].exists)
@@ -545,7 +576,7 @@ final class APEXSmokeUITests: XCTestCase {
 
         let visualProgress = app.staticTexts["Private Visual Progress"]
         XCTAssertTrue(scrollUntilVisible(visualProgress, in: app))
-        let bodyIndex = app.staticTexts["APEX BODY INDEX"]
+        let bodyIndex = app.staticTexts["FITR MAX BODY INDEX"]
         XCTAssertTrue(bodyIndex.waitForExistence(timeout: 2))
         XCTAssertLessThan(visualProgress.frame.maxY, bodyIndex.frame.minY)
         capture("avatar-visual-progress-first")
@@ -696,21 +727,21 @@ final class APEXSmokeUITests: XCTestCase {
 
         XCTAssertTrue(scrollUntilVisible(app.buttons["portal.orbit"], in: app))
         app.buttons["portal.orbit"].tap()
-        XCTAssertTrue(app.staticTexts["APEX ORBIT · RUN INTELLIGENCE"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["FITR MAX ORBIT · RUN INTELLIGENCE"].waitForExistence(timeout: 3))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Recent runs"], in: app))
         tapBack(in: app)
 
         XCTAssertTrue(scrollUntilVisible(app.buttons["portal.avatar"], in: app))
         app.buttons["portal.avatar"].tap()
         XCTAssertTrue(app.staticTexts["Avatar"].waitForExistence(timeout: 3))
-        XCTAssertTrue(scrollUntilVisible(app.staticTexts["APEX BODY INDEX"], in: app))
+        XCTAssertTrue(scrollUntilVisible(app.staticTexts["FITR MAX BODY INDEX"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Your performance body"], in: app))
         capture("avatar-body-index")
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Upper Body Strength"].firstMatch, in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Lower Body Strength"].firstMatch, in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["What your body needs"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["How are your joints this week?"], in: app))
-        XCTAssertTrue(scrollUntilVisible(app.staticTexts["APEX ASSESSMENT"], in: app))
+        XCTAssertTrue(scrollUntilVisible(app.staticTexts["FITR MAX ASSESSMENT"], in: app))
         capture("avatar-joint-check-in")
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Cardio & recovery evidence"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["How regularly you eat"], in: app))
@@ -723,7 +754,7 @@ final class APEXSmokeUITests: XCTestCase {
         let simpleMode = app.buttons["SIMPLE"]
         XCTAssertTrue(simpleMode.waitForExistence(timeout: 4))
         simpleMode.tap()
-        let syncAlert = app.alerts["APEX"]
+        let syncAlert = app.alerts["FITR MAX"]
         if syncAlert.waitForExistence(timeout: 2) {
             syncAlert.buttons["OK"].tap()
         }
@@ -747,7 +778,7 @@ final class APEXSmokeUITests: XCTestCase {
         let simpleMode = app.buttons["SIMPLE"]
         XCTAssertTrue(simpleMode.waitForExistence(timeout: 4))
         tapClearOfDock(simpleMode)
-        let syncAlert = app.alerts["APEX"]
+        let syncAlert = app.alerts["FITR MAX"]
         if syncAlert.waitForExistence(timeout: 2) { syncAlert.buttons["OK"].tap() }
 
         let insights = app.buttons["Workout insights"]
@@ -775,7 +806,7 @@ final class APEXSmokeUITests: XCTestCase {
         let simpleMode = app.buttons["SIMPLE"]
         XCTAssertTrue(simpleMode.waitForExistence(timeout: 4))
         tapClearOfDock(simpleMode)
-        let syncAlert = app.alerts["APEX"]
+        let syncAlert = app.alerts["FITR MAX"]
         if syncAlert.waitForExistence(timeout: 2) { syncAlert.buttons["OK"].tap() }
 
         let card = app.buttons.matching(
@@ -809,7 +840,7 @@ final class APEXSmokeUITests: XCTestCase {
         let simpleMode = app.buttons["SIMPLE"]
         XCTAssertTrue(simpleMode.waitForExistence(timeout: 4))
         tapClearOfDock(simpleMode)
-        let syncAlert = app.alerts["APEX"]
+        let syncAlert = app.alerts["FITR MAX"]
         if syncAlert.waitForExistence(timeout: 2) { syncAlert.buttons["OK"].tap() }
 
         let card = app.buttons.matching(
@@ -837,7 +868,7 @@ final class APEXSmokeUITests: XCTestCase {
         let simpleMode = app.buttons["SIMPLE"]
         XCTAssertTrue(simpleMode.waitForExistence(timeout: 4))
         simpleMode.tap()
-        let syncAlert = app.alerts["APEX"]
+        let syncAlert = app.alerts["FITR MAX"]
         if syncAlert.waitForExistence(timeout: 2) {
             syncAlert.buttons["OK"].tap()
         }
@@ -877,7 +908,7 @@ final class APEXSmokeUITests: XCTestCase {
         let simpleMode = app.buttons["SIMPLE"]
         XCTAssertTrue(simpleMode.waitForExistence(timeout: 4))
         simpleMode.tap()
-        let syncAlert = app.alerts["APEX"]
+        let syncAlert = app.alerts["FITR MAX"]
         if syncAlert.waitForExistence(timeout: 2) {
             syncAlert.buttons["OK"].tap()
         }
@@ -1615,7 +1646,7 @@ final class APEXSmokeUITests: XCTestCase {
         let simpleMode = app.buttons["SIMPLE"]
         XCTAssertTrue(simpleMode.waitForExistence(timeout: 4))
         tapClearOfDock(simpleMode)
-        let syncAlert = app.alerts["APEX"]
+        let syncAlert = app.alerts["FITR MAX"]
         if syncAlert.waitForExistence(timeout: 2) {
             syncAlert.buttons["OK"].tap()
         }

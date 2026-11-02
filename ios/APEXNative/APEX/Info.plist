@@ -9,7 +9,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>FitDee</string>
+	<string>FITR MAX</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -17,7 +17,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>FitDee</string>
+	<string>FITR MAX</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -40,19 +40,19 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSCameraUsageDescription</key>
-	<string>FitDee uses the camera to scan food barcodes and capture private visual-progress photos.</string>
+	<string>FITR MAX uses the camera to scan food barcodes and capture private visual-progress photos.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>FitDee reads the health and activity data you choose so nutrition, recovery, Avatar, and Orbit stay aligned.</string>
+	<string>FITR MAX reads the health and activity data you choose so nutrition, recovery, Avatar, and Orbit stay aligned.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>FitDee writes completed workouts and water entries only when you choose to sync them with Apple Health.</string>
+	<string>FITR MAX writes completed workouts and water entries only when you choose to sync them with Apple Health.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>FitDee Orbit continues recording an active run when your screen is locked.</string>
+	<string>FITR MAX Orbit continues recording an active run when your screen is locked.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>FitDee Orbit uses your location to record runs and plan routes while the app is open.</string>
+	<string>FITR MAX Orbit uses your location to record runs and plan routes while the app is open.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>FitDee can save route posters and progress exports that you request.</string>
+	<string>FITR MAX can save route posters and progress exports that you request.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>FitDee can import a progress photo that you choose.</string>
+	<string>FITR MAX can import a progress photo that you choose.</string>
 	<key>SUPABASE_ANON_KEY</key>
 	<string>$(SUPABASE_ANON_KEY)</string>
 	<key>SUPABASE_URL</key>

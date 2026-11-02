@@ -154,7 +154,7 @@ export function AvatarPage() {
             <div className="pointer-events-none absolute -top-20 -right-16 h-48 w-48 rounded-full bg-emerald-400/25 blur-3xl" />
             <div className="pointer-events-none absolute -bottom-24 -left-16 h-48 w-48 rounded-full bg-cyan-400/15 blur-3xl" />
             <div className="relative">
-              <div className="flex items-center justify-between gap-2"><p className="font-mono text-[9px] font-bold tracking-[0.22em] text-emerald-200/70 uppercase">APEX Body Index</p><span className="max-w-[46%] rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-center font-mono text-[7px] leading-tight font-bold tracking-[0.12em] text-emerald-100 uppercase">{t('Training estimate')}</span></div>
+              <div className="flex items-center justify-between gap-2"><p className="font-mono text-[9px] font-bold tracking-[0.22em] text-emerald-200/70 uppercase">FITR MAX Body Index</p><span className="max-w-[46%] rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 text-center font-mono text-[7px] leading-tight font-bold tracking-[0.12em] text-emerald-100 uppercase">{t('Training estimate')}</span></div>
               <div className="mt-3 flex items-end gap-3"><p className="font-mono text-7xl leading-none font-bold tracking-[-0.08em] text-white" style={{ textShadow: '0 0 28px rgba(52,211,153,0.42)' }}>{score}</p><div className="pb-1"><p className="font-display text-base font-bold text-emerald-100">{t(identityTitle)}</p><p className="mt-0.5 text-[10px] font-medium text-white/55">{t(`Your strongest signal is ${strongestStat.label} at ${now[strongestStat.key].toFixed(0)}.`)}</p></div></div>
               <div className="mt-5"><div className="flex items-center justify-between font-mono text-[8px] font-bold tracking-wide text-white/45 uppercase"><span>{t('Progress to next unlock')}</span><span className="text-emerald-200">{nextMilestone}</span></div><div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10"><motion.div initial={{ width: 0 }} animate={{ width: `${milestoneProgress}%` }} transition={{ duration: 1, ease: EASE }} className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-300 shadow-[0_0_12px_rgba(52,211,153,0.7)]" /></div></div>
               <div className="mt-4 grid grid-cols-3 gap-2 border-t border-white/8 pt-3">
@@ -357,7 +357,7 @@ export function AvatarPage() {
             >
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
-                  <p className="font-mono text-[10px] font-bold tracking-[0.18em] text-ink-faint uppercase">APEX assessment</p>
+                  <p className="font-mono text-[10px] font-bold tracking-[0.18em] text-ink-faint uppercase">FITR MAX assessment</p>
                   <h3 className="mt-1 font-display text-base font-bold text-ink">{t(assessment.title)}</h3>
                 </div>
                 <AccentChip accent={emerald}>{t(assessment.confidence).toUpperCase()}</AccentChip>
@@ -380,7 +380,7 @@ export function AvatarPage() {
                 </div>
               </div>
               <p className="mt-3 text-[10.5px] leading-relaxed font-medium text-ink-faint">
-                Performance guidance generated from your APEX logs and trends; it is not a medical diagnosis.
+                Performance guidance generated from your FITR MAX logs and trends; it is not a medical diagnosis.
               </p>
             </motion.div>
           )}

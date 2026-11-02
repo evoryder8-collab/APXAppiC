@@ -76,16 +76,24 @@ enum MealTimingEngine {
         )
     }
 
-    /// A completed session is a factual Dayline event only when its completion
-    /// instant resolves to the selected date in the configured timezone.
+    /// Quick Log stores the save time even when logging an earlier workout.
+    /// Such a receipt remains on its assigned date in Finished Workouts, but
+    /// its save timestamp cannot supply a finish or recovery window.
+    private static func recordedWorkoutFinish(_ session: WorkoutSession, timeZone: String) -> Date? {
+        guard session.completed, let date = instant(session.completedAt) else { return nil }
+        if session.notes.hasPrefix("\(ManualWorkout.prefix)|"),
+           daylineDateKey(for: date, timeZone: timeZone) != session.date { return nil }
+        return date
+    }
+
+    /// A completed session is a factual Dayline event only when its recorded
+    /// finish resolves to the selected date in the configured timezone.
     static func daylineWorkoutTiming(
         _ session: WorkoutSession,
         localDate: String,
         timeZone: String
     ) -> DaylineWorkoutTiming? {
-        guard session.completed,
-              let completedAt = session.completedAt,
-              let date = instant(completedAt),
+        guard let date = recordedWorkoutFinish(session, timeZone: timeZone),
               daylineDateKey(for: date, timeZone: timeZone) == localDate else { return nil }
         let minute = minuteOfDay(date, timeZone: timeZone)
         return DaylineWorkoutTiming(
@@ -332,7 +340,8 @@ enum MealTimingEngine {
             .sorted { (instant($0.completedAt) ?? .distantPast) < (instant($1.completedAt) ?? .distantPast) }
 
         return completed.compactMap { session -> PostWorkoutTiming? in
-            guard let completedAt = session.completedAt, let finished = instant(completedAt) else { return nil }
+            guard let completedAt = session.completedAt,
+                  let finished = recordedWorkoutFinish(session, timeZone: timeZone) else { return nil }
             /* The next meal finished within six hours belongs to this session. */
             let following = meals
                 .filter { $0.localDate == session.date }

@@ -189,18 +189,18 @@ export function Settings() {
   const starterCopy = language === 'ro'
     ? {
         title: 'Sunt începător',
-        body: 'Activează inducția scurtă în fazele de tranziție și principală. APEX va construi un traseu simplu de 12 săptămâni pe baza pauzei, durerilor, locului și echipamentului tău.',
+        body: 'Activează inducția scurtă în fazele de tranziție și principală. FITR MAX va construi un traseu simplu de 12 săptămâni pe baza pauzei, durerilor, locului și echipamentului tău.',
         active: 'Inducția este vizibilă în paginile de antrenament.',
       }
     : language === 'th'
       ? {
           title: 'ฉันเป็นมือใหม่',
-          body: 'เปิดแบบประเมินสั้นในช่วงเปลี่ยนผ่านและช่วงหลัก APEX จะสร้างเส้นทาง 12 สัปดาห์ที่เรียบง่ายจากช่วงที่หยุดฝึก อาการปวด สถานที่ และอุปกรณ์ของคุณ',
+          body: 'เปิดแบบประเมินสั้นในช่วงเปลี่ยนผ่านและช่วงหลัก FITR MAX จะสร้างเส้นทาง 12 สัปดาห์ที่เรียบง่ายจากช่วงที่หยุดฝึก อาการปวด สถานที่ และอุปกรณ์ของคุณ',
           active: 'แบบประเมินจะแสดงในหน้าการฝึก',
         }
       : {
           title: 'I’m a newbie',
-          body: 'Turn on the short induction in Transition and Main Phase. APEX will build a simple 12-week path around your training gap, pain, location and equipment.',
+          body: 'Turn on the short induction in Transition and Main Phase. FITR MAX will build a simple 12-week path around your training gap, pain, location and equipment.',
         active: 'The induction is visible on your workout pages.',
       }
   const recoverySourceCopy = language === 'ro'
@@ -565,8 +565,8 @@ export function Settings() {
 
             <div className="mt-2 divide-y divide-ink/8">
               {coachPolicy.can_use_orbit && <div className={row}>
-                <div><p className={label}>{t('Show APEX Orbit shortcut')}</p><p className={sub}>{t('Keep running intelligence on the Simple Mode home screen.')}</p></div>
-                <Toggle accent={ACCENTS.ice} label={t('Show APEX Orbit shortcut')} on={settings.addons.simple_show_orbit ?? true} onChange={(value) => setSettings({ addons: { ...settings.addons, simple_show_orbit: value } })} />
+                <div><p className={label}>{t('Show FITR MAX Orbit shortcut')}</p><p className={sub}>{t('Keep running intelligence on the Simple Mode home screen.')}</p></div>
+                <Toggle accent={ACCENTS.ice} label={t('Show FITR MAX Orbit shortcut')} on={settings.addons.simple_show_orbit ?? true} onChange={(value) => setSettings({ addons: { ...settings.addons, simple_show_orbit: value } })} />
               </div>}
               <div className={row}>
                 <div><p className={label}>{t('Show Body Index shortcut')}</p><p className={sub}>{t('Keep your body score shortcut on the Simple Mode home screen.')}</p></div>
@@ -852,7 +852,7 @@ export function Settings() {
             <div className={row}>
               <div>
                 <p className={label}>Meal + stack reminders</p>
-                <p className={sub}>Browser notifications while APEX is open</p>
+                <p className={sub}>Browser notifications while FITR MAX is open</p>
               </div>
               <Toggle
                 accent={violet}
@@ -905,7 +905,7 @@ export function Settings() {
             </div>
             <p className="mt-3 text-[11px] leading-relaxed font-medium text-ink-soft">
               {(settings.addons.comparison_export_mode ?? 'detailed') === 'minimal'
-                ? 'Minimal exports show only APEX, Before/After, and each photo’s date and time.'
+                ? 'Minimal exports show only FITR MAX, Before/After, and each photo’s date and time.'
                 : 'Detailed exports add elapsed days, completed workouts, and strength/load stats.'}
             </p>
           </div>
@@ -995,7 +995,7 @@ export function Settings() {
 
           <p className="mt-3 text-xs leading-relaxed font-medium text-ink-faint">
             Days without the watch or phone never count against you: imports only add signal,
-            they never create decay. Anything you logged manually in APEX always wins over
+            they never create decay. Anything you logged manually in FITR MAX always wins over
             imported values. Export from iPhone: Health app, profile picture, Export All Health
             Data, then pick the export.xml inside the zip. Re-importing later is safe.
           </p>
@@ -1003,7 +1003,7 @@ export function Settings() {
 
         <GlassCard accent={emerald} className="p-5">
           <h2 className="font-display text-lg font-bold text-ink">{t('Legal & data')}</h2>
-          <p className={`${sub} mt-1`}>{t('See where APEX food data comes from and how it is adapted.')}</p>
+          <p className={`${sub} mt-1`}>{t('See where FITR MAX food data comes from and how it is adapted.')}</p>
 
           <details
             data-food-data-acknowledgement
@@ -1016,12 +1016,12 @@ export function Settings() {
             </summary>
 
             <div className="border-t border-emerald-100/80 px-4 pb-4 pt-4">
-              <p className="font-mono text-[9px] font-black uppercase tracking-[0.14em] text-emerald-800">{t('APEX uses adapted data from:')}</p>
+              <p className="font-mono text-[9px] font-black uppercase tracking-[0.14em] text-emerald-800">{t('FITR MAX uses adapted data from:')}</p>
               <p lang="en" className="mt-2 text-[12px] font-semibold leading-relaxed text-ink">
                 {t('Marija Langwagen, Jette Jakobsen and Anders Poulsen: The Danish Food Composition Database, version 6.1, May 2026, National Food Institute, Technical University of Denmark.')}
               </p>
               <p className="mt-3 text-[11px] font-medium leading-relaxed text-ink-soft">
-                {t('APEX extracted, normalized and mapped selected source records to reviewed APEX food entries. These changes are by APEX; DTU does not endorse APEX.')}
+                {t('FITR MAX extracted, normalized and mapped selected source records to reviewed FITR MAX food entries. These changes are by FITR MAX; DTU does not endorse FITR MAX.')}
               </p>
 
               <div className="mt-4 grid gap-2 sm:grid-cols-3">

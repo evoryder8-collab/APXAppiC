@@ -74,13 +74,13 @@ export function progressStrengthComparison(data: AppData, firstDate: string, sec
 
 const POSTER_COPY = {
   en: {
-    kicker: 'APEX • PRIVATE PROGRESS', before: 'BEFORE', after: 'AFTER', days: 'DAYS', workouts: 'WORKOUTS', load: 'AVG LOAD / SET', baseline: 'BASELINE', matched: 'MATCHED EXERCISES', loaded: 'WEIGHTED SETS', weight: 'BODY WEIGHT', private: 'CREATED PRIVATELY ON DEVICE', profile: 'PROFILE', side: 'SIDE', back: 'BACK', front: 'FRONT',
+    kicker: 'FITR MAX • PRIVATE PROGRESS', before: 'BEFORE', after: 'AFTER', days: 'DAYS', workouts: 'WORKOUTS', load: 'AVG LOAD / SET', baseline: 'BASELINE', matched: 'MATCHED EXERCISES', loaded: 'WEIGHTED SETS', weight: 'BODY WEIGHT', private: 'CREATED PRIVATELY ON DEVICE', profile: 'PROFILE', side: 'SIDE', back: 'BACK', front: 'FRONT',
   },
   ro: {
-    kicker: 'APEX • PROGRES PRIVAT', before: 'ÎNAINTE', after: 'DUPĂ', days: 'ZILE', workouts: 'ANTRENAMENTE', load: 'MEDIE KG / SET', baseline: 'REPER', matched: 'EXERCIȚII COMPARATE', loaded: 'SETURI CU GREUTATE', weight: 'GREUTATE', private: 'CREAT PRIVAT PE DISPOZITIV', profile: 'PROFIL', side: 'PROFIL', back: 'SPATE', front: 'FAȚĂ',
+    kicker: 'FITR MAX • PROGRES PRIVAT', before: 'ÎNAINTE', after: 'DUPĂ', days: 'ZILE', workouts: 'ANTRENAMENTE', load: 'MEDIE KG / SET', baseline: 'REPER', matched: 'EXERCIȚII COMPARATE', loaded: 'SETURI CU GREUTATE', weight: 'GREUTATE', private: 'CREAT PRIVAT PE DISPOZITIV', profile: 'PROFIL', side: 'PROFIL', back: 'SPATE', front: 'FAȚĂ',
   },
   th: {
-    kicker: 'APEX • ความก้าวหน้าส่วนตัว', before: 'ก่อน', after: 'หลัง', days: 'วัน', workouts: 'การฝึก', load: 'กก. เฉลี่ย / เซต', baseline: 'ค่าฐาน', matched: 'ท่าที่เปรียบเทียบ', loaded: 'เซตมีน้ำหนัก', weight: 'น้ำหนักตัว', private: 'สร้างแบบส่วนตัวบนอุปกรณ์', profile: 'ด้านข้าง', side: 'ด้านข้าง', back: 'ด้านหลัง', front: 'ด้านหน้า',
+    kicker: 'FITR MAX • ความก้าวหน้าส่วนตัว', before: 'ก่อน', after: 'หลัง', days: 'วัน', workouts: 'การฝึก', load: 'กก. เฉลี่ย / เซต', baseline: 'ค่าฐาน', matched: 'ท่าที่เปรียบเทียบ', loaded: 'เซตมีน้ำหนัก', weight: 'น้ำหนักตัว', private: 'สร้างแบบส่วนตัวบนอุปกรณ์', profile: 'ด้านข้าง', side: 'ด้านข้าง', back: 'ด้านหลัง', front: 'ด้านหน้า',
   },
 } satisfies Record<IntroLanguage, Record<string, string>>
 

@@ -65,7 +65,7 @@ struct AppRootView: View {
                 .interactiveDismissDisabled()
         }
         .animation(.snappy(duration: 0.42, extraBounce: 0.04), value: session.route)
-        .alert("APEX", isPresented: Binding(
+        .alert(AppBrand.name, isPresented: Binding(
             get: { session.alertMessage != nil },
             set: { if !$0 { session.alertMessage = nil } }
         )) {
@@ -109,9 +109,11 @@ private struct APEXLaunchView: View {
             APEXMark(size: 74)
                 .scaleEffect(breathing ? 1.04 : 0.96)
                 .shadow(color: APEXColor.violet.opacity(0.25), radius: 30)
-            Text("APEX")  // brand name, never translated
+            Text(verbatim: AppBrand.name)
                 .font(APEXFont.display(34))
-                .tracking(9)
+                .tracking(2)
+                .lineLimit(1)
+                .minimumScaleFactor(0.65)
                 .foregroundStyle(APEXColor.ink)
             ProgressView()
                 .tint(APEXColor.amber)

@@ -11,6 +11,20 @@ final class ManualWorkoutTests: XCTestCase {
     private let user = UUID()
     private let session = UUID()
 
+    func testRecentQuickLogExercisesKeepLatestFirstAndRemainBounded() {
+        XCTAssertEqual(ManualWorkout.rememberExercise("row", in: ["curl", "row", "squat"]), ["row", "curl", "squat"])
+        XCTAssertEqual(ManualWorkout.rememberExercise("new", in: (0..<80).map(String.init)).count, 64)
+        XCTAssertNotEqual(ManualWorkout.recentExercisesKey(ownerID: user), ManualWorkout.recentExercisesKey(ownerID: UUID()))
+    }
+
+    func testRecentQuickLogRankingPreservesFilteredMatchesAndStableTies() {
+        struct Item: Identifiable, Equatable { let id: String }
+        let matches = ["squat", "row", "curl", "lunge"].map { Item(id: $0) }
+        XCTAssertEqual(ManualWorkout.rankExercises(matches, recentIDs: ["unrelated", "curl", "row"]).map(\.id),
+                       ["curl", "row", "squat", "lunge"])
+        XCTAssertEqual(ManualWorkout.rankExercises(matches, recentIDs: []), matches)
+    }
+
     func testManualLoggerCapturesTheAccountLeaseAndGatesEveryLateCallback() throws {
         let root = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

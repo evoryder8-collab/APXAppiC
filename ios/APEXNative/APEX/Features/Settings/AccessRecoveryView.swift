@@ -88,7 +88,7 @@ struct AccessRecoveryView: View {
         }
         return switch entitlements.recoveryReason {
         case .updateRequired:
-            "This version of APEX needs an update before it can open this account. Your account data has not been changed."
+            "This version of FITR MAX needs an update before it can open this account. Your account data has not been changed."
         case .revoked:
             "Access for this account has been revoked. Your account data has not been changed."
         case .expired:
@@ -96,7 +96,7 @@ struct AccessRecoveryView: View {
         case .locked:
             "This account does not currently have access. Your account data has not been changed."
         case .unavailable, nil:
-            "APEX could not confirm access for this account. Your account data has not been changed."
+            "FITR MAX could not confirm access for this account. Your account data has not been changed."
         }
     }
 
@@ -209,7 +209,7 @@ struct AccessRecoveryView: View {
             return
         } catch {
             guard session.accountOperationIsCurrent(operation) else { return }
-            statusMessage = language.text("Access was restored, but APEX could not refresh your account yet. Try again when online.")
+            statusMessage = language.text("Access was restored, but FITR MAX could not refresh your account yet. Try again when online.")
         }
     }
 }

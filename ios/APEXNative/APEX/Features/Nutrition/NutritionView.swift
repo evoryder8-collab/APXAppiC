@@ -2,7 +2,10 @@ import SwiftUI
 
 struct NutritionView: View {
     @Environment(AppSession.self) private var session
-    @State private var selectedDate = Date()
+    private var selectedDate: Date {
+        get { session.browsingDate }
+        nonmutating set { session.browsingDate = newValue }
+    }
     @State private var showAddActivity = false
     @State private var showActivityGuide = false
     @State private var showTargetEditor = false
@@ -156,7 +159,7 @@ struct NutritionView: View {
 
                         CollapsibleSection(
                             id: "assessment",
-                            title: language.text("APEX assessment"),
+                            title: language.text("FITR MAX assessment"),
                             subtitle: language.text("Today's energy model and the clearest gap.")
                         ) {
                             BodyAssessmentCard(targets: targets, date: selectedDate)
@@ -630,7 +633,7 @@ private struct DailyTargetsCard: View {
             case .implausibleDemographics: "Profile details are incomplete or outside the supported adult range."
             case .implausibleBMR: "The saved resting-energy value is outside the supported range."
             case .lowCalorieTarget: "This calorie target is unusually low and should be reviewed."
-            case .dexaEstimatedBMRStored: "A DEXA-estimated BMR is saved as context; APEX used the calculated resting-energy formula instead."
+            case .dexaEstimatedBMRStored: "A DEXA-estimated BMR is saved as context; FITR MAX used the calculated resting-energy formula instead."
             case .legacyBMRNeedsReview: "Confirm that this earlier resting-energy value came from indirect calorimetry, or clear it to use the calculated formula."
             }
         }
@@ -1286,7 +1289,7 @@ private struct BodyAssessmentCard: View {
     var body: some View {
         GlassCard(radius: 32, padding: 22) {
             VStack(alignment: .leading, spacing: 13) {
-                Label(language.text("APEX assessment"), systemImage: "sparkles")
+                Label(language.text("FITR MAX assessment"), systemImage: "sparkles")
                     .font(APEXFont.display(24))
                 Text(assessment)
                     .font(APEXFont.body(15, weight: .medium))

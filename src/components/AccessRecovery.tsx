@@ -13,8 +13,8 @@ const RECOVERY_COPY: Record<AccountAccessRecoveryReason, {
   guidance: string
 }> = {
   update_required: {
-    title: 'APEX needs an update',
-    body: 'This APEX web version is older than the minimum version required for your account.',
+    title: 'FITR MAX needs an update',
+    body: 'This FITR MAX web version is older than the minimum version required for your account.',
     guidance: 'Reload the page to check for the required web version. If this message remains, that version is not available here yet.',
   },
   revoked: {
@@ -29,12 +29,12 @@ const RECOVERY_COPY: Record<AccountAccessRecoveryReason, {
   },
   locked: {
     title: 'Access is not active',
-    body: 'This account does not currently have access to APEX.',
+    body: 'This account does not currently have access to FITR MAX.',
     guidance: 'Check access again if your account was just updated, or sign out safely.',
   },
   uncertain: {
     title: 'Access needs attention',
-    body: 'APEX could not confirm access for this account. Your account data has not been changed.',
+    body: 'FITR MAX could not confirm access for this account. Your account data has not been changed.',
     guidance: 'Access is still unavailable. Try again when online, or sign out safely.',
   },
 }
@@ -80,7 +80,7 @@ export function AccessRecovery() {
         <div className="mt-6 grid gap-3">
           {reason === 'update_required' && (
             <button type="button" onClick={() => window.location.reload()} className="rounded-2xl bg-emerald-600 px-5 py-3.5 text-sm font-black text-white shadow-sm">
-              {t('Reload APEX')}
+              {t('Reload FITR MAX')}
             </button>
           )}
           <button type="button" disabled={checking} onClick={() => void checkAccess()} className="rounded-2xl bg-emerald-600 px-5 py-3.5 text-sm font-black text-white shadow-sm disabled:opacity-55">

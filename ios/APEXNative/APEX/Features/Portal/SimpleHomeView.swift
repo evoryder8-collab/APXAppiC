@@ -41,7 +41,11 @@ struct SimpleHomeView: View {
     @State private var showWorkout = false
     @State private var workoutIsLite = false
     @State private var selectedProgramDayID: UUID?
-    @State private var selectedDate = Date()
+    @State private var showManualLogger = false
+    private var selectedDate: Date {
+        get { session.browsingDate }
+        nonmutating set { session.browsingDate = newValue }
+    }
     @State private var showTargetEditor = false
     @State private var showCalendar = false
     @State private var showMealSlotPicker = false
@@ -347,7 +351,7 @@ struct SimpleHomeView: View {
                 } label: {
                     CoachSimpleShortcut(
                         title: language.text("Your coach plan"),
-                        subtitle: language.format("Provided by %@", session.coachContext.sponsorship?.coachDisplayName ?? "FitDee"),
+                        subtitle: language.format("Provided by %@", session.coachContext.sponsorship?.coachDisplayName ?? "FITR MAX"),
                         icon: "person.crop.circle.badge.checkmark"
                     )
                 }
@@ -410,6 +414,16 @@ struct SimpleHomeView: View {
                     }
 
                     metrics
+                    if session.coachClientPolicy.canCreateCustomWorkouts {
+                        Button { showManualLogger = true } label: {
+                            Label(language.text("Quick log"), systemImage: "square.and.pencil")
+                                .font(APEXFont.body(14, weight: .semibold))
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(APEXColor.teal)
+                        .accessibilityIdentifier("simple-quick-log")
+                    }
                     CompletedWorkoutHistoryCards(date: selectedDate.apexDateKey, accent: APEXColor.teal)
                     WearableActivityCard(date: selectedDate)
                     WorkoutInsightsCard(
@@ -504,6 +518,10 @@ struct SimpleHomeView: View {
         }
         .apexPopover(isPresented: $showTargetEditor) {
             NutritionTargetSheet(date: selectedDate, onClose: { showTargetEditor = false })
+                .environment(session)
+        }
+        .sheet(isPresented: $showManualLogger) {
+            ManualWorkoutLoggerView(date: selectedDate.apexDateKey)
                 .environment(session)
         }
         .sheet(isPresented: $showCalendar) {
@@ -682,7 +700,7 @@ struct SimpleHomeView: View {
         } label: {
             SimpleShortcutCard(
                 icon: "figure.run",
-                title: "APEX Orbit",
+                title: "FITR MAX Orbit",
                 subtitle: orbitSubtitle,
                 trailing: language.text("RUN"),
                 color: APEXColor.cyan
@@ -1643,7 +1661,7 @@ private struct HydrationManagementSheet: View {
                         )
                         .font(APEXFont.body(11))
                         .foregroundStyle(APEXColor.secondaryInk)
-                        Text("An APEX estimate for total water from drinks and food. Sweat loss varies, so thirst and measured pre/post-workout weight change remain more personal than wearable calories.")
+                        Text("A FITR MAX estimate for total water from drinks and food. Sweat loss varies, so thirst and measured pre/post-workout weight change remain more personal than wearable calories.")
                             .font(APEXFont.body(10))
                             .foregroundStyle(APEXColor.secondaryInk)
                     } else {
@@ -2538,7 +2556,7 @@ private struct TrainingQuickSheet: View {
                         .foregroundStyle(APEXColor.teal.opacity(0.75))
                     Text(language.text("No training plan yet"))
                         .font(APEXFont.display(21))
-                    Text(language.text("Build a plan before APEX labels any day as training or recovery."))
+                    Text(language.text("Build a plan before FITR MAX labels any day as training or recovery."))
                         .font(APEXFont.body(12))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(APEXColor.secondaryInk)
@@ -2874,7 +2892,7 @@ private struct RecoveryMorningCard: View {
                 .padding(11)
                 .background(.white.opacity(0.64), in: RoundedRectangle(cornerRadius: 14))
             }
-            Text(language.text(source == "other" ? "Enter the 0 to 100 score your own watch or app gives you. Apple Health context is still imported automatically." : "HealthKit exposes measured sleep duration and stages, but not Apple's Sleep Score to third-party apps. Enter the score shown in the Sleep app to use it in APEX."))
+            Text(language.text(source == "other" ? "Enter the 0 to 100 score your own watch or app gives you. Apple Health context is still imported automatically." : "HealthKit exposes measured sleep duration and stages, but not Apple's Sleep Score to third-party apps. Enter the score shown in the Sleep app to use it in FITR MAX."))
                 .font(APEXFont.body(9)).foregroundStyle(APEXColor.secondaryInk)
             Button(language.text("Save morning check")) {
                 morningFieldFocused = false

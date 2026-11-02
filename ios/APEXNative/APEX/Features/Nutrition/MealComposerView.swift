@@ -1481,7 +1481,7 @@ private struct MealFoodPicker: View {
                         .buttonStyle(.plain)
                     }
 
-                    if isSearching { ProgressView("Searching APEX Food Memory").padding(.vertical, 18) }
+                    if isSearching { ProgressView("Searching FITR MAX Food Memory").padding(.vertical, 18) }
                     if let message {
                         Text(language.text(message))
                             .font(APEXFont.body(12, weight: .medium))

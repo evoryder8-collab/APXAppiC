@@ -41,8 +41,8 @@ final class LocalisationCoverageTests: XCTestCase {
     func testEveryOfferedLanguageHasAuthoredAccessRecoveryCopy() throws {
         let fullKeys: Set<String> = [
             "Access needs attention",
-            "APEX could not confirm access for this account. Your account data has not been changed.",
-            "This version of APEX needs an update before it can open this account. Your account data has not been changed.",
+            "FITR MAX could not confirm access for this account. Your account data has not been changed.",
+            "This version of FITR MAX needs an update before it can open this account. Your account data has not been changed.",
             "Purchases are not available in this TestFlight build.",
             "Check access again",
             "Access is still unavailable. Try again when online, or sign out safely.",
@@ -50,7 +50,7 @@ final class LocalisationCoverageTests: XCTestCase {
             "TestFlight access is included for every account through 31 December 2027.",
             "TestFlight access is active through 31 December 2027.",
             "Early access is active.",
-            "Update APEX to continue.",
+            "Update FITR MAX to continue.",
             "Access is not available for this account.",
             "Review access",
         ]
@@ -91,12 +91,12 @@ final class LocalisationCoverageTests: XCTestCase {
             "Food data acknowledgements",
             "Legal & data",
             "Licensing, attribution and provenance stay here instead of cluttering individual nutrient rows.",
-            "See where APEX food data comes from and how it is adapted.",
-            "APEX uses adapted data from:",
+            "See where FITR MAX food data comes from and how it is adapted.",
+            "FITR MAX uses adapted data from:",
             "Marija Langwagen, Jette Jakobsen and Anders Poulsen: The Danish Food Composition Database, version 6.1, May 2026, National Food Institute, Technical University of Denmark.",
             "Source dataset",
             "DTU disclaimer",
-            "APEX extracted, normalized and mapped selected source records to reviewed APEX food entries. These changes are by APEX; DTU does not endorse APEX.",
+            "FITR MAX extracted, normalized and mapped selected source records to reviewed FITR MAX food entries. These changes are by FITR MAX; DTU does not endorse FITR MAX.",
             "DTU does not guarantee that the database is error-free or suitable for a particular purpose. Check the current package label when exact product values matter.",
         ]
 
@@ -491,7 +491,10 @@ final class LocalisationCoverageTests: XCTestCase {
             }
             let data = try Data(contentsOf: url)
             let table = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
-            XCTAssertEqual(table?.count, 101, "Unexpected compact-label count for \(language)")
+            XCTAssertEqual(table?.count, 104, "Unexpected compact-label count for \(language)")
+            for key in ["Manage water access", "Enable water sharing", "Open Health"] {
+                XCTAssertNotNil(table?[key], "Missing water-access label: \(key) / \(language)")
+            }
             for key in DeveloperSandboxRole.allCases.map(\.titleKey) {
                 XCTAssertFalse((table?[key] ?? "").isEmpty, "Missing UI mode label: \(key) in \(language)")
             }
@@ -533,17 +536,17 @@ final class LocalisationCoverageTests: XCTestCase {
                 XCTAssertEqual(table?[key], expected, "Unexpected compact Fitness Plan copy for \(language): \(key)")
             }
             let externalWorkoutValues: [String: [String]] = [
-                "en": ["APPLE HEALTH", "Hide from APEX"],
-                "de": ["APPLE HEALTH", "In APEX ausblenden"],
-                "de-CH": ["APPLE HEALTH", "In APEX usblände"],
-                "it": ["APPLE HEALTH", "Nascondi da APEX"],
-                "es": ["APPLE HEALTH", "Ocultar de APEX"],
-                "pt": ["APPLE HEALTH", "Ocultar da APEX"],
-                "ja": ["APPLE HEALTH", "APEXで非表示"],
-                "ro": ["APPLE HEALTH", "Ascunde din APEX"],
-                "th": ["APPLE HEALTH", "ซ่อนจาก APEX"],
+                "en": ["APPLE HEALTH", "Hide from FITR MAX"],
+                "de": ["APPLE HEALTH", "In FITR MAX ausblenden"],
+                "de-CH": ["APPLE HEALTH", "In FITR MAX usblände"],
+                "it": ["APPLE HEALTH", "Nascondi da FITR MAX"],
+                "es": ["APPLE HEALTH", "Ocultar de FITR MAX"],
+                "pt": ["APPLE HEALTH", "Ocultar da FITR MAX"],
+                "ja": ["APPLE HEALTH", "FITR MAXで非表示"],
+                "ro": ["APPLE HEALTH", "Ascunde din FITR MAX"],
+                "th": ["APPLE HEALTH", "ซ่อนจาก FITR MAX"],
             ]
-            for (key, expected) in zip(["APPLE HEALTH", "Hide from APEX"], externalWorkoutValues[language] ?? []) {
+            for (key, expected) in zip(["APPLE HEALTH", "Hide from FITR MAX"], externalWorkoutValues[language] ?? []) {
                 XCTAssertEqual(table?[key], expected, "Unexpected compact HealthKit copy for \(language): \(key)")
             }
             let linkedWearableValues: [String: [String]] = [
@@ -684,17 +687,17 @@ final class LocalisationCoverageTests: XCTestCase {
     func testEveryOfferedLanguageHasAuthoredExternalWorkoutReceiptsAndCompleteHealthKitNames() {
         let receiptKeys: Set<String> = [
             "APPLE HEALTH",
-            "Hide this Apple Health workout from APEX?",
-            "Hide from APEX",
+            "Hide this Apple Health workout from FITR MAX?",
+            "Hide from FITR MAX",
             "The original workout stays in Apple Health.",
             "Active energy",
             "READ-ONLY RECEIPT",
-            "Imported from Apple Health. This receipt is read-only in APEX.",
+            "Imported from Apple Health. This receipt is read-only in FITR MAX.",
             "Already finished?",
             "Pause this follow-along and finish with an external wearable activity.",
             "Session recovery",
             "Did you finish this planned workout on your own?",
-            "APEX has paused the follow-along. Keep only the facts you already recorded here, then optionally attach the wearable effort that belongs to this session.",
+            "FITR MAX has paused the follow-along. Keep only the facts you already recorded here, then optionally attach the wearable effort that belongs to this session.",
             "Choose the wearable activity that matches this workout",
             "Refresh workouts",
             "No wearable workouts were found for this day. Refresh after the activity reaches Apple Health, or finish without one.",
@@ -708,7 +711,7 @@ final class LocalisationCoverageTests: XCTestCase {
             "Device metrics are read-only and are not added to HealthKit energy twice.",
             "Wearable linked",
             "That wearable activity is no longer available. Choose it again.",
-            "Completed externally from the APEX guided player",
+            "Completed externally from the FITR MAX guided player",
         ]
         let required = receiptKeys.union(HealthWorkoutCatalog.authoredNameKeys)
 
@@ -756,12 +759,12 @@ final class LocalisationCoverageTests: XCTestCase {
 
     func testEveryOfferedLanguageHasAuthoredRecoveryPlannerCopy() throws {
         let fullKeys: Set<String> = [
-            "Recovery rhythm", "RECOVERY RHYTHM", "Session style", "APEX guided",
+            "Recovery rhythm", "RECOVERY RHYTHM", "Session style", "FITR MAX guided",
             "A short follow-along routine using reviewed movements.", "My own session",
             "Follow a mobility or recovery video or routine you trust, then log it honestly.",
             "Your proposed dates", "%d sessions", "Add recovery sessions",
             "Plan joint care", "Plan flexibility", "Joint care", "Flexibility reset",
-            "Four weeks, two short sessions each week. APEX favours lower-load days and never replaces your current programme.",
+            "Four weeks, two short sessions each week. FITR MAX favours lower-load days and never replaces your current programme.",
             "General movement support, not diagnosis or injury treatment. Use a comfortable range, stop if pain worsens, and seek qualified care for persistent or new symptoms.",
             "Your coach manages this plan. Ask them to add the recovery rhythm for you.",
             "Hip Flexor Stretch", "Child's Pose", "Thoracic Rotation",

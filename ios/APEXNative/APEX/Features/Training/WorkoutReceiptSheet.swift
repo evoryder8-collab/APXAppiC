@@ -114,7 +114,7 @@ struct WorkoutReceiptSheet: View {
         VStack(alignment: .leading, spacing: 9) {
             HStack(spacing: 7) {
                 Circle().fill(APEXColor.green).frame(width: 7, height: 7)
-                Text(language.text("APEX strength signal").uppercased())
+                Text(language.text("FITR MAX strength signal").uppercased())
                     .font(APEXFont.mono(8))
                     .tracking(1.4)
                     .foregroundStyle(.white.opacity(0.66))
@@ -362,14 +362,14 @@ struct CompletedWorkoutHistoryCards: View {
                 Text(language.text("Its receipt and recorded sets will be removed from your history and progression."))
             }
             .alert(
-                language.text("Hide this Apple Health workout from APEX?"),
+                language.text("Hide this Apple Health workout from FITR MAX?"),
                 isPresented: Binding(
                     get: { pendingHide != nil },
                     set: { if !$0 { pendingHide = nil } }
                 ),
                 presenting: pendingHide
             ) { item in
-                Button(language.text("Hide from APEX"), role: .destructive) {
+                Button(language.text("Hide from FITR MAX"), role: .destructive) {
                     guard let operation = session.accountOperationLease() else { return }
                     pendingHide = nil
                     Task {
@@ -692,7 +692,7 @@ struct CompletedWorkoutHistoryCards: View {
                     VStack(spacing: 3) {
                         Image(systemName: "eye.slash.fill")
                             .font(.system(size: 14, weight: .black))
-                        Text(language.shortText("Hide from APEX"))
+                        Text(language.shortText("Hide from FITR MAX"))
                             .font(APEXFont.mono(6, weight: .bold))
                             .multilineTextAlignment(.center)
                     }
@@ -774,7 +774,7 @@ struct CompletedWorkoutHistoryCards: View {
                         .font(APEXFont.mono(8, weight: .bold))
                         .tracking(1.0)
                         .foregroundStyle(APEXColor.cyan)
-                    Text(language.text("Imported from Apple Health. This receipt is read-only in APEX."))
+                    Text(language.text("Imported from Apple Health. This receipt is read-only in FITR MAX."))
                         .font(APEXFont.body(12))
                         .foregroundStyle(APEXColor.secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
@@ -786,7 +786,7 @@ struct CompletedWorkoutHistoryCards: View {
                 Button {
                     pendingHide = item
                 } label: {
-                    Text(language.shortText("Hide from APEX"))
+                    Text(language.shortText("Hide from FITR MAX"))
                         .font(APEXFont.body(12, weight: .bold))
                         .frame(maxWidth: .infinity, minHeight: 42)
                         .foregroundStyle(APEXColor.danger)

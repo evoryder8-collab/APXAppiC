@@ -299,6 +299,8 @@ final class AppSession {
     var failedSyncCount = 0
     var failedSyncOperations: [FailedOfflineOperation] = []
     var navigationPath: [PortalDestination] = []
+    /// Shared UI date survives Simple/Advanced navigation, never crosses accounts.
+    var browsingDate = Date()
 
 
     private func updateSandboxPlanReceipt(planVersionID: UUID, activate: Bool, ownerID: UUID) throws {
@@ -419,6 +421,7 @@ final class AppSession {
         }
         accountGeneration.advance()
         authenticatedOwnerID = nil
+        browsingDate = .now
         suspendedAccessOwnerID = nil
         EntitlementStore.shared.resetAccount()
         OrbitLocationManager.shared.releaseForAccountBoundary()
@@ -1553,6 +1556,9 @@ final class AppSession {
         catch { return }
         await HealthKitManager.shared.reconnectWaterAccess()
         guard accountOperationIsCurrent(operation) else { return }
+        if HealthKitManager.shared.waterWriteState == .authorized {
+            await importHealthQuietly(operation: operation)
+        }
     }
 
     func startWatchWorkout(

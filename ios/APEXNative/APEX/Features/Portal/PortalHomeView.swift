@@ -16,7 +16,7 @@ struct PortalHomeView: View {
     }
 
     private var greetingLine: String {
-        let name = session.profile?.displayName ?? "FitDee"
+        let name = session.profile?.displayName ?? "FITR MAX"
         /* Thai and Japanese do not punctuate a greeting the way the Latin
            languages do, so the comma and full stop are dropped rather than
            transplanted. */
@@ -79,7 +79,7 @@ struct PortalHomeView: View {
                 if session.coachContext.capabilities.sponsoredClient {
                     PortalTile(
                         title: language.text("Your coach plan"),
-                        subtitle: language.format("Provided by %@", session.coachContext.sponsorship?.coachDisplayName ?? "FitDee"),
+                        subtitle: language.format("Provided by %@", session.coachContext.sponsorship?.coachDisplayName ?? "FITR MAX"),
                         icon: "person.crop.circle.badge.checkmark",
                         color: APEXColor.violet,
                         destination: .coachPlan

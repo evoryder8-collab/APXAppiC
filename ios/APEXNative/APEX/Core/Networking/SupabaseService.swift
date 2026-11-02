@@ -2,6 +2,8 @@ import Foundation
 import AuthenticationServices
 import Supabase
 
+extension Food: FoodLibraryRow {}
+
 enum APEXRuntimeEnvironment {
     static func usesLocalUITestFixture(
         arguments: [String] = ProcessInfo.processInfo.arguments
@@ -387,6 +389,7 @@ actor SupabaseService {
 
     func loadDashboard() async throws -> DashboardData {
         guard let client else { throw APEXServiceError.configurationMissing }
+        let foodOwnerID = try await client.auth.session.user.id
 
         async let profile: [Profile] = client.from("profile").select().limit(1).execute().value
         async let settings: [UserSettings] = client.from("settings").select().limit(1).execute().value
@@ -413,10 +416,10 @@ actor SupabaseService {
             try await client.from("hydration_preferences").select().limit(1).execute().value
         }
         async let events: [EventRecord] = client.from("events").select().order("start_date", ascending: false).limit(180).execute().value
-        async let foods: [Food] = client.from("foods").select().order("updated_at", ascending: false).limit(250).execute().value
-        async let foodPreferences: [FoodPreference] = client.from("food_preferences").select().order("last_used_at", ascending: false).limit(250).execute().value
-        async let mealPresets: [MealPreset] = client.from("meal_presets").select().eq("archived", value: false).execute().value
-        async let mealPresetItems: [MealPresetItem] = client.from("meal_preset_items").select().order("sort_order").execute().value
+        async let recentFoods: [Food] = client.from("foods").select().order("updated_at", ascending: false).order("id").limit(250).execute().value
+        async let foodPreferences: [FoodPreference] = loadOwnedFoodRows(client: client, table: "food_preferences", ownerID: foodOwnerID)
+        async let mealPresets: [MealPreset] = loadOwnedFoodRows(client: client, table: "meal_presets", ownerID: foodOwnerID)
+        async let mealPresetItems: [MealPresetItem] = loadOwnedFoodRows(client: client, table: "meal_preset_items", ownerID: foodOwnerID)
         async let loggedMeals: [LoggedMeal] = client.from("logged_meals").select().order("logged_at", ascending: false).limit(360).execute().value
         async let loggedFoodEntries: [LoggedFoodEntry] = client.from("logged_food_entries").select().order("created_at", ascending: false).limit(1000).execute().value
         async let snapshots: [RPGSnapshot] = client.from("rpg_snapshots").select().order("date", ascending: false).limit(180).execute().value
@@ -452,6 +455,30 @@ actor SupabaseService {
         async let orbitCampaigns: [OrbitCampaign] = client.from("orbit_campaigns").select().order("updated_at", ascending: false).limit(20).execute().value
         async let orbitCampaignSessions: [OrbitCampaignSession] = client.from("orbit_campaign_sessions").select().order("date").limit(800).execute().value
 
+        let preferences = try await foodPreferences
+        let presetItems = try await mealPresetItems
+        let foodEntries = try await loggedFoodEntries
+        let requiredFoodIDs = Set(
+            preferences.filter { $0.userID == foodOwnerID }.map(\.foodID)
+                + presetItems.filter { $0.userID == foodOwnerID }.map(\.foodID)
+                + foodEntries.filter { $0.userID == foodOwnerID }.compactMap(\.foodID)
+        )
+        let foods = try await FoodLibraryHydration.complete(
+            initial: recentFoods, ownerID: foodOwnerID, referencedIDs: requiredFoodIDs
+        ) { request in
+            let query = switch request.scope {
+            case .owned:
+                client.from("foods").select().eq("owner_user_id", value: request.ownerID)
+            case .referenced(let ids):
+                client.from("foods").select().in("id", values: ids.map(\.uuidString))
+                    .or("owner_user_id.is.null,owner_user_id.eq.\(request.ownerID.uuidString)")
+            }
+            return try await query
+                .order("id")
+                .range(from: request.range.lowerBound, to: request.range.upperBound)
+                .execute().value
+        }
+
         return try await DashboardData(
             profile: profile.first,
             settings: settings.first,
@@ -473,11 +500,11 @@ actor SupabaseService {
             hydrationPreferences: hydrationPreferences.first,
             events: events,
             foods: foods,
-            foodPreferences: foodPreferences,
-            mealPresets: mealPresets,
-            mealPresetItems: mealPresetItems,
+            foodPreferences: preferences,
+            mealPresets: mealPresets.filter { !$0.archived },
+            mealPresetItems: presetItems,
             loggedMeals: loggedMeals,
-            loggedFoodEntries: loggedFoodEntries,
+            loggedFoodEntries: foodEntries,
             snapshots: snapshots,
             healthMetrics: healthMetrics,
             fitnessEvidence: fitnessEvidence,
@@ -492,6 +519,20 @@ actor SupabaseService {
             orbitCampaigns: orbitCampaigns,
             orbitCampaignSessions: orbitCampaignSessions
         )
+    }
+
+    private func loadOwnedFoodRows<Row: Decodable & Sendable>(
+        client: SupabaseClient,
+        table: String,
+        ownerID: UUID
+    ) async throws -> [Row] {
+        try await Self.collectPaginatedRows { range in
+            try await client.from(table).select()
+                .eq("user_id", value: ownerID)
+                .order("id")
+                .range(from: range.lowerBound, to: range.upperBound)
+                .execute().value
+        }
     }
 
     private func loadAllWorkoutSessions(client: SupabaseClient) async throws -> [WorkoutSession] {

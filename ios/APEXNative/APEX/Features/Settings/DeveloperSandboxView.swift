@@ -33,7 +33,7 @@ struct DeveloperSandboxView: View {
         .environment(preview)
         .environment(\.developerSandboxPreview, true)
         .defaultAppStorage(preview.defaults)
-        .alert("FitDee", isPresented: Binding(
+        .alert("FITR MAX", isPresented: Binding(
             get: { preview.alertMessage != nil },
             set: { if !$0 { preview.alertMessage = nil } }
         )) {

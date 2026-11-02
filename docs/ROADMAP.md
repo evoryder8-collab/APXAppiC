@@ -1,22 +1,18 @@
-# FitDee — takeover brief
+# FITR MAX — takeover brief
 
-You are continuing development of FitDee (internal codename APEX): a SwiftUI iOS app plus a web fallback, sharing one
+You are continuing development of FITR MAX (internal codename APEX): a SwiftUI iOS app plus a web fallback, sharing one
 Supabase backend. Work through the phases in order. Do not skip ahead.
 
-**Product naming, 2026-10-07:** the commercial and installed-app name is **FitDee**.
+**Product naming, 2026-11-02:** the final commercial and installed-app name is **FITR MAX** (with a space).
 Keep the existing APEX bundle identifiers, App Group, authentication scheme, backend and
 repository paths stable so installed accounts and Watch data remain connected. App Store
-Connect rejected `FitDee` and `FiTR` as already in use. The owner's next choice,
-**FITR-D**, was accepted on 2026-10-07; its App Store Connect app ID is `6820010832`.
-Build **1.0.0 (398)** still uses FitDee as its installed display name. It has been
-uploaded and processed by Apple, then submitted to external beta review on
-2026-10-10 (**Waiting for Review**, verified in App Store Connect). The dedicated
-reviewer login has been verified and its credentials, contact details and review
-notes are saved in Apple's Test Information. The existing external beta group
-now contains build 398; its two-person public invitation link is configured.
-Apple's approval and build availability still gate installation.
-Do not call TestFlight delivery complete until the approved build is available to
-testers; see the latest `REPAIR-NOTES.md` entry for the exact continuation point.
+Connect accepted and saved **FITR MAX** for existing app `6820010832` on 2026-11-02.
+Build **1.0.0 (398)** is **Testing** in the existing external group (verified 2026-11-02),
+but retains the obsolete FitDee installed name. The next binary updates the phone,
+Watch, Health permission copy and web presentation together. Preserve the existing
+reviewer credentials, external group and public invitation; do not recreate them.
+See the latest `REPAIR-NOTES.md` entry for the current binary and delivery evidence;
+an uploaded build is not proof of external availability or physical installation.
 
 ---
 

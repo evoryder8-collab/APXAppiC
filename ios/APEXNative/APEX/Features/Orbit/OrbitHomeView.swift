@@ -24,7 +24,7 @@ struct OrbitHomeView: View {
                 )
 
                 VStack(alignment: .leading, spacing: 7) {
-                    Text(language.text("APEX ORBIT · RUN INTELLIGENCE"))
+                    Text(language.text("FITR MAX ORBIT · RUN INTELLIGENCE"))
                         .font(APEXFont.mono(10))
                         .tracking(1.8)
                         .foregroundStyle(APEXColor.cyan)
@@ -399,7 +399,7 @@ private struct OrbitContextCard: View {
     var body: some View {
         GlassCard(radius: 29, padding: 18) {
             VStack(alignment: .leading, spacing: 13) {
-                Text(language.text("APEX context"))
+                Text(language.text("FITR MAX context"))
                     .font(APEXFont.display(21))
                 HStack(spacing: 14) {
                     context(

@@ -31,13 +31,6 @@ struct HealthHydrationSample: Sendable {
     let ownerID: UUID?
 }
 
-enum HealthWaterWriteState: Equatable, Sendable {
-    case unavailable
-    case notDetermined
-    case denied
-    case authorized
-}
-
 enum HealthWaterWriteError: LocalizedError {
     case unavailable
     case denied
@@ -47,7 +40,7 @@ enum HealthWaterWriteError: LocalizedError {
         case .unavailable:
             return "Apple Health water tracking is unavailable."
         case .denied:
-            return "Water write access is off. Enable APEX in Health > Data Access & Devices."
+            return "Apple Health water sharing is off."
         }
     }
 }
@@ -546,7 +539,7 @@ final class HealthKitManager {
             let snapshot = try await readToday(ownerID: ownerID)
             guard accountGeneration == requestGeneration else { return nil }
             lastSnapshot = snapshot
-            message = "Apple Health synced. APEX only imported the categories you allowed."
+            message = "Apple Health synced. FITR MAX only imported the categories you allowed."
             await enableBackgroundDelivery()
             guard accountGeneration == requestGeneration else { return nil }
             startBackgroundMonitoring(ownerID: ownerID, handler: importHandler)
@@ -798,12 +791,16 @@ final class HealthKitManager {
             return
         }
         do {
-            try await store.requestAuthorization(toShare: [type], read: [type])
+            // A repeated request cannot reopen a permission already answered.
+            // The settings view offers Health's controls for that case.
+            if store.authorizationStatus(for: type) == .notDetermined {
+                try await store.requestAuthorization(toShare: [type], read: [type])
+            }
             guard accountGeneration == requestGeneration else { return }
             refreshWaterWriteState()
             message = waterWriteState == .authorized
                 ? "Apple Health water sharing is connected."
-                : HealthWaterWriteError.denied.localizedDescription
+                : nil
         } catch {
             guard accountGeneration == requestGeneration else { return }
             refreshWaterWriteState()
@@ -1088,7 +1085,7 @@ final class HealthKitManager {
         return type
     }
 
-    private func refreshWaterWriteState() {
+    func refreshWaterWriteState() {
         guard isAvailable,
               let type = HKQuantityType.quantityType(forIdentifier: .dietaryWater)
         else {

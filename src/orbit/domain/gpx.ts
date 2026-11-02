@@ -13,7 +13,7 @@ export function exportGpx(name: string, points: GeoPoint[]): string {
     const elevation = point.elevation_m == null ? '' : `<ele>${point.elevation_m.toFixed(1)}</ele>`
     return `<trkpt lat="${point.lat.toFixed(7)}" lon="${point.lng.toFixed(7)}">${elevation}</trkpt>`
   }).join('')
-  return `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="APEX Orbit" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>${escapeXml(name)}</name><trkseg>${track}</trkseg></trk></gpx>`
+  return `<?xml version="1.0" encoding="UTF-8"?><gpx version="1.1" creator="FITR MAX Orbit" xmlns="http://www.topografix.com/GPX/1/1"><trk><name>${escapeXml(name)}</name><trkseg>${track}</trkseg></trk></gpx>`
 }
 
 export function importGpx(xml: string): { name: string; points: GeoPoint[] } {

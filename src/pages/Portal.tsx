@@ -90,7 +90,7 @@ export function Portal() {
             to="/coach-plan"
             accent={ACCENTS.violet}
             title={coachText('Your coach plan', language).toUpperCase()}
-            subtitle={`${coachText('Provided by', language)} ${coachContext.sponsorship?.coach_display_name ?? 'APEX'}`}
+            subtitle={`${coachText('Provided by', language)} ${coachContext.sponsorship?.coach_display_name ?? 'FITR MAX'}`}
             icon={<DumbbellIcon className="h-7 w-7" />}
             index={2}
           />
@@ -126,7 +126,7 @@ export function Portal() {
         {coachPolicy.can_use_orbit && <PortalCard
           to="/orbit"
           accent={ACCENTS.ice}
-          title="APEX ORBIT"
+          title="FITR MAX ORBIT"
           subtitle="Run intelligence and marathon conditioning"
           icon={<OrbitIcon className="h-8 w-8" />}
           index={4}

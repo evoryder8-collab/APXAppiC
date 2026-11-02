@@ -17,7 +17,7 @@ struct PersonaSelectorView: View {
             VStack(spacing: 0) {
                 HStack {
                     APEXMark(size: 34)
-                    Text(language.text("FitDee"))
+                    Text(language.text("FITR MAX"))
                         .font(APEXFont.display(19))
                         .tracking(6)
                     Spacer()

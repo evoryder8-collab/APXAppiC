@@ -120,7 +120,7 @@ struct APEXMark: View {
             ))
         }
         .frame(width: size, height: size)
-        .accessibilityLabel("APEX")
+        .accessibilityLabel(AppBrand.name)
     }
 }
 
@@ -136,14 +136,15 @@ struct APEXTopBar: View {
     var body: some View {
         HStack(spacing: 10) {
             APEXMark(size: 33)
-            Text("APEX")  // brand name, never translated
+            Text(verbatim: AppBrand.name)
                 .font(APEXFont.display(20))
-                .tracking(6)
+                .tracking(2)
                 /* The wordmark never wraps. Adding icons to this bar once broke
                    it into "APE / X", which is the sort of thing that makes a
                    whole app look unfinished. */
                 .lineLimit(1)
-                .fixedSize()
+                .minimumScaleFactor(0.7)
+                .layoutPriority(1)
             Spacer(minLength: 6)
             /* Dropped outright at accessibility text sizes rather than merely
                yielding. Squeezed to nothing it left an empty white capsule

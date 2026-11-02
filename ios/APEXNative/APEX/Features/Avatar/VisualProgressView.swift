@@ -642,7 +642,7 @@ private enum VisualProgressError: LocalizedError {
     case encodingFailed
 
     var errorDescription: String? {
-        "APEX could not prepare this photo without losing quality."
+        "FITR MAX could not prepare this photo without losing quality."
     }
 }
 

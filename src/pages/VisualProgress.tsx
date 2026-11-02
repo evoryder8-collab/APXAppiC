@@ -225,7 +225,7 @@ export function VisualProgress() {
           right={right}
           workoutCount={workoutCount}
           strengthComparison={strengthComparison}
-          athleteName={data.profile?.display_name ?? 'APEX athlete'}
+          athleteName={data.profile?.display_name ?? 'FITR MAX athlete'}
           exportMode={resolveProgressExportMode(data.settings?.addons.comparison_export_mode)}
           photoUrls={{ ...store.thumbnailUrls, ...store.fullUrls }}
           fullPhotoUrls={store.fullUrls}

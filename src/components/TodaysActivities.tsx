@@ -68,7 +68,7 @@ function presetsFor(profile: Profile): ActivityPreset[] {
   if (profile.persona === 'june') {
     return [
       { label: '2 × 60m massage', typeId: 'massage-session', patch: { quantity: 2, durationMin: 60 } },
-      { label: '20m APEX', typeId: 'apex-strength', patch: { durationMin: 20 } },
+      { label: '20m FITR MAX', typeId: 'apex-strength', patch: { durationMin: 20 } },
       { label: '30m cleaning', typeId: 'household-cleaning', patch: { quantity: 1, durationMin: 30 } },
       { label: '6k steps', typeId: 'incidental-steps', patch: { steps: 6000 } },
     ]
@@ -281,7 +281,7 @@ function ActivityEditor({
             <label className="flex items-center justify-between gap-3 rounded-xl bg-white/55 px-3 py-2">
               <span>
                 <span className="block text-xs font-bold text-ink">{t('Watch kcal')} <span className="font-medium text-ink-faint">{t('optional')}</span></span>
-                <span className="block text-[9px] font-medium text-ink-faint">{t('APEX counts 80% and uses the higher estimate, never both.')}</span>
+                <span className="block text-[9px] font-medium text-ink-faint">{t('FITR MAX counts 80% and uses the higher estimate, never both.')}</span>
               </span>
               <input
                 type="number"
@@ -408,7 +408,7 @@ export function TodaysActivities({
               </div>
               <p className="mt-2 max-w-[14rem] text-[12px] leading-relaxed font-medium text-ink-soft">
                 {recommendationOnly
-                  ? t('Log the whole day as context. APEX recommends one existing activity mode and never adds the same workout twice.')
+                  ? t('Log the whole day as context. FITR MAX recommends one existing activity mode and never adds the same workout twice.')
                   : t('Your baseline plus only the movement you log. No double counting.')}
               </p>
             </div>
@@ -535,7 +535,7 @@ export function TodaysActivities({
               >
                 <span>
                   <span className="block text-[12px] font-bold text-ink">Want today's true number?</span>
-                  <span className="mt-0.5 block text-[10px] font-medium text-ink-soft">Add one real activity and APEX switches to Precise Mode.</span>
+                  <span className="mt-0.5 block text-[10px] font-medium text-ink-soft">Add one real activity and FITR MAX switches to Precise Mode.</span>
                 </span>
                 <span className="ml-3 text-xl text-amber-600">+</span>
               </motion.button>

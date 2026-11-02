@@ -49,7 +49,7 @@ export function CoachInvitation() {
   return (
     <div className="mx-auto w-full max-w-2xl">
       <div className="rounded-[2rem] border border-white/85 bg-white/76 p-5 shadow-[0_30px_80px_-38px_rgba(109,40,217,.55)] backdrop-blur-xl sm:p-8">
-        <p className="font-mono text-[10px] font-black tracking-[0.2em] text-violet-700 uppercase">APEX · {t('Private by default')}</p>
+        <p className="font-mono text-[10px] font-black tracking-[0.2em] text-violet-700 uppercase">FITR MAX · {t('Private by default')}</p>
         <h1 className="mt-3 font-display text-4xl font-black tracking-tight text-ink">{t('Accept coach invitation')}</h1>
         {loading ? <div className="mt-8 h-56 animate-pulse rounded-3xl bg-violet-50" /> : preview ? (
           <>

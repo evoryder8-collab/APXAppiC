@@ -113,20 +113,22 @@ final class LanguageState {
     /// Translates runtime strings such as Supabase-backed programme names,
     /// exercise notes and adaptive coaching copy. SwiftUI localizes static
     /// literals automatically; this path covers content that arrives as data.
-    func text(_ value: String) -> String {
+    func text(_ source: String) -> String {
+        let value = AppBrand.displayText(source)
         guard language != .english,
               let path = Bundle.main.path(forResource: language.rawValue, ofType: "lproj"),
               let bundle = Bundle(path: path)
         else { return value }
         let exact = bundle.localizedString(forKey: value, value: value, table: "Localizable")
-        if exact != value { return exact }
-        return translatedRuntimePattern(value) ?? value
+        if exact != value { return AppBrand.displayText(exact) }
+        return AppBrand.displayText(translatedRuntimePattern(value) ?? value)
     }
 
     /// Returns an authored compact label for controls with a hard width.
     /// Missing compact entries deliberately fall back to the full translation;
     /// they never silently strand a non-English user in English.
-    func shortText(_ value: String) -> String {
+    func shortText(_ source: String) -> String {
+        let value = AppBrand.displayText(source)
         guard let path = Bundle.main.path(forResource: language.rawValue, ofType: "lproj"),
               let bundle = Bundle(path: path)
         else { return text(value) }
@@ -338,15 +340,15 @@ enum LocalizedKey: CaseIterable {
         case (.chooseLanguage, .english): "Choose your language"
         case (.chooseLanguage, .thai): "เลือกภาษาของคุณ"
         case (.chooseLanguage, .romanian): "Alege limba"
-        case (.chooseWhoEnters, .english): "Choose who enters APEX"
-        case (.chooseWhoEnters, .thai): "เลือกผู้ที่จะเข้าสู่ APEX"
-        case (.chooseWhoEnters, .romanian): "Alege cine intră în APEX"
+        case (.chooseWhoEnters, .english): "Choose who enters FITR MAX"
+        case (.chooseWhoEnters, .thai): "เลือกผู้ที่จะเข้าสู่ FITR MAX"
+        case (.chooseWhoEnters, .romanian): "Alege cine intră în FITR MAX"
         case (.swipeToRotate, .english): "Swipe to rotate · tap to select"
         case (.swipeToRotate, .thai): "ปัดเพื่อหมุน · แตะเพื่อเลือก"
         case (.swipeToRotate, .romanian): "Glisează pentru rotire · apasă pentru selectare"
-        case (.enterApex, .english): "Enter APEX"
-        case (.enterApex, .thai): "เข้าสู่ APEX"
-        case (.enterApex, .romanian): "Intră în APEX"
+        case (.enterApex, .english): "Enter FITR MAX"
+        case (.enterApex, .thai): "เข้าสู่ FITR MAX"
+        case (.enterApex, .romanian): "Intră în FITR MAX"
         case (.signIn, .english): "Sign in"
         case (.signIn, .thai): "เข้าสู่ระบบ"
         case (.signIn, .romanian): "Autentificare"
@@ -374,9 +376,9 @@ enum LocalizedKey: CaseIterable {
         case (.mainPhase, .english): "Main Phase"
         case (.mainPhase, .thai): "ช่วงหลัก"
         case (.mainPhase, .romanian): "Faza principală"
-        case (.orbit, .english): "APEX Orbit"
-        case (.orbit, .thai): "APEX Orbit"
-        case (.orbit, .romanian): "APEX Orbit"
+        case (.orbit, .english): "FITR MAX Orbit"
+        case (.orbit, .thai): "FITR MAX Orbit"
+        case (.orbit, .romanian): "FITR MAX Orbit"
         case (.settings, .english): "Settings"
         case (.settings, .thai): "การตั้งค่า"
         case (.settings, .romanian): "Setări"

@@ -22,10 +22,10 @@ export function TopBar() {
   return (
     <header className="fixed inset-x-0 top-0 z-40 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
       <div className="glass mx-auto flex h-13 max-w-3xl items-center justify-between rounded-full px-4">
-        <Link to="/" className="flex items-center gap-2" aria-label="APEX home">
+        <Link to="/" className="flex items-center gap-2" aria-label="FITR MAX home">
           <ApexMark className="h-6 w-6" />
           <span className="font-display text-[15px] font-bold tracking-[0.22em] text-ink">
-            APEX
+            FITR MAX
           </span>
         </Link>
 

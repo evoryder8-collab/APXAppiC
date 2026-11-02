@@ -276,7 +276,7 @@ export function LiveRun() {
               {countdown == null ? <GradientButton accent={ACCENTS.ice} onClick={startAfterCountdown} className="mt-5 min-h-16 w-full text-lg" breathe>{t('START RUN')}</GradientButton> : <div className="mt-5 font-mono text-7xl font-bold text-sky-200" aria-live="assertive">{countdown}</div>}
             </div>
           </div>
-          <details className="glass rounded-[24px] border border-white/80 p-4"><summary className="cursor-pointer text-sm font-bold text-ink">{t('Recording note')}</summary><p className="mt-2 text-xs leading-relaxed text-ink-soft">{t('The web prototype cannot guarantee GPS while the phone is locked. Keep APEX visible during the run.')}</p></details>
+          <details className="glass rounded-[24px] border border-white/80 p-4"><summary className="cursor-pointer text-sm font-bold text-ink">{t('Recording note')}</summary><p className="mt-2 text-xs leading-relaxed text-ink-soft">{t('The web prototype cannot guarantee GPS while the phone is locked. Keep FITR MAX visible during the run.')}</p></details>
         </div>
       </OrbitFrame>
     )

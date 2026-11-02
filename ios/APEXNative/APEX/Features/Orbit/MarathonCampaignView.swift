@@ -18,7 +18,7 @@ struct MarathonCampaignView: View {
                     emptyCampaign
                 }
 
-                Text(language.text("APEX Orbit Marathon Campaign provides personalized fitness training, educational guidance and performance tracking for adults preparing for endurance events. It does not diagnose, treat, monitor, predict or prevent disease or injury and does not determine medical fitness for exercise."))
+                Text(language.text("FITR MAX Orbit Marathon Campaign provides personalized fitness training, educational guidance and performance tracking for adults preparing for endurance events. It does not diagnose, treat, monitor, predict or prevent disease or injury and does not determine medical fitness for exercise."))
                     .font(APEXFont.body(9, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .multilineTextAlignment(.center)
@@ -69,7 +69,7 @@ struct MarathonCampaignView: View {
                         .foregroundStyle(APEXColor.cyan)
                     Text(language.text("Build the credible path to 42.195 km."))
                         .font(APEXFont.display(33))
-                    Text(language.text("Orbit reuses your APEX profile, strength week, activity history and calendar. It asks only what it does not already know, then assigns a readiness outcome before creating a campaign."))
+                    Text(language.text("Orbit reuses your FITR MAX profile, strength week, activity history and calendar. It asks only what it does not already know, then assigns a readiness outcome before creating a campaign."))
                         .font(APEXFont.body(13, weight: .medium))
                         .foregroundStyle(.white.opacity(0.72))
                     NavigationLink {
@@ -103,7 +103,7 @@ struct MarathonCampaignView: View {
                 kicker: "FITNESS-READINESS OUTCOME",
                 title: "Professional review recommended before strenuous marathon preparation",
                 body: campaign.assignmentReason,
-                warning: "This is not a diagnosis and APEX has not medically cleared or rejected you. General Orbit remains available, subject to any existing professional restriction."
+                warning: "This is not a diagnosis and FITR MAX has not medically cleared or rejected you. General Orbit remains available, subject to any existing professional restriction."
             )
         } else if campaign.status == "paused" {
             outcomeCard(
@@ -633,7 +633,7 @@ struct OrbitScienceView: View {
     private let ledger = [
         ("Controlled low-intensity running", "Most campaign sessions remain conversational. Quality work is limited and purposeful.", "Broad endurance evidence and coaching consensus", "High", "Intensity boundaries depend on the quality of available pace, heart-rate and perceived-effort data."),
         ("Progressive exposure", "Duration grows conservatively, with slower progression for new or returning runners and periodic cutbacks.", "Recreational marathon preparation", "Moderate to high", "Population rules cannot perfectly predict individual tolerance."),
-        ("Strength coordination", "Hybrid campaigns separate demanding lower-body work and quality running where the calendar permits.", "APEX users maintaining strength", "Moderate", "Real-world work and travel can still require manual adjustment."),
+        ("Strength coordination", "Hybrid campaigns separate demanding lower-body work and quality running where the calendar permits.", "FITR MAX users maintaining strength", "Moderate", "Real-world work and travel can still require manual adjustment."),
         ("Fueling rehearsal", "Long runs progressively practise familiar pre-run and during-run nutrition before race week.", "Runs long enough to require rehearsal", "High", "Individual gastrointestinal tolerance varies."),
         ("Tapering", "Volume reduces before race day while familiar movement rhythm remains.", "Marathon-specific campaigns", "High", "The exact taper response differs between runners."),
         ("Fitness-readiness boundary", "Current concerning symptoms or an existing restriction lead to professional review before strenuous assignment. Old resolved history does not automatically block training.", "All induction outcomes", "Policy boundary", "This is not medical clearance or diagnosis.")

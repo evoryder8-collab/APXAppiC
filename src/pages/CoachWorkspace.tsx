@@ -222,7 +222,7 @@ export function CoachWorkspace() {
       <header className="rounded-[2rem] bg-gradient-to-br from-violet-600 via-fuchsia-500 to-amber-300 p-6 text-white shadow-[0_28px_70px_-28px_rgba(126,34,206,.7)] sm:p-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="font-mono text-[10px] font-black tracking-[0.22em] uppercase opacity-80">APEX · {t('Development access')}</p>
+            <p className="font-mono text-[10px] font-black tracking-[0.22em] uppercase opacity-80">FITR MAX · {t('Development access')}</p>
             <h1 className="mt-2 font-display text-4xl font-black tracking-tight sm:text-5xl">{t('Coach workspace')}</h1>
             <p className="mt-2 max-w-xl text-sm font-semibold text-white/85">{t('Your clients, plans and reviews in one private place.')}</p>
           </div>

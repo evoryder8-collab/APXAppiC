@@ -12,6 +12,25 @@ enum ManualWorkout {
     static let prefix = "APEX_MANUAL_V1"
     private static let automaticTitle = "__APEX_AUTOMATIC_TITLE__"
 
+    static func recentExercisesKey(ownerID: UUID) -> String {
+        "fitr.quick-log.recents.v1.\(ownerID.uuidString.lowercased())"
+    }
+
+    static func rememberExercise(_ id: String, in recentIDs: [String]) -> [String] {
+        var seen = Set<String>()
+        return Array(([id] + recentIDs).filter { seen.insert($0).inserted }.prefix(64))
+    }
+
+    static func rankExercises<T: Identifiable>(_ matches: [T], recentIDs: [String]) -> [T] where T.ID == String {
+        var ranks: [String: Int] = [:]
+        for (index, id) in recentIDs.enumerated() where ranks[id] == nil { ranks[id] = index }
+        return matches.enumerated().sorted {
+            let left = ranks[$0.element.id] ?? Int.max
+            let right = ranks[$1.element.id] ?? Int.max
+            return left == right ? $0.offset < $1.offset : left < right
+        }.map(\.element)
+    }
+
     struct SetDraft: Identifiable, Hashable {
         var id: UUID
         var reps: Int

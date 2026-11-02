@@ -76,7 +76,7 @@ struct WatchHydrationView: View {
                         }
                         .buttonStyle(.bordered)
                         .tint(violet)
-                        .accessibilityHint("Ends the FitDee workout sensor session")
+                        .accessibilityHint("Ends the FITR MAX workout sensor session")
                     }
 
                     if !hydration.isAuthorized {
@@ -106,7 +106,7 @@ struct WatchHydrationView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button(action: showHydrationSettings) {
                     HStack(spacing: 5) {
-                        Label("FitDee", systemImage: "drop.fill")
+                        Label("FITR MAX", systemImage: "drop.fill")
                             .font(.system(size: 8, weight: .bold, design: .monospaced))
                             .tracking(0.7)
                             .foregroundStyle(aqua)
@@ -590,7 +590,7 @@ private struct HydrationHistoryView: View {
                 showsDeleteConfirmation = false
             }
         } message: {
-            Text("This removes the FitDee Watch entry from Apple Health too.")
+            Text("This removes the FITR MAX Watch entry from Apple Health too.")
         }
     }
 

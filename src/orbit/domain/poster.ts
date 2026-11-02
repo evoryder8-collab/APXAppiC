@@ -100,7 +100,7 @@ export function posterSvg(metadata: PosterMetadata, note = ''): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
   <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#050a16"/><stop offset="0.52" stop-color="#10152d"/><stop offset="1" stop-color="#071827"/></linearGradient><filter id="glow"><feGaussianBlur stdDeviation="8" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>
   <rect width="1080" height="1350" fill="url(#bg)"/><circle cx="160" cy="120" r="210" fill="#38bdf8" opacity="0.08"/><circle cx="940" cy="1210" r="330" fill="#8b5cf6" opacity="0.09"/>${stars}
-  <text x="80" y="105" fill="#7dd3fc" font-family="monospace" font-size="24" letter-spacing="7">APEX ORBIT</text>
+  <text x="80" y="105" fill="#7dd3fc" font-family="monospace" font-size="24" letter-spacing="7">FITR MAX ORBIT</text>
   <text x="80" y="168" fill="#fff" font-family="system-ui,sans-serif" font-size="56" font-weight="700">${escapeSvgText(metadata.mission.replaceAll('_', ' ').toUpperCase())}</text>
   <g transform="translate(100 230)"><path d="${displayPath}" fill="none" stroke="${styleTone}" stroke-width="${metadata.style === 'minimal' ? 6 : 9}" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/><circle cx="${start.x.toFixed(1)}" cy="${start.y.toFixed(1)}" r="11" fill="#34d399"/><circle cx="${finish.x.toFixed(1)}" cy="${finish.y.toFixed(1)}" r="11" fill="#fbbf24"/></g>
   <line x1="80" x2="1000" y1="930" y2="930" stroke="#fff" opacity="0.14"/>

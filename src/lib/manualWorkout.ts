@@ -7,6 +7,31 @@ export const MANUAL_WORKOUT_PREFIX = 'APEX_MANUAL_V1'
 export const QUICK_WORKOUT_PRESET_LIMIT = 7
 const AUTOMATIC_TITLE = '__APEX_AUTOMATIC_TITLE__'
 
+export function rememberQuickLogExercise(id: string, recentIds: string[]): string[] {
+  return [...new Set([id, ...recentIds])].slice(0, 64)
+}
+
+export function rankQuickLogExercises<T extends { id: string }>(matches: T[], recentIds: string[]): T[] {
+  const ranks = new Map([...new Set(recentIds)].map((id, index) => [id, index]))
+  return matches.map((item, index) => ({ item, index }))
+    .sort((a, b) => (ranks.get(a.item.id) ?? Number.MAX_SAFE_INTEGER)
+      - (ranks.get(b.item.id) ?? Number.MAX_SAFE_INTEGER) || a.index - b.index)
+    .map(({ item }) => item)
+}
+
+export function loadQuickLogRecents(ownerId: string | undefined): string[] {
+  if (!ownerId) return []
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(`fitr.quick-log.recents.v1.${ownerId}`) ?? '[]')
+    return Array.isArray(value) ? value.filter((id): id is string => typeof id === 'string').slice(0, 64) : []
+  } catch { return [] }
+}
+
+export function saveQuickLogRecents(ownerId: string | undefined, ids: string[]): void {
+  if (!ownerId) return
+  try { localStorage.setItem(`fitr.quick-log.recents.v1.${ownerId}`, JSON.stringify(ids.slice(0, 64))) } catch { /* Optional convenience; logging remains available. */ }
+}
+
 export interface ManualSetDraft {
   id: string
   reps: number | null

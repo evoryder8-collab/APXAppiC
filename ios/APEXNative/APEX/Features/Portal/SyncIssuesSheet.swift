@@ -119,7 +119,7 @@ private struct SyncIssueRow: View {
     private var explanationKey: String {
         switch SyncFailurePolicy.category(persistedReason: failure.reason) {
         case .authentication:
-            return "Your sign-in expired before this change could upload. APEX will retry it after authentication recovers."
+            return "Your sign-in expired before this change could upload. FITR MAX will retry it after authentication recovers."
         case .duplicate:
             return "The server already has this change."
         case .missingDependency:

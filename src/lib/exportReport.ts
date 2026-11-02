@@ -26,7 +26,7 @@ export function buildReport(
   const exById = new Map(data.exercises.map((e) => [e.id, e]))
   const lines: string[] = []
 
-  lines.push(`# APEX training report: ${program?.name ?? slug}`)
+  lines.push(`# FITR MAX training report: ${program?.name ?? slug}`)
   lines.push(`Range: ${fromIso} to ${toIso}. Generated ${format(new Date(), 'yyyy-MM-dd HH:mm')}.`)
   lines.push('')
 

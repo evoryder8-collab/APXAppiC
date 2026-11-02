@@ -166,7 +166,7 @@ struct TrainingProgramView: View {
                 .font(APEXFont.display(21))
                 .accessibilityIdentifier(hasUsablePrescription ? "training-today-title" : "training-no-plan")
                 if !hasUsablePrescription {
-                    Text(language.text("Build your plan above before APEX labels any day as training or rest."))
+                    Text(language.text("Build your plan above before FITR MAX labels any day as training or rest."))
                         .font(APEXFont.body(12, weight: .semibold))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
@@ -304,7 +304,7 @@ struct TrainingProgramView: View {
             return "Search the movement library and assemble a session that belongs to you."
         }
         return hasUsablePrescription
-            ? "Your programme is syncing from APEX."
+            ? "Your programme is syncing from FITR MAX."
             : "No programme exists yet. Build your plan below."
     }
 
@@ -386,13 +386,14 @@ struct TrainingProgramView: View {
                 if slug != "custom" && hasUsablePrescription {
                     GlassCard(radius: 26, padding: 16) {
                         TrainingCalendarView(slug: slug, accent: accent) { day in
+                            session.browsingDate = APEXDateMath.date(from: day) ?? session.browsingDate
                             selectedDay = CalendarDaySelection(date: day, programDayID: nil)
                         }
                     }
                     .accessibilityIdentifier("training-calendar")
                 }
 
-                CompletedWorkoutHistoryCards(date: Date().apexDateKey, accent: accent)
+                CompletedWorkoutHistoryCards(date: session.browsingDate.apexDateKey, accent: accent)
 
                 WorkoutInsightsCard(anchorDate: Date().apexDateKey, accent: accent)
 
@@ -413,7 +414,7 @@ struct TrainingProgramView: View {
                 if session.coachClientPolicy.canCreateCustomWorkouts {
                     GlassCard(radius: 26, padding: 18) {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text(language.text("APEX WORKOUT STUDIO"))
+                            Text(language.text("FITR MAX WORKOUT STUDIO"))
                                 .font(APEXFont.mono(9, weight: .bold))
                                 .tracking(1.6)
                                 .foregroundStyle(APEXColor.violet)
@@ -618,7 +619,7 @@ struct TrainingProgramView: View {
             }
         }
         .sheet(isPresented: $showManualLogger) {
-            ManualWorkoutLoggerView()
+            ManualWorkoutLoggerView(date: session.browsingDate.apexDateKey)
                 .environment(session)
         }
         .sheet(item: $exportURL) { report in
@@ -1800,7 +1801,7 @@ struct WorkoutPlayerView: View {
 
     /* What governs this set, or nothing at all.
      *
-     * This used to always claim "APEX paces you: 1s up, 2s down", which is
+     * This used to always claim "FITR MAX paces you: 1s up, 2s down", which is
      * true of a barbell row and meaningless on an eleven minute stretch flow,
      * a plank, a loaded carry or a box jump. None of those have a repetition
      * whose halves can be timed, and printing a cadence on them is worse than
@@ -1845,7 +1846,7 @@ struct WorkoutPlayerView: View {
         guard movement?.countsReps ?? (exercise.repUnit == "reps") else { return nil }
         let up = exercise.tempoUp.formatted(.number.precision(.fractionLength(0...1)))
         let down = exercise.tempoDown.formatted(.number.precision(.fractionLength(0...1)))
-        return language.format("APEX paces you: %@s up, %@s down", up, down)
+        return language.format("FITR MAX paces you: %@s up, %@s down", up, down)
     }
 
     private var voiceOn: Bool { !session.isDeveloperSandbox && (session.data.settings?.voiceOn ?? true) }
@@ -1967,7 +1968,7 @@ struct WorkoutPlayerView: View {
                         .foregroundStyle(accent)
                     Text(language.text("Did you finish this planned workout on your own?"))
                         .font(APEXFont.display(24))
-                    Text(language.text("APEX has paused the follow-along. Keep only the facts you already recorded here, then optionally attach the wearable effort that belongs to this session."))
+                    Text(language.text("FITR MAX has paused the follow-along. Keep only the facts you already recorded here, then optionally attach the wearable effort that belongs to this session."))
                         .font(APEXFont.body(13, weight: .medium))
                         .foregroundStyle(APEXColor.secondaryInk)
 

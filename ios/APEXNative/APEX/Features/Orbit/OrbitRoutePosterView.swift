@@ -23,7 +23,7 @@ struct OrbitRoutePosterSheet: View {
                 VStack(spacing: 16) {
                     RoutePosterArtwork(
                         run: run,
-                        profileName: session.profile?.displayName ?? "APEX athlete",
+                        profileName: session.profile?.displayName ?? "FITR MAX athlete",
                         style: style,
                         privacyTrimM: trimM,
                         includeHeartRate: includeHeartRate,
@@ -110,7 +110,7 @@ struct OrbitRoutePosterSheet: View {
         do {
             renderedURL = try OrbitPosterRenderer.render(
                 run: run,
-                profileName: session.profile?.displayName ?? "APEX athlete",
+                profileName: session.profile?.displayName ?? "FITR MAX athlete",
                 style: style,
                 privacyTrimM: trimM,
                 includeHeartRate: includeHeartRate,
@@ -193,7 +193,7 @@ private struct RoutePosterArtwork: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(language.text("APEX ORBIT"))
+                        Text(language.text("FITR MAX ORBIT"))
                             .font(.system(size: 8, weight: .bold, design: .monospaced))
                             .tracking(2)
                         Text(profileName.uppercased())

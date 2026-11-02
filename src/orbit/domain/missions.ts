@@ -77,7 +77,7 @@ export function recommendMission(context: MissionContext): MissionRecommendation
     mission: 'aerobic_base',
     title: 'Aerobic base run',
     duration_min: Math.min(42, context.availableMinutes),
-    reason: 'Controlled aerobic work offers the best return today without competing with the rest of your APEX programme.',
+    reason: 'Controlled aerobic work offers the best return today without competing with the rest of your FITR MAX programme.',
     confidence: 'moderate',
   }
 }

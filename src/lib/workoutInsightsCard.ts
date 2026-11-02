@@ -129,7 +129,7 @@ export function workoutInsightsCardBlob(
   context.fillStyle = '#7c3aed'
   context.font = `800 28px ${monoFont}`
   context.letterSpacing = '8px'
-  context.fillText('APEX', 120, 154)
+  context.fillText('FITR MAX', 120, 154)
   context.letterSpacing = '0px'
   context.fillStyle = '#24133d'
   fitText(context, options.labels.title, 650, 900, 72, 42)

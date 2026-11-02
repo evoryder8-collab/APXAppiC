@@ -110,7 +110,7 @@ export function BarcodeScanner({
       </div>
 
       <div className="space-y-3 px-5 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-        <p className="text-center text-xs text-white/65">{t('Hold the barcode inside the amber frame. APEX only sends the number, never your camera image.')}</p>
+        <p className="text-center text-xs text-white/65">{t('Hold the barcode inside the amber frame. FITR MAX only sends the number, never your camera image.')}</p>
         {allowFrontCamera && devices.length > 1 && (
           <button type="button" onClick={switchCamera} className="mx-auto block rounded-full bg-white/10 px-4 py-2 text-xs font-bold">
             {t('Switch camera')}

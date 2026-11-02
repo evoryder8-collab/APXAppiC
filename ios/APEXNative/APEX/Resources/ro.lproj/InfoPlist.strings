@@ -1,7 +1,7 @@
-"NSCameraUsageDescription" = "FitDee folosește camera pentru scanarea codurilor de bare și pentru fotografii private de progres.";
-"NSPhotoLibraryUsageDescription" = "FitDee poate importa o fotografie de progres aleasă de tine.";
-"NSPhotoLibraryAddUsageDescription" = "FitDee poate salva afișele traseelor și exporturile de progres pe care le soliciți.";
-"NSHealthShareUsageDescription" = "FitDee citește datele de sănătate și activitate pe care le alegi pentru a coordona nutriția, recuperarea, Avatarul și Orbit.";
-"NSHealthUpdateUsageDescription" = "FitDee scrie antrenamentele finalizate și apa doar când alegi sincronizarea cu Apple Health.";
-"NSLocationWhenInUseUsageDescription" = "FitDee Orbit folosește locația pentru a înregistra alergări și a planifica trasee cât timp aplicația este deschisă.";
-"NSLocationAlwaysAndWhenInUseUsageDescription" = "FitDee Orbit continuă înregistrarea unei alergări active când ecranul este blocat.";
+"NSCameraUsageDescription" = "FITR MAX folosește camera pentru scanarea codurilor de bare și pentru fotografii private de progres.";
+"NSPhotoLibraryUsageDescription" = "FITR MAX poate importa o fotografie de progres aleasă de tine.";
+"NSPhotoLibraryAddUsageDescription" = "FITR MAX poate salva afișele traseelor și exporturile de progres pe care le soliciți.";
+"NSHealthShareUsageDescription" = "FITR MAX citește datele de sănătate și activitate pe care le alegi pentru a coordona nutriția, recuperarea, Avatarul și Orbit.";
+"NSHealthUpdateUsageDescription" = "FITR MAX scrie antrenamentele finalizate și apa doar când alegi sincronizarea cu Apple Health.";
+"NSLocationWhenInUseUsageDescription" = "FITR MAX Orbit folosește locația pentru a înregistra alergări și a planifica trasee cât timp aplicația este deschisă.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "FITR MAX Orbit continuă înregistrarea unei alergări active când ecranul este blocat.";

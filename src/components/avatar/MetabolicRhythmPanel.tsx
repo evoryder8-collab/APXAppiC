@@ -13,7 +13,7 @@ const COPY = {
   en: {
     eyebrow: 'AVATAR INPUT SIGNAL',
     title: 'Metabolic rhythm',
-    subtitle: 'APEX now reads meal completion, consistency and the real gap before training.',
+    subtitle: 'FITR MAX now reads meal completion, consistency and the real gap before training.',
     rhythm: 'Rhythm score',
     infoLabel: 'Explain rhythm score',
     infoTitle: 'What does this score mean?',
@@ -42,7 +42,7 @@ const COPY = {
   ro: {
     eyebrow: 'SEMNAL PENTRU AVATAR',
     title: 'Ritm metabolic',
-    subtitle: 'APEX citește acum ora încheierii meselor, consecvența și intervalul real până la antrenament.',
+    subtitle: 'FITR MAX citește acum ora încheierii meselor, consecvența și intervalul real până la antrenament.',
     rhythm: 'Scor de ritm',
     infoLabel: 'Explică scorul de ritm',
     infoTitle: 'Ce înseamnă acest scor?',
@@ -71,7 +71,7 @@ const COPY = {
   th: {
     eyebrow: 'สัญญาณสำหรับอวตาร',
     title: 'จังหวะเมตาบอลิซึม',
-    subtitle: 'APEX อ่านเวลาที่กินเสร็จ ความสม่ำเสมอ และช่วงเวลาจริงก่อนเริ่มฝึก',
+    subtitle: 'FITR MAX อ่านเวลาที่กินเสร็จ ความสม่ำเสมอ และช่วงเวลาจริงก่อนเริ่มฝึก',
     rhythm: 'คะแนนจังหวะ',
     infoLabel: 'อธิบายคะแนนจังหวะ',
     infoTitle: 'คะแนนนี้หมายถึงอะไร',

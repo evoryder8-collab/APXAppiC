@@ -107,7 +107,7 @@ struct ProfileAvatarPicker: View {
     }
 
     private var initials: String {
-        let name = profile?.displayName ?? "FitDee"
+        let name = profile?.displayName ?? "FITR MAX"
         return String(name.split(separator: " ").prefix(2).compactMap(\.first)).uppercased()
     }
 

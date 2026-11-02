@@ -22,7 +22,7 @@ const ledger = [
   {
     principle: 'Strength work can support running economy', confidence: 'Moderate to high',
     application: 'Hybrid Athlete campaigns preserve useful strength while separating demanding lower-body work and quality running when possible.',
-    intended: 'Runners already using APEX Transition or Main Phase.',
+    intended: 'Runners already using FITR MAX Transition or Main Phase.',
     limitation: 'Intervention methods and athlete populations vary. Orbit coordinates load rather than promising a specific performance gain.',
     source: '2024 systematic review and meta-analysis', href: 'https://pubmed.ncbi.nlm.nih.gov/38165636/',
   },
@@ -37,7 +37,7 @@ const ledger = [
     principle: 'Practise familiar fueling before race day', confidence: 'Moderate',
     application: 'Long-run sessions introduce explicit rehearsals using familiar foods and products. Exact changes are reviewed before application.',
     intended: 'Long-duration sessions and Marathon Campaign race preparation.',
-    limitation: 'Tolerance and needs vary. APEX does not automatically introduce new race-day products.',
+    limitation: 'Tolerance and needs vary. FITR MAX does not automatically introduce new race-day products.',
     source: '2022 food-first carbohydrate review', href: 'https://pubmed.ncbi.nlm.nih.gov/35231883/',
   },
   {
@@ -54,8 +54,8 @@ export function OrbitScience() {
   return <OrbitFrame title="Science ledger" subtitle="Why this plan is built this way" backTo="/orbit/campaign" action={<OrbitPill tone="ice">{ORBIT_PLAN_VERSION}</OrbitPill>}>
     <div className="space-y-4">
       <GlassCard accent={ACCENTS.ice} className="p-5"><h2 className="font-display text-xl font-bold text-ink">{t('Transparent, evidence-informed, never infallible.')}</h2><p className="mt-2 text-sm leading-relaxed text-ink-soft">{t('Orbit uses established endurance principles shared across reputable sports science and coaching practice. It does not copy proprietary plans, claim endorsement or convert uncertain evidence into false precision.')}</p><p className="mt-3 font-mono text-[10px] text-sky-800">{t('PLAN')} {ORBIT_PLAN_VERSION} · {t('REVIEW BY')} {ORBIT_SCIENCE_REVIEW_DATE}</p></GlassCard>
-      {ledger.map((item) => <GlassCard key={item.principle} className="p-5"><div className="flex flex-wrap items-start justify-between gap-2"><h3 className="max-w-xl font-display text-lg font-bold text-ink">{t(item.principle)}</h3><OrbitPill contrast tone={item.confidence.startsWith('High') ? 'emerald' : 'ice'}>{t(item.confidence).toUpperCase()}</OrbitPill></div><div className="mt-3 space-y-2 text-xs leading-relaxed"><p><strong className="text-ink">{t('How APEX applies it:')}</strong> <span className="text-ink-soft">{t(item.application)}</span></p><p><strong className="text-ink">{t('Intended for:')}</strong> <span className="text-ink-soft">{t(item.intended)}</span></p><p><strong className="text-ink">{t('Known limitation:')}</strong> <span className="text-ink-soft">{t(item.limitation)}</span></p></div><a href={item.href} target="_blank" rel="noreferrer" className="mt-3 inline-flex min-h-10 items-center text-xs font-bold text-sky-700 underline decoration-sky-300 underline-offset-4">{item.source}</a></GlassCard>)}
-      <GlassCard accent={ACCENTS.amber} className="p-5"><p className="font-display text-base font-bold text-ink">{t('Intended purpose')}</p><p className="mt-2 text-xs leading-relaxed text-ink-soft">{t('APEX Orbit Marathon Campaign provides personalized fitness training, educational guidance and performance tracking for adults preparing for endurance events. It does not diagnose, treat, monitor, predict or prevent disease or injury and does not determine medical fitness for exercise.')}</p></GlassCard>
+      {ledger.map((item) => <GlassCard key={item.principle} className="p-5"><div className="flex flex-wrap items-start justify-between gap-2"><h3 className="max-w-xl font-display text-lg font-bold text-ink">{t(item.principle)}</h3><OrbitPill contrast tone={item.confidence.startsWith('High') ? 'emerald' : 'ice'}>{t(item.confidence).toUpperCase()}</OrbitPill></div><div className="mt-3 space-y-2 text-xs leading-relaxed"><p><strong className="text-ink">{t('How FITR MAX applies it:')}</strong> <span className="text-ink-soft">{t(item.application)}</span></p><p><strong className="text-ink">{t('Intended for:')}</strong> <span className="text-ink-soft">{t(item.intended)}</span></p><p><strong className="text-ink">{t('Known limitation:')}</strong> <span className="text-ink-soft">{t(item.limitation)}</span></p></div><a href={item.href} target="_blank" rel="noreferrer" className="mt-3 inline-flex min-h-10 items-center text-xs font-bold text-sky-700 underline decoration-sky-300 underline-offset-4">{item.source}</a></GlassCard>)}
+      <GlassCard accent={ACCENTS.amber} className="p-5"><p className="font-display text-base font-bold text-ink">{t('Intended purpose')}</p><p className="mt-2 text-xs leading-relaxed text-ink-soft">{t('FITR MAX Orbit Marathon Campaign provides personalized fitness training, educational guidance and performance tracking for adults preparing for endurance events. It does not diagnose, treat, monitor, predict or prevent disease or injury and does not determine medical fitness for exercise.')}</p></GlassCard>
       <p className="text-center text-[10px] text-ink-faint">{t('No mysterious score. Every conclusion keeps its reason visible.')}</p>
     </div>
   </OrbitFrame>

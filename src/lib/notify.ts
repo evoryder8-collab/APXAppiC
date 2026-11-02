@@ -1,6 +1,6 @@
 /*
  * Meal + supplement reminders via the Notification API. A static SPA has no
- * push server, so reminders fire while APEX is open in a tab (foreground or
+ * push server, so reminders fire while FITR MAX is open in a tab (foreground or
  * background). Checked every 30 seconds, deduped per day in localStorage.
  */
 import type { Meal, Supplement } from './types'
@@ -74,7 +74,7 @@ export function startReminderLoop(
       if (now >= t && now < t + 2 && !firedToday(`sup-${sup.group_label}`)) {
         markFired(`sup-${sup.group_label}`)
         new Notification(`Supplements: ${sup.group_label}`, {
-          body: 'Open APEX to check off the window.',
+          body: 'Open FITR MAX to check off the window.',
           tag: `sup-${sup.group_label}`,
         })
       }
