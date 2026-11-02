@@ -1173,10 +1173,8 @@ private struct MealComposerItemCard: View {
         GlassCard(radius: density == .compact ? 18 : 25, padding: density == .compact ? 9 : 17) {
             VStack(alignment: .leading, spacing: density == .compact ? 0 : 15) {
                 if density == .compact {
-                    /* One line, like the web: identity on the left, amount,
-                       unit, reorder and remove inline on the right. The old
-                       layout wrapped these onto a second row and made every
-                       food twice as tall as it needs to be. */
+                    // Keep controls together and give the factual nutrient
+                    // summary the full card width, even with the star visible.
                     HStack(spacing: 7) {
                         if selecting {
                             Button(action: onToggleSelection) {
@@ -1188,21 +1186,10 @@ private struct MealComposerItemCard: View {
                             .accessibilityIdentifier("meal-item-select-\(item.name)")
                         }
 
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(item.personalLabel.isEmpty ? item.name : item.personalLabel)
-                                .font(APEXFont.display(15))
-                                .fixedSize(horizontal: false, vertical: true)
-                            Text(language.format(
-                                "%d kcal · P %.1f · C %.1f · F %.1f",
-                                Int(item.nutrients.kcal.rounded()), item.nutrients.proteinG,
-                                item.nutrients.carbsG, item.nutrients.fatG
-                            ))
-                            .font(APEXFont.mono(8))
-                            .foregroundStyle(APEXColor.secondaryInk)
-                            .lineLimit(1)
-                            waterBadge
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        Text(item.personalLabel.isEmpty ? item.name : item.personalLabel)
+                            .font(APEXFont.display(15))
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
 
                         if !selecting {
                             FoodFavouriteButton(
@@ -1248,6 +1235,19 @@ private struct MealComposerItemCard: View {
                         .accessibilityLabel(language.format("Remove %@", item.name))
                         .accessibilityIdentifier("meal-item-delete-\(item.id.uuidString)")
                     }
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(language.format(
+                            "%d kcal · P %.1f · C %.1f · F %.1f",
+                            Int(item.nutrients.kcal.rounded()), item.nutrients.proteinG,
+                            item.nutrients.carbsG, item.nutrients.fatG
+                        ))
+                        .font(APEXFont.mono(8))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                        waterBadge
+                    }
+                    .padding(.top, 3)
                 }
 
                 if density == .expanded {
