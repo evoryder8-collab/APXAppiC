@@ -88,6 +88,8 @@ struct WatchHydrationView: View {
                         .tint(aqua)
                     }
 
+                    WatchSupplementChecklistView()
+
                     if let message = hydration.message {
                         Text(message)
                             .font(.system(size: 10, weight: .semibold, design: .rounded))
@@ -193,8 +195,7 @@ struct WatchHydrationView: View {
                         .bold()
                         .fontDesign(.monospaced)
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.68)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -491,6 +492,19 @@ struct WatchHydrationSettingsView: View {
                 Picker("Motion", selection: $draft.motionIntensity) {
                     ForEach(WatchHydrationPreferences.MotionIntensity.allCases) { intensity in
                         Text(intensity.label).tag(intensity)
+                    }
+                }
+            }
+
+            Section {
+                NavigationLink {
+                    WatchSupplementSettingsView()
+                        .environmentObject(hydration)
+                } label: {
+                    Label {
+                        Text("Supplements", tableName: "WatchSupplements")
+                    } icon: {
+                        Image(systemName: "pills")
                     }
                 }
             }

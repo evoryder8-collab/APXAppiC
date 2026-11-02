@@ -295,6 +295,11 @@
 		A39900000000000000000006 /* HealthWaterAccessHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A39900000000000000000005 /* HealthWaterAccessHelpView.swift */; };
 		A39900000000000000000008 /* FoodLibraryHydration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A39900000000000000000007 /* FoodLibraryHydration.swift */; };
 		A39900000000000000000010 /* FoodLibraryHydrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A39900000000000000000009 /* FoodLibraryHydrationTests.swift */; };
+		A40000000000000000000002 /* WatchSupplementState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000001 /* WatchSupplementState.swift */; };
+		A40000000000000000000003 /* WatchSupplementState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000001 /* WatchSupplementState.swift */; };
+		A40000000000000000000005 /* SupplementMutationQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000004 /* SupplementMutationQueue.swift */; };
+		A40000000000000000000007 /* WatchSupplementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000006 /* WatchSupplementView.swift */; };
+		A40000000000000000000009 /* WatchSupplements.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = A40000000000000000000008 /* WatchSupplements.xcstrings */; };
 /* End PBXBuildFile section */
 
 
@@ -651,6 +656,10 @@
 		A39900000000000000000005 /* HealthWaterAccessHelpView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthWaterAccessHelpView.swift; sourceTree = "<group>"; };
 		A39900000000000000000007 /* FoodLibraryHydration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLibraryHydration.swift; sourceTree = "<group>"; };
 		A39900000000000000000009 /* FoodLibraryHydrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLibraryHydrationTests.swift; sourceTree = "<group>"; };
+		A40000000000000000000001 /* WatchSupplementState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSupplementState.swift; sourceTree = "<group>"; };
+		A40000000000000000000004 /* SupplementMutationQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupplementMutationQueue.swift; sourceTree = "<group>"; };
+		A40000000000000000000006 /* WatchSupplementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSupplementView.swift; sourceTree = "<group>"; };
+		A40000000000000000000008 /* WatchSupplements.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = WatchSupplements.xcstrings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -865,9 +874,11 @@
 				7DC4A26147A37D8179312E35 /* WatchHydrationConnectivity.swift */,
 				A30EF9B38F05590E84DA2E6D /* WatchHydrationStore.swift */,
 				9EA63CF243F8658739BDAAB9 /* WatchHydrationView.swift */,
+				A40000000000000000000006 /* WatchSupplementView.swift */,
 				A39800000000000000000004 /* CustomHydrationAmountView.swift */,
 				A39800000000000000000006 /* WatchHydrationAmountControl.swift */,
 				A39800000000000000000008 /* WatchAmount.xcstrings */,
+				A40000000000000000000008 /* WatchSupplements.xcstrings */,
 			);
 			path = APEXWatch;
 			sourceTree = "<group>";
@@ -1154,6 +1165,8 @@
 				407B3620EF50A8D62330040F /* WatchHydrationFillState.swift */,
 				A39800000000000000000001 /* WatchHydrationAmountAdjustment.swift */,
 				A39900000000000000000001 /* AppBrand.swift */,
+				A40000000000000000000004 /* SupplementMutationQueue.swift */,
+				A40000000000000000000001 /* WatchSupplementState.swift */,
 				A39900000000000000000003 /* HealthWaterAccess.swift */,
 				BB12EB0FE52C548FE1823E88 /* WatchHydrationPreferences.swift */,
 				FA7CE3D3151538B0EEDAA8E6 /* WatchHydrationReminderPolicy.swift */,
@@ -1429,6 +1442,7 @@
 			files = (
 				A9E83D100000000000000001 /* WatchAssets.xcassets in Resources */,
 				A39800000000000000000009 /* WatchAmount.xcstrings in Resources */,
+				A40000000000000000000009 /* WatchSupplements.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1447,6 +1461,8 @@
 				1F6F1FE582D36B24EF582118 /* WatchHydrationReminderPolicy.swift in Sources */,
 				A22FF4B2C6F9F70894245D15 /* WatchHydrationStore.swift in Sources */,
 				B4BF6E3B81DB4637133F3964 /* WatchHydrationView.swift in Sources */,
+				A40000000000000000000007 /* WatchSupplementView.swift in Sources */,
+				A40000000000000000000003 /* WatchSupplementState.swift in Sources */,
 				A39800000000000000000003 /* WatchHydrationAmountAdjustment.swift in Sources */,
 				A39800000000000000000005 /* CustomHydrationAmountView.swift in Sources */,
 				A39800000000000000000007 /* WatchHydrationAmountControl.swift in Sources */,
@@ -1467,6 +1483,8 @@
 				D50908000000000000000002 /* DeveloperSandbox.swift in Sources */,
 				B4DEFD97649C463825AECC4E /* APEXLocalization.swift in Sources */,
 				A39900000000000000000002 /* AppBrand.swift in Sources */,
+				A40000000000000000000005 /* SupplementMutationQueue.swift in Sources */,
+				A40000000000000000000002 /* WatchSupplementState.swift in Sources */,
 				A39900000000000000000004 /* HealthWaterAccess.swift in Sources */,
 				A39900000000000000000006 /* HealthWaterAccessHelpView.swift in Sources */,
 				1EDB0BA3C3FE40F5B256B247 /* APEXModels.swift in Sources */,
@@ -1936,7 +1954,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 399;
+				CURRENT_PROJECT_VERSION = 400;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -2000,7 +2018,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 399;
+				CURRENT_PROJECT_VERSION = 400;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;

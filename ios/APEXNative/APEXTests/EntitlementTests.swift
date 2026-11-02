@@ -3,6 +3,25 @@ import XCTest
 
 final class EntitlementTests: XCTestCase {
 
+    func testWatchCompanionRefreshCannotRepublishAfterAccessRecovery() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+        let source = try String(contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift"))
+        let start = try XCTUnwrap(source.range(of: "private func publishHydrationState()"))
+        let end = try XCTUnwrap(source.range(of: "private func beginHydrationMutation", range: start.upperBound..<source.endIndex))
+        let publisher = String(source[start.lowerBound..<end.lowerBound])
+        let sandbox = try XCTUnwrap(publisher.range(of: "if isDeveloperSandbox { return }"))
+        let gate = try XCTUnwrap(publisher.range(of: "guard accountAccessAllowsPrivateWork(for: ownerID) else"))
+        let snapshot = try XCTUnwrap(publisher.range(of: "let snapshot = HydrationCompanionSnapshot.make"))
+        let denial = String(publisher[gate.upperBound..<snapshot.lowerBound])
+
+        XCTAssertLessThan(sandbox.lowerBound, gate.lowerBound)
+        XCTAssertLessThan(gate.lowerBound, snapshot.lowerBound)
+        XCTAssertTrue(denial.contains("hydrationConnectivity?.publishDisconnected()"))
+        XCTAssertTrue(denial.contains("return"))
+        XCTAssertTrue(publisher.contains("makeWatchSupplementSnapshot(ownerID: ownerID, day: day)"))
+    }
+
     private func date(daysAgo: Int) -> Date {
         Calendar.current.date(byAdding: .day, value: -daysAgo, to: Date())!
     }

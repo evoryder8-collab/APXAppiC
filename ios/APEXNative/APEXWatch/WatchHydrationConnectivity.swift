@@ -4,12 +4,14 @@ import Foundation
 @MainActor
 final class WatchHydrationConnectivity: NSObject, WCSessionDelegate {
     var snapshotHandler: ((HydrationCompanionSnapshot) -> Void)?
+    var supplementSnapshotHandler: ((WatchSupplementSnapshot) -> Void)?
     var disconnectHandler: ((String) -> Void)?
     var workoutCommandHandler: ((WatchWorkoutCommand) -> Void)?
+    var readyHandler: (() -> Void)?
     private let session: WCSession?
 
-    override init() {
-        if WCSession.isSupported() {
+    init(isEnabled: Bool = true) {
+        if isEnabled, WCSession.isSupported() {
             session = .default
         } else {
             session = nil
@@ -31,13 +33,39 @@ final class WatchHydrationConnectivity: NSObject, WCSessionDelegate {
         }
     }
 
+    func send(_ mutation: WatchSupplementMutation) {
+        guard let session, session.activationState == .activated,
+              let data = try? JSONEncoder().encode(mutation) else { return }
+        let payload: [String: Any] = [WatchSupplementKeys.mutation: data]
+        let isQueued = session.outstandingUserInfoTransfers.contains { transfer in
+            guard let queued = transfer.userInfo[WatchSupplementKeys.mutation] as? Data,
+                  let decoded = try? JSONDecoder().decode(WatchSupplementMutation.self, from: queued)
+            else { return false }
+            return decoded.id == mutation.id
+        }
+        if !isQueued { session.transferUserInfo(payload) }
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil, errorHandler: nil)
+        }
+    }
+
+    func requestLatest() {
+        guard let session, session.activationState == .activated, session.isReachable else { return }
+        session.sendMessage([WatchSupplementKeys.request: true], replyHandler: nil, errorHandler: nil)
+    }
+
     nonisolated func session(
         _ session: WCSession,
         activationDidCompleteWith activationState: WCSessionActivationState,
         error: Error?
     ) {
         guard error == nil else { return }
-        receive(session.receivedApplicationContext)
+        receive(session.receivedApplicationContext, notifyReady: true)
+    }
+
+    nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
+        guard session.isReachable else { return }
+        Task { @MainActor [weak self] in self?.readyHandler?() }
     }
 
     nonisolated func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
@@ -52,22 +80,28 @@ final class WatchHydrationConnectivity: NSObject, WCSessionDelegate {
         receive(userInfo)
     }
 
-    nonisolated private func receive(_ payload: [String: Any]) {
-        if payload[HydrationCompanionKeys.disconnected] as? Bool == true {
-            let revision = payload[HydrationCompanionKeys.disconnectedRevision] as? String
-                ?? HydrationComplicationRefreshPolicy.revision()
-            Task { @MainActor [weak self] in self?.disconnectHandler?(revision) }
-            return
-        }
-        if let data = payload[HydrationCompanionKeys.workoutCommand] as? Data,
-           let command = try? WatchWorkoutCommand.decode(data) {
-            Task { @MainActor [weak self] in self?.workoutCommandHandler?(command) }
-            return
-        }
-        guard let data = payload[HydrationCompanionKeys.snapshot] as? Data,
-              let snapshot = try? HydrationCompanionSnapshot.decode(data) else { return }
+    nonisolated private func receive(_ payload: [String: Any], notifyReady: Bool = false) {
+        let disconnected = payload[HydrationCompanionKeys.disconnected] as? Bool == true
+        let revision = payload[HydrationCompanionKeys.disconnectedRevision] as? String
+            ?? HydrationComplicationRefreshPolicy.revision()
+        let command = (payload[HydrationCompanionKeys.workoutCommand] as? Data)
+            .flatMap { try? WatchWorkoutCommand.decode($0) }
+        let snapshot = (payload[HydrationCompanionKeys.snapshot] as? Data)
+            .flatMap { try? HydrationCompanionSnapshot.decode($0) }
+        let supplements = (payload[WatchSupplementKeys.snapshot] as? Data)
+            .flatMap { try? JSONDecoder().decode(WatchSupplementSnapshot.self, from: $0) }
         Task { @MainActor [weak self] in
-            self?.snapshotHandler?(snapshot)
+            guard let self else { return }
+            if disconnected {
+                self.disconnectHandler?(revision)
+                return
+            }
+            // Account authorization from hydration precedes the checklist in
+            // the same actor turn; independently scheduled callbacks can race.
+            if let snapshot { self.snapshotHandler?(snapshot) }
+            if let supplements { self.supplementSnapshotHandler?(supplements) }
+            if let command { self.workoutCommandHandler?(command) }
+            if notifyReady { self.readyHandler?() }
         }
     }
 }

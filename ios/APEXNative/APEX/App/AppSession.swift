@@ -352,6 +352,7 @@ final class AppSession {
     @ObservationIgnored private let sandboxDefaultsSuiteName: String?
     @ObservationIgnored private let hydrationConnectivity: HydrationPhoneConnectivity?
     @ObservationIgnored private let hydrationMutationQueue = HydrationMutationQueue()
+    @ObservationIgnored private let supplementMutationQueue = SupplementMutationQueue()
     @ObservationIgnored private var hydrationMutationsInFlight: Set<UUID> = []
     private var bootstrapped = false
     private var realtimeDebounceTask: Task<Void, Never>?
@@ -410,6 +411,12 @@ final class AppSession {
         }
         hydrationConnectivity?.mutationHandler = { [weak self] mutation in
             await self?.handleHydrationMutation(mutation)
+        }
+        hydrationConnectivity?.supplementMutationHandler = { [weak self] mutation in
+            await self?.handleWatchSupplementMutation(mutation)
+        }
+        hydrationConnectivity?.companionRefreshHandler = { [weak self] in
+            self?.publishHydrationState()
         }
     }
 
@@ -1309,6 +1316,10 @@ final class AppSession {
         var followUpRefreshAvailable = true
         var refreshedUserID: UUID?
         while true {
+        let supplementRefreshRevision = watchSupplementJournal(ownerID: ownerID).revision
+        let pendingSupplementsAtStart = ((try? await offlineStore.pendingOperations(for: ownerID)) ?? [])
+            .filter { $0.table == "supplement_logs" }
+        guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
         var next = try await service.loadDashboard()
         guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
         let currentUserID = await service.currentUserID()
@@ -1409,6 +1420,9 @@ final class AppSession {
         } else {
             migratedRestingEnergySettings = nil
         }
+        next = await preservingPendingSupplementLogs(in: next, ownerID: ownerID,
+            startedAtRevision: supplementRefreshRevision, pendingAtStart: pendingSupplementsAtStart)
+        guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
         next.foods = next.foods.map(FoodHydration.resolved)
         data = next
         if let settingsToPersist = migratedRestingEnergySettings ?? repairedPlanSettings {
@@ -2551,38 +2565,202 @@ final class AppSession {
         try requireCurrentAccountOperation(operation)
         guard supplement.userID == operation.ownerID else { throw CancellationError() }
         let day = date.apexDateKey
-        if let existing = data.supplementLogs.first(where: {
-            $0.userID == operation.ownerID && $0.date == day && $0.supplementID == supplement.id
+        try await supplementMutationQueue.enqueue(requireCurrent: {
+            try self.requireCurrentAccountOperation(operation)
         }) {
-            data.supplementLogs.removeAll {
-                $0.id == existing.id && $0.userID == operation.ownerID
+            let taken = !self.data.supplementLogs.contains {
+                $0.userID == operation.ownerID && $0.date == day && $0.supplementID == supplement.id
             }
-            await persistDelete(
-                table: "supplement_logs",
-                id: existing.id,
-                ownerID: operation.ownerID,
-                expectedAccountToken: operation.generation
-            )
-        } else {
-            let row = SupplementLog(
-                id: UUID(),
-                userID: operation.ownerID,
-                date: day,
-                supplementID: supplement.id,
-                checkedAt: Date().ISO8601Format()
-            )
-            data.supplementLogs.append(row)
-            await persistUpsert(
-                row,
-                table: "supplement_logs",
-                onConflict: "user_id,date,supplement_id",
-                ownerID: operation.ownerID,
-                expectedAccountToken: operation.generation
-            )
-        }
+            try await self.persistSupplementTaken(supplement.id, taken: taken, day: day, operation: operation)
+            try self.requireCurrentAccountOperation(operation)
+            self.publishHydrationState()
+        }.value
         try requireCurrentAccountOperation(operation)
         try await refreshNudges(operation: operation)
         try requireCurrentAccountOperation(operation)
+    }
+
+    /// Explicit values make the immediate and durable Watch delivery paths
+    /// idempotent. The shared queue also orders them with phone-origin taps.
+    private func handleWatchSupplementMutation(_ mutation: WatchSupplementMutation) async {
+        guard let operation = accountOperationLease(), operation.ownerID == mutation.ownerID,
+              verifiedPersistenceOwnerID() == operation.ownerID,
+              accountAccessAllowsPrivateWork(for: operation.ownerID) else { return }
+        do {
+            try await supplementMutationQueue.enqueue(requireCurrent: {
+                try self.requireCurrentAccountOperation(operation)
+            }) {
+                guard self.accountAccessAllowsPrivateWork(for: operation.ownerID) else { throw CancellationError() }
+                var journal = self.watchSupplementJournal(ownerID: operation.ownerID)
+                let taken = self.data.supplementLogs.contains {
+                    $0.userID == operation.ownerID && $0.date == mutation.day && $0.supplementID == mutation.itemID
+                }
+                journal.observePhoneValue(itemID: mutation.itemID, day: mutation.day, taken: taken)
+                self.saveWatchSupplementJournal(journal, ownerID: operation.ownerID)
+                let validDay = ISO8601DateFormatter.apexDateOnly.date(from: mutation.day)?.apexDateKey == mutation.day
+                let exists = self.data.supplements.contains {
+                    $0.userID == operation.ownerID && $0.id == mutation.itemID
+                }
+                if validDay, exists, journal.permits(mutation) {
+                    try await self.persistSupplementTaken(
+                        mutation.itemID, taken: mutation.taken, day: mutation.day,
+                        operation: operation, watchMutation: mutation
+                    )
+                    try self.requireCurrentAccountOperation(operation)
+                    journal = self.watchSupplementJournal(ownerID: operation.ownerID)
+                }
+                // Rejected conflicts are acknowledged too, so the phone value
+                // replaces an obsolete optimistic tick instead of retrying it.
+                journal.acknowledge(mutation)
+                self.saveWatchSupplementJournal(journal, ownerID: operation.ownerID)
+                self.publishHydrationState()
+            }.value
+            try requireCurrentAccountOperation(operation)
+            try await refreshNudges(operation: operation)
+        } catch {
+            // The Watch retains its owner-scoped intent until a later durable
+            // commit. Account transitions deliberately do not acknowledge it.
+        }
+    }
+
+    private func persistSupplementTaken(
+        _ itemID: UUID, taken: Bool, day: String, operation: AccountOperationLease,
+        watchMutation: WatchSupplementMutation? = nil
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        let existing = data.supplementLogs.first {
+            $0.userID == operation.ownerID && $0.date == day && $0.supplementID == itemID
+        }
+        guard taken != (existing != nil) else {
+            if let watchMutation {
+                var journal = watchSupplementJournal(ownerID: operation.ownerID)
+                journal.recordWatchValue(watchMutation)
+                saveWatchSupplementJournal(journal, ownerID: operation.ownerID)
+            }
+            return
+        }
+        let row = existing ?? SupplementLog(id: UUID(), userID: operation.ownerID, date: day,
+            supplementID: itemID, checkedAt: Date().ISO8601Format())
+        let remoteOperation: OfflineOperation?
+        if isDeveloperSandbox || APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            remoteOperation = nil
+        } else if taken {
+            remoteOperation = try OfflineOperation.upsert(row, table: "supplement_logs",
+                onConflict: "user_id,date,supplement_id")
+        } else {
+            remoteOperation = .delete(table: "supplement_logs", id: row.id)
+        }
+        let committed = try await CustomWorkoutLifecycle.persistMutation(
+            snapshot: { (self.dashboardMutationRevision, self.data) },
+            merge: { latest in
+                var next = latest
+                next.supplementLogs.removeAll {
+                    $0.userID == operation.ownerID && $0.date == day && $0.supplementID == itemID
+                }
+                if taken { next.supplementLogs.append(row) }
+                return next
+            },
+            requireCurrent: { try self.requireCurrentAccountOperation(operation) },
+            saveDashboard: { proposed in
+                try await self.offlineStore.saveDashboard(proposed, for: operation.ownerID)
+            },
+            enqueue: {
+                if let remoteOperation {
+                    try await self.offlineStore.enqueue(remoteOperation, for: operation.ownerID)
+                }
+            }
+        )
+        try requireCurrentAccountOperation(operation)
+        data = committed
+        // Commit the source revision in the same actor turn as the value. A
+        // reconnect callback must not mistake this Watch write for a phone edit.
+        var journal = watchSupplementJournal(ownerID: operation.ownerID)
+        if let watchMutation {
+            journal.recordWatchValue(watchMutation)
+        } else {
+            journal.recordPhoneEdit(itemID: itemID, day: day, taken: taken)
+        }
+        saveWatchSupplementJournal(journal, ownerID: operation.ownerID)
+        if remoteOperation != nil {
+            pendingSyncCount += 1
+            Task { @MainActor [weak self] in
+                guard let self, self.accountOperationIsCurrent(operation) else { return }
+                await self.flushPendingChanges(for: operation.ownerID)
+            }
+        }
+    }
+
+    private func watchSupplementJournal(ownerID: UUID) -> WatchSupplementJournal {
+        defaults.data(forKey: WatchSupplementKeys.journal(ownerID: ownerID))
+            .flatMap { try? JSONDecoder().decode(WatchSupplementJournal.self, from: $0) }
+            ?? WatchSupplementJournal()
+    }
+
+    private func saveWatchSupplementJournal(_ journal: WatchSupplementJournal, ownerID: UUID) {
+        guard let encoded = try? JSONEncoder().encode(journal) else { return }
+        defaults.set(encoded, forKey: WatchSupplementKeys.journal(ownerID: ownerID))
+    }
+
+    private func makeWatchSupplementSnapshot(ownerID: UUID, day: String) -> WatchSupplementSnapshot {
+        let items = activeSupplements.map { WatchSupplementItem(id: $0.id, name: $0.name, dose: $0.dose) }
+        let checkedIDs = Set(data.supplementLogs.filter {
+            $0.userID == ownerID && $0.date == day
+        }.map(\.supplementID))
+        var journal = watchSupplementJournal(ownerID: ownerID)
+        for item in items {
+            journal.observePhoneValue(itemID: item.id, day: day, taken: checkedIDs.contains(item.id))
+        }
+        let revision = journal.nextSnapshotRevision()
+        saveWatchSupplementJournal(journal, ownerID: ownerID)
+        return WatchSupplementSnapshot(ownerID: ownerID, day: day, revision: revision,
+            items: items, checkedIDs: checkedIDs, acknowledgedIDs: Set(journal.acknowledgedIDs))
+    }
+
+    /// A remote refresh cannot erase queued checks or a check made while its
+    /// request was in flight. Only supplement rows are merged into its result.
+    private func preservingPendingSupplementLogs(
+        in incoming: DashboardData, ownerID: UUID, startedAtRevision: UInt64,
+        pendingAtStart: [OfflineOperation]
+    ) async -> DashboardData {
+        let token = accountGeneration.token
+        let pendingNow = try? await offlineStore.pendingOperations(for: ownerID)
+        guard accountGeneration.accepts(token),
+              authenticatedOwnerID == ownerID || verifiedPersistenceOwnerID(ownerID) == ownerID else { return incoming }
+        var next = incoming
+        guard let pendingNow else {
+            if verifiedPersistenceOwnerID(ownerID) == ownerID {
+                next.supplementLogs = data.supplementLogs.filter { $0.userID == ownerID }
+            }
+            return next
+        }
+        let initialIDs = Set(pendingAtStart.map(\.id))
+        let operations = pendingAtStart + pendingNow.filter { !initialIDs.contains($0.id) }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        for pending in operations where pending.table == "supplement_logs" {
+            switch pending.kind {
+            case .upsert:
+                guard let payload = pending.payload,
+                      let row = try? decoder.decode(SupplementLog.self, from: payload),
+                      row.userID == ownerID else { continue }
+                next.supplementLogs.removeAll {
+                    $0.userID == ownerID && $0.date == row.date && $0.supplementID == row.supplementID
+                }
+                next.supplementLogs.append(row)
+            case .delete:
+                next.supplementLogs.removeAll { $0.userID == ownerID && $0.id == pending.recordID }
+            case .rpc: break
+            }
+        }
+        let changed = Set(watchSupplementJournal(ownerID: ownerID).localEdits
+            .filter { $0.value > startedAtRevision }.keys)
+        next.supplementLogs.removeAll {
+            $0.userID == ownerID && changed.contains(WatchSupplementJournal.scope(itemID: $0.supplementID, day: $0.date))
+        }
+        next.supplementLogs.append(contentsOf: data.supplementLogs.filter {
+            $0.userID == ownerID && changed.contains(WatchSupplementJournal.scope(itemID: $0.supplementID, day: $0.date))
+        })
+        return next
     }
 
     /// Adds a supplement to the plan from wherever the user happens to be.
@@ -2623,6 +2801,7 @@ final class AppSession {
             expectedAccountToken: operation.generation
         )
         try requireCurrentAccountOperation(operation)
+        publishHydrationState()
     }
 
     /// Retires a supplement from the plan, keeping what it recorded.
@@ -2650,6 +2829,7 @@ final class AppSession {
             expectedAccountToken: operation.generation
         )
         try requireCurrentAccountOperation(operation)
+        publishHydrationState()
     }
 
     /// Puts an archived supplement back into the plan.
@@ -2672,6 +2852,7 @@ final class AppSession {
             expectedAccountToken: operation.generation
         )
         try requireCurrentAccountOperation(operation)
+        publishHydrationState()
     }
 
     /// Re-evaluate today's reminders from live data.
@@ -3735,6 +3916,13 @@ final class AppSession {
     private func publishHydrationState() {
         if isDeveloperSandbox { return }
         guard let ownerID = verifiedPersistenceOwnerID() else { return }
+        // Access recovery retains the dashboard for this account. A late
+        // activation/request must keep the Watch disconnected until access is
+        // granted again, including through the validated offline entitlement.
+        guard accountAccessAllowsPrivateWork(for: ownerID) else {
+            hydrationConnectivity?.publishDisconnected()
+            return
+        }
         let date = Date()
         let day = date.apexDateKey
         let legacy = data.dailyLogs.first { $0.userID == ownerID && $0.date == day }?.waterL ?? 0
@@ -3752,7 +3940,7 @@ final class AppSession {
             revision: HydrationComplicationRefreshPolicy.revision(),
             acknowledgedDeleteIDs: acknowledgedHydrationDeleteIDs(ownerID: ownerID)
         )
-        hydrationConnectivity?.publish(snapshot)
+        hydrationConnectivity?.publish(snapshot, supplements: makeWatchSupplementSnapshot(ownerID: ownerID, day: day))
     }
 
     private func beginHydrationMutation(_ mutation: HydrationCompanionMutation) -> Bool {

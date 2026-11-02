@@ -5,6 +5,21 @@ import XCTest
 /// that. A search that only matches exact prefixes is not.
 final class SupplementCatalogueTests: XCTestCase {
 
+    func testSupplementLogOutboxPayloadPreservesOwnerAndDay() throws {
+        let row = SupplementLog(id: UUID(), userID: UUID(), date: "2026-11-02",
+            supplementID: UUID(), checkedAt: "2026-11-02T06:30:00Z")
+        let operation = try OfflineOperation.upsert(row, table: "supplement_logs",
+            onConflict: "user_id,date,supplement_id")
+        let payload = try XCTUnwrap(operation.payload)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let restored = try decoder.decode(SupplementLog.self, from: payload)
+
+        XCTAssertEqual(restored, row)
+        XCTAssertEqual(operation.table, "supplement_logs")
+        XCTAssertEqual(operation.onConflict, "user_id,date,supplement_id")
+    }
+
     func testCatalogueLoadsFromTheBundle() {
         // A silent decode failure would leave an empty picker that still looks
         // like it is working.

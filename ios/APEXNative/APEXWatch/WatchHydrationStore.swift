@@ -49,12 +49,17 @@ final class WatchHydrationStore: ObservableObject {
     @Published private(set) var composition: [HydrationCompositionBand] = []
     @Published private(set) var activeOwnerID: UUID?
     @Published private(set) var preferences: WatchHydrationPreferences
+    @Published private(set) var supplements = WatchSupplementState()
+    private var supplementOwnerID: UUID?
     @Published var message: String?
 
     private let healthStore = HKHealthStore()
     private let defaults: UserDefaults
     private let widgetDefaults = UserDefaults(suiteName: HydrationWidgetStorage.suiteName)
     private let connectivity: WatchHydrationConnectivity
+    #if DEBUG
+    private let isSupplementUITestFixture: Bool
+    #endif
     private var observerQuery: HKObserverQuery?
     private var latestWidgetLocalDate: String?
     private var latestWidgetRevision: String?
@@ -85,8 +90,34 @@ final class WatchHydrationStore: ObservableObject {
     private static let reminderCountKey = "ch.apexperformance.APEX.watch.hydration.reminder.count"
 
     init(defaults: UserDefaults = .standard) {
+        #if DEBUG
+        let usesFixture = ProcessInfo.processInfo.arguments.contains("-fitr-ui-test-supplements")
+        isSupplementUITestFixture = usesFixture
+        self.defaults = usesFixture
+            ? UserDefaults(suiteName: "fitr.watch.ui-test.supplements")! : defaults
+        connectivity = WatchHydrationConnectivity(isEnabled: !usesFixture)
+        if usesFixture {
+            let ownerID = UUID(uuidString: "D9A4729D-E301-4CED-A027-81AD3F7B94AB")!
+            activeOwnerID = ownerID
+            supplementOwnerID = ownerID
+            isAuthorized = true
+            liters = 1.25
+            preferences = .default
+            _ = supplements.accept(WatchSupplementSnapshot(
+                ownerID: ownerID, day: Date().apexDateKey, revision: 1,
+                items: [
+                    WatchSupplementItem(id: UUID(uuidString: "CC6E0410-5DB5-48EA-9B40-062D695070FE")!,
+                        name: "Creatine", dose: "5 g"),
+                    WatchSupplementItem(id: UUID(uuidString: "7FC41E55-90E1-4AE5-BB1A-324F874EA889")!,
+                        name: "Magnesium", dose: "200 mg elemental magnesium · 2 capsules with your evening meal"),
+                ], checkedIDs: [], acknowledgedIDs: []
+            ), ownerID: ownerID)
+            return
+        }
+        #else
         self.defaults = defaults
         connectivity = WatchHydrationConnectivity()
+        #endif
         acceptedCompanionRevision = defaults.string(forKey: Self.acceptedCompanionRevisionKey)
         if let ownerValue = defaults.string(forKey: Self.pendingPreferenceOwnerKey),
            let ownerID = UUID(uuidString: ownerValue),
@@ -130,6 +161,16 @@ final class WatchHydrationStore: ObservableObject {
             canonicalSampleIDs = Set(state.canonicalSampleIDs ?? [])
             healthOverlay = resolved.healthOverlay
         }
+        if let ownerID = activeOwnerID ?? defaults.string(forKey: WatchSupplementKeys.activeOwner)
+            .flatMap(UUID.init(uuidString:)) {
+            restoreSupplements(ownerID: ownerID)
+        }
+        connectivity.supplementSnapshotHandler = { [weak self] snapshot in
+            self?.applySupplementSnapshot(snapshot)
+        }
+        connectivity.readyHandler = { [weak self] in
+            self?.synchronizeSupplements()
+        }
         connectivity.snapshotHandler = { [weak self] snapshot in
             self?.apply(snapshot)
         }
@@ -148,6 +189,69 @@ final class WatchHydrationStore: ObservableObject {
         )
     }
 
+    func toggleSupplement(_ itemID: UUID, ownerID: UUID) {
+        guard supplementOwnerID == ownerID, supplements.snapshot?.ownerID == ownerID else { return }
+        let day = Date().apexDateKey
+        let taken = !supplements.isTaken(itemID: itemID, day: day)
+        guard let mutation = supplements.setTaken(itemID: itemID, taken: taken, day: day) else { return }
+        persistSupplements()
+        connectivity.send(mutation)
+        if preferences.confirmationHaptics { WKInterfaceDevice.current().play(.click) }
+    }
+
+    func setSupplementsVisible(_ isVisible: Bool, ownerID: UUID) {
+        guard supplementOwnerID == ownerID, supplements.snapshot?.ownerID == ownerID else { return }
+        supplements.preferences.isVisible = isVisible
+        persistSupplements()
+    }
+
+    func setSupplementVisibility(_ itemID: UUID, isVisible: Bool, ownerID: UUID) {
+        guard supplementOwnerID == ownerID, supplements.snapshot?.ownerID == ownerID else { return }
+        if isVisible {
+            supplements.preferences.hiddenIDs.remove(itemID)
+        } else {
+            supplements.preferences.hiddenIDs.insert(itemID)
+        }
+        persistSupplements()
+    }
+
+    private func restoreSupplements(ownerID: UUID) {
+        guard supplementOwnerID != ownerID else { return }
+        supplementOwnerID = ownerID
+        supplements = defaults.data(forKey: WatchSupplementKeys.state(ownerID: ownerID))
+            .flatMap { try? JSONDecoder().decode(WatchSupplementState.self, from: $0) }
+            .flatMap { $0.snapshot?.ownerID == ownerID ? $0 : nil } ?? WatchSupplementState()
+        defaults.set(ownerID.uuidString, forKey: WatchSupplementKeys.activeOwner)
+    }
+
+    private func persistSupplements() {
+        guard let supplementOwnerID, supplements.snapshot?.ownerID == supplementOwnerID,
+              let data = try? JSONEncoder().encode(supplements) else { return }
+        defaults.set(data, forKey: WatchSupplementKeys.state(ownerID: supplementOwnerID))
+    }
+
+    private func applySupplementSnapshot(_ snapshot: WatchSupplementSnapshot) {
+        // The hydration snapshot in the same transport payload establishes the
+        // current account first. Old messages cannot reconnect another owner.
+        guard activeOwnerID == snapshot.ownerID else { return }
+        restoreSupplements(ownerID: snapshot.ownerID)
+        guard supplements.accept(snapshot, ownerID: snapshot.ownerID) else { return }
+        persistSupplements()
+        replayPendingSupplements()
+    }
+
+    private func synchronizeSupplements() {
+        connectivity.requestLatest()
+        replayPendingSupplements()
+    }
+
+    private func replayPendingSupplements() {
+        guard let supplementOwnerID, supplements.snapshot?.ownerID == supplementOwnerID else { return }
+        for mutation in supplements.pending where mutation.ownerID == supplementOwnerID {
+            connectivity.send(mutation)
+        }
+    }
+
     var targetLiters: Double { preferences.targetLiters }
 
     var progress: Double {
@@ -155,6 +259,12 @@ final class WatchHydrationStore: ObservableObject {
     }
 
     func updatePreferences(_ value: WatchHydrationPreferences) async throws {
+        #if DEBUG
+        if isSupplementUITestFixture {
+            preferences = value
+            return
+        }
+        #endif
         let localDate = Date().apexDateKey
         ensureCurrentDay(localDate)
         absorbWidgetHealthStateIfCurrent()
@@ -212,6 +322,10 @@ final class WatchHydrationStore: ObservableObject {
     }
 
     func start() async {
+        #if DEBUG
+        if isSupplementUITestFixture { return }
+        #endif
+        synchronizeSupplements()
         guard HKHealthStore.isHealthDataAvailable(),
               let waterType = HKObjectType.quantityType(forIdentifier: .dietaryWater)
         else {
@@ -241,6 +355,9 @@ final class WatchHydrationStore: ObservableObject {
         paletteToken: String = "aqua",
         iconToken: String = "drop.fill"
     ) async {
+        #if DEBUG
+        if isSupplementUITestFixture { return }
+        #endif
         guard milliliters > 0,
               let waterType = HKObjectType.quantityType(forIdentifier: .dietaryWater)
         else { return }
@@ -351,6 +468,9 @@ final class WatchHydrationStore: ObservableObject {
     }
 
     func delete(_ entry: WatchHydrationEntry) async {
+        #if DEBUG
+        if isSupplementUITestFixture { return }
+        #endif
         guard entry.canDelete else {
             message = "Only water added by FITR MAX on this Watch can be removed here."
             return
@@ -417,6 +537,10 @@ final class WatchHydrationStore: ObservableObject {
     }
 
     func refresh(retryComplicationIfStale: Bool = false) async {
+        #if DEBUG
+        if isSupplementUITestFixture { return }
+        #endif
+        if retryComplicationIfStale { synchronizeSupplements() }
         guard let waterType = HKObjectType.quantityType(forIdentifier: .dietaryWater) else { return }
         guard let activeOwnerID else {
             liters = 0
@@ -700,6 +824,7 @@ final class WatchHydrationStore: ObservableObject {
             composition: healthOverlaid.composition
         )
         activeOwnerID = snapshot.ownerID
+        restoreSupplements(ownerID: snapshot.ownerID)
         WatchWorkoutSessionController.shared.updateActiveOwner(
             snapshot.ownerID,
             revision: snapshot.revision
@@ -733,6 +858,9 @@ final class WatchHydrationStore: ObservableObject {
         let disconnectedOwnerID = activeOwnerID
         stateGeneration &+= 1
         activeOwnerID = nil
+        supplementOwnerID = nil
+        supplements = WatchSupplementState()
+        defaults.removeObject(forKey: WatchSupplementKeys.activeOwner)
         WatchWorkoutSessionController.shared.disconnect(
             ownerID: disconnectedOwnerID,
             revision: revision

@@ -4,6 +4,8 @@ import Foundation
 @MainActor
 final class HydrationPhoneConnectivity: NSObject, WCSessionDelegate {
     var mutationHandler: ((HydrationCompanionMutation) async -> Void)?
+    var supplementMutationHandler: ((WatchSupplementMutation) async -> Void)?
+    var companionRefreshHandler: (() -> Void)?
     private let session: WCSession?
     private let defaults = UserDefaults.standard
     private static let visibleSignatureKey =
@@ -20,14 +22,20 @@ final class HydrationPhoneConnectivity: NSObject, WCSessionDelegate {
         session?.activate()
     }
 
-    func publish(_ snapshot: HydrationCompanionSnapshot) {
-        guard let session, let data = try? snapshot.encoded() else { return }
-        let payload = [HydrationCompanionKeys.snapshot: data]
-        do {
-            try session.updateApplicationContext(payload)
-        } catch {
-            // The next real hydration change or app activation sends the latest
-            // snapshot again. There is intentionally no retry timer or polling.
+    func publish(_ snapshot: HydrationCompanionSnapshot, supplements: WatchSupplementSnapshot) {
+        guard let session, let data = try? snapshot.encoded(),
+              supplements.ownerID == snapshot.ownerID,
+              let supplementData = try? JSONEncoder().encode(supplements) else { return }
+        // Both features share the one latest application context. Publishing a
+        // checklist must never replace hydration or consume complication quota.
+        var payload = session.applicationContext
+        payload.removeValue(forKey: HydrationCompanionKeys.disconnected)
+        payload.removeValue(forKey: HydrationCompanionKeys.disconnectedRevision)
+        payload[HydrationCompanionKeys.snapshot] = data
+        payload[WatchSupplementKeys.snapshot] = supplementData
+        try? session.updateApplicationContext(payload)
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil, errorHandler: nil)
         }
 #if os(iOS)
         let visibleSignature = HydrationComplicationRefreshPolicy.visibleSignature(
@@ -51,11 +59,15 @@ final class HydrationPhoneConnectivity: NSObject, WCSessionDelegate {
 
     func publishDisconnected() {
         guard let session else { return }
-        try? session.updateApplicationContext([
+        let payload: [String: Any] = [
             HydrationCompanionKeys.disconnected: true,
             HydrationCompanionKeys.disconnectedRevision:
                 HydrationComplicationRefreshPolicy.revision(),
-        ])
+        ]
+        try? session.updateApplicationContext(payload)
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil, errorHandler: nil)
+        }
     }
 
     func send(_ command: WatchWorkoutCommand) {
@@ -71,7 +83,15 @@ final class HydrationPhoneConnectivity: NSObject, WCSessionDelegate {
         _ session: WCSession,
         activationDidCompleteWith activationState: WCSessionActivationState,
         error: Error?
-    ) {}
+    ) {
+        guard error == nil, activationState == .activated else { return }
+        Task { @MainActor [weak self] in self?.companionRefreshHandler?() }
+    }
+
+    nonisolated func sessionReachabilityDidChange(_ session: WCSession) {
+        guard session.isReachable else { return }
+        Task { @MainActor [weak self] in self?.companionRefreshHandler?() }
+    }
 
     nonisolated func sessionDidBecomeInactive(_ session: WCSession) {}
 
@@ -88,10 +108,15 @@ final class HydrationPhoneConnectivity: NSObject, WCSessionDelegate {
     }
 
     nonisolated private func receive(_ payload: [String: Any]) {
-        guard let data = payload[HydrationCompanionKeys.mutation] as? Data,
-              let mutation = try? HydrationCompanionMutation.decode(data) else { return }
+        let mutation = (payload[HydrationCompanionKeys.mutation] as? Data)
+            .flatMap { try? HydrationCompanionMutation.decode($0) }
+        let supplementMutation = (payload[WatchSupplementKeys.mutation] as? Data)
+            .flatMap { try? JSONDecoder().decode(WatchSupplementMutation.self, from: $0) }
+        let requestsSnapshot = payload[WatchSupplementKeys.request] as? Bool == true
         Task { @MainActor [weak self] in
-            await self?.mutationHandler?(mutation)
+            if requestsSnapshot { self?.companionRefreshHandler?() }
+            if let mutation { await self?.mutationHandler?(mutation) }
+            if let supplementMutation { await self?.supplementMutationHandler?(supplementMutation) }
         }
     }
 }
