@@ -5621,3 +5621,27 @@
 "Open Health" = "ヘルスケアを開く";
 "Your FITR MAX water log stays available either way." = "どちらを選んでも、FITR MAXの水分記録は利用できます。";
 "Water sharing" = "水分データの共有";
+
+/* Daily training previews */
+"Show all exercises" = "すべてのエクササイズを表示";
+"Show fewer exercises" = "表示するエクササイズを減らす";
+
+/* Selected-day activity is separate from the plan calorie target. */
+"Your logged activity is %@. Your plan target remains %d kcal." = "記録上の活動レベルは「%@」です。プランの目標は%d kcalのままです。";
+"Your logged activity and nutrition priorities." = "記録した活動と栄養面での優先事項。";
+
+/* Workout receipt date and time correction */
+"Workout date and time" = "ワークアウトの日時";
+"Workout date" = "ワークアウトの日付";
+"Started" = "開始";
+"Finished" = "終了";
+"Include start time" = "開始時刻を入力";
+"Times use your Settings time zone." = "時刻には「設定」で選んだタイムゾーンが使われます。";
+"Choose a valid workout date and time." = "ワークアウトの有効な日時を選んでください。";
+"Workout date and time saved." = "ワークアウトの日時を保存しました。";
+"Could not save the workout time. Try again." = "ワークアウトの時刻を保存できませんでした。もう一度お試しください。";
+"Finish time was not recorded. Enter it to correct this receipt." = "終了時刻は記録されていません。この記録を修正するには終了時刻を入力してください。";
+
+/* Supplement daily-routine editing keeps historical doses. */
+"Remove from your daily routine?" = "毎日の習慣から削除しますか？";
+"Changes apply to every day. Previous doses stay in your history." = "変更は毎日の習慣に適用されます。過去の摂取記録は履歴に残ります。";

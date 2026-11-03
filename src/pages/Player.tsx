@@ -24,7 +24,7 @@ import {
   speechAnnouncementFallbackMs,
   type Block,
 } from '../lib/playerTimeline'
-import { buildSessionRecords, serializeExerciseSets, type SetEntry } from '../lib/workoutSession'
+import { buildSessionRecords, restoredPlayerCompletedAt, serializeExerciseSets, type SetEntry } from '../lib/workoutSession'
 import { descriptorForExercise, isValidExerciseFacts, normalizeExerciseFacts } from '../lib/exerciseLogging'
 import { guardianCheck, recommendLoad, type Recommendation } from '../lib/progression'
 import { speak, stopSpeech, tick } from '../lib/audio'
@@ -73,6 +73,8 @@ interface PlayerState {
   results: Record<number, ExerciseResult>
   countedReps: Record<string, number> // `${exIdx}-${setNo}` -> reps counted by cadence
   startedAt: string
+  completedAt?: string | null
+  completionTimeUnknown?: boolean
 }
 
 type ExternalCompletionRequest =
@@ -89,13 +91,16 @@ type Action =
   | { type: 'recordReps'; exIdx: number; setNo: number; totalSets: number; reps: number }
   | { type: 'recordWeight'; exIdx: number; setNo: number; totalSets: number; weight: number | null }
   | { type: 'restore'; state: PlayerState }
+  | { type: 'recordCompletion'; completedAt: string }
 
 function reducer(state: PlayerState, action: Action): PlayerState {
   switch (action.type) {
     case 'tick':
       return state.paused ? state : { ...state, elapsed: state.elapsed + action.dt }
     case 'jump':
-      return { ...state, idx: action.idx, elapsed: 0, paused: false }
+      return { ...state, idx: action.idx, elapsed: 0, paused: false, completedAt: null, completionTimeUnknown: false }
+    case 'recordCompletion':
+      return { ...state, completedAt: action.completedAt, completionTimeUnknown: false }
     case 'pause':
       return { ...state, paused: action.paused }
     case 'extend':
@@ -198,6 +203,8 @@ export function Player() {
           paused: saved.paused,
           persistedAt: saved.persistedAt,
         })
+        const restoredFinished = blocks[saved.idx]?.kind === 'done'
+        const completedAt = restoredPlayerCompletedAt(restoredFinished, saved.completedAt)
         return {
           idx: Math.max(0, Math.min(saved.idx, blocks.length - 1)),
           paused: reconciled.paused,
@@ -205,6 +212,8 @@ export function Player() {
           results: restoredResults,
           countedReps: saved.countedReps ?? {},
           startedAt: saved.startedAt ?? new Date().toISOString(),
+          completedAt,
+          completionTimeUnknown: restoredFinished && completedAt == null,
         }
       }
     } catch {
@@ -475,12 +484,15 @@ export function Player() {
 
   /* -------- finish -------- */
   const finished = block?.kind === 'done'
+  useEffect(() => {
+    if (finished && !state.completedAt && !state.completionTimeUnknown) dispatch({ type: 'recordCompletion', completedAt: new Date().toISOString() })
+  }, [finished, state.completedAt, state.completionTimeUnknown])
   const savedRef = useRef(false)
-  const [summary, setSummary] = useState<{ quality: number; streak: number; deltas: string[]; sessionId: string; completedAt: string } | null>(null)
+  const [summary, setSummary] = useState<{ quality: number; streak: number; deltas: string[]; sessionId: string; completedAt: string | null } | null>(null)
   const [showStats, setShowStats] = useState(false)
 
   useEffect(() => {
-    if (!finished || savedRef.current || !plan.programDay || !ownerId) return
+    if (!finished || (!state.completedAt && !state.completionTimeUnknown) || savedRef.current || !plan.programDay || !ownerId) return
     savedRef.current = true
 
     const planned = plannedSetCount(plan)
@@ -493,7 +505,7 @@ export function Player() {
     const quality = planned > 0 ? Math.min(1, completed / planned) : 1
 
     const sessionId = crypto.randomUUID()
-    const completedAt = new Date().toISOString()
+    const completedAt = state.completedAt ?? null
     const externallyCompleted = externalCompletionRequest != null
     const exercisesToPersist = plan.exercises
       .map((exercise, exIdx) => ({ exercise, exIdx, result: state.results[exIdx] }))
@@ -579,7 +591,7 @@ export function Player() {
         : 'apex-strength'
     const activityCatalog = activityCatalogMap(data.activity_types)
     const activityType = activityCatalog.get(activityTypeId)
-    if (!externallyCompleted && activityType && data.profile) {
+    if (!externallyCompleted && completedAt && activityType && data.profile) {
       const durations = plannedWorkoutDurationBreakdown(plan, plan.programDay.est_minutes, lite)
       const activityBlock = {
         ...emptyActivityBlock(
@@ -595,7 +607,7 @@ export function Player() {
         activityLogFromBlock(activityBlock, data.profile, date, activityCatalog),
       )
     }
-    if (!externallyCompleted && completedFocusT25 && dayType !== 't25' && data.profile) {
+    if (!externallyCompleted && completedAt && completedFocusT25 && dayType !== 't25' && data.profile) {
       const focusType = activityCatalog.get('focus-hiit')
       if (focusType) {
         const focusBlock = {
@@ -629,7 +641,7 @@ export function Player() {
     setSummary({ quality, streak: currentStreak({ ...data }, date) + 1, deltas, sessionId, completedAt })
     toast('Session saved', 'ok')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finished])
+  }, [finished, state.completedAt, state.completionTimeUnknown])
 
   const openAlreadyFinished = (): void => {
     pausedBeforeAlreadyFinished.current = state.paused
@@ -1009,7 +1021,7 @@ function BlockView(props: {
   guardian: { entered: number; safe: number; exIdx: number } | null
   setGuardian: (g: { entered: number; safe: number; exIdx: number } | null) => void
   guardianFactor: number
-  summary: { quality: number; streak: number; deltas: string[]; sessionId: string; completedAt: string } | null
+  summary: { quality: number; streak: number; deltas: string[]; sessionId: string; completedAt: string | null } | null
   sessionDate: string
   onShowStats: () => void
   onFinishExit: () => void
@@ -1240,7 +1252,7 @@ function BlockView(props: {
               </AccentChip>
             ))}
           </div>
-          <PostWorkoutRecoveryPrompt completedAt={props.summary.completedAt} date={props.sessionDate} />
+          {props.summary.completedAt && <PostWorkoutRecoveryPrompt completedAt={props.summary.completedAt} date={props.sessionDate} />}
         </>
       )}
       <div className="mt-6">

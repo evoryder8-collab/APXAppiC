@@ -58,6 +58,29 @@ struct SponsoredSimpleWorkoutTests {
 }
 
 final class SimpleHomeLogicTests: XCTestCase {
+    func testPreviewAndPlayerUseAdjustedPrescriptionForAnyAccountAndRejectAnotherDay() {
+        let owner = UUID(), dayID = UUID()
+        let day = ProgramDay(id: dayID, userID: owner, programID: UUID(), weekday: 2,
+                             name: "My plan", dayType: "strength", estimatedMinutes: 30,
+                             warmupNote: "", sortOrder: 0, isActive: true)
+        let exercise = Exercise(id: UUID(), userID: owner, programDayID: dayID, name: "Split squat",
+                                sets: 5, repMin: 8, repMax: 12, repUnit: "reps", perSide: true,
+                                restSeconds: 90, tempoUp: 1, tempoDown: 2, tempoPause: 0,
+                                tempoNote: "", notes: "", incrementKG: 1, isLite: false,
+                                optional: false, sortOrder: 0)
+        let plan = PlannedDay(programDay: day, exercises: [
+            PlannedExercise(exercise: exercise, plannedSets: 2, swapped: false)
+        ])
+        let resolved = SimpleHomeLogic.sessionExercises(plan: plan, ownerID: owner, programDayID: dayID)
+        XCTAssertEqual(resolved.count, 1)
+        XCTAssertEqual(resolved[0].id, exercise.id)
+        XCTAssertEqual(resolved[0].sets, 2, "Use planned sets, not the original five or a doubled per-side count")
+        XCTAssertEqual(resolved[0].restSeconds, 90)
+        XCTAssertTrue(resolved[0].perSide)
+        XCTAssertTrue(SimpleHomeLogic.sessionExercises(plan: plan, ownerID: UUID(), programDayID: dayID).isEmpty)
+        XCTAssertTrue(SimpleHomeLogic.sessionExercises(plan: plan, ownerID: owner, programDayID: UUID()).isEmpty)
+    }
+
     func testDailySessionsKeepMorningOfficialAndCardioCompletionIndependent() {
         let owner = UUID(), foreignOwner = UUID(), programID = UUID()
         let date = "2026-11-04"

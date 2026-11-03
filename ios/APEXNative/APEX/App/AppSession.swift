@@ -2872,6 +2872,7 @@ final class AppSession {
         )
         try requireCurrentAccountOperation(operation)
         publishHydrationState()
+        try await refreshNudges(operation: operation)
     }
 
     /// Puts an archived supplement back into the plan.
@@ -5724,6 +5725,7 @@ final class AppSession {
         setInputs: [WorkoutSetInput],
         lite: Bool,
         startedAt: Date,
+        finishedAt: Date? = Date(),
         qualityScore: Double? = nil,
         wearableLinkRequest: WearableLinkRequest = .automatic,
         completionDate: String? = nil,
@@ -5733,6 +5735,10 @@ final class AppSession {
         let ownerID = operation.ownerID
         guard TrainingInduction.workoutOwnerID(in: data, day: day) == ownerID else {
             return nil
+        }
+        if let finishedAt {
+            let elapsed = finishedAt.timeIntervalSince(startedAt)
+            guard elapsed.isFinite, elapsed >= 0, elapsed < Double(Int.max) else { return nil }
         }
         let exercises = data.exercises
             .filter {
@@ -5770,7 +5776,7 @@ final class AppSession {
             ), userID: ownerID, date: completedDate,
             programDayID: day.id, isLite: lite, isDeload: isDeload,
             isEventRecovery: false, completed: true, qualityScore: 1,
-            startedAt: startedAtISO, completedAt: now,
+            startedAt: startedAtISO, completedAt: finishedAt?.ISO8601Format(),
             notes: wearableLinkRequest == .automatic
                 ? "Completed in APEX iOS"
                 : "Completed externally from the APEX guided player"
@@ -5838,10 +5844,10 @@ final class AppSession {
         var linkedActivity = data.activityLogs.first {
             $0.userID == ownerID && $0.id == WorkoutReceipt.generatedActivityID(for: workout)
         }
-        if linkedActivity == nil, wearableLinkRequest == .automatic,
+        if linkedActivity == nil, wearableLinkRequest == .automatic, let finishedAt,
            let profile, profile.userID == ownerID,
            let activityType = data.activityTypes.first(where: { $0.id == "apex-strength" }) {
-            let elapsed = max(1, Int(Date().timeIntervalSince(startedAt) / 60))
+            let elapsed = max(0, Int(finishedAt.timeIntervalSince(startedAt) / 60))
             let activity = ActivityLog(
                 id: WorkoutReceipt.generatedActivityID(for: workout),
                 userID: ownerID,
@@ -6019,6 +6025,62 @@ final class AppSession {
             expectedAccountToken: operation.generation
         )
         try requireCurrentAccountOperation(operation)
+        return true
+    }
+
+    /// Move an owned receipt without creating another workout or rewriting
+    /// the immutable HealthKit workout linked to it.
+    @discardableResult
+    func updateCompletedWorkoutTiming(
+        id: UUID, date: String, startedAt: Date?, completedAt: Date,
+        operation: AccountOperationLease
+    ) async throws -> Bool {
+        try requireCurrentAccountOperation(operation)
+        let ownerID = operation.ownerID
+        guard let correction = WorkoutReceipt.timingCorrection(
+            data: data, sessionID: id, ownerID: ownerID,
+            date: date, startedAt: startedAt, completedAt: completedAt
+        ) else { return false }
+        func applyingCorrection(to source: DashboardData) -> DashboardData {
+            var result = source
+            result.workoutSessions = result.workoutSessions.map {
+                $0.id == id && $0.userID == ownerID ? correction.session : $0
+            }
+            let logs = Dictionary(uniqueKeysWithValues: correction.logs.map { ($0.id, $0) })
+            result.workoutLogs = result.workoutLogs.map { row in
+                row.userID == ownerID ? logs[row.id] ?? row : row
+            }
+            let activities = Dictionary(uniqueKeysWithValues: correction.activities.map { ($0.id, $0) })
+            result.activityLogs = result.activityLogs.map { row in
+                row.userID == ownerID ? activities[row.id] ?? row : row
+            }
+            return result
+        }
+        let candidate = applyingCorrection(to: data)
+        if !isDeveloperSandbox && !APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            try await offlineStore.saveDashboard(candidate, for: ownerID)
+            try requireCurrentAccountOperation(operation)
+            let parent = try OfflineOperation.upsert(correction.session, table: "workout_sessions", onConflict: nil)
+            let dependents = try correction.logs.map {
+                try OfflineOperation.upsert($0, table: "workout_logs", onConflict: nil)
+            } + correction.activities.map {
+                try OfflineOperation.upsert($0, table: "activity_logs", onConflict: nil)
+            }
+            try await offlineStore.enqueue(parent: parent, dependents: dependents, for: ownerID)
+            try requireCurrentAccountOperation(operation)
+            let count = try? await offlineStore.pendingOperations(for: ownerID).count
+            try requireCurrentAccountOperation(operation)
+            pendingSyncCount = count ?? pendingSyncCount + dependents.count + 1
+        }
+        try requireCurrentAccountOperation(operation)
+        data = applyingCorrection(to: data)
+        if !isDeveloperSandbox && !APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            workoutSyncTask?.cancel()
+            workoutSyncTask = Task { @MainActor [weak self] in
+                guard let self, self.accountOperationIsCurrent(operation) else { return }
+                await self.flushPendingChanges(for: ownerID)
+            }
+        }
         return true
     }
 

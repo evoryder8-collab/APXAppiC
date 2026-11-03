@@ -25,6 +25,16 @@ import { buildWorkSequence } from './workGrouping.ts'
 
 export interface SetEntry extends ExerciseLoggingFacts {}
 
+/** A finished recovery draft carries its finish instant, not the later retry time. */
+export function restoredPlayerCompletedAt(
+  isFinished: boolean, completedAt?: string | null, now = new Date(),
+): string | null {
+  if (!isFinished) return null
+  // A generic draft checkpoint can be written long after the workout finished.
+  if (completedAt && Number.isFinite(Date.parse(completedAt)) && Date.parse(completedAt) <= now.getTime() + 60_000) return completedAt
+  return null
+}
+
 export interface LoggedSetEntry extends SetEntry {
   skipped: boolean
 }
@@ -69,7 +79,7 @@ export interface SessionDraft {
   isEventRecovery: boolean
   qualityScore: number
   startedAt: string
-  completedAt: string
+  completedAt: string | null
   notes?: string
   exercises: ExerciseEntry[]
 }
@@ -107,7 +117,9 @@ export function buildSessionRecords(
     notes: draft.notes ?? '',
   }
 
-  const base = Date.parse(draft.completedAt)
+  // Legacy finished drafts may lack a finish instant. Keep it unknown; this
+  // fallback orders their saved facts and does not claim a measured set time.
+  const base = Date.parse(draft.completedAt ?? draft.startedAt)
   const logs: WorkoutLog[] = []
   let order = 0
   const sequence = buildWorkSequence(draft.exercises.map((exercise) => ({

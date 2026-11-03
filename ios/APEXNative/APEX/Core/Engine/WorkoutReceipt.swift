@@ -48,7 +48,7 @@ enum WorkoutReceipt {
     static func generatedActivityID(for session: WorkoutSession, suffix: String = "") -> UUID {
         APEXStableID.scopedUUID(
             namespace: "activity-log:workout:\(session.id.uuidString.lowercased())\(suffix)",
-            date: session.date,
+            date: originalActivityDate(session),
             userID: session.userID
         )
     }
@@ -271,6 +271,121 @@ enum WorkoutReceipt {
 }
 
 extension WorkoutReceipt {
+    static let timingMetadataPrefix = "FITR_WORKOUT_TIMING_V1|"
+
+    static func validDateKey(_ value: String) -> Bool {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.isLenient = false
+        guard let date = formatter.date(from: value) else { return false }
+        return formatter.string(from: date) == value
+    }
+
+    static func originalActivityDate(_ session: WorkoutSession) -> String {
+        session.notes.components(separatedBy: "\n").compactMap { line -> String? in
+            guard line.hasPrefix(timingMetadataPrefix) else { return nil }
+            let value = String(line.dropFirst(timingMetadataPrefix.count))
+            return validDateKey(value) ? value : nil
+        }.first ?? session.date
+    }
+
+    static func notesWithoutTimingMetadata(_ notes: String) -> String {
+        notes.components(separatedBy: "\n").filter { line in
+            !(line.hasPrefix(timingMetadataPrefix)
+                && validDateKey(String(line.dropFirst(timingMetadataPrefix.count))))
+        }.joined(separator: "\n")
+    }
+
+    struct TimingCorrection: Sendable {
+        let session: WorkoutSession
+        let logs: [WorkoutLog]
+        let activities: [ActivityLog]
+    }
+
+    /// Corrects only this account's existing receipt graph. The imported
+    /// HealthKit record and its association are never rewritten here.
+    static func timingCorrection(
+        data: DashboardData, sessionID: UUID, ownerID: UUID,
+        date: String, startedAt: Date?, completedAt: Date, now: Date = .now
+    ) -> TimingCorrection? {
+        guard validDateKey(date), completedAt.timeIntervalSince1970.isFinite,
+              completedAt <= now.addingTimeInterval(60),
+              startedAt.map({
+                  let elapsed = completedAt.timeIntervalSince($0)
+                  return $0.timeIntervalSince1970.isFinite && elapsed.isFinite && elapsed >= 0 && elapsed < Double(Int.max)
+              }) ?? true,
+              let old = data.workoutSessions.first(where: {
+                  $0.id == sessionID && $0.userID == ownerID && $0.completed
+              }) else { return nil }
+        let dayFormatter = DateFormatter()
+        dayFormatter.calendar = Calendar(identifier: .gregorian)
+        dayFormatter.locale = Locale(identifier: "en_US_POSIX")
+        let configuredZone = data.settings?.userID == ownerID
+            ? data.settings?.addons["time_zone"]?.stringValue.flatMap(TimeZone.init(identifier:)) : nil
+        dayFormatter.timeZone = configuredZone ?? .current
+        dayFormatter.dateFormat = "yyyy-MM-dd"
+        guard date <= dayFormatter.string(from: now),
+              date == dayFormatter.string(from: startedAt ?? completedAt) else { return nil }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let finish = formatter.string(from: completedAt)
+        let originalDate = originalActivityDate(old)
+        let corrected = WorkoutSession(
+            id: old.id, userID: old.userID, date: date, programDayID: old.programDayID,
+            isLite: old.isLite, isDeload: old.isDeload, isEventRecovery: old.isEventRecovery,
+            completed: old.completed, qualityScore: old.qualityScore,
+            startedAt: startedAt.map(formatter.string(from:)), completedAt: finish,
+            notes: notesWithoutTimingMetadata(old.notes) + "\n" + timingMetadataPrefix + originalDate
+        )
+        let ownedLogs = data.workoutLogs.filter { $0.userID == ownerID && $0.sessionID == sessionID }
+        let oldAnchor = ExternalWorkoutImport.parseTimestamp(old.completedAt)
+            ?? ownedLogs.compactMap { ExternalWorkoutImport.parseTimestamp($0.createdAt) }.max()
+        let delta = oldAnchor.map { completedAt.timeIntervalSince($0) }
+        let logs = ownedLogs.map { row in
+            var row = row
+            if let delta, let instant = ExternalWorkoutImport.parseTimestamp(row.createdAt) {
+                row.createdAt = formatter.string(from: instant.addingTimeInterval(delta))
+            }
+            return row
+        }
+        let generated = Set([generatedActivityID(for: old), generatedActivityID(for: old, suffix: ":focus-t25")])
+        let ownedActivities = data.activityLogs.filter {
+            $0.userID == ownerID && $0.source == "workout_module" && generated.contains($0.id)
+        }
+        let totalOldMinutes = ownedActivities.reduce(0) { $0 + max(0, $1.durationMinutes ?? 0) }
+        let totalNewMinutes = startedAt.map { max(0, Int(completedAt.timeIntervalSince($0) / 60)) }
+        var allocatedMinutes = 0
+        let activities = ownedActivities.enumerated().map { index, activity in
+            var activity = activity
+            activity.date = date
+            activity.updatedAt = now.ISO8601Format()
+            if let delta, let instant = ExternalWorkoutImport.parseTimestamp(activity.createdAt) {
+                activity.createdAt = formatter.string(from: instant.addingTimeInterval(delta))
+            }
+            if let totalNewMinutes, ownedActivities.count == 1 || totalOldMinutes > 0 {
+                let minutes = index == ownedActivities.count - 1
+                    ? totalNewMinutes - allocatedMinutes
+                    : Int(Double(totalNewMinutes) * Double(max(0, activity.durationMinutes ?? 0)) / Double(totalOldMinutes))
+                allocatedMinutes += minutes
+                activity.durationMinutes = minutes
+                if activity.watchKcal == nil, let profile = data.profile, profile.userID == ownerID,
+                   let type = data.activityTypes.first(where: { $0.id == activity.typeID }) {
+                    activity.computedKcal = EnergyEngine.blockCalories(
+                        type: type, quantity: activity.quantity, durationMinutes: minutes,
+                        distanceKM: activity.distanceKM, watchKcal: nil, weightKG: profile.weightKG
+                    )
+                }
+            }
+            return activity
+        }
+        return TimingCorrection(session: corrected, logs: logs, activities: activities)
+    }
+}
+
+extension WorkoutReceipt {
     static func externalDateText(
         _ value: String,
         locale: Locale,
@@ -355,7 +470,6 @@ extension WorkoutReceipt {
                             $0,
                             apexSessions: apexSessionIdentities
                         ) == false
-                        && (date == nil || $0.date == date)
                 }
             var linkedBySession: [UUID: ImportedActivity] = [:]
             for activity in visibleExternal.sorted(by: {
@@ -372,9 +486,10 @@ extension WorkoutReceipt {
                     $0.attachingWearable(linkedBySession[$0.session.id])
                 )
             }
-            let visibleAPEXSessionIDs = Set(baseAPEXItems.map(\.id))
+            let visibleAPEXSessionIDs = Set(sessions.filter { $0.userID == ownerID && $0.completed }.map(\.id))
             externalItems = visibleExternal
                 .filter {
+                    guard date == nil || $0.date == date else { return false }
                     guard let linkedID = $0.apexWorkoutSessionID else { return true }
                     return visibleAPEXSessionIDs.contains(linkedID) == false
                 }

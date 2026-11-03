@@ -186,8 +186,9 @@ public enum FitnessBrainEngine {
 
     private static func recordedQuality(_ session: FBWorkoutSession, logs: [FBWorkoutLog]) -> Double {
         guard session.completed else { return 0 }
-        let external = session.notes == "Completed externally from the APEX guided player"
-            || session.notes == "Completed externally from the FITR MAX guided player"
+        let notes = WorkoutReceipt.notesWithoutTimingMetadata(session.notes ?? "")
+        let external = notes == "Completed externally from the APEX guided player"
+            || notes == "Completed externally from the FITR MAX guided player"
         if !logs.isEmpty && !external && !logs.contains(where: \.hasRecordedWork) { return 0 }
         guard session.qualityScore.isFinite, session.qualityScore >= 0 else { return 0 }
         // Old receipts may have no set detail; absence is not proof of no work.

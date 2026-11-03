@@ -15,6 +15,30 @@ struct NutritionCalorieBalance: Equatable {
     }
 }
 
+/// One selected-day activity description for both the Burned ring and the
+/// written assessment. The plan's selected calorie mode is a separate input.
+enum NutritionRecordedActivity {
+    static func resolve(
+        profile: Profile?,
+        settings: UserSettings?,
+        logs: [ActivityLog],
+        date: String
+    ) -> WearableActivityEngine.Resolution {
+        guard let profile else {
+            return WearableActivityEngine.resolve(persona: .constantine, wearable: nil, logs: [])
+        }
+        let wearable = settings?.userID == profile.userID
+            ? WearableActivityRecord.history(from: settings?.addons["watch_activity_history"])
+                .last { $0.date == date }
+            : nil
+        return WearableActivityEngine.resolve(
+            persona: profile.persona,
+            wearable: wearable,
+            logs: logs.filter { $0.userID == profile.userID && $0.date == date }
+        )
+    }
+}
+
 /// The native equivalent of the web "Nutrition at a glance" card. All values
 /// come from the selected user's structured Supabase meal rows, with the daily
 /// log used only as the backward-compatible fallback for older/manual days.
@@ -62,26 +86,12 @@ struct NutritionGlanceCard: View {
         )
     }
 
-    private var wearableActivity: WearableActivityRecord? {
-        WearableActivityRecord
-            .history(from: session.data.settings?.addons["watch_activity_history"])
-            .last { $0.date == date.apexDateKey }
-    }
-
     private var resolvedActivity: WearableActivityEngine.Resolution {
-        let profile = session.profile
-        let logs: [ActivityLog]
-        if let ownerID = profile?.userID {
-            logs = session.data.activityLogs.filter {
-                $0.userID == ownerID && $0.date == date.apexDateKey
-            }
-        } else {
-            logs = []
-        }
-        return WearableActivityEngine.resolve(
-            persona: profile?.persona ?? .constantine,
-            wearable: wearableActivity,
-            logs: logs
+        NutritionRecordedActivity.resolve(
+            profile: session.profile,
+            settings: session.data.settings,
+            logs: session.data.activityLogs,
+            date: date.apexDateKey
         )
     }
 

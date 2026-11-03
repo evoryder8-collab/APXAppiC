@@ -722,12 +722,12 @@ export function Nutrition() {
     }), [actualByPlannedMeal, dayMealIds, foodStore.entries, mealPlan])
   const daySupplementIds = useMemo(
     () => {
-      const activeIDs = new Set(data.supplements.filter((supplement) => supplement.archived !== true).map((supplement) => supplement.id))
-      return new Set(data.supplement_logs.filter((log) => log.date === selectedLogDate && activeIDs.has(log.supplement_id)).map((log) => log.supplement_id))
+      const activeIDs = new Set(data.supplements.filter((supplement) => supplement.user_id === profile?.user_id && supplement.archived !== true).map((supplement) => supplement.id))
+      return new Set(data.supplement_logs.filter((log) => log.user_id === profile?.user_id && log.date === selectedLogDate && activeIDs.has(log.supplement_id)).map((log) => log.supplement_id))
     },
-    [data.supplement_logs, data.supplements, selectedLogDate],
+    [data.supplement_logs, data.supplements, selectedLogDate, profile?.user_id],
   )
-  const activeSupplementCount = data.supplements.filter((supplement) => supplement.archived !== true).length
+  const activeSupplementCount = data.supplements.filter((supplement) => supplement.user_id === profile?.user_id && supplement.archived !== true).length
 
   /* Keep the daily record, the nutrition brain consumed by Avatar, reports and
      history, in lockstep with the reconciled ledger. This also repairs legacy
@@ -1250,16 +1250,15 @@ export function Nutrition() {
           </div>
         </details>
 
-        {/* -------- Supplement timeline -------- */}
-        <details id="nutrition-supplements" className="glass group scroll-mt-28 rounded-3xl p-4">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-            <div><p className="font-display text-sm font-bold text-ink">{tx('Supplement stack')}</p><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{daySupplementIds.size}/{activeSupplementCount} · {format(selectedDateObject, 'd MMM')}</p></div>
-            <span className="grid h-8 w-8 place-items-center rounded-full bg-white/65 text-lg text-ink-soft transition group-open:rotate-45">+</span>
-          </summary>
+        {/* -------- Daily supplement routine -------- */}
+        <section id="nutrition-supplements" className="glass scroll-mt-28 rounded-3xl p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div><h2 className="font-display text-lg font-bold text-ink">{tx('Supplements')}</h2><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{daySupplementIds.size}/{activeSupplementCount} · {format(selectedDateObject, 'd MMM')}</p></div>
+          </div>
           <div className="mt-4 border-t border-ink/7 pt-4">
             <SupplementStackEditor date={selectedLogDate} />
           </div>
-        </details>
+        </section>
 
         {/* -------- Focused daily log -------- */}
         {!selectedIsFuture && (

@@ -259,7 +259,7 @@ export function ManualWorkoutLogger({
       sort_order: weekday,
     }
     const now = new Date().toISOString()
-    const existingSession = editSessionId ? data.workout_sessions.find((candidate) => candidate.id === editSessionId) : null
+    const existingSession = editSessionId ? data.workout_sessions.find((candidate) => candidate.id === editSessionId && candidate.user_id === profile.user_id) : null
     if (editSessionId && !existingSession) {
       toast(t('This workout could not be reopened.'))
       return
@@ -274,12 +274,12 @@ export function ManualWorkoutLogger({
       is_event_recovery: existingSession?.is_event_recovery ?? false,
       completed: true,
       quality_score: 1,
-      started_at: existingSession?.started_at ?? now,
-      completed_at: now,
-      notes: manualWorkoutNotes(title),
+      started_at: existingSession ? existingSession.started_at : null,
+      completed_at: existingSession ? existingSession.completed_at : now,
+      notes: manualWorkoutNotes(title, existingSession?.notes),
     }
     const existingLogs = existingSession
-      ? data.workout_logs.filter((candidate) => candidate.session_id === existingSession.id)
+      ? data.workout_logs.filter((candidate) => candidate.session_id === existingSession.id && candidate.user_id === profile.user_id)
       : []
     /* Chronology is the durable occurrence identity. Give every visible
        exercise its own minute even when a movement appears twice, so a later

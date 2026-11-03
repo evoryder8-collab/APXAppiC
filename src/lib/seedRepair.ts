@@ -200,20 +200,26 @@ function upgradeV3Nutrition(
   removedSupplements: string[]
 } {
   const removedMeals = current.meals.map((row) => row.id)
-  const removedSupplements = current.supplements.map((row) => row.id)
+  // Routine edits and historical check-offs are user data, even on a legacy
+  // nutrition seed. Add genuinely missing defaults without deleting originals.
+  const removedSupplements: string[] = []
   const removedMealIds = new Set(removedMeals)
-  const removedSupplementIds = new Set(removedSupplements)
+  const missingSupplements = reconcileRows(
+    current.supplements,
+    seeded.supplements,
+    (row) => `${row.group_label}|${row.name}`.toLocaleLowerCase(),
+  ).missing
   return {
     data: {
       ...current,
       meals: [...seeded.meals],
       meal_logs: current.meal_logs.filter((row) => !removedMealIds.has(row.meal_id)),
-      supplements: [...seeded.supplements],
-      supplement_logs: current.supplement_logs.filter((row) => !removedSupplementIds.has(row.supplement_id)),
+      supplements: [...current.supplements, ...missingSupplements],
+      supplement_logs: current.supplement_logs,
     },
     rows: {
       meals: seeded.meals,
-      supplements: seeded.supplements,
+      supplements: missingSupplements,
     },
     removedMeals,
     removedSupplements,
@@ -286,7 +292,7 @@ function upgradeV5PersonalProtocol(
   )
   const mappedExisting = current.supplements.map((row) => {
     const seededRow = seededByKey.get(`${row.group_label}|${row.name}`.toLocaleLowerCase())
-    return seededRow ? { ...seededRow, id: row.id, user_id: row.user_id } : row
+    return seededRow ? { ...seededRow, id: row.id, user_id: row.user_id, archived: row.archived ?? false } : row
   })
   const newRows = seeded.supplements.filter(
     (row) => !currentKeys.has(`${row.group_label}|${row.name}`.toLocaleLowerCase()),

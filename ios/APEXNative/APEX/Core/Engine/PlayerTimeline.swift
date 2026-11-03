@@ -495,6 +495,9 @@ enum PlayerTimeline {
         var persistedAt: String
         // Optional so unfinished sessions from older builds remain readable.
         var setExecution: GuidedSetExecution? = nil
+        // The end of performed work, not a later receipt-save time. Old
+        // drafts intentionally leave this unknown rather than guessing.
+        var performedFinish: String? = nil
     }
 
     enum DraftStore {

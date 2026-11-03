@@ -20,6 +20,17 @@ struct WorkoutReceiptSheet: View {
     @State private var language = LanguageState.shared
     let sessionID: UUID
     var onClose: () -> Void = {}
+    @State private var showTimingEditor = false
+    @State private var timingSaved = false
+
+    private var ownedReceipt: WorkoutSession? {
+        guard let owner = session.accountOperationLease()?.ownerID else { return nil }
+        return session.data.workoutSessions.first { $0.id == sessionID && $0.userID == owner && $0.completed }
+    }
+
+    private var timeZone: TimeZone {
+        session.data.settings?.addons["time_zone"]?.stringValue.flatMap(TimeZone.init(identifier:)) ?? .current
+    }
 
     private var logs: [WorkoutLog] {
         WorkoutLogOrder.performedOrder(session.data, sessionID: sessionID)
@@ -39,6 +50,36 @@ struct WorkoutReceiptSheet: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 header
+                if let receipt = ownedReceipt {
+                    Button {
+                        timingSaved = false
+                        showTimingEditor = true
+                    } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "calendar.badge.clock")
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(language.text("Workout date and time"))
+                                    .font(APEXFont.body(14, weight: .bold))
+                                Text(WorkoutReceipt.externalDateText(receipt.date, locale: language.language.locale, timeZone: timeZone))
+                                    .font(APEXFont.body(12))
+                            }
+                            Spacer(minLength: 8)
+                            Text(language.text("Edit"))
+                                .font(APEXFont.body(13, weight: .semibold))
+                        }
+                        .foregroundStyle(APEXColor.violet)
+                        .padding(16)
+                        .background(APEXColor.violet.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("workout-edit-timing")
+                }
+                if timingSaved {
+                    Label(language.text("Workout date and time saved."), systemImage: "checkmark.circle.fill")
+                        .font(APEXFont.body(12, weight: .semibold))
+                        .foregroundStyle(APEXColor.green)
+                        .accessibilityIdentifier("workout-timing-saved")
+                }
                 metrics
                 if !insights.isEmpty { signal }
                 breakdown
@@ -56,6 +97,14 @@ struct WorkoutReceiptSheet: View {
             .padding(18)
         }
         .background(APEXBackground())
+        .sheet(isPresented: $showTimingEditor) {
+            if let receipt = ownedReceipt {
+                WorkoutTimingEditor(receipt: receipt, timeZone: timeZone) {
+                    timingSaved = true
+                    showTimingEditor = false
+                }
+            }
+        }
     }
 
     private var header: some View {
@@ -268,6 +317,163 @@ struct WorkoutReceiptSheet: View {
         case .regressed: return "Below last time"
         case .adherence: return "Completed"
         case .incomparable: return "Needs matching facts to compare"
+        }
+    }
+}
+
+private struct WorkoutTimingEditor: View {
+    @Environment(AppSession.self) private var session
+    @Environment(\.dismiss) private var dismiss
+    @State private var language = LanguageState.shared
+    let receipt: WorkoutSession
+    let timeZone: TimeZone
+    let onSaved: () -> Void
+    @State private var workoutDay: Date
+    @State private var start: Date
+    @State private var finish: Date
+    @State private var includeStart: Bool
+    @State private var isSaving = false
+    @State private var errorKey: String?
+
+    init(receipt: WorkoutSession, timeZone: TimeZone, onSaved: @escaping () -> Void) {
+        self.receipt = receipt
+        self.timeZone = timeZone
+        self.onSaved = onSaved
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        let day = formatter.date(from: receipt.date) ?? .now
+        let recordedStart = ExternalWorkoutImport.parseTimestamp(receipt.startedAt)
+        let recordedFinish = ExternalWorkoutImport.parseTimestamp(receipt.completedAt)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        let anchor = recordedStart ?? recordedFinish ?? day
+        let delta = calendar.dateComponents([.day], from: calendar.startOfDay(for: anchor), to: calendar.startOfDay(for: day)).day ?? 0
+        let proposedStart = calendar.date(byAdding: .day, value: delta, to: recordedStart ?? recordedFinish ?? day) ?? day
+        let proposedFinish = calendar.date(byAdding: .day, value: delta, to: recordedFinish ?? recordedStart ?? day) ?? day
+        _workoutDay = State(initialValue: day)
+        _start = State(initialValue: proposedStart)
+        _finish = State(initialValue: proposedFinish)
+        _includeStart = State(initialValue: recordedStart != nil)
+    }
+
+    private var calendar: Calendar {
+        var value = Calendar(identifier: .gregorian)
+        value.timeZone = timeZone
+        return value
+    }
+
+    private var dateKey: String {
+        let parts = calendar.dateComponents([.year, .month, .day], from: workoutDay)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
+
+    private var daySelection: Binding<Date> {
+        Binding(get: { workoutDay }, set: { next in
+            let delta = calendar.dateComponents([.day], from: calendar.startOfDay(for: workoutDay), to: calendar.startOfDay(for: next)).day ?? 0
+            start = calendar.date(byAdding: .day, value: delta, to: start) ?? start
+            finish = calendar.date(byAdding: .day, value: delta, to: finish) ?? finish
+            workoutDay = includeStart ? start : finish
+            errorKey = nil
+        })
+    }
+
+    private var startSelection: Binding<Date> {
+        Binding(get: { start }, set: { next in
+            start = next
+            workoutDay = next
+            errorKey = nil
+        })
+    }
+
+    private var finishSelection: Binding<Date> {
+        Binding(get: { finish }, set: { next in
+            finish = next
+            if !includeStart { workoutDay = next }
+            errorKey = nil
+        })
+    }
+
+    private var startIncluded: Binding<Bool> {
+        Binding(get: { includeStart }, set: { next in
+            includeStart = next
+            workoutDay = next ? start : finish
+            errorKey = nil
+        })
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    DatePicker(language.text("Workout date"), selection: daySelection, in: ...Date(), displayedComponents: .date)
+                        .accessibilityIdentifier("workout-timing-date")
+                    Toggle(language.text("Include start time"), isOn: startIncluded)
+                    if includeStart {
+                        DatePicker(language.text("Started"), selection: startSelection, displayedComponents: [.date, .hourAndMinute])
+                            .accessibilityIdentifier("workout-timing-start")
+                    }
+                    DatePicker(language.text("Finished"), selection: finishSelection, displayedComponents: [.date, .hourAndMinute])
+                        .accessibilityIdentifier("workout-timing-finish")
+                } footer: {
+                    Text(language.text("Times use your Settings time zone.") + " " + timeZone.identifier)
+                }
+                if receipt.completedAt == nil {
+                    Text(language.text("Finish time was not recorded. Enter it to correct this receipt."))
+                        .font(APEXFont.body(13))
+                }
+                if let errorKey {
+                    Text(language.text(errorKey))
+                        .foregroundStyle(APEXColor.danger)
+                        .accessibilityIdentifier("workout-timing-error")
+                }
+            }
+            .disabled(isSaving)
+            .navigationTitle(language.text("Workout"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(language.text("Cancel")) { dismiss() }.disabled(isSaving)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(language.text(isSaving ? "Saving…" : "Save")) { save() }
+                        .disabled(isSaving)
+                        .accessibilityIdentifier("workout-timing-save")
+                }
+            }
+        }
+        .environment(\.timeZone, timeZone)
+        .environment(\.locale, language.language.locale)
+    }
+
+    private func save() {
+        guard !isSaving else { return }
+        guard finish <= Date().addingTimeInterval(60), !includeStart || start <= finish else {
+            errorKey = "Choose a valid workout date and time."
+            return
+        }
+        guard let operation = session.accountOperationLease(), operation.ownerID == receipt.userID else {
+            errorKey = "Could not save the workout time. Try again."
+            return
+        }
+        isSaving = true
+        errorKey = nil
+        Task { @MainActor in
+            defer { isSaving = false }
+            do {
+                let saved = try await session.updateCompletedWorkoutTiming(
+                    id: receipt.id, date: dateKey, startedAt: includeStart ? start : nil,
+                    completedAt: finish, operation: operation
+                )
+                guard session.accountOperationIsCurrent(operation) else { return }
+                if saved { onSaved() }
+                else { errorKey = "Choose a valid workout date and time." }
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                errorKey = "Could not save the workout time. Try again."
+            }
         }
     }
 }

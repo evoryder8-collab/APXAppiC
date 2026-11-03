@@ -5603,3 +5603,27 @@
 "Open Health" = "Deschide Sănătate";
 "Your FITR MAX water log stays available either way." = "Jurnalul de apă din FITR MAX rămâne disponibil indiferent de alegere.";
 "Water sharing" = "Partajarea apei";
+
+/* Daily training previews */
+"Show all exercises" = "Arată toate exercițiile";
+"Show fewer exercises" = "Arată mai puține exerciții";
+
+/* Selected-day activity is separate from the plan calorie target. */
+"Your logged activity is %@. Your plan target remains %d kcal." = "Activitatea înregistrată este %@. Ținta planului rămâne %d kcal.";
+"Your logged activity and nutrition priorities." = "Activitatea înregistrată și prioritățile nutriționale.";
+
+/* Workout receipt date and time correction */
+"Workout date and time" = "Data și ora antrenamentului";
+"Workout date" = "Data antrenamentului";
+"Started" = "Început";
+"Finished" = "Sfârșit";
+"Include start time" = "Include ora de început";
+"Times use your Settings time zone." = "Orele folosesc fusul orar ales în Setări.";
+"Choose a valid workout date and time." = "Alege o dată și o oră valide pentru antrenament.";
+"Workout date and time saved." = "Data și ora antrenamentului au fost salvate.";
+"Could not save the workout time. Try again." = "Ora antrenamentului nu a putut fi salvată. Încearcă din nou.";
+"Finish time was not recorded. Enter it to correct this receipt." = "Ora de sfârșit nu a fost înregistrată. Introdu-o pentru a corecta acest rezumat.";
+
+/* Supplement daily-routine editing keeps historical doses. */
+"Remove from your daily routine?" = "Elimini din rutina zilnică?";
+"Changes apply to every day. Previous doses stay in your history." = "Modificările se aplică în fiecare zi. Dozele anterioare rămân în istoric.";

@@ -2,6 +2,7 @@ import { differenceInCalendarDays, format, getISODay, parseISO, subDays } from '
 import { catalogExerciseByName, type ExerciseCatalogItem } from '../data/exerciseCatalog.ts'
 import type { AppData, WorkoutLog, WorkoutSession } from './types'
 import { descriptorForExercise } from './exerciseLogging.ts'
+import { withWorkoutTimingMetadata, withoutWorkoutTimingMetadata, workoutTimingMetadataDate } from './workoutTimingMetadata.ts'
 
 export const MANUAL_WORKOUT_PREFIX = 'APEX_MANUAL_V1'
 export const QUICK_WORKOUT_PRESET_LIMIT = 7
@@ -93,14 +94,16 @@ export interface ManualExerciseTimelineEntry extends ManualExerciseOrderReferenc
   firstCreatedAt: string
 }
 
-export function manualWorkoutNotes(title: string): string {
-  return `${MANUAL_WORKOUT_PREFIX}|${encodeURIComponent(title.trim() || AUTOMATIC_TITLE)}`
+export function manualWorkoutNotes(title: string, previousNotes?: string): string {
+  const notes = `${MANUAL_WORKOUT_PREFIX}|${encodeURIComponent(title.trim() || AUTOMATIC_TITLE)}`
+  const originalDate = previousNotes ? workoutTimingMetadataDate(previousNotes) : null
+  return originalDate ? withWorkoutTimingMetadata(notes, originalDate) : notes
 }
 
 export function manualWorkoutTitle(notes: string): string | null {
   if (!notes.startsWith(`${MANUAL_WORKOUT_PREFIX}|`)) return null
   try {
-    const decoded = decodeURIComponent(notes.slice(MANUAL_WORKOUT_PREFIX.length + 1))
+    const decoded = decodeURIComponent(withoutWorkoutTimingMetadata(notes).slice(MANUAL_WORKOUT_PREFIX.length + 1))
     return !decoded || decoded === AUTOMATIC_TITLE ? 'Workout' : decoded
   } catch {
     return 'Workout'
@@ -110,7 +113,7 @@ export function manualWorkoutTitle(notes: string): string | null {
 export function manualWorkoutHasAutomaticTitle(notes: string): boolean {
   if (!notes.startsWith(`${MANUAL_WORKOUT_PREFIX}|`)) return false
   try {
-    return decodeURIComponent(notes.slice(MANUAL_WORKOUT_PREFIX.length + 1)) === AUTOMATIC_TITLE
+    return decodeURIComponent(withoutWorkoutTimingMetadata(notes).slice(MANUAL_WORKOUT_PREFIX.length + 1)) === AUTOMATIC_TITLE
   } catch {
     return false
   }

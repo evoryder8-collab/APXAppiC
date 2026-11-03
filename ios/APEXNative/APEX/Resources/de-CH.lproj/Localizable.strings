@@ -5621,3 +5621,27 @@
 "Open Health" = "Health ufmache";
 "Your FITR MAX water log stays available either way." = "Dis Wasserprotokoll in FITR MAX bliibt i jedem Fall verfüegbar.";
 "Water sharing" = "Wasserfreigab";
+
+/* Daily training previews */
+"Show all exercises" = "Alli Üebige aazeige";
+"Show fewer exercises" = "Weniger Üebige aazeige";
+
+/* Selected-day activity is separate from the plan calorie target. */
+"Your logged activity is %@. Your plan target remains %d kcal." = "Dini erfassti Aktivität isch %@. Dis Planziel bliibt bi %d kcal.";
+"Your logged activity and nutrition priorities." = "Dini erfassti Aktivität und dini Prioritäte bim Ässe.";
+
+/* Workout receipt date and time correction */
+"Workout date and time" = "Datum und Ziit vom Training";
+"Workout date" = "Trainingsdatum";
+"Started" = "Aagfange";
+"Finished" = "Fertig";
+"Include start time" = "Startziit aagee";
+"Times use your Settings time zone." = "D Ziite sind i de Ziitzone us dine Iistellige.";
+"Choose a valid workout date and time." = "Wähl es gültigs Datum und e gültigi Ziit fürs Training.";
+"Workout date and time saved." = "Datum und Ziit vom Training sind gspeicheret.";
+"Could not save the workout time. Try again." = "D Trainingsziit hät nöd chöne gspeicheret werde. Probier’s nomal.";
+"Finish time was not recorded. Enter it to correct this receipt." = "D Endziit isch nöd ufgzeichnet worde. Gib si ii, zum de Trainingsiitrag korrigiere.";
+
+/* Supplement daily-routine editing keeps historical doses. */
+"Remove from your daily routine?" = "Us de tägliche Routine entferne?";
+"Changes apply to every day. Previous doses stay in your history." = "Änderige gälted für jede Tag. Dini bisherige Iinahme bliibed im Verlauf.";

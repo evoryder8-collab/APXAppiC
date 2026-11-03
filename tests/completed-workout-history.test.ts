@@ -419,9 +419,9 @@ test('completed workout history is date-owned on Simple Mode and phase pages', (
   assert.doesNotMatch(simple, /CompletedWorkoutHistoryCards date=\{selectedDate\}[^>]*limit=/)
   assert.doesNotMatch(phase, /CompletedWorkoutHistoryCards date=\{today\}[^>]*limit=/)
   assert.match(nativeSimple, /CompletedWorkoutHistoryCards\(date: selectedDate\.apexDateKey, accent: APEXColor\.teal\)/)
-  assert.match(nativePhase, /CompletedWorkoutHistoryCards\(date: Date\(\)\.apexDateKey, accent: accent\)/)
+  assert.match(nativePhase, /CompletedWorkoutHistoryCards\(date: session\.browsingDate\.apexDateKey, accent: accent\)/)
   assert.doesNotMatch(nativeSimple, /CompletedWorkoutHistoryCards\(date: selectedDate\.apexDateKey,[^\n]*limit:/)
-  assert.doesNotMatch(nativePhase, /CompletedWorkoutHistoryCards\(date: Date\(\)\.apexDateKey,[^\n]*limit:/)
+  assert.doesNotMatch(nativePhase, /CompletedWorkoutHistoryCards\(date: session\.browsingDate\.apexDateKey,[^\n]*limit:/)
 })
 
 test("Nutrition Today's Activities reuses the same date-owned finished workout receipts", () => {
@@ -476,11 +476,11 @@ test('expanded finished-workout cards show the receipt inline with one edit acti
   assert.doesNotMatch(cards, /View & edit receipt|Edit workout structure/)
 })
 
-test('external HealthKit cards are read-only receipts with Hide from APEX as their only destructive action', () => {
+test('external HealthKit cards are read-only receipts with Hide from FITR MAX as their only destructive action', () => {
   const cards = readFileSync(new URL('../src/components/workout/CompletedWorkoutHistoryCards.tsx', import.meta.url), 'utf8')
   const externalBlock = cards.split("if (entry.kind === 'external')")[1]?.split('const { session, title')[0] ?? ''
   assert.match(cards, /finishedWorkoutHistoryForDate/)
-  assert.match(cards, /Hide from APEX/)
+  assert.match(cards, /Hide from FITR MAX/)
   assert.match(cards, /The original workout stays in Apple Health\./)
   assert.match(cards, /READ-ONLY RECEIPT/)
   assert.doesNotMatch(cards, /remove\('imported_activities'/)

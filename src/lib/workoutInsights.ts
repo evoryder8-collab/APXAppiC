@@ -70,10 +70,13 @@ export function workoutInsights(input: WorkoutInsightInput): WorkoutInsightSumma
   const from = input.from <= input.to ? input.from : input.to
   const to = input.from <= input.to ? input.to : input.from
   const allOwnedSessions = input.sessions.filter((session) => session.user_id === input.ownerID && session.completed)
+  const ownedSessionDates = new Map(allOwnedSessions.map((session) => [session.id, session.date]))
   const allExternal = input.importedActivities.filter((activity) => isVisibleExternal(activity, input.ownerID))
   const sessions = allOwnedSessions.filter((session) => inRange(session.date, from, to))
   const sessionIDs = new Set(sessions.map((session) => session.id))
-  const external = allExternal.filter((activity) => inRange(activity.date, from, to))
+  const attributedDate = (activity: ImportedActivity): string =>
+    activity.apex_workout_session_id ? ownedSessionDates.get(activity.apex_workout_session_id) ?? activity.date : activity.date
+  const external = allExternal.filter((activity) => inRange(attributedDate(activity), from, to))
   const linkedSessionIDs = new Set(external.flatMap((activity) => (
     activity.apex_workout_session_id && sessionIDs.has(activity.apex_workout_session_id)
       ? [activity.apex_workout_session_id]
@@ -122,12 +125,12 @@ export function workoutInsights(input: WorkoutInsightInput): WorkoutInsightSumma
   })
   const activeDates = new Set([
     ...sessions.map((session) => session.date),
-    ...external.map((activity) => activity.date),
+    ...external.map(attributedDate),
   ])
   const standaloneExternal = external.filter((activity) => (
     !activity.apex_workout_session_id || !sessionIDs.has(activity.apex_workout_session_id)
   ))
-  const oldestEvidenceDate = [...allOwnedSessions.map((session) => session.date), ...allExternal.map((activity) => activity.date)]
+  const oldestEvidenceDate = [...allOwnedSessions.map((session) => session.date), ...allExternal.map(attributedDate)]
     .sort()[0] ?? null
 
   return {

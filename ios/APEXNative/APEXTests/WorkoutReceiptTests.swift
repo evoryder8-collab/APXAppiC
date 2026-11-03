@@ -9,6 +9,117 @@ import HealthKit
 @testable import APEX
 
 final class WorkoutReceiptTests: XCTestCase {
+    @MainActor
+    func testStandardAccountTimingEditPreservesReceiptFactsAndLinkedHealthActivity() async throws {
+        let app = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(app.profile?.userID)
+        var data = APEXDebugFixture.dashboard(userID: owner)
+        data.activityTypes.append(timingTestActivityType())
+        XCTAssertEqual(data.profile?.profileKind, .standard, "Timing correction must not require a bespoke account.")
+        let exercise = try XCTUnwrap(data.exercises.first)
+        var receipt = workout(userID: owner, date: "2020-11-01", dayID: exercise.programDayID,
+                              completedAt: "2020-11-01T19:00:00Z")
+        receipt.startedAt = "2020-11-01T18:00:00Z"
+        let logs = (1...2).map { set in
+            WorkoutLog(id: UUID(), userID: owner, sessionID: receipt.id, exerciseID: exercise.id,
+                exerciseName: exercise.name, setNumber: set, weightKG: 20, reps: 10, rir: 2,
+                skipped: false, overrideFlag: false, createdAt: "2020-11-01T19:00:0\(set)Z")
+        }
+        let generatedID = WorkoutReceipt.generatedActivityID(for: receipt)
+        let generated = ActivityLog(id: generatedID, userID: owner, date: receipt.date,
+            typeID: "apex-strength", quantity: 1, durationMinutes: 480, computedKcal: 900,
+            source: "workout_module", reconciled: false,
+            createdAt: receipt.completedAt!, updatedAt: receipt.completedAt!)
+        let health = ImportedActivity(id: UUID(), userID: owner, date: receipt.date, kind: "strength",
+            activity: "Traditional Strength Training", durationMinutes: 60, source: "Apple Watch",
+            healthKitWorkoutID: UUID(), activeEnergyKcal: 210, sourceBundleIdentifier: "com.apple.health")
+        let linked = try XCTUnwrap(WearableWorkoutLinking.explicitLink(health, to: receipt))
+        data.workoutSessions = [receipt]
+        data.workoutLogs = logs
+        data.activityLogs = [generated]
+        data.importedActivities = [linked]
+        app.data = data
+        let operation = try XCTUnwrap(app.accountOperationLease())
+        let start = try XCTUnwrap(ExternalWorkoutImport.parseTimestamp("2020-11-02T17:00:00Z"))
+        let finish = try XCTUnwrap(ExternalWorkoutImport.parseTimestamp("2020-11-02T18:00:00Z"))
+        let saved = try await app.updateCompletedWorkoutTiming(id: receipt.id, date: "2020-11-02",
+            startedAt: start, completedAt: finish, operation: operation)
+        XCTAssertTrue(saved)
+        let edited = try XCTUnwrap(app.data.workoutSessions.first)
+        XCTAssertEqual(app.data.workoutSessions.count, 1)
+        XCTAssertEqual(edited.id, receipt.id)
+        XCTAssertEqual(edited.date, "2020-11-02")
+        XCTAssertEqual(edited.qualityScore, receipt.qualityScore)
+        XCTAssertEqual(app.data.workoutLogs.map(\.id), logs.map(\.id))
+        XCTAssertEqual(app.data.workoutLogs.map(\.reps), [10, 10])
+        XCTAssertEqual(app.data.workoutLogs.map(\.weightKG), [20, 20])
+        XCTAssertEqual(ExternalWorkoutImport.parseTimestamp(app.data.workoutLogs[1].createdAt)?.timeIntervalSince(finish), 2)
+        XCTAssertEqual(app.data.activityLogs.map(\.id), [generatedID])
+        XCTAssertEqual(app.data.activityLogs.first?.date, "2020-11-02")
+        XCTAssertEqual(app.data.activityLogs.first?.durationMinutes, 60)
+        XCTAssertEqual(app.data.importedActivities, [linked], "Apple Health source and manual association are immutable.")
+        XCTAssertEqual(WorkoutReceipt.generatedActivityID(for: edited), generatedID)
+        XCTAssertEqual(WorkoutReceipt.deletionPlan(sessions: app.data.workoutSessions, logs: app.data.workoutLogs,
+            activities: app.data.activityLogs, sessionID: edited.id, ownerID: owner)?.activityLogIDs, [generatedID])
+        let newHistory = WorkoutReceipt.finishedHistory(sessions: app.data.workoutSessions, days: [],
+            importedActivities: [linked], date: "2020-11-02", ownerID: owner, limit: nil)
+        XCTAssertEqual(newHistory.count, 1)
+        if case let .apex(item) = try XCTUnwrap(newHistory.first) { XCTAssertEqual(item.linkedWearable?.id, linked.id) }
+        else { XCTFail("The attached wearable must remain on the moved receipt.") }
+        XCTAssertTrue(WorkoutReceipt.finishedHistory(sessions: app.data.workoutSessions, days: [],
+            importedActivities: [linked], date: "2020-11-01", ownerID: owner, limit: nil).isEmpty)
+        let insights = WorkoutInsights.summarize(ownerID: owner, from: "2020-11-02", to: "2020-11-02",
+            sessions: app.data.workoutSessions, logs: app.data.workoutLogs, importedActivities: [linked])
+        XCTAssertEqual(insights.workouts, 1)
+        XCTAssertEqual(insights.activeDays, 1)
+        XCTAssertEqual(insights.activeEnergyKcal, 210)
+        XCTAssertNil(WorkoutReceipt.timingCorrection(data: app.data, sessionID: receipt.id, ownerID: UUID(),
+            date: "2020-11-02", startedAt: start, completedAt: finish))
+        XCTAssertNil(WorkoutReceipt.timingCorrection(data: app.data, sessionID: receipt.id, ownerID: owner,
+            date: "2020-11-01", startedAt: start, completedAt: finish), "The calendar date must match the time-zone anchor.")
+        XCTAssertNil(WorkoutReceipt.timingCorrection(data: app.data, sessionID: receipt.id, ownerID: owner,
+            date: "2020-11-02", startedAt: finish, completedAt: start))
+        let manualNotes = ManualWorkout.notes(title: "Evening strength") + "\nFITR_WORKOUT_TIMING_V1|2020-11-01"
+        XCTAssertEqual(ManualWorkout.title(fromNotes: manualNotes), "Evening strength")
+        XCTAssertFalse(WorkoutReceipt.notesWithoutTimingMetadata(edited.notes).contains("FITR_WORKOUT_TIMING_V1"))
+    }
+
+    @MainActor
+    func testDelayedGuidedSaveUsesPerformedFinishAndLegacyUnknownEndStaysUnknown() async throws {
+        let app = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(app.profile?.userID)
+        app.data = APEXDebugFixture.dashboard(userID: owner)
+        app.data.activityTypes.append(timingTestActivityType())
+        let exercise = try XCTUnwrap(app.data.exercises.first)
+        let day = try XCTUnwrap(app.data.programDays.first { $0.id == exercise.programDayID })
+        let operation = try XCTUnwrap(app.accountOperationLease())
+        let start = try XCTUnwrap(ExternalWorkoutImport.parseTimestamp("2020-11-01T18:00:00Z"))
+        let finish = try XCTUnwrap(ExternalWorkoutImport.parseTimestamp("2020-11-01T19:00:00Z"))
+        let inputs = [WorkoutSetInput(exerciseID: exercise.id, exerciseName: exercise.name, setNumber: 1,
+                                    weightKG: nil, reps: 8, rir: 2, skipped: false)]
+        let saved = try await app.completeWorkout(day: day, setInputs: inputs, lite: false,
+            startedAt: start, finishedAt: finish, completionDate: "2020-11-01", operation: operation)
+        let id = try XCTUnwrap(saved)
+        let receipt = try XCTUnwrap(app.data.workoutSessions.first { $0.id == id })
+        XCTAssertEqual(ExternalWorkoutImport.parseTimestamp(receipt.completedAt), finish)
+        let activityID = WorkoutReceipt.generatedActivityID(for: receipt)
+        let activity = try XCTUnwrap(app.data.activityLogs.first(where: { $0.id == activityID }))
+        XCTAssertEqual(activity.durationMinutes, 60, "The later save delay is not exercise duration.")
+        let legacy = try await app.completeWorkout(day: day, setInputs: inputs, lite: false,
+            startedAt: start.addingTimeInterval(86_400), finishedAt: nil,
+            completionDate: "2020-11-02", operation: operation)
+        let legacyID = try XCTUnwrap(legacy)
+        let legacyReceipt = try XCTUnwrap(app.data.workoutSessions.first { $0.id == legacyID })
+        XCTAssertNil(legacyReceipt.completedAt)
+        XCTAssertFalse(app.data.activityLogs.contains { $0.id == WorkoutReceipt.generatedActivityID(for: legacyReceipt) })
+    }
+
+    private func timingTestActivityType() -> ActivityType {
+        ActivityType(id: "apex-strength", category: "Training", name: "Strength training",
+            icon: "figure.strengthtraining.traditional", met: 5, inputStyle: .duration,
+            defaultDurationMinutes: nil, isTrainingLinked: true, notes: "", distanceFactor: nil, supportsWatch: false)
+    }
+
     func testGeneratedContributionDeletionUsesOwnerScopedCrossClientIdentity() throws {
         let owner = try XCTUnwrap(UUID(uuidString: "11111111-1111-4111-8111-111111111111"))
         let sessionID = try XCTUnwrap(UUID(uuidString: "22222222-2222-4222-8222-222222222222"))

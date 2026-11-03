@@ -739,11 +739,12 @@ export function timedMeal(
 export function timedWorkout(session: WorkoutSession, timeZone: string): TimedWorkout | null {
   if (!session.completed || !session.completed_at) return null
   const completed = zonedClock(session.completed_at, timeZone)
-  if (!instantBelongsToDaylineDate(session.date, session.completed_at, timeZone)) return null
   const started = session.started_at ? zonedClock(session.started_at, timeZone) : null
+  const calendarOwned = (started?.date ?? completed.date) === session.date
+  if (!calendarOwned && !instantBelongsToDaylineDate(session.date, session.completed_at, timeZone)) return null
   return {
     session,
-    startedTime: session.started_at && instantBelongsToDaylineDate(session.date, session.started_at, timeZone)
+    startedTime: session.started_at && (started?.date === session.date || instantBelongsToDaylineDate(session.date, session.started_at, timeZone))
       ? started?.time ?? null
       : null,
     completedTime: completed.time,

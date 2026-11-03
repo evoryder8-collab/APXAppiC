@@ -5603,3 +5603,27 @@
 "Open Health" = "เปิดแอปสุขภาพ";
 "Your FITR MAX water log stays available either way." = "ไม่ว่าคุณจะเลือกอย่างไร บันทึกน้ำใน FITR MAX ยังคงใช้งานได้";
 "Water sharing" = "แชร์ข้อมูลน้ำ";
+
+/* Daily training previews */
+"Show all exercises" = "แสดงท่าออกกำลังกายทั้งหมด";
+"Show fewer exercises" = "แสดงท่าออกกำลังกายน้อยลง";
+
+/* Selected-day activity is separate from the plan calorie target. */
+"Your logged activity is %@. Your plan target remains %d kcal." = "ระดับกิจกรรมจากบันทึกของคุณคือ%@ เป้าหมายตามแผนยังคงเป็น %d kcal";
+"Your logged activity and nutrition priorities." = "กิจกรรมที่บันทึกและสิ่งสำคัญด้านโภชนาการของคุณ";
+
+/* Workout receipt date and time correction */
+"Workout date and time" = "วันที่และเวลาออกกำลังกาย";
+"Workout date" = "วันที่ออกกำลังกาย";
+"Started" = "เริ่ม";
+"Finished" = "จบ";
+"Include start time" = "ระบุเวลาเริ่ม";
+"Times use your Settings time zone." = "เวลาจะแสดงตามเขตเวลาที่เลือกไว้ในการตั้งค่า";
+"Choose a valid workout date and time." = "เลือกวันที่และเวลาออกกำลังกายที่ถูกต้อง";
+"Workout date and time saved." = "บันทึกวันที่และเวลาออกกำลังกายแล้ว";
+"Could not save the workout time. Try again." = "บันทึกเวลาออกกำลังกายไม่ได้ โปรดลองอีกครั้ง";
+"Finish time was not recorded. Enter it to correct this receipt." = "ยังไม่ได้บันทึกเวลาจบ โปรดระบุเวลาเพื่อแก้ไขบันทึกนี้";
+
+/* Supplement daily-routine editing keeps historical doses. */
+"Remove from your daily routine?" = "นำออกจากกิจวัตรประจำวันหรือไม่?";
+"Changes apply to every day. Previous doses stay in your history." = "การแก้ไขมีผลกับกิจวัตรทุกวัน ปริมาณที่เคยบันทึกไว้จะยังอยู่ในประวัติ";

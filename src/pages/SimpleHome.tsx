@@ -34,18 +34,20 @@ import { missionLabel } from '../orbit/domain/analysis'
 import { NutritionGlance } from '../components/food/NutritionGlance'
 import { ManualWorkoutLogger, TodayManualWorkoutCard } from '../components/workout/ManualWorkoutLogger'
 import { QuickWorkoutLauncher } from '../components/workout/QuickWorkoutLauncher'
+import { DailyTrainingSessionPreview } from '../components/workout/DailyTrainingSessionPreview'
 import { WeightTrend } from '../components/WeightTrend'
 import { FloatingActiveDate } from '../components/FloatingActiveDate'
 import { WorkoutStatsSheet } from '../components/workout/WorkoutStatsSheet'
 import { mealBlockIdempotencyKey, mealBlockIdFromIdempotencyKey, mealBlockLabel, mealMomentIdFromIdempotencyKey, mealSlotForBlock, mealSlotForClock, normalizeMealBlockSettings, rescheduleMealBlock, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
 import { manualSessionsForDate } from '../lib/manualWorkout'
 import { clockToMinute, daylineDateTimeToIso, normalizeMealDaylineDensity, normalizeMealTimelineSnap, timeZoneFromSettings, zonedClock, zonedDateTimeToIso } from '../lib/mealTiming'
+import { stageWorkoutFinishEdit } from '../lib/workoutTiming'
 import { MealDayline, type MealDaylineSlot } from '../components/food/MealDayline'
 import { RecoveryCheckinCard } from '../components/RecoveryCheckinCard'
 import { WatchActivityCheckin } from '../components/WatchActivityCheckin'
 import { personaBySlug } from '../lib/persona'
 import { catalogExerciseByName, displayExerciseName } from '../data/exerciseCatalog'
-import { buildTimeline, estimatedTimelineMinutes } from '../lib/playerTimeline'
+import { buildTimeline } from '../lib/playerTimeline'
 import { isFocusT25Name } from '../lib/focusT25'
 import { calendarDayState, loadActiveDate, rememberActiveDate } from '../lib/activeDate'
 import { activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
@@ -110,7 +112,7 @@ function normalizedSimpleBlockOrder(value: unknown): SimpleBlockId[] {
 }
 
 export function SimpleHome() {
-  const { appAccess, data, coachContext, snapshots, upsert, remove, setProfile, setSettings, toast } = useStore()
+  const { appAccess, data, coachContext, snapshots, upsert, remove, setProfile, setSettings, toast, commitOwnerBoundMutation } = useStore()
   const foodStore = useFoodStore()
   const orbit = useOrbitStore()
   const navigate = useNavigate()
@@ -122,7 +124,6 @@ export function SimpleHome() {
   const [busyMeal, setBusyMeal] = useState<string | null>(null)
   const [weightDraft, setWeightDraft] = useState('')
   const [quickPanel, setQuickPanel] = useState<'meals' | 'supplements' | 'water' | 'training' | 'targets' | 'macro' | 'weight' | null>(null)
-  const [trainingPreviewMode, setTrainingPreviewMode] = useState<'full' | 'light'>('full')
   const [selectedMacro, setSelectedMacro] = useState<SimpleMacroKey>('protein_g')
   const [quickMealBlockId, setQuickMealBlockId] = useState<MealBlockKind | null>(null)
   const [quickMealEditor, setQuickMealEditor] = useState<{ slot: MealSlot; blockId: MealBlockKind | null; mealIdentity: MealBlockIdentity | null; title: string; targetTime: string | null; items: ComposerFoodItem[]; plannedMealId: string | null; replaceMealId: string | null } | null>(null)
@@ -339,9 +340,6 @@ export function SimpleHome() {
     [data, guidedProgramSlug, selectedDate],
   )
   const plan = plans[0] ?? planForDate(data, guidedProgramSlug, selectedDate, false)
-  const lightPlan = lightPlans.find((candidate) => candidate.programDay?.id === plan.programDay?.id)
-    ?? lightPlans[0]
-    ?? planForDate(data, guidedProgramSlug, selectedDate, true, plan.programDay?.id)
   const completedWorkoutSessions = useMemo(() => data.workout_sessions
     .filter((session) => session.user_id === profile?.user_id && session.date === selectedDate && session.completed)
     .sort((left, right) => (right.completed_at ?? right.started_at ?? '').localeCompare(left.completed_at ?? left.started_at ?? '')),
@@ -479,21 +477,14 @@ export function SimpleHome() {
     (total, candidate) => total + (candidate.exercises.length > 0 ? candidate.programDay?.est_minutes ?? Math.max(15, candidate.exercises.length * 8) : 0),
     0,
   )
-  const lightWorkoutMinutes = Math.max(8, estimatedTimelineMinutes(lightPlan))
-  const previewPlan = trainingPreviewMode === 'full' ? plan : lightPlan
-  const previewWorkoutMinutes = trainingPreviewMode === 'full' ? fullWorkoutMinutes : lightWorkoutMinutes
-  const previewIsFridayLegDay = /(?:legs|glutes) b/i.test(previewPlan.programDay?.name ?? '')
-  const previewHasFocusT25 = previewPlan.exercises.some((exercise) => isFocusT25Name(exercise.name))
   const localizedExerciseName = (name: string): string => {
     const catalogExercise = catalogExerciseByName(name)
     return catalogExercise ? displayExerciseName(catalogExercise, language) : t(name)
   }
-  const trainingPanelTitle = dailyTrainingSessions.length > 1 ? t('Training') : workoutDone ? t('Completed training') : t('Training preview')
-  const trainingPanelSubtitle = dailyTrainingSessions.length > 1 ? selectedDate : workoutDone
+  const trainingPanelTitle = dailyTrainingSessions.length > 0 ? t('Training preview') : workoutDone ? t('Completed training') : t('Training')
+  const trainingPanelSubtitle = dailyTrainingSessions.length > 0 ? selectedDate : workoutDone
     ? `${completedWorkoutSessions.length} ${t(completedWorkoutSessions.length === 1 ? 'completed workout' : 'completed workouts')}`
-    : hasWorkout
-      ? `${previewPlan.exercises.length} ${t(previewPlan.exercises.length === 1 ? 'exercise' : 'exercises')} · ${previewWorkoutMinutes} min`
-      : t('No guided workout is planned for this day.')
+    : t('No guided workout is planned for this day.')
 
   const beginCompletedWorkoutTimeEdit = (sessionId: string): void => {
     const session = completedWorkoutSessions.find((candidate) => candidate.id === sessionId)
@@ -502,15 +493,19 @@ export function SimpleHome() {
     setCompletedWorkoutTimeDraft(zonedClock(session.completed_at, mealTimeZone).time)
   }
 
-  const saveCompletedWorkoutTime = (): void => {
+  const saveCompletedWorkoutTime = async (): Promise<void> => {
     const session = completedWorkoutSessions.find((candidate) => candidate.id === editingCompletedWorkoutId)
     if (!session || !completedWorkoutTimeDraft) return
-    upsert('workout_sessions', {
-      ...session,
-      completed_at: daylineDateTimeToIso(selectedDate, completedWorkoutTimeDraft, mealTimeZone),
-    })
-    setEditingCompletedWorkoutId(null)
-    toast(t('Workout finish time saved'), 'ok')
+    try {
+      await commitOwnerBoundMutation(profile.user_id, (current) => stageWorkoutFinishEdit(current, {
+        ownerID: profile.user_id, sessionID: session.id,
+        completedAt: daylineDateTimeToIso(selectedDate, completedWorkoutTimeDraft, mealTimeZone), timeZone: mealTimeZone,
+      }))
+      setEditingCompletedWorkoutId(null)
+      toast(t('Workout finish time saved'), 'ok')
+    } catch {
+      toast(t('Choose a valid workout date and time.'), 'error')
+    }
   }
   const activityProgress = simpleActivityProgress(
     profile.persona,
@@ -1058,17 +1053,16 @@ export function SimpleHome() {
       {dailyTrainingSessions.map((item) => {
         const day = item.plan.programDay!
         return (
-          <button key={day.id} type="button" data-testid={`simple-training-session-${day.id}`}
-            onClick={() => {
+          <DailyTrainingSessionPreview key={`${profile?.user_id}:${selectedDate}:${day.id}`} session={item}
+            lightPlan={lightPlans.find((candidate) => candidate.programDay?.id === day.id)}
+            completedLite={completedWorkoutSessions.find((session) => session.id === item.completedSessionID)?.is_lite}
+            translate={t} exerciseName={localizedExerciseName}
+            onOpen={(lite) => {
               setQuickPanel(null)
               if (item.completedSessionID) setWorkoutStatsSessionId(item.completedSessionID)
-              else navigate(`/player/${guidedProgramSlug}/${selectedDate}?day=${day.id}${item.resumeLite ? '&lite=1' : ''}`)
+              else navigate(`/player/${guidedProgramSlug}/${selectedDate}?day=${encodeURIComponent(day.id)}${lite ? '&lite=1' : ''}`)
             }}
-            className="flex min-h-12 w-full items-center gap-3 rounded-2xl border border-white/80 bg-white/70 px-3.5 py-3 text-left shadow-sm">
-            <span aria-hidden="true" className={`text-xl ${item.completedSessionID ? 'text-emerald-600' : 'text-violet-600'}`}>{item.completedSessionID ? '✓' : item.resumeLite != null ? '▶' : '○'}</span>
-            <span className="min-w-0 flex-1 break-words font-display text-sm font-bold text-ink">{t(day.name)}</span>
-            <span className={`shrink-0 text-xs font-bold ${item.completedSessionID ? 'text-emerald-700' : 'text-violet-700'}`}>{t(item.status)}</span>
-          </button>
+          />
         )
       })}
     </div>
@@ -1220,10 +1214,10 @@ export function SimpleHome() {
                 onAddAtTime={openMealAtTime}
                 onDeleteMeal={(meal) => foodStore.deleteMeal(meal.id)}
                 onOpenRecoveryMeal={openRecoveryMeal}
-                onWorkoutCompletedAt={(sessionId, completedAt) => {
-                  const session = data.workout_sessions.find((candidate) => candidate.id === sessionId)
-                  if (!session) throw new Error('This workout is no longer available.')
-                  upsert('workout_sessions', { ...session, completed_at: completedAt })
+                onWorkoutCompletedAt={async (sessionId, completedAt) => {
+                  await commitOwnerBoundMutation(profile.user_id, (current) => stageWorkoutFinishEdit(current, {
+                    ownerID: profile.user_id, sessionID: sessionId, completedAt, timeZone: mealTimeZone,
+                  }))
                 }}
               />
             ) : blockId === 'quick-actions' ? (
@@ -1240,7 +1234,7 @@ export function SimpleHome() {
                     onClick={() => navigate('/avatar')}
                     ariaLabel={t('Open body stats')}
                   />
-                  <SimpleMetric icon={<DumbbellIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : dailyTrainingSessions.length > 1 ? `${dailyTrainingSessions.filter((item) => item.completedSessionID).length}/${dailyTrainingSessions.length}` : hasWorkout ? `${fullWorkoutMinutes}m` : t('Rest')} label={t('Training')} done={workoutDone} onClick={() => { setTrainingPreviewMode('full'); setQuickPanel('training') }} ariaLabel={t('Preview training')} />
+                  <SimpleMetric icon={<DumbbellIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : dailyTrainingSessions.length > 1 ? `${dailyTrainingSessions.filter((item) => item.completedSessionID).length}/${dailyTrainingSessions.length}` : hasWorkout ? `${fullWorkoutMinutes}m` : t('Rest')} label={t('Training')} done={workoutDone} onClick={() => setQuickPanel('training')} ariaLabel={t('Preview training')} />
                 </div>
                 {dailyTrainingSessions.length > 1 && dailyTrainingList}
               </div>
@@ -1457,7 +1451,7 @@ export function SimpleHome() {
 
               {quickPanel === 'training' ? (
                 <div className="mt-3">
-                  {dailyTrainingSessions.length > 1 ? (
+                  {dailyTrainingSessions.length > 0 ? (
                     <div className="max-h-[52dvh] overflow-y-auto">{dailyTrainingList}</div>
                   ) : workoutDone ? (
                     <div className="max-h-[52dvh] space-y-2 overflow-y-auto pr-0.5">
@@ -1496,57 +1490,6 @@ export function SimpleHome() {
                         )
                       })}
                     </div>
-                  ) : hasWorkout ? (
-                    <>
-                      <div className="mb-2 grid grid-cols-2 rounded-2xl bg-slate-100 p-1" role="tablist" aria-label={t('Workout version')}>
-                        {(['full', 'light'] as const).map((mode) => {
-                          const selected = trainingPreviewMode === mode
-                          return (
-                            <button
-                              key={mode}
-                              type="button"
-                              role="tab"
-                              aria-selected={selected}
-                              onClick={() => setTrainingPreviewMode(mode)}
-                              className={`rounded-xl px-3 py-2 font-mono text-[9px] font-black tracking-[0.08em] uppercase transition ${selected ? mode === 'full' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-sky-500 text-white shadow-sm' : 'text-ink-faint'}`}
-                            >
-                              {t(mode === 'full' ? 'Full prescription' : 'Light prescription')}
-                            </button>
-                          )
-                        })}
-                      </div>
-                      <div className="rounded-[20px] border border-teal-100 bg-gradient-to-br from-teal-50 via-white to-cyan-50 p-3">
-                        <div className="flex items-center gap-2">
-                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-teal-600 text-white shadow-sm"><DumbbellIcon className="h-4 w-4" /></span>
-                          <div className="min-w-0">
-                            <p className="truncate font-display text-sm font-black text-ink">{t(previewPlan.programDay?.name ?? 'Training')}</p>
-                            <p className="font-mono text-[9px] font-bold text-ink-faint">{previewWorkoutMinutes} min · {previewPlan.exercises.length} {t(previewPlan.exercises.length === 1 ? 'exercise' : 'exercises')}</p>
-                          </div>
-                        </div>
-                        <p className={`mt-2 rounded-xl px-2.5 py-2 text-[9px] font-bold leading-snug ${trainingPreviewMode === 'full' ? 'bg-emerald-50 text-emerald-800' : 'bg-sky-50 text-sky-800'}`}>
-                          {t(previewIsFridayLegDay && previewHasFocusT25
-                            ? 'Reduced strength plus controlled Speed 1.0.'
-                            : previewIsFridayLegDay && trainingPreviewMode === 'full'
-                              ? 'Full strength ends here. Speed 1.0 is not included.'
-                            : trainingPreviewMode === 'full'
-                              ? 'This list is the exact Full prescription.'
-                              : 'This list is the exact reduced Light prescription.')}
-                        </p>
-                        <p className="mt-1.5 px-1 text-[8px] font-semibold leading-snug text-ink-faint">{t('Shared movements come first. Profile-specific finishers follow.')}</p>
-                        <p className="mt-3 font-mono text-[8px] font-black tracking-[0.12em] text-teal-800 uppercase">{t('Today’s exercises')}</p>
-                        <div className="mt-1.5 max-h-[24dvh] space-y-1 overflow-y-auto pr-0.5">
-                          {previewPlan.exercises.map((exercise, index) => (
-                            <div key={exercise.id} className="flex items-center gap-2 rounded-xl bg-white/85 px-2.5 py-2 shadow-sm">
-                              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-teal-100 font-mono text-[8px] font-black text-teal-800">{index + 1}</span>
-                              <span className="min-w-0 flex-1 truncate text-[10px] font-black text-ink">{localizedExerciseName(exercise.name)}</span>
-                              <span className="shrink-0 font-mono text-[8px] font-bold text-ink-faint">{isFocusT25Name(exercise.name) ? '25 min' : `${exercise.planned_sets} × ${exercise.rep_min === exercise.rep_max ? exercise.rep_max : `${exercise.rep_min}–${exercise.rep_max}`}`}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <button type="button" onClick={() => { setQuickPanel(null); navigate(`/player/${guidedProgramSlug}/${selectedDate}?day=${encodeURIComponent(plan.programDay?.id ?? '')}`) }} className="mt-3 w-full rounded-2xl bg-emerald-600 px-4 py-3.5 text-sm font-black text-white shadow-[0_12px_26px_-14px_rgba(5,150,105,.85)] transition active:scale-[.98]">{t('Start Full')} · {plan.programDay?.est_minutes ?? fullWorkoutMinutes} min</button>
-                      <button type="button" onClick={() => { setQuickPanel(null); navigate(`/player/${guidedProgramSlug}/${selectedDate}?lite=1&day=${encodeURIComponent(plan.programDay?.id ?? '')}`) }} className="mt-2 w-full rounded-2xl bg-sky-500 px-4 py-2.5 text-[11px] font-black text-white shadow-[0_10px_22px_-14px_rgba(14,165,233,.9)] transition active:scale-[.98]">{t('Start Light')} · {lightWorkoutMinutes} min</button>
-                    </>
                   ) : (
                     <div className="mt-2 rounded-[20px] bg-slate-50 p-3 text-center">
                       <DumbbellIcon className="mx-auto h-6 w-6 text-ink-faint" />

@@ -60,6 +60,18 @@ struct FitnessPlanDisclosureState: Equatable, Sendable {
 }
 
 enum SimpleHomeLogic {
+    /// Preview and player share the resolved prescription, including taper,
+    /// induction and deload set changes. Never fall through to another day.
+    static func sessionExercises(plan: PlannedDay, ownerID: UUID, programDayID: UUID) -> [Exercise] {
+        guard plan.programDay?.id == programDayID, plan.programDay?.userID == ownerID else { return [] }
+        return plan.exercises.compactMap { row in
+            guard row.exercise.userID == ownerID, row.exercise.programDayID == programDayID else { return nil }
+            var exercise = row.exercise
+            exercise.sets = row.plannedSets
+            return exercise
+        }
+    }
+
     struct DailyGuidedSession: Identifiable {
         let day: ProgramDay
         let completedSessionID: UUID?

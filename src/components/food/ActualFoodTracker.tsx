@@ -20,6 +20,7 @@ import {
 } from '../../lib/mealBlocks'
 import { useStore } from '../../store/AppStore'
 import { normalizeMealDaylineDensity, normalizeMealTimelineSnap, timeZoneFromSettings } from '../../lib/mealTiming'
+import { stageWorkoutFinishEdit } from '../../lib/workoutTiming'
 import { MealDayline, type MealDaylineSlot } from './MealDayline'
 
 const amber = ACCENTS.amber
@@ -68,7 +69,7 @@ export function ActualFoodTracker({
   onDeleteLogged: (meal: LoggedMeal) => Promise<void>
 }) {
   const store = useFoodStore()
-  const { data, upsert, setSettings } = useStore()
+  const { data, commitOwnerBoundMutation, setSettings } = useStore()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const [composer, setComposer] = useState<ComposerTarget | null>(null)
@@ -226,10 +227,12 @@ export function ActualFoodTracker({
             onAddAtTime={openMealAtTime}
             onDeleteMeal={onDeleteLogged}
             onOpenRecoveryMeal={openRecoveryMeal}
-            onWorkoutCompletedAt={(sessionId, completedAt) => {
-              const session = data.workout_sessions.find((candidate) => candidate.id === sessionId)
-              if (!session) throw new Error('This workout is no longer available.')
-              upsert('workout_sessions', { ...session, completed_at: completedAt })
+            onWorkoutCompletedAt={async (sessionId, completedAt) => {
+              const ownerID = data.profile?.user_id ?? data.settings?.user_id
+              if (!ownerID) throw new Error('This workout is no longer available.')
+              await commitOwnerBoundMutation(ownerID, (current) => stageWorkoutFinishEdit(current, {
+                ownerID, sessionID: sessionId, completedAt, timeZone: timeZoneFromSettings(current.settings),
+              }))
             }}
           />
         </div>

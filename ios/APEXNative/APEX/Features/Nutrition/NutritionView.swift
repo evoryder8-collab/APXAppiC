@@ -51,8 +51,11 @@ struct NutritionView: View {
 
     /* Mirrors the web's collapsed supplement row: "3/7 · 17 Aug" */
     private var supplementSummary: String {
-        let total = session.activeSupplements.count
-        let done = session.data.supplementLogs.filter { $0.date == dayKey }.count
+        let activeIDs = Set(session.activeSupplements.map(\.id))
+        let total = activeIDs.count
+        let done = session.data.supplementLogs.filter {
+            $0.userID == session.profile?.userID && $0.date == dayKey && activeIDs.contains($0.supplementID)
+        }.count
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMM"
         return "\(min(done, total))/\(total) · \(formatter.string(from: selectedDate))"
@@ -143,12 +146,19 @@ struct NutritionView: View {
                             }
                         }
 
-                        CollapsibleSection(
-                            id: "supplements",
-                            title: language.text("Supplement stack"),
-                            subtitle: supplementSummary
-                        ) {
-                            SupplementStackEditor(date: selectedDate, showsHeader: false)
+                        GlassCard(radius: 32, padding: 22) {
+                            VStack(alignment: .leading, spacing: 14) {
+                                HStack(alignment: .firstTextBaseline) {
+                                    Text(language.text("Supplements"))
+                                        .font(APEXFont.display(24))
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    Spacer(minLength: 8)
+                                    Text(supplementSummary)
+                                        .font(APEXFont.mono(11))
+                                        .foregroundStyle(APEXColor.secondaryInk)
+                                }
+                                SupplementStackEditor(date: selectedDate, showsHeader: false)
+                            }
                         }
 
                         DailyLogCard(
@@ -160,7 +170,7 @@ struct NutritionView: View {
                         CollapsibleSection(
                             id: "assessment",
                             title: language.text("FITR MAX assessment"),
-                            subtitle: language.text("Today's energy model and the clearest gap.")
+                            subtitle: language.text("Your logged activity and nutrition priorities.")
                         ) {
                             BodyAssessmentCard(targets: targets, date: selectedDate)
                         }
@@ -1307,13 +1317,21 @@ private struct BodyAssessmentCard: View {
         guard targets.isPublishable else {
             return language.text("This target needs review before use.")
         }
-        let log = session.data.dailyLogs.first { $0.date == date.apexDateKey }
+        let log = session.data.dailyLogs.first {
+            $0.userID == profile.userID && $0.date == date.apexDateKey
+        }
         let protein = log?.proteinG ?? 0
         let water = log?.waterL ?? 0
+        let activity = NutritionRecordedActivity.resolve(
+            profile: profile,
+            settings: session.data.settings,
+            logs: session.data.activityLogs,
+            date: date.apexDateKey
+        )
         var statements: [String] = []
         statements.append(language.format(
-            "Today's energy model places you at %@ with a %d kcal target.",
-            language.lowercased(targets.level.title),
+            "Your logged activity is %@. Your plan target remains %d kcal.",
+            language.lowercased(activity.level.title),
             targets.targetCalories
         ))
         if protein < Int(Double(targets.proteinG) * 0.75) {

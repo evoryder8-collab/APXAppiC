@@ -33,7 +33,11 @@ enum WorkoutInsights {
         }
         let sessions = allOwnedSessions.filter { $0.date >= from && $0.date <= to }
         let sessionIDs = Set(sessions.map(\.id))
-        let external = allExternal.filter { $0.date >= from && $0.date <= to }
+        let ownedDates = Dictionary(uniqueKeysWithValues: allOwnedSessions.map { ($0.id, $0.date) })
+        func attributedDate(_ activity: ImportedActivity) -> String {
+            activity.apexWorkoutSessionID.flatMap { ownedDates[$0] } ?? activity.date
+        }
+        let external = allExternal.filter { attributedDate($0) >= from && attributedDate($0) <= to }
         let linkedSessionIDs = Set(external.compactMap { activity -> UUID? in
             guard let sessionID = activity.apexWorkoutSessionID, sessionIDs.contains(sessionID) else { return nil }
             return sessionID
@@ -75,12 +79,12 @@ enum WorkoutInsights {
                   weight > 0, repetitions > 0 else { return nil }
             return weight * Double(repetitions)
         }
-        let activeDates = Set(sessions.map(\.date) + external.map(\.date))
+        let activeDates = Set(sessions.map(\.date) + external.map(attributedDate))
         let standaloneExternal = external.filter { activity in
             guard let sessionID = activity.apexWorkoutSessionID else { return true }
             return !sessionIDs.contains(sessionID)
         }
-        let oldestEvidenceDate = (allOwnedSessions.map(\.date) + allExternal.map(\.date)).min()
+        let oldestEvidenceDate = (allOwnedSessions.map(\.date) + allExternal.map(attributedDate)).min()
         let distanceFacts = externalDistanceFacts.reduce(0, +) + loggedDistanceFacts.reduce(0, +) / 1_000
 
         return Summary(

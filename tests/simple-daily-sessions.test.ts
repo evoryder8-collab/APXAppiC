@@ -3,6 +3,7 @@ import test from 'node:test'
 import { buildSeedData } from '../src/data/seed.ts'
 import { programDaysForDate } from '../src/lib/plan.ts'
 import { dailyGuidedSessions, guidedPlayerDraftKey, guidedPlayerDraftMatches } from '../src/lib/dailyGuidedSessions.ts'
+import * as dailySessionModel from '../src/lib/dailyGuidedSessions.ts'
 import type { WorkoutSession } from '../src/lib/types.ts'
 
 const owner = '10000000-0000-4000-8000-000000000085'
@@ -55,4 +56,20 @@ test('Continue restores only the exact owner, day, date, mode and exercise draft
   assert.equal(guidedPlayerDraftMatches({ ...draft, ownerId: undefined }, identity), false)
   assert.notEqual(guidedPlayerDraftKey(identity), guidedPlayerDraftKey({ ...identity, ownerId: 'another-owner' }))
   assert.notEqual(guidedPlayerDraftKey(identity), guidedPlayerDraftKey({ ...identity, programDayId: plans[1].programDay!.id }))
+})
+
+test('session previews describe the actual adjusted prescription, including every movement and timed or unilateral work', () => {
+  assert.equal(typeof dailySessionModel.guidedSessionPreview, 'function', 'Daily session cards need a factual prescription preview')
+  const preview = dailySessionModel.guidedSessionPreview(plans[0])
+  assert.equal(preview.exerciseCount, 5)
+  assert.equal(preview.plannedSets, 25)
+  assert.deepEqual(preview.exercises.map((exercise) => exercise.name), plans[0].exercises.map((exercise) => exercise.name))
+  assert.equal(preview.exercises[2].prescription, '5 × 8–12 reps · per side')
+  assert.equal(dailySessionModel.guidedSessionPreview(plans[1]).exercises[3].prescription, '3 × 30–45 seconds')
+  assert.equal(dailySessionModel.guidedSessionPreview(plans[2]).exercises[0].prescription, '1 × 25 minutes')
+
+  const reduced = { ...plans[0], exercises: [{ ...plans[0].exercises[0], planned_sets: 2 }] }
+  assert.equal(dailySessionModel.guidedSessionPreview(reduced).plannedSets, 2, 'Use adjusted planned sets, not the original five-set prescription')
+  const translated = dailySessionModel.guidedSessionPreview(reduced, (key) => key === 'reps' ? 'repetări' : key)
+  assert.equal(translated.exercises[0].prescription, '2 × 6–15 repetări')
 })

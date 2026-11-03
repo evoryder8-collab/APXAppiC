@@ -81,8 +81,9 @@ enum MealTimingEngine {
     /// its save timestamp cannot supply a finish or recovery window.
     private static func recordedWorkoutFinish(_ session: WorkoutSession, timeZone: String) -> Date? {
         guard session.completed, let date = instant(session.completedAt) else { return nil }
-        if session.notes.hasPrefix("\(ManualWorkout.prefix)|"),
-           daylineDateKey(for: date, timeZone: timeZone) != session.date { return nil }
+        let anchor = instant(session.startedAt) ?? date
+        guard localDateKey(anchor, timeZone: timeZone) == session.date
+                || daylineDateKey(for: date, timeZone: timeZone) == session.date else { return nil }
         return date
     }
 
@@ -93,8 +94,8 @@ enum MealTimingEngine {
         localDate: String,
         timeZone: String
     ) -> DaylineWorkoutTiming? {
-        guard let date = recordedWorkoutFinish(session, timeZone: timeZone),
-              daylineDateKey(for: date, timeZone: timeZone) == localDate else { return nil }
+        guard session.date == localDate,
+              let date = recordedWorkoutFinish(session, timeZone: timeZone) else { return nil }
         let minute = minuteOfDay(date, timeZone: timeZone)
         return DaylineWorkoutTiming(
             sessionID: session.id,

@@ -5622,3 +5622,27 @@
 "Open Health" = "Abrir Salud";
 "Your FITR MAX water log stays available either way." = "Tu registro de agua de FITR MAX seguirá disponible en cualquier caso.";
 "Water sharing" = "Sincronización de agua";
+
+/* Daily training previews */
+"Show all exercises" = "Ver todos los ejercicios";
+"Show fewer exercises" = "Ver menos ejercicios";
+
+/* Selected-day activity is separate from the plan calorie target. */
+"Your logged activity is %@. Your plan target remains %d kcal." = "Tu actividad registrada es %@. El objetivo de tu plan sigue en %d kcal.";
+"Your logged activity and nutrition priorities." = "Tu actividad registrada y tus prioridades nutricionales.";
+
+/* Workout receipt date and time correction */
+"Workout date and time" = "Fecha y hora del entrenamiento";
+"Workout date" = "Fecha del entrenamiento";
+"Started" = "Inicio";
+"Finished" = "Fin";
+"Include start time" = "Incluir hora de inicio";
+"Times use your Settings time zone." = "Las horas usan la zona horaria de tus Ajustes.";
+"Choose a valid workout date and time." = "Elige una fecha y una hora válidas para el entrenamiento.";
+"Workout date and time saved." = "Fecha y hora del entrenamiento guardadas.";
+"Could not save the workout time. Try again." = "No se pudo guardar la hora del entrenamiento. Inténtalo de nuevo.";
+"Finish time was not recorded. Enter it to correct this receipt." = "No se registró la hora de finalización. Introdúcela para corregir este registro.";
+
+/* Supplement daily-routine editing keeps historical doses. */
+"Remove from your daily routine?" = "¿Quitar de tu rutina diaria?";
+"Changes apply to every day. Previous doses stay in your history." = "Los cambios se aplican a todos los días. Las dosis anteriores se conservan en tu historial.";

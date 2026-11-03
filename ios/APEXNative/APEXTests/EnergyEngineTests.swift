@@ -580,6 +580,53 @@ final class EnergyEngineTests: XCTestCase {
         )
     }
 
+    func testNutritionAssessmentUsesRecordedActivityWithoutChangingJunesTarget() {
+        let june = profile(
+            userID: UUID(uuidString: "f1cc8158-0480-47c9-a2f1-bd03890182f9")!,
+            weight: 41, level: .moderate, goal: .bulk, persona: .june,
+            profileKind: .bespoke, protocolID: .juneV84, sex: "female"
+        )
+        let day = "2026-11-02"
+        let settings = UserSettings(
+            userID: june.userID, voiceOn: true, ticksOn: true,
+            notificationsOn: true, guardianFactor: 0.96,
+            addons: ["watch_activity_history": .array([
+                WearableActivityRecord(date: "2026-11-01", steps: 7_000, activeCalories: 350,
+                    exerciseMinutes: 25, source: "apple_health", updatedAt: "2026-11-01T20:00:00Z").jsonValue,
+                WearableActivityRecord(date: day, steps: 8_000, activeCalories: 800,
+                    exerciseMinutes: 30, source: "apple_health", updatedAt: "2026-11-02T20:00:00Z").jsonValue,
+            ])]
+        )
+        let ownLog = log(typeID: "walking", kcal: 500, userID: june.userID, date: day)
+        var otherOwner = log(typeID: "walking", kcal: 9_000)
+        otherOwner.date = day
+        var otherDate = ownLog
+        otherDate.date = "2026-11-04"
+        otherDate.durationMinutes = 200
+        let logs = [ownLog, otherOwner, otherDate]
+        let activity = NutritionRecordedActivity.resolve(profile: june, settings: settings, logs: logs, date: day)
+        XCTAssertEqual(activity.level, .extra)
+        XCTAssertEqual(activity.activeCalories, 800, "Wearable active energy already covers the logged effort.")
+        XCTAssertEqual(activity.exerciseMinutes, 30)
+        XCTAssertEqual(NutritionRecordedActivity.resolve(profile: june, settings: settings, logs: logs,
+            date: "2026-11-01").level, .moderate)
+
+        let planned = EnergyEngine.targets(profile: june, logs: [], catalog: [], settings: settings)
+        let observed = EnergyEngine.targets(profile: june, logs: [ownLog], catalog: [],
+            settings: settings, wearableActiveCalories: activity.activeCalories)
+        XCTAssertEqual(planned.level, .moderate, "The authored plan mode remains independently selected.")
+        XCTAssertEqual(planned.targetCalories, 2_400)
+        XCTAssertEqual(observed.targetCalories, planned.targetCalories, "The label fix must not add calorie eat-back.")
+
+        let foreignSettings = UserSettings(
+            userID: UUID(), voiceOn: true, ticksOn: true,
+            notificationsOn: true, guardianFactor: 0.96, addons: settings.addons
+        )
+        let isolated = NutritionRecordedActivity.resolve(profile: june, settings: foreignSettings, logs: logs, date: day)
+        XCTAssertEqual(isolated.activeCalories, 500)
+        XCTAssertEqual(isolated.level, .moderate)
+    }
+
     func testWearableTargetEnergyIsIsolatedByOwnerAndDate() {
         let ownerID = UUID()
         let settings = UserSettings(
@@ -1154,8 +1201,8 @@ final class EnergyEngineTests: XCTestCase {
             ),
             (
                 "APEX/Features/Nutrition/NutritionParityViews.swift",
-                "private var resolvedActivity: WearableActivityEngine.Resolution",
-                "private var resolvedBurnedCalories"
+                "enum NutritionRecordedActivity",
+                "struct NutritionGlanceCard: View"
             ),
             (
                 "APEX/Features/Nutrition/NutritionParityViews.swift",
@@ -1324,12 +1371,12 @@ final class EnergyEngineTests: XCTestCase {
         )
     }
 
-    private func log(typeID: String, kcal: Double) -> ActivityLog {
+    private func log(typeID: String, kcal: Double, userID: UUID? = nil, date: String = "2026-08-16") -> ActivityLog {
         let id = UUID()
         return ActivityLog(
             id: id,
-            userID: id,
-            date: "2026-08-16",
+            userID: userID ?? id,
+            date: date,
             typeID: typeID,
             quantity: 1,
             durationMinutes: nil,

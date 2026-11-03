@@ -771,6 +771,50 @@ final class APEXSmokeUITests: XCTestCase {
         capture("simple-bespoke-main-workout")
     }
 
+    func testSimpleTrainingShowsExercisesInlineAndInChooserBeforeStarting() {
+        let app = configuredApp()
+        defer { app.terminate() }
+        app.launchArguments += ["-apex-ui-test-bespoke-v85", "-apex-ui-test-open-water"]
+        app.launch()
+        let done = app.buttons["Done"].firstMatch
+        if done.waitForExistence(timeout: 5) { done.tap() }
+
+        let expand = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "simple-training-expand-")).firstMatch
+        XCTAssertTrue(scrollUntilVisible(expand, in: app, attempts: 35))
+        let exercises = app.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH %@", "simple-training-exercise-"))
+        XCTAssertGreaterThanOrEqual(exercises.count, 3, "Exercise names must be available before Start")
+        let before = exercises.count
+        tapClearOfDock(expand)
+        XCTAssertEqual(expand.value as? String, "Expanded")
+        XCTAssertGreaterThan(exercises.count, before)
+        XCTAssertFalse(app.descendants(matching: .any)["workout-phase-warmup"].exists)
+        capture("simple-training-full-exercise-preview")
+
+        let tile = app.buttons["simple-training-metric"]
+        for _ in 0..<15 {
+            if tile.exists && tile.isHittable && tile.frame.minY > 90 { break }
+            app.swipeDown()
+        }
+        XCTAssertTrue(tile.isHittable)
+        tapClearOfDock(tile)
+        let chooser = app.descendants(matching: .any)["simple-training-chooser"].firstMatch
+        XCTAssertTrue(chooser.waitForExistence(timeout: 3))
+        XCTAssertGreaterThanOrEqual(chooser.staticTexts.matching(NSPredicate(
+            format: "identifier BEGINSWITH %@", "simple-training-exercise-"
+        )).count, 3)
+        XCTAssertTrue(chooser.buttons["Full session"].firstMatch.exists)
+        capture("simple-training-chooser-exercise-preview")
+        let start = chooser.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "simple-training-start-")).firstMatch
+        XCTAssertTrue(start.exists)
+        start.tap()
+        // A previous run may have an interrupted draft. Continue must restore
+        // that phase instead of incorrectly restarting its warm-up.
+        let playerPhase = app.descendants(matching: .any).matching(NSPredicate(
+            format: "identifier BEGINSWITH %@", "workout-phase-"
+        )).firstMatch
+        XCTAssertTrue(playerPhase.waitForExistence(timeout: 5))
+    }
+
     func testSimpleWorkoutInsightsStartsCollapsedBelowWearableActivity() {
         let app = configuredApp()
         app.launch()

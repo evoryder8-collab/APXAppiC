@@ -68,7 +68,8 @@ enum ExportReport {
         for workout in sessions where workout.completed {
             let day = dayByID[workout.programDayID]
             lines.append("### \(workout.date): \(day?.name ?? "?")\(workout.isLite ? " (Lite)" : "")")
-            if !workout.notes.isEmpty { lines.append("Notes: \(workout.notes)") }
+            let notes = WorkoutReceipt.notesWithoutTimingMetadata(workout.notes)
+            if !notes.isEmpty { lines.append("Notes: \(notes)") }
             var currentName = ""
             for log in WorkoutLogOrder.performedOrder(data, sessionID: workout.id) {
                 let name = log.exerciseName.isEmpty

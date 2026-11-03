@@ -1695,6 +1695,7 @@ struct WorkoutPlayerView: View {
     @State private var draftCleared = false
     @State private var completionError = false
     @State private var completionReviewInputs: [WorkoutSetInput] = []
+    @State private var performedFinish: Date?
     @State private var reviewedCompletionRows: Set<Int> = []
     @State private var lastClockTick = Date()
     @State private var suspendedAt: Date?
@@ -2928,6 +2929,7 @@ struct WorkoutPlayerView: View {
         paused = draft.paused
         setInputs = draft.setInputs
         startedAt = draft.startedAt
+        performedFinish = ExternalWorkoutImport.parseTimestamp(draft.performedFinish)
         repElapsed = max(0, draft.repElapsed.isFinite ? draft.repElapsed : 0)
         announcedRep = max(0, draft.announcedRep)
         setExecution = draft.setExecution ?? GuidedSetExecution(perSide: usesSides(exercises[draft.currentIndex]))
@@ -2968,7 +2970,8 @@ struct WorkoutPlayerView: View {
                 repElapsed: repElapsed,
                 announcedRep: announcedRep,
                 persistedAt: persistedAt.ISO8601Format(),
-                setExecution: setExecution
+                setExecution: setExecution,
+                performedFinish: performedFinish?.ISO8601Format()
             )
         )
         lastDraftSave = .now
@@ -3129,6 +3132,7 @@ struct WorkoutPlayerView: View {
             return
         }
         cancelAnnouncement()
+        performedFinish = nil
         if continuingRightSide {
             setExecution.beginRightSide()
         } else {
@@ -3204,6 +3208,7 @@ struct WorkoutPlayerView: View {
         let finalSet = nextWorkPosition == nil
         subSecond = 0
         if finalSet {
+            performedFinish = .now
             phase = .review
             persistDraft()
             WorkoutAudioCoach.shared.say(language.text("Review the final set"), enabled: voiceOn)
@@ -3320,6 +3325,7 @@ struct WorkoutPlayerView: View {
                     setInputs: setInputs,
                     lite: lite,
                     startedAt: startedAt,
+                    finishedAt: performedFinish,
                     qualityScore: PlayerTimeline.completionQuality(exercises: exercises, recorded: setInputs),
                     completionDate: date,
                     operation: operation

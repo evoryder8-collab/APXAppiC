@@ -231,19 +231,9 @@ struct SimpleHomeView: View {
     }
     private func workoutExercises(for dayID: UUID, lite: Bool) -> [Exercise] {
         guard let ownerID = session.data.profile?.userID else { return [] }
-        let requested = session.data.exercises
-            .filter { $0.userID == ownerID && $0.programDayID == dayID && $0.isLite == lite }
-            .sorted { $0.sortOrder < $1.sortOrder }
-        let source: [Exercise]
-        if requested.isEmpty, lite {
-            source = Array(session.data.exercises
-                .filter { $0.userID == ownerID && $0.programDayID == dayID && !$0.isLite }
-                .sorted { $0.sortOrder < $1.sortOrder }
-                .prefix(3))
-        } else {
-            source = requested
-        }
-        return TrainingAdjustmentEngine.adjustedExercises(source, isDeload: todayIsDeload)
+        let plan = TrainingPlanEngine.plan(session.data, slug: guidedProgramSlug, date: today,
+                                          lite: lite, programDayID: dayID)
+        return SimpleHomeLogic.sessionExercises(plan: plan, ownerID: ownerID, programDayID: dayID)
     }
 
     private var todayIsDeload: Bool {
@@ -584,7 +574,7 @@ struct SimpleHomeView: View {
             case .stats:
                 StatsQuickSheet(date: selectedDate, onClose: { quickPanel = nil })
             case .training:
-                if showDailyTrainingChooser && dailyTrainingSessions.count > 1 {
+                if showDailyTrainingChooser && !dailyTrainingSessions.isEmpty {
                     VStack(alignment: .leading, spacing: 14) {
                         HStack {
                             Text(language.text("Training")).font(APEXFont.display(20))
@@ -597,6 +587,8 @@ struct SimpleHomeView: View {
                         dailyTrainingList
                     }
                     .padding(5)
+                    .accessibilityElement(children: .contain)
+                    .accessibilityIdentifier("simple-training-chooser")
                 } else if let completedWorkoutSessionID {
                     WorkoutReceiptSheet(sessionID: completedWorkoutSessionID) {
                         quickPanel = nil
@@ -680,7 +672,7 @@ struct SimpleHomeView: View {
                 done: workoutDone,
                 color: APEXColor.teal,
                 action: {
-                    showDailyTrainingChooser = dailyTrainingSessions.count > 1
+                    showDailyTrainingChooser = !dailyTrainingSessions.isEmpty
                     quickPanel = .training
                 }
             )
@@ -696,45 +688,33 @@ struct SimpleHomeView: View {
     }
 
     private var dailyTrainingList: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
             ForEach(dailyTrainingSessions) { item in
-                Button { openDailyTrainingSession(item) } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: item.completedSessionID != nil ? "checkmark.circle.fill" : item.resumeLite != nil ? "play.circle.fill" : "circle")
-                            .font(.system(size: 21, weight: .semibold))
-                            .foregroundStyle(item.completedSessionID != nil ? APEXColor.green : APEXColor.violet)
-                        Text(language.text(item.day.name))
-                            .font(APEXFont.body(14, weight: .bold))
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        Text(language.shortText(item.statusLabel))
-                            .font(APEXFont.body(12, weight: .semibold))
-                            .foregroundStyle(item.completedSessionID != nil ? APEXColor.green : APEXColor.violet)
-                            .fixedSize()
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 12)
-                    .frame(maxWidth: .infinity, minHeight: 48)
-                    .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                DailyTrainingSessionPreviewCard(
+                    item: item,
+                    fullExercises: workoutExercises(for: item.id, lite: false),
+                    lightExercises: workoutExercises(for: item.id, lite: true),
+                    fixedLite: item.resumeLite ?? session.data.workoutSessions.first {
+                        $0.id == item.completedSessionID && $0.userID == session.data.profile?.userID
+                    }?.isLite
+                ) { lite in
+                    openDailyTrainingSession(item, lite: lite)
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("simple-training-session-\(item.id.uuidString.lowercased())")
-                .accessibilityLabel(language.text(item.day.name))
-                .accessibilityValue(language.text(item.statusLabel))
+                .id("\(session.data.profile?.userID.uuidString ?? ""): \(today): \(item.id)")
             }
         }
+        .accessibilityElement(children: .contain)
         .accessibilityIdentifier("simple-daily-training-sessions")
     }
 
-    private func openDailyTrainingSession(_ item: SimpleHomeLogic.DailyGuidedSession) {
+    private func openDailyTrainingSession(_ item: SimpleHomeLogic.DailyGuidedSession, lite: Bool = false) {
         selectedProgramDayID = item.id
         showDailyTrainingChooser = false
         if item.completedSessionID != nil {
             quickPanel = .training
         } else {
             quickPanel = nil
-            workoutIsLite = item.resumeLite ?? false
+            workoutIsLite = item.resumeLite ?? lite
             showWorkout = true
         }
     }
@@ -2192,6 +2172,7 @@ struct SupplementStackEditor: View {
 
     @State private var showPicker = false
     @State private var pendingDelete: Supplement?
+    @State private var editingDefaults = false
 
     private var supplements: [Supplement] {
         session.activeSupplements
@@ -2219,15 +2200,31 @@ struct SupplementStackEditor: View {
                 )
             }
 
-            /* A List rather than a stack of buttons, because swipe-to-delete
-               should be the real gesture -- it comes with the resistance, the
-               full-swipe and the VoiceOver actions people already expect,
-               none of which a hand-rolled drag gets right. */
+            HStack(alignment: .top, spacing: 12) {
+                if editingDefaults {
+                    Text(language.text("Changes apply to every day. Previous doses stay in your history."))
+                        .font(APEXFont.body(11))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                Button(language.text(editingDefaults ? "Done" : "Edit")) {
+                    editingDefaults.toggle()
+                }
+                .font(APEXFont.body(13, weight: .bold))
+                .buttonStyle(.bordered)
+                .tint(APEXColor.violet)
+                .accessibilityIdentifier("supplement-edit-defaults")
+            }
+
+            // Check-offs belong to the selected date; Edit changes the routine.
+            // Swipe removal remains an optional shortcut to the same archive.
             List {
                 ForEach(supplements) { supplement in
                     let done = session.data.supplementLogs.contains {
                         $0.date == date.apexDateKey && $0.supplementID == supplement.id
                     }
+                    HStack(spacing: 8) {
                     Button {
                         guard let operation = session.accountOperationLease() else { return }
                         Task {
@@ -2265,6 +2262,21 @@ struct SupplementStackEditor: View {
                         .background(.white.opacity(done ? 0.85 : 0.6), in: RoundedRectangle(cornerRadius: 15))
                     }
                     .buttonStyle(.plain)
+                    .disabled(editingDefaults)
+                    if editingDefaults {
+                        Button(role: .destructive) { pendingDelete = supplement } label: {
+                            Text(language.text("Remove"))
+                                .font(APEXFont.body(12, weight: .bold))
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(minHeight: 44)
+                                .padding(.horizontal, 10)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.red)
+                        .accessibilityLabel(Text(language.text("Remove")) + Text(" ") + Text(supplement.name))
+                        .accessibilityIdentifier("supplement-remove-\(supplement.id.uuidString.lowercased())")
+                    }
+                    }
                     .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -2322,7 +2334,7 @@ struct SupplementStackEditor: View {
             }
         }
         .confirmationDialog(
-            "Remove from your plan?",
+            language.text("Remove from your daily routine?"),
             isPresented: Binding(
                 get: { pendingDelete != nil },
                 set: { if !$0 { pendingDelete = nil } }
@@ -2350,7 +2362,7 @@ struct SupplementStackEditor: View {
             }
             Button(language.text("Keep"), role: .cancel) { pendingDelete = nil }
         } message: {
-            Text(language.text("It stops appearing in your plan. Everything you have already logged is kept."))
+            Text(language.text("Changes apply to every day. Previous doses stay in your history."))
         }
     }
 
@@ -3346,5 +3358,160 @@ private struct SupplementPickerRow: View {
         case "limited": return APEXColor.secondaryInk
         default: return .orange
         }
+    }
+}
+
+/// A readable prescription shared by the dashboard and its Training popup.
+/// Expanding the list never starts a session; starting is an explicit action.
+private struct DailyTrainingSessionPreviewCard: View {
+    let item: SimpleHomeLogic.DailyGuidedSession
+    let fullExercises: [Exercise]
+    let lightExercises: [Exercise]
+    let fixedLite: Bool?
+    let onOpen: (Bool) -> Void
+    @State private var language = LanguageState.shared
+    @State private var expanded = false
+    @State private var selectedLite = false
+
+    private var lite: Bool { fixedLite ?? selectedLite }
+    private var exercises: [Exercise] { lite ? lightExercises : fullExercises }
+    private var visibleExercises: [Exercise] { expanded ? exercises : Array(exercises.prefix(3)) }
+    private var completed: Bool { item.completedSessionID != nil }
+    private var accent: Color { completed ? APEXColor.green : APEXColor.violet }
+    private var identifier: String { item.id.uuidString.lowercased() }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 10) {
+                Image(systemName: completed ? "checkmark.circle.fill" : item.resumeLite != nil ? "play.circle.fill" : "figure.strengthtraining.traditional")
+                    .font(.system(size: 19, weight: .semibold))
+                    .foregroundStyle(accent)
+                    .frame(width: 36, height: 36)
+                    .background(accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 12))
+                    .accessibilityHidden(true)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(language.text(item.day.name))
+                        .font(APEXFont.body(17, weight: .bold))
+                        .foregroundStyle(APEXColor.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text("\(exercises.count) \(language.text(exercises.count == 1 ? "exercise" : "exercises")) · \(language.text("Sets")): \(exercises.reduce(0) { $0 + $1.sets })")
+                        .font(APEXFont.body(12, weight: .semibold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if fixedLite == nil && !lightExercises.isEmpty {
+                HStack(spacing: 4) {
+                    ForEach([false, true], id: \.self) { mode in
+                        Button { selectedLite = mode } label: {
+                            Text(language.text(mode ? "Minimum effective" : "Full session"))
+                                .font(APEXFont.body(12, weight: .semibold))
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .foregroundStyle(lite == mode ? accent : APEXColor.secondaryInk)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 8)
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                                .background(lite == mode ? Color.white : Color.clear, in: RoundedRectangle(cornerRadius: 11))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(lite == mode ? .isSelected : [])
+                        .accessibilityIdentifier("simple-training-mode-\(identifier)-\(mode ? "light" : "full")")
+                    }
+                }
+                .padding(4)
+                .background(accent.opacity(0.06), in: RoundedRectangle(cornerRadius: 15))
+            } else {
+                Text(language.text(lite ? "Minimum effective" : "Full session"))
+                    .font(APEXFont.body(12, weight: .semibold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+            }
+
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(Array(visibleExercises.enumerated()), id: \.element.id) { index, exercise in
+                    HStack(alignment: .top, spacing: 10) {
+                        Text("\(index + 1)")
+                            .font(APEXFont.mono(11, weight: .semibold))
+                            .foregroundStyle(accent)
+                            .frame(minWidth: 16)
+                            .padding(.top, 2)
+                            .accessibilityHidden(true)
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(language.text(exercise.name))
+                                .font(APEXFont.body(14, weight: .semibold))
+                                .foregroundStyle(APEXColor.ink)
+                                .accessibilityIdentifier("simple-training-exercise-\(exercise.id.uuidString.lowercased())")
+                            Text(prescription(exercise))
+                                .font(APEXFont.mono(11, weight: .medium))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                        }
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+
+            if exercises.count > 3 {
+                Button { expanded.toggle() } label: {
+                    HStack(spacing: 8) {
+                        Text(language.text(expanded ? "Show fewer exercises" : "Show all exercises"))
+                            .font(APEXFont.body(12, weight: .bold))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                        Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 11, weight: .bold))
+                    }
+                    .foregroundStyle(accent)
+                    .frame(minHeight: 44)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityValue(language.text(expanded ? "Expanded" : "Collapsed"))
+                .accessibilityIdentifier("simple-training-expand-\(identifier)")
+            }
+
+            Button { onOpen(lite) } label: {
+                HStack(spacing: 8) {
+                    Text(language.text(item.statusLabel))
+                        .font(APEXFont.body(14, weight: .bold))
+                        .fixedSize(horizontal: false, vertical: true)
+                    Image(systemName: completed ? "checkmark" : "arrow.right")
+                        .font(.system(size: 12, weight: .bold))
+                }
+                .foregroundStyle(completed ? accent : Color.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .background(completed ? accent.opacity(0.10) : accent, in: RoundedRectangle(cornerRadius: 14))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(language.text(completed ? "View workout stats" : item.statusLabel)): \(language.text(item.day.name))")
+            .accessibilityIdentifier("simple-training-start-\(identifier)")
+        }
+        .padding(16)
+        .background(
+            LinearGradient(colors: [.white.opacity(0.96), .white.opacity(0.88), accent.opacity(0.05)],
+                           startPoint: .topLeading, endPoint: .bottomTrailing),
+            in: RoundedRectangle(cornerRadius: 23, style: .continuous)
+        )
+        .overlay(RoundedRectangle(cornerRadius: 23, style: .continuous).stroke(accent.opacity(0.12)))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("simple-training-session-\(identifier)")
+    }
+
+    private func prescription(_ exercise: Exercise) -> String {
+        let range = exercise.repMin == exercise.repMax ? "\(exercise.repMax)" : "\(exercise.repMin)–\(exercise.repMax)"
+        let target: String
+        switch exercise.repUnit {
+        case "check": target = language.text("DONE")
+        case "max": target = language.text("MAX")
+        default: target = "\(range) \(language.text(exercise.repUnit))"
+        }
+        var result = "\(exercise.sets) × \(target)"
+        if exercise.perSide { result += " · " + language.text("per side") }
+        if exercise.optional { result += " · " + language.text("optional") }
+        return result
     }
 }

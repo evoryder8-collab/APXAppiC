@@ -36,16 +36,18 @@ export function SupplementStackEditor({ date, compact = false }: SupplementStack
   const [query, setQuery] = useState('')
   const [openInfo, setOpenInfo] = useState<string | null>(null)
   const [pendingArchive, setPendingArchive] = useState<Supplement | null>(null)
+  const [editingDefaults, setEditingDefaults] = useState(false)
+  const ownerID = data.profile?.user_id
 
   const activeSupplements = useMemo(
     () => data.supplements
-      .filter((supplement) => supplement.archived !== true)
+      .filter((supplement) => supplement.user_id === ownerID && supplement.archived !== true)
       .sort((left, right) => left.sort_order - right.sort_order),
-    [data.supplements],
+    [data.supplements, ownerID],
   )
   const doneIDs = useMemo(
-    () => new Set(data.supplement_logs.filter((log) => log.date === date).map((log) => log.supplement_id)),
-    [data.supplement_logs, date],
+    () => new Set(data.supplement_logs.filter((log) => log.user_id === ownerID && log.date === date).map((log) => log.supplement_id)),
+    [data.supplement_logs, date, ownerID],
   )
   const groups = useMemo(() => {
     const grouped = new Map<string, Supplement[]>()
@@ -59,6 +61,7 @@ export function SupplementStackEditor({ date, compact = false }: SupplementStack
   const results = useMemo(() => searchSupplementCatalogue(query, age), [age, query])
 
   const toggle = (supplement: Supplement): void => {
+    if (!ownerID || supplement.user_id !== ownerID || supplement.archived) return
     const existing = data.supplement_logs.find((log) => log.date === date && log.supplement_id === supplement.id)
     if (existing) {
       remove('supplement_logs', existing.id)
@@ -74,7 +77,8 @@ export function SupplementStackEditor({ date, compact = false }: SupplementStack
   }
 
   const add = (entry: SupplementEntry, dose: number): void => {
-    const existing = data.supplements.find((supplement) => supplement.name.toLocaleLowerCase() === entry.name.toLocaleLowerCase())
+    if (!ownerID) return
+    const existing = data.supplements.find((supplement) => supplement.user_id === ownerID && supplement.name.toLocaleLowerCase() === entry.name.toLocaleLowerCase())
     const formattedDose = formatSupplementDose(entry, dose)
     if (existing) {
       upsert('supplements', {
@@ -141,6 +145,10 @@ export function SupplementStackEditor({ date, compact = false }: SupplementStack
 
   return (
     <div className="min-w-0">
+      <div className="mb-3 flex items-start justify-end gap-3">
+        {editingDefaults && <p className="min-w-0 flex-1 text-xs leading-relaxed text-ink-soft">{t('Changes apply to every day. Previous doses stay in your history.')}</p>}
+        <button type="button" onClick={() => setEditingDefaults((current) => !current)} aria-pressed={editingDefaults} data-testid="supplement-edit-defaults" className="min-h-11 shrink-0 rounded-xl bg-violet-100 px-4 py-2 text-xs font-bold text-violet-900">{t(editingDefaults ? 'Done' : 'Edit')}</button>
+      </div>
       <div className={`space-y-3 overflow-y-auto pr-0.5 ${compact ? 'max-h-[46vh]' : 'max-h-[34rem]'}`}>
         {groups.map(([label, supplements]) => (
           <section key={label} className="min-w-0">
@@ -153,6 +161,7 @@ export function SupplementStackEditor({ date, compact = false }: SupplementStack
                     <button
                       type="button"
                       onClick={() => toggle(supplement)}
+                      disabled={editingDefaults}
                       aria-pressed={done}
                       className="flex min-w-0 flex-1 items-center gap-2 rounded-xl px-2 py-2 text-left active:scale-[.99]"
                     >
@@ -162,12 +171,13 @@ export function SupplementStackEditor({ date, compact = false }: SupplementStack
                         <span className="mt-0.5 block whitespace-normal break-words font-mono text-[9px] font-semibold leading-snug text-ink-faint">{t(supplement.dose)}</span>
                       </span>
                     </button>
-                    <button
+                    {editingDefaults && <button
                       type="button"
                       onClick={() => setPendingArchive(supplement)}
                       aria-label={`${t('Remove')} ${t(supplement.name)}`}
-                      className="grid w-9 shrink-0 place-items-center rounded-xl bg-rose-50 text-sm font-black text-rose-600"
-                    >×</button>
+                      data-testid={`supplement-remove-${supplement.id}`}
+                      className="min-h-11 shrink-0 rounded-xl bg-rose-50 px-3 py-2 text-xs font-bold text-rose-600"
+                    >{t('Remove')}</button>}
                   </div>
                 )
               })}
@@ -205,14 +215,14 @@ export function SupplementStackEditor({ date, compact = false }: SupplementStack
         </div>
       )}
 
-      {pendingArchive && (
-        <div className="fixed inset-0 z-[130] grid place-items-center bg-black/30 p-5" role="alertdialog" aria-modal="true" aria-label={t('Remove from your plan?')}>
+      {pendingArchive && pendingArchive.user_id === ownerID && (
+        <div className="fixed inset-0 z-[130] grid place-items-center bg-black/30 p-5" role="alertdialog" aria-modal="true" aria-label={t('Remove from your daily routine?')}>
           <div className="w-full max-w-sm rounded-[1.75rem] bg-white p-5 shadow-2xl">
-            <p className="text-lg font-black text-ink">{t('Remove from your plan?')}</p>
-            <p className="mt-2 text-xs font-medium leading-relaxed text-ink-soft">{t('It stops appearing in your plan. Everything you have already logged is kept.')}</p>
+            <p className="text-lg font-black text-ink">{t('Remove from your daily routine?')}</p>
+            <p className="mt-2 text-xs font-medium leading-relaxed text-ink-soft">{t('Changes apply to every day. Previous doses stay in your history.')}</p>
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button type="button" onClick={() => setPendingArchive(null)} className="rounded-2xl bg-slate-100 px-3 py-3 text-xs font-black text-ink">{t('Keep')}</button>
-              <button type="button" onClick={() => { upsert('supplements', { ...pendingArchive, archived: true }); setPendingArchive(null) }} className="rounded-2xl bg-rose-600 px-3 py-3 text-xs font-black text-white">{t('Remove')}</button>
+              <button type="button" onClick={() => { if (ownerID && pendingArchive.user_id === ownerID) upsert('supplements', { ...pendingArchive, archived: true }); setPendingArchive(null) }} className="rounded-2xl bg-rose-600 px-3 py-3 text-xs font-black text-white">{t('Remove')}</button>
             </div>
           </div>
         </div>

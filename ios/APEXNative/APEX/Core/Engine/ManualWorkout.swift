@@ -145,6 +145,7 @@ enum ManualWorkout {
     }
 
     static func title(fromNotes notes: String) -> String? {
+        let notes = WorkoutReceipt.notesWithoutTimingMetadata(notes)
         guard notes.hasPrefix("\(prefix)|") else { return nil }
         let raw = String(notes.dropFirst(prefix.count + 1))
         guard let decoded = raw.removingPercentEncoding else { return "Workout" }
@@ -152,6 +153,7 @@ enum ManualWorkout {
     }
 
     static func hasAutomaticTitle(_ notes: String) -> Bool {
+        let notes = WorkoutReceipt.notesWithoutTimingMetadata(notes)
         guard notes.hasPrefix("\(prefix)|") else { return false }
         let raw = String(notes.dropFirst(prefix.count + 1))
         return raw.removingPercentEncoding == automaticTitle

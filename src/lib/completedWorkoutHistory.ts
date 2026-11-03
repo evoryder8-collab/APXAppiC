@@ -1,5 +1,5 @@
 import { manualWorkoutTitle } from './manualWorkout.ts'
-import { activityLogId } from './ids.ts'
+import { workoutGeneratedActivityIDs } from './workoutTimingMetadata.ts'
 import type { IntroLanguage } from './introLanguage.ts'
 import { visibleImportedActivitiesForOwner } from './importedActivityVisibility.ts'
 import type { AppData, ImportedActivity, WorkoutSession } from './types.ts'
@@ -126,9 +126,7 @@ export function completedWorkoutDeletionPlan(
     && candidate.completed
   ))
   if (!session) return null
-  const generatedIds = new Set(['', ':focus-t25'].map((suffix) => (
-    activityLogId(session.date, ownerId, `workout:${session.id}${suffix}`)
-  )))
+  const generatedIds = new Set(workoutGeneratedActivityIDs(session))
   return {
     sessionId: session.id,
     logIds: data.workout_logs
@@ -191,7 +189,6 @@ export function finishedWorkoutHistoryForDate(
   const visibleExternal = visibleImportedActivitiesForOwner(data)
     .filter((activity) => (
       Boolean(activity.healthkit_workout_id)
-      && (date == null || activity.date === date)
     ))
   const linkedBySession = new Map<string, ImportedActivity>()
   for (const activity of [...visibleExternal].sort((left, right) => (
@@ -209,11 +206,12 @@ export function finishedWorkoutHistoryForDate(
     id: item.session.id,
     sortTime: item.session.completed_at ?? item.session.started_at ?? `${item.session.date}T00:00:00.000Z`,
   }))
-  const visibleAPEXSessionIDs = new Set(apex.map((item) => item.id))
+  const visibleAPEXSessionIDs = new Set(completedWorkoutHistoryForDate(data).map((item) => item.session.id))
   const external: FinishedWorkoutHistoryItem[] = visibleExternal
     .filter((activity) => (
-      activity.apex_workout_session_id == null
-      || !visibleAPEXSessionIDs.has(activity.apex_workout_session_id)
+      (date == null || activity.date === date)
+      && (activity.apex_workout_session_id == null
+        || !visibleAPEXSessionIDs.has(activity.apex_workout_session_id))
     ))
     .map((activity) => ({
       kind: 'external',

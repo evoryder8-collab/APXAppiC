@@ -17,6 +17,7 @@ import {
 } from '../../lib/exerciseLogging'
 import type { SetEntry } from '../../lib/workoutSession'
 import { ExerciseFactFields } from './ExerciseFactFields'
+import { WorkoutReceiptTiming } from './WorkoutReceiptTiming'
 import { progressForWorkoutLog, type ExerciseProgress } from '../../lib/progression'
 
 const COPY = {
@@ -87,28 +88,33 @@ export function WorkoutStatsSheet({ open, onClose, sessionId, accent }: { open: 
   const { language } = useLanguage()
   const copy = COPY[language]
   const t = (value: string): string => translateInterfaceText(value, language)
+  const ownerID = data.profile?.user_id ?? data.settings?.user_id
+  const receipt = data.workout_sessions.find((session) => session.id === sessionId && session.user_id === ownerID && session.completed)
   const sourceLogs = useMemo(
-    () => sessionId ? workoutLogsInPerformedOrder(data, sessionId) : [],
-    [data.exercises, data.workout_logs, data.workout_sessions, sessionId],
+    () => receipt ? workoutLogsInPerformedOrder(data, receipt.id).filter((log) => log.user_id === ownerID) : [],
+    [data.exercises, data.workout_logs, data.workout_sessions, receipt, ownerID],
   )
   const [logs, setLogs] = useState<WorkoutLog[]>(sourceLogs)
 
   useEffect(() => { if (open) setLogs(sourceLogs) }, [open, sourceLogs])
 
+  const ownedLogs = useMemo(() => receipt
+    ? logs.filter((log) => log.user_id === ownerID && log.session_id === receipt.id) : [], [logs, receipt, ownerID])
+
   const groups = useMemo(() => {
     const map = new Map<string, WorkoutLog[]>()
-    for (const log of logs) map.set(log.exercise_name, [...(map.get(log.exercise_name) ?? []), log])
+    for (const log of ownedLogs) map.set(log.exercise_name, [...(map.get(log.exercise_name) ?? []), log])
     return [...map.entries()]
-  }, [logs])
-  const insights = sessionId ? sessionStrengthInsights(data, sessionId) : []
+  }, [ownedLogs])
+  const insights = receipt ? sessionStrengthInsights(data, receipt.id) : []
   const insightLines = distinctInsightTexts(insights.map((insight) => insightText(insight, language)))
-  const workingLogs = logs.filter((log) => !isFocusT25Name(log.exercise_name))
+  const workingLogs = ownedLogs.filter((log) => !isFocusT25Name(log.exercise_name))
   const volume = loadedStrengthVolume(workingLogs)
   const workingSets = workingLogs.filter((log) => !log.skipped).length
 
   const persistPatch = (id: string, patch: Partial<WorkoutLog>) => {
     const current = logs.find((candidate) => candidate.id === id)
-    if (!current) return
+    if (!current || !receipt || current.user_id !== ownerID) return
     const candidate = { ...current, ...patch }
     setLogs((rows) => rows.map((row) => row.id === id ? candidate : row))
     const descriptor = descriptorForExercise({ name: candidate.exercise_name, movement_id: candidate.movement_id })
@@ -125,6 +131,8 @@ export function WorkoutStatsSheet({ open, onClose, sessionId, accent }: { open: 
       <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-[9px] font-black tracking-[0.18em] uppercase" style={{ color: accent.deep }}>{copy.eyebrow}</p><h2 className="mt-1 font-display text-2xl font-black text-ink">{copy.title}</h2><p className="mt-1 max-w-xl text-xs leading-relaxed font-medium text-ink-soft">{copy.subtitle}</p></div><button type="button" onClick={onClose} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink/6 text-lg font-black text-ink-soft" aria-label={copy.close}>×</button></div>
 
       <div className="mt-4 grid grid-cols-3 gap-2"><Metric label={copy.volume} value={`${Math.round(volume).toLocaleString()} kg`} /><Metric label={copy.sets} value={String(workingSets)} /><Metric label={copy.movements} value={String(groups.length)} /></div>
+
+      {open && receipt && <WorkoutReceiptTiming key={`${receipt.user_id}:${receipt.id}`} session={receipt} />}
 
       {insightLines.length > 0 && <div className="mt-4 rounded-[1.6rem] bg-[#08111d] p-4 text-white shadow-[0_22px_45px_-30px_rgba(139,92,246,.9)]"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.8)]" /><p className="font-mono text-[8px] font-black tracking-[0.16em] text-cyan-100/65 uppercase">{copy.signal}</p></div><div className="mt-3 space-y-2">{insightLines.map((text) => <p key={text} className="text-[11px] leading-relaxed font-semibold text-white/72">{text}</p>)}</div></div>}
 

@@ -1,11 +1,12 @@
 /* Markdown export for AI program assessment: Blob download + clipboard. */
 import { format } from 'date-fns'
 import type { AppData, ProgramSlug } from './types'
-import { approachRamp } from './plan'
+import { approachRamp } from './plan.ts'
 import type { LoggedFoodEntry, LoggedMeal } from './food'
-import { analyzeMealTiming, fallbackMealTime, timedMeal, zonedClock } from './mealTiming'
-import { normalizeMealRhythmHistory } from './mealRhythm'
-import { workoutLogsInPerformedOrder } from './workoutLogOrder'
+import { analyzeMealTiming, fallbackMealTime, timedMeal, zonedClock } from './mealTiming.ts'
+import { normalizeMealRhythmHistory } from './mealRhythm.ts'
+import { workoutLogsInPerformedOrder } from './workoutLogOrder.ts'
+import { withoutWorkoutTimingMetadata } from './workoutTimingMetadata.ts'
 
 export interface MealTimingReportContext {
   meals: LoggedMeal[]
@@ -62,7 +63,8 @@ export function buildReport(
     if (!s.completed) continue
     const day = dayById.get(s.program_day_id)
     lines.push(`### ${s.date}: ${day?.name ?? '?'}${s.is_lite ? ' (Lite)' : ''}`)
-    if (s.notes) lines.push(`Notes: ${s.notes}`)
+    const notes = withoutWorkoutTimingMetadata(s.notes)
+    if (notes) lines.push(`Notes: ${notes}`)
     const logs = workoutLogsInPerformedOrder(data, s.id)
     let currentName = ''
     for (const l of logs) {

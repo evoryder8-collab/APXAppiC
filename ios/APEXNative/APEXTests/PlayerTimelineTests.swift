@@ -443,6 +443,9 @@ final class PlayerTimelineTests: XCTestCase {
 
         var completedDraft = legacyDraft
         completedDraft.phase = "complete"
+        XCTAssertNil(completedDraft.performedFinish, "An old draft has no trustworthy exact finish time.")
+        completedDraft.performedFinish = "1970-01-01T00:17:40Z"
+        completedDraft.persistedAt = "1970-01-02T12:00:00Z"
         PlayerTimeline.DraftStore.save(completedDraft, defaults: defaults)
         XCTAssertEqual(PlayerTimeline.DraftStore.load(
             userID: userID, dayID: dayID, date: draft.date, lite: false,

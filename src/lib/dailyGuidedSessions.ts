@@ -8,6 +8,24 @@ export interface DailyGuidedSession {
   status: 'Start' | 'Continue' | 'Completed'
 }
 
+/** Describes the resolved player prescription without guessing time or work. */
+export function guidedSessionPreview(plan: PlannedDay, translate: (key: string) => string = (key) => key) {
+  return {
+    exerciseCount: plan.exercises.length,
+    plannedSets: plan.exercises.reduce((sum, exercise) => sum + exercise.planned_sets, 0),
+    exercises: plan.exercises.map((exercise) => {
+      const range = exercise.rep_min === exercise.rep_max ? `${exercise.rep_min}` : `${exercise.rep_min}–${exercise.rep_max}`
+      const target = exercise.rep_unit === 'check' ? translate('Complete')
+        : exercise.rep_unit === 'max' ? translate('Max')
+          : `${range} ${translate(exercise.rep_unit)}`
+      return {
+        id: exercise.id, name: exercise.name, optional: exercise.optional,
+        prescription: `${exercise.planned_sets} × ${target}${exercise.per_side ? ` · ${translate('per side')}` : ''}`,
+      }
+    }),
+  }
+}
+
 /** Receives the active programme's resolved plans, never all weekday matches. */
 export function dailyGuidedSessions(
   plans: PlannedDay[], sessions: WorkoutSession[], ownerID: string | undefined, date: string,

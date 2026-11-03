@@ -1,3 +1,4 @@
+import { withoutWorkoutTimingMetadata } from './workoutTimingMetadata.ts'
 import { CARDIO_MODALITIES, MOVEMENTS } from '../data/movements.ts'
 import type { WorkoutLog, WorkoutSession } from './types.ts'
 
@@ -49,8 +50,9 @@ export function performedWorkoutTypes(log: WorkoutLog): PerformedWorkoutType[] {
 /** Distinguish missing historical detail from explicit evidence of no work. */
 export function recordedWorkoutQuality(session: WorkoutSession, logs: WorkoutLog[]): number {
   if (!session.completed) return 0
-  const external = session.notes === 'Completed externally from the APEX guided player'
-    || session.notes === 'Completed externally from the FITR MAX guided player'
+  const notes = withoutWorkoutTimingMetadata(session.notes)
+  const external = notes === 'Completed externally from the APEX guided player'
+    || notes === 'Completed externally from the FITR MAX guided player'
   if (logs.length > 0 && !external
     && !logs.some((log) => hasPerformedWorkoutFacts(log) || performedWorkoutTypes(log).length > 0)) return 0
   const quality = session.quality_score

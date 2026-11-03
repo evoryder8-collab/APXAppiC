@@ -149,7 +149,7 @@ test('a profileless cache cannot infer bespoke authorization from settings or pe
   assert.equal(repairSeedDefinitions(interrupted, seeded).needsRepair, false)
 })
 
-test('V3 nutrition upgrade clears prescriptions and installs only the PDF supplement core', () => {
+test('V3 nutrition upgrade clears meal prescriptions while retaining supplement history', () => {
   for (const persona of ['constantine', 'june'] as const) {
     const seeded = buildSeedData(persona === 'june' ? juneUserId : userId, persona)
     assert.ok(seeded.profile)
@@ -189,8 +189,9 @@ test('V3 nutrition upgrade clears prescriptions and installs only the PDF supple
     const repair = repairSeedDefinitions(current, seeded)
     assert.deepEqual(repair.data.meals, [])
     assert.deepEqual(repair.removed.meals, [legacyMeal.id])
-    assert.deepEqual(repair.removed.supplements, [legacySupplement.id])
-    assert.deepEqual(repair.data.supplements.map((row) => row.name), seeded.supplements.map((row) => row.name))
+    assert.deepEqual(repair.removed.supplements, [])
+    assert.ok(repair.data.supplements.some((row) => row.id === legacySupplement.id))
+    assert.deepEqual(repair.data.supplements.filter((row) => row.id !== legacySupplement.id).map((row) => row.name), seeded.supplements.map((row) => row.name))
     assert.deepEqual(repair.missing.supplements.map((row) => row.name), seeded.supplements.map((row) => row.name))
     assert.equal(repair.data.profile?.target_kcal, seeded.profile.target_kcal)
     assert.equal(repair.data.profile?.target_protein_g, seeded.profile.target_protein_g)
@@ -437,4 +438,24 @@ test('V8.5 repairs existing Full and Light rows without crossing strength histor
   assert.ok(!repairedRows.some((row) => row.name.startsWith('Focus T25') && !row.is_lite))
   assert.ok(repairedRows.some((row) => row.name === 'Single-Leg Romanian Deadlift' && row.is_lite))
   assert.ok(repair.removed.exercises.includes(oldFullFocus.id))
+})
+
+test('retired daily supplements survive legacy upgrades and reopened repairs with prior doses intact', () => {
+  for (const persona of ['constantine', 'june', 'matthew'] as const) {
+    const owner = persona === 'june' ? juneUserId : persona === 'matthew' ? matthewUserId : userId
+    const seeded = buildSeedData(owner, persona)
+    assert.ok(seeded.profile)
+    for (const version of [3, 4, CURRENT_SEED_VERSION]) {
+      const retired = { ...seeded.supplements[0], archived: true }
+      const dose = { id: 'a1a1a1a1-1111-4111-8111-a1a1a1a1a1a1', user_id: owner, date: '2026-11-01', supplement_id: retired.id, checked_at: '2026-11-01T07:00:00Z' }
+      const current = { ...seeded, profile: { ...seeded.profile, seed_version: version }, supplements: [retired, ...seeded.supplements.slice(1)], supplement_logs: [dose] }
+      const repaired = repairSeedDefinitions(current, seeded)
+      assert.equal(repaired.data.supplements.find((row) => row.id === retired.id)?.archived, true, `${persona} v${version} keeps the retired default`)
+      assert.deepEqual(repaired.data.supplement_logs, [dose])
+      assert.equal(repaired.removed.supplements.includes(retired.id), false)
+      const reopened = repairSeedDefinitions(JSON.parse(JSON.stringify(repaired.data)), seeded)
+      assert.equal(reopened.data.supplements.find((row) => row.id === retired.id)?.archived, true)
+      assert.deepEqual(reopened.data.supplement_logs, [dose])
+    }
+  }
 })

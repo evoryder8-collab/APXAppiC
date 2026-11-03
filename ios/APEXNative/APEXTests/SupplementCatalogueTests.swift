@@ -5,6 +5,55 @@ import XCTest
 /// that. A search that only matches exact prefixes is not.
 final class SupplementCatalogueTests: XCTestCase {
 
+    @MainActor
+    func testArchivingDailySupplementPersistsAcrossDatesAndKeepsHistoryAndOwnerBoundary() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        defer { session.invalidateDeveloperSandbox() }
+        let operation = try XCTUnwrap(session.accountOperationLease())
+        session.data = APEXDebugFixture.dashboard(userID: operation.ownerID)
+        XCTAssertFalse(session.developerSandboxHasExternalDependencies)
+        let supplement = try XCTUnwrap(session.activeSupplements.first)
+        let originalCount = session.data.supplements.count
+        let previousDose = SupplementLog(
+            id: UUID(), userID: operation.ownerID, date: "2026-11-02",
+            supplementID: supplement.id, checkedAt: "2026-11-02T07:00:00Z"
+        )
+        session.data.supplementLogs.append(previousDose)
+        let previousLogs = session.data.supplementLogs
+
+        try await session.archiveSupplement(supplement, operation: operation)
+
+        XCTAssertEqual(session.data.supplements.count, originalCount)
+        XCTAssertTrue(try XCTUnwrap(session.data.supplements.first { $0.id == supplement.id }).archived)
+        XCTAssertEqual(session.data.supplementLogs, previousLogs)
+        for offset in [0, 1] {
+            session.browsingDate = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: offset, to: Date()))
+            XCTAssertFalse(session.activeSupplements.contains { $0.id == supplement.id },
+                           "Retirement changes the routine, not just one calendar date.")
+        }
+
+        // The stored row survives reopening as an archive, not a deleted record.
+        let stored = try JSONEncoder().encode(session.data)
+        session.data = try JSONDecoder().decode(DashboardData.self, from: stored)
+        XCTAssertFalse(session.activeSupplements.contains { $0.id == supplement.id })
+        XCTAssertEqual(session.data.supplementLogs, previousLogs)
+
+        let foreign = Supplement(
+            id: UUID(), userID: UUID(), name: "Other account's supplement", dose: "1 g",
+            timing: "anytime", clockTime: nil, offsetMinutes: nil,
+            groupLabel: "Daily", trainingDaysOnly: false, sortOrder: 0
+        )
+        session.data.supplements.append(foreign)
+        do {
+            try await session.archiveSupplement(foreign, operation: operation)
+            XCTFail("A supplement owned by another account must not be changed.")
+        } catch is CancellationError {
+            // The production ownership guard must reject this mutation.
+        }
+        XCTAssertFalse(try XCTUnwrap(session.data.supplements.first { $0.id == foreign.id }).archived)
+        XCTAssertEqual(session.data.supplementLogs, previousLogs)
+    }
+
     func testSupplementLogOutboxPayloadPreservesOwnerAndDay() throws {
         let row = SupplementLog(id: UUID(), userID: UUID(), date: "2026-11-02",
             supplementID: UUID(), checkedAt: "2026-11-02T06:30:00Z")
