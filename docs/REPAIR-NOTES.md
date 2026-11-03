@@ -2281,3 +2281,13 @@ Verification:
 - Xcode twice stalled while finalizing simulator diagnostics after tests had ended. Only those task-owned xcodebuild processes and the APEX simulator were restarted; other simulator lanes, personal accounts and Health samples were untouched.
 
 - Final targeted UI verification passed in 36.8 seconds with a complete result bundle and `TEST SUCCEEDED` (`/private/tmp/fitr-402-ui-confirm.xcresult`); disabling verbose test-diagnostic collection avoided the stalled finalization. Signed build 402 delivery and GitHub Pages confirmation follow in the release entry below.
+
+
+### 2026-11-03 — FITR MAX 402 publication and device delivery
+
+- Implementation commit `3942ffa29191ce0f4449f51ebe8aae597c051114` was pushed to both `origin/main` and `origin/codex/main-critical-repair`.
+- GitHub Pages run `41553507173` completed successfully for that exact commit: https://github.com/evoryder8-collab/APXAppiC/actions/runs/41553507173. The live site https://evoryder8-collab.github.io/APXAppiC/ returned HTTP 200 with the FITR MAX title and the current `index-YifWkH_N.js` bundle.
+- The signed archive is `build/FITR-MAX-402.xcarchive`. The iPhone app, Watch app and complication extension all report version `1.0.0 (402)`. Their display names are FITR MAX / FITR MAX Watch / FITR MAX Watch; deep, strict code-signature verification passed.
+- App Store Connect upload succeeded. Build `978a19e3-2d31-4675-a707-8d7756ef57cd` is confirmed **Testing** in the existing FITR MAX Private Beta external group. The build-specific What to Test notes are saved. The existing invitation remains unchanged; private invitation details are intentionally omitted from repository documentation.
+- After the owner reconnected the devices, installation of the archived iPhone app succeeded on iConstantine Main (`00008130-001618C60843401C`) and a plain process launch succeeded. The subsequent installed-version query lost its network tunnel, so verification consists of successful installation of the already-verified 402 archive and successful launch, not a completed installed-app query.
+- Direct Watch delivery is still **pending**: its installation connection reset (CoreDevice/RemotePairing error 4, socket error 54), followed by a 20-second installed-app query timeout. The owner has been asked to leave FITR MAX open on the unlocked Watch with Wi-Fi enabled. The last independently confirmed physical Watch build remains 401. Resume from this exact archive when connectivity returns; do not reset pairing, uninstall user data, or rebuild unnecessarily.
