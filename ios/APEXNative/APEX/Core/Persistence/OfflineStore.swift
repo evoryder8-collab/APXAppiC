@@ -264,7 +264,8 @@ private enum OfflineFailureReconciler {
            let payload = try? JSONDecoder().decode(StructuredMealRPCPayload.self, from: payloadData) {
             if category == .invalidValue {
                 let normalized = MealLogKind.normalized(payload.pMeal.loggedAs)
-                if normalized != payload.pMeal.loggedAs {
+                if normalized != payload.pMeal.loggedAs
+                    || MealBlocks.storageSlot(payload.pMeal.mealSlot) != payload.pMeal.mealSlot {
                     let meal = payload.pMeal
                     let repaired = StructuredMealRPCPayload(
                         pMeal: StructuredMealRequest(
@@ -342,6 +343,27 @@ private extension OfflineOperation {
             rpcFunction: rpcFunction,
             createdAt: createdAt
         )
+    }
+}
+
+/// Main-actor callers coalesce refreshes while retaining one ordered writer
+/// per account. A new request schedules one more pass, never a polling loop.
+struct OfflineQueueDrainGate {
+    private var active: Set<UUID> = []
+    private var requested: Set<UUID> = []
+
+    mutating func begin(for ownerID: UUID) -> Bool {
+        guard active.insert(ownerID).inserted else {
+            requested.insert(ownerID)
+            return false
+        }
+        return true
+    }
+
+    mutating func nextPass(for ownerID: UUID) -> Bool {
+        if requested.remove(ownerID) != nil { return true }
+        active.remove(ownerID)
+        return false
     }
 }
 
@@ -461,7 +483,7 @@ extension SyncFailurePolicy {
         if reason.contains("foreign key") || reason.contains("_fkey") {
             return .missingDependency
         }
-        if reason.contains("check constraint") { return .invalidValue }
+        if reason.contains("check constraint") || reason.contains("invalid input value for enum") { return .invalidValue }
         if reason.contains("permission denied") { return .permission }
         return .rejected
     }

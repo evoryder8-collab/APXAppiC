@@ -9,6 +9,37 @@ private enum InjectedMealDeletionFailure: Error {
 }
 
 final class MealComposerTests: XCTestCase {
+    func testRecoveryMealKeepsItsDaylineAndYesterdayIdentitySeparateFromSnack() throws {
+        let owner = UUID()
+        func makeMeal(_ name: String, key: String) -> LoggedMeal {
+            LoggedMeal(id: UUID(), userID: owner, localDate: "2026-08-31", mealSlot: "snack",
+                displayName: name, sourcePresetID: nil, sourcePlannedMealID: nil,
+                loggedAt: "2026-08-31T20:00:00Z", clientIdempotencyKey: key, loggedAs: "custom",
+                totalKcal: 100, totalProteinG: 10, totalCarbsG: 10, totalFatG: 2)
+        }
+        let recovery = makeMeal("Evening recovery", key: "recovery|apex-meal-block=post_workout")
+        let snack = makeMeal("Afternoon snack", key: "snack|apex-meal-block=snack")
+        let date = try XCTUnwrap(ISO8601DateFormatter.apexDateOnly.date(from: "2026-09-01"))
+        let entries = [
+            loggedFoodEntry(id: UUID(), mealID: recovery.id, ownerID: owner),
+            loggedFoodEntry(id: UUID(), mealID: snack.id, ownerID: owner)
+        ]
+        XCTAssertEqual(MealBlocks.kind(for: recovery), "post_workout")
+        XCTAssertEqual(MealBlocks.kind(for: snack), "snack")
+        XCTAssertEqual(MealBlocks.storageSlot("post_workout"), "snack")
+        XCTAssertEqual(MealBlocks.storageKey("", kind: "post_workout"), "")
+        XCTAssertEqual(MealBlocks.storageKey(recovery.clientIdempotencyKey, kind: "post_workout"),
+                       recovery.clientIdempotencyKey)
+        for slot in ["snack", "post_workout"] {
+            let copied = MealYesterdayCopy.items(date: date, slot: slot, ownerID: owner,
+                meals: [recovery, snack], entries: entries)
+            XCTAssertEqual(copied.count, 1, "Do not combine the two meals just because both use storage slot snack.")
+        }
+        let context = MealMemory.Context(date: "2026-09-01", slot: "post_workout")
+        XCTAssertEqual(context.slot, "snack")
+        XCTAssertEqual(context.blockID, "post_workout")
+    }
+
     func testYesterdayCopyUsesPreviousCalendarDayOwnerAndFreshItems() throws {
         let owner = UUID(), mealID = UUID()
         let meal = loggedMeal(id: mealID, ownerID: owner, localDate: "2026-08-31")

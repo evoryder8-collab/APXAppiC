@@ -10,6 +10,76 @@ import HealthKit
 
 final class WorkoutReceiptTests: XCTestCase {
     @MainActor
+    func testReceiptEditsDurablyQueueParentBeforeSetsForStandardAndInvitedAccounts() async throws {
+        for role in [DeveloperSandboxRole.coach, .invitedClient] {
+            let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer { try? FileManager.default.removeItem(at: root) }
+            let store = OfflineStore(rootURL: root)
+            let app = AppSession(developerSandboxRole: role, offlineStore: store)
+            let owner = try XCTUnwrap(app.profile?.userID)
+            var data = APEXDebugFixture.dashboard(userID: owner)
+            XCTAssertEqual(data.profile?.profileKind, .standard)
+            let exercise = try XCTUnwrap(data.exercises.first)
+            let receipt = workout(userID: owner, dayID: exercise.programDayID, completedAt: "2026-08-26T09:00:00Z")
+            let row = WorkoutLog(id: UUID(), userID: owner, sessionID: receipt.id, exerciseID: exercise.id,
+                exerciseName: exercise.name, setNumber: 1, weightKG: 20, reps: 10, rir: 2,
+                skipped: false, overrideFlag: false, createdAt: "2026-08-26T09:00:00Z")
+            data.workoutSessions = [receipt]
+            data.workoutLogs = [row]
+            app.data = data
+            let operation = try XCTUnwrap(app.accountOperationLease())
+            var draft = WorkoutReceipt.editInput(row)
+            draft.reps = 12
+            let saved = try await app.updateWorkoutLog(id: row.id, draft: draft, operation: operation)
+            XCTAssertTrue(saved)
+            let queued = try await store.pendingOperations(for: owner)
+            XCTAssertEqual(queued.map(\.table), ["workout_sessions", "workout_logs"])
+            let cached = try await store.loadDashboard(for: owner)
+            XCTAssertEqual(cached?.workoutLogs.first?.reps, 12)
+            XCTAssertEqual(app.data.workoutLogs.first?.id, row.id)
+            XCTAssertEqual(app.data.workoutSessions, [receipt])
+            if queued.count == 2 {
+                let parent = try JSONDecoder().decode(WorkoutSession.self, from: XCTUnwrap(queued[0].payload))
+                let child = try JSONDecoder().decode(WorkoutLog.self, from: XCTUnwrap(queued[1].payload))
+                XCTAssertEqual(child.sessionID, parent.id)
+                XCTAssertEqual(child.userID, owner)
+                XCTAssertEqual(child.reps, 12)
+                let server = ReceiptDependencyReplayProbe()
+                let paused = await OfflineQueueDrainer.drain(queued,
+                    replay: { try await server.replay($0) },
+                    remove: { try await store.removeOperation($0.id, for: owner) },
+                    quarantine: { try await store.quarantine($0, reason: $1, for: owner) },
+                    refreshAuthentication: {}, classify: SyncFailurePolicy.classify)
+                XCTAssertTrue(paused.paused)
+                XCTAssertEqual(paused.succeeded, 0)
+                let retry = try await store.pendingOperations(for: owner)
+                XCTAssertEqual(retry.map(\.id), queued.map(\.id))
+                let completed = await OfflineQueueDrainer.drain(retry,
+                    replay: { try await server.replay($0) },
+                    remove: { try await store.removeOperation($0.id, for: owner) },
+                    quarantine: { try await store.quarantine($0, reason: $1, for: owner) },
+                    refreshAuthentication: {}, classify: SyncFailurePolicy.classify)
+                XCTAssertEqual(completed.succeeded, 2)
+                XCTAssertEqual(completed.quarantined, 0)
+                let stored = await server.recordedLogs
+                XCTAssertEqual(stored[row.id]?.reps, 12)
+            }
+            // A missing or foreign parent cannot produce a supposedly successful edit.
+            app.data.workoutSessions = []
+            draft.reps = 99
+            let orphaned = try await app.updateWorkoutLog(id: row.id, draft: draft, operation: operation)
+            XCTAssertFalse(orphaned)
+            XCTAssertEqual(app.data.workoutLogs.first?.reps, 12)
+            app.data.workoutSessions = [workout(id: receipt.id, userID: UUID(), dayID: exercise.programDayID,
+                completedAt: "2026-08-26T09:00:00Z")]
+            let foreign = try await app.updateWorkoutLog(id: row.id, draft: draft, operation: operation)
+            XCTAssertFalse(foreign)
+            let otherQueue = try await store.pendingOperations(for: UUID())
+            XCTAssertTrue(otherQueue.isEmpty)
+        }
+    }
+
+    @MainActor
     func testStandardAccountTimingEditPreservesReceiptFactsAndLinkedHealthActivity() async throws {
         let app = AppSession(developerSandboxRole: .coach)
         let owner = try XCTUnwrap(app.profile?.userID)
@@ -872,7 +942,14 @@ final class WorkoutReceiptTests: XCTestCase {
 
         for (start, end) in mutations.dropFirst() {
             let body = compact(try sourceSlice(source, from: start, to: end))
-            XCTAssertTrue(body.contains("expectedAccountToken:operation.generation"))
+            if start == "func updateWorkoutLog(" {
+                XCTAssertTrue(body.contains("tryawaitofflineStore.enqueue("))
+                XCTAssertTrue(body.contains("for:ownerID"))
+                XCTAssertGreaterThanOrEqual(body.components(separatedBy: "tryrequireCurrentAccountOperation(operation)").count - 1, 4)
+                XCTAssertTrue(body.contains("self.accountOperationIsCurrent(operation)"))
+            } else {
+                XCTAssertTrue(body.contains("expectedAccountToken:operation.generation"))
+            }
         }
     }
 
@@ -1008,5 +1085,26 @@ final class WorkoutReceiptTests: XCTestCase {
 
     private func compact(_ source: String) -> String {
         source.split(whereSeparator: { $0.isWhitespace }).joined()
+    }
+}
+
+private actor ReceiptDependencyReplayProbe {
+    private var disconnected = true
+    private var sessions: Set<UUID> = []
+    private(set) var recordedLogs: [UUID: WorkoutLog] = [:]
+
+    func replay(_ operation: OfflineOperation) throws {
+        if disconnected {
+            disconnected = false
+            throw URLError(.networkConnectionLost)
+        }
+        guard let payload = operation.payload else { throw APEXServiceError.invalidOfflineOperation }
+        if operation.table == "workout_sessions" {
+            sessions.insert(try JSONDecoder().decode(WorkoutSession.self, from: payload).id)
+        } else if operation.table == "workout_logs" {
+            let log = try JSONDecoder().decode(WorkoutLog.self, from: payload)
+            guard sessions.contains(log.sessionID) else { throw APEXServiceError.invalidOfflineOperation }
+            recordedLogs[log.id] = log
+        }
     }
 }

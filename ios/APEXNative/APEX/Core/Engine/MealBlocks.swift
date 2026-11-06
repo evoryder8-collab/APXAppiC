@@ -10,6 +10,26 @@ import Foundation
  * day arrived with nothing on it at all.
  */
 enum MealBlocks {
+    /// A Dayline moment is not a database meal category. Match the web contract.
+    static func storageSlot(_ kind: String) -> String {
+        kind == "post_workout" ? "snack" : kind
+    }
+
+    static func storageKey(_ key: String, kind: String) -> String {
+        guard kind == "post_workout", !key.isEmpty,
+              !key.contains("apex-meal-block=") else { return key }
+        return key + "|apex-meal-block=post_workout"
+    }
+
+    static func kind(for meal: LoggedMeal) -> String {
+        if let marked = MealMemory.markedBlock(meal), defaults.contains(where: { $0.kind == marked }) { return marked }
+        if meal.mealSlot == "post_workout" { return "post_workout" }
+        let name = meal.displayName.lowercased()
+        if ["post-workout", "post workout", "after training", "recovery", "după antrenament", "หลังฝึก"]
+            .contains(where: name.contains) { return "post_workout" }
+        return meal.mealSlot
+    }
+
     struct Block: Identifiable, Hashable, Sendable {
         let id: String
         let kind: String

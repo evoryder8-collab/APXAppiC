@@ -3,7 +3,7 @@ import SwiftUI
 enum MealYesterdayCopy {
     static func items(date: Date, slot: String, ownerID: UUID?, meals: [LoggedMeal], entries: [LoggedFoodEntry]) -> [MealComposerItem] {
         guard let ownerID, let previous = Calendar.current.date(byAdding: .day, value: -1, to: date) else { return [] }
-        let candidates = meals.filter { $0.userID == ownerID && $0.localDate == previous.apexDateKey && $0.mealSlot == slot }
+        let candidates = meals.filter { $0.userID == ownerID && $0.localDate == previous.apexDateKey && MealBlocks.kind(for: $0) == slot }
             .sorted { $0.loggedAt == $1.loggedAt ? $0.id.uuidString > $1.id.uuidString : $0.loggedAt > $1.loggedAt }
         for meal in candidates {
             let rows = entries.filter { $0.userID == ownerID && $0.mealID == meal.id }.sorted { $0.sortOrder < $1.sortOrder }
@@ -64,7 +64,7 @@ struct MealComposerRequest: Identifiable, Hashable {
     static func edit(_ meal: LoggedMeal) -> MealComposerRequest {
         MealComposerRequest(
             date: ISO8601DateFormatter.apexDateOnly.date(from: meal.localDate) ?? .now,
-            mealSlot: meal.mealSlot,
+            mealSlot: MealBlocks.kind(for: meal),
             displayName: meal.displayName,
             existingMeal: meal,
             suggestedFinishedAt: nil
@@ -667,7 +667,7 @@ struct MealComposerView: View {
     @ViewBuilder
     private var presetsCard: some View {
         let presets = session.data.mealPresets
-            .filter { !$0.archived && ($0.mealSlot == draft.mealSlot || $0.mealSlot == "any") }
+            .filter { !$0.archived && (MealBlocks.storageSlot($0.mealSlot) == MealBlocks.storageSlot(draft.mealSlot) || $0.mealSlot == "any") }
             .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
         if presets.isEmpty == false {
             GlassCard(radius: 27, padding: 16) {

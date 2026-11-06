@@ -16,6 +16,27 @@ test('TypeScript uses the shared canonical Supabase enum strings', () => {
   assert.deepEqual(SUPABASE_ENUMS, fixture.enums)
 })
 
+test('recovery meals and presets use the supported slot while retaining their dayline identity', () => {
+  const legacy = {
+    ...fixture.structured_meal,
+    p_meal: { ...fixture.structured_meal.p_meal, meal_slot: 'post_workout' },
+  }
+  const result = canonicalStructuredMealRPCPayload(legacy)
+  assert.equal(result.p_meal.meal_slot, 'snack')
+  assert.equal(result.p_meal.client_idempotency_key,
+    `${legacy.p_meal.client_idempotency_key}|apex-meal-block=post_workout`)
+  assert.deepEqual(canonicalStructuredMealRPCPayload(result), result, 'Retries must not change identity.')
+  assert.deepEqual(result.p_entries, legacy.p_entries, 'Food facts must be preserved.')
+  assert.equal(canonicalStructuredMealRPCPayload({
+    ...legacy, p_meal: { ...legacy.p_meal, client_idempotency_key: '' },
+  }).p_meal.client_idempotency_key, '', 'Invalid missing identity must still be rejected by the server.')
+  const preset = canonicalMealPresetRPCPayload({
+    ...fixture.meal_preset,
+    p_preset: { ...fixture.meal_preset.p_preset, meal_slot: 'post_workout' },
+  })
+  assert.equal(preset.p_preset.meal_slot, 'snack')
+})
+
 test('web meal writes encode the same minimal RPC payload as Swift', () => {
   const expected = fixture.structured_meal
   assert.deepEqual(canonicalStructuredMealRPCPayload(expected), expected)

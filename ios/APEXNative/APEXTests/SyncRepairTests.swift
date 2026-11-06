@@ -16,6 +16,20 @@ private struct WorkoutLogFailureFixture: Codable, Sendable {
 }
 
 final class SyncRepairTests: XCTestCase {
+    func testOverlappingDrainsKeepOneOrderedWriterPerAccountWithoutReloadLoop() {
+        var gate = OfflineQueueDrainGate()
+        let owner = UUID(), other = UUID()
+        XCTAssertTrue(gate.begin(for: owner))
+        XCTAssertFalse(gate.begin(for: owner))
+        XCTAssertFalse(gate.begin(for: owner))
+        XCTAssertTrue(gate.begin(for: other))
+        XCTAssertTrue(gate.nextPass(for: owner), "Pick up edits queued during the first pass.")
+        XCTAssertFalse(gate.nextPass(for: owner), "Stop once no new work was requested.")
+        XCTAssertFalse(gate.nextPass(for: other))
+        XCTAssertTrue(gate.begin(for: owner))
+        XCTAssertFalse(gate.nextPass(for: owner))
+    }
+
     func testDashboardCacheRoundTripPreservesAndMigratesLegacyMeasuredBMR() async throws {
         let rootURL = FileManager.default.temporaryDirectory
             .appendingPathComponent("APEXLegacyBMRMigrationTests-\(UUID().uuidString)", isDirectory: true)
@@ -281,6 +295,37 @@ final class SyncRepairTests: XCTestCase {
         )
         XCTAssertEqual(failures.map(\.id), [duplicate.id])
         XCTAssertEqual(pending.map(\.id), [invalid.id])
+    }
+
+    func testReconciliationRetriesLegacyRecoveryMealWithoutChangingItsFoodsOrOwner() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let store = OfflineStore(rootURL: root)
+        let owner = UUID()
+        let original = makeStructuredMealPayload(mealID: UUID(), entryID: UUID(), loggedAs: "custom")
+        var raw = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(original)) as? [String: Any])
+        var meal = try XCTUnwrap(raw["p_meal"] as? [String: Any])
+        meal["meal_slot"] = "post_workout"
+        raw["p_meal"] = meal
+        let op = OfflineOperation(id: UUID(), kind: .rpc, table: "",
+            payload: try JSONSerialization.data(withJSONObject: raw), recordID: nil,
+            onConflict: nil, rpcFunction: "log_structured_meal", createdAt: .now)
+        try await store.recordFailure(op, reason: "invalid input value for enum apex_meal_slot: post_workout", for: owner)
+        let report = try await store.reconcileFailures(for: owner, dashboard: .empty)
+        XCTAssertEqual(report.requeued, 1)
+        let pending = try await store.pendingOperations(for: owner)
+        if let payload = pending.first?.payload {
+            let repaired = try JSONDecoder().decode(StructuredMealRPCPayload.self, from: payload)
+            XCTAssertEqual(repaired.pMeal.mealSlot, "snack")
+            XCTAssertEqual(repaired.pMeal.clientIdempotencyKey,
+                original.pMeal.clientIdempotencyKey + "|apex-meal-block=post_workout")
+            XCTAssertEqual(repaired.pMeal.id, original.pMeal.id)
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .sortedKeys
+            XCTAssertEqual(try encoder.encode(repaired.pEntries), try encoder.encode(original.pEntries))
+        }
+        let foreign = try await store.pendingOperations(for: UUID())
+        XCTAssertTrue(foreign.isEmpty)
     }
 
     func testReconciliationRepairsAnUnsupersededLegacyMealKindBeforeRetry() async throws {

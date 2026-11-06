@@ -41,9 +41,9 @@ enum MealMemory {
             excludeMealID: UUID? = nil
         ) {
             self.date = date
-            self.slot = slot
+            self.slot = MealBlocks.storageSlot(slot)
             self.mode = mode
-            self.blockID = blockID
+            self.blockID = blockID ?? (slot == "post_workout" ? slot : nil)
             self.targetTime = targetTime
             self.sequenceIndex = sequenceIndex
             self.excludeMealID = excludeMealID

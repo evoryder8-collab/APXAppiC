@@ -66,6 +66,32 @@ final class SupabasePayloadContractTests: XCTestCase {
         XCTAssertEqual(MealLogKind.normalized(""), "custom")
     }
 
+    func testRecoveryMealAndPresetPayloadsPreserveIdentityUsingSupportedSlot() throws {
+        var raw = try XCTUnwrap(JSONSerialization.jsonObject(with: Self.fixtureData) as? [String: Any])
+        var mealPayload = try XCTUnwrap(raw["structured_meal"] as? [String: Any])
+        var meal = try XCTUnwrap(mealPayload["p_meal"] as? [String: Any])
+        let originalKey = try XCTUnwrap(meal["client_idempotency_key"] as? String)
+        meal["meal_slot"] = "post_workout"
+        mealPayload["p_meal"] = meal
+        var presetPayload = try XCTUnwrap(raw["meal_preset"] as? [String: Any])
+        var preset = try XCTUnwrap(presetPayload["p_preset"] as? [String: Any])
+        preset["meal_slot"] = "post_workout"
+        presetPayload["p_preset"] = preset
+        raw["structured_meal"] = mealPayload
+        raw["meal_preset"] = presetPayload
+        let legacy = try JSONDecoder().decode(SupabasePayloadFixture.self,
+            from: JSONSerialization.data(withJSONObject: raw))
+        let encoded = try JSONEncoder().encode(legacy.structuredMeal)
+        let roundTrip = try JSONDecoder().decode(StructuredMealRPCPayload.self, from: encoded)
+        XCTAssertEqual(roundTrip.pMeal.mealSlot, "snack")
+        XCTAssertEqual(roundTrip.pMeal.clientIdempotencyKey,
+            originalKey + "|apex-meal-block=post_workout")
+        XCTAssertEqual(try canonicalJSON(JSONEncoder().encode(roundTrip)), try canonicalJSON(encoded))
+        let presetRoundTrip = try JSONDecoder().decode(MealPresetRPCPayload.self,
+            from: JSONEncoder().encode(legacy.mealPreset))
+        XCTAssertEqual(presetRoundTrip.pPreset.mealSlot, "snack")
+    }
+
     private func assertValues(_ key: String, _ actual: [String], fixtureKey: String? = nil) {
         let expected = Self.fixture.enums[fixtureKey ?? key] ?? []
         XCTAssertEqual(Set(actual), Set(expected), key)

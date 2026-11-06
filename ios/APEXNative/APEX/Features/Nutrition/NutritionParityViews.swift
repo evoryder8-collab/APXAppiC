@@ -855,7 +855,7 @@ struct APEXDaylineView: View {
 
         var rows = MealBlocks.enabled(session.data.settings?.addons["meal_blocks"]).map { block -> DaylineEntry in
             let match = logged.first { candidate in
-                normalize(candidate.mealSlot) == normalize(block.kind) && !claimed.contains(candidate.id)
+                normalize(MealBlocks.kind(for: candidate)) == normalize(block.kind) && !claimed.contains(candidate.id)
             }
             if let match { claimed.insert(match.id) }
             /* A saved schedule can move a block's time; the block keeps its
@@ -886,7 +886,7 @@ struct APEXDaylineView: View {
                 .filter { !claimed.contains($0.id) }
                 .map { meal in
                     let fallback = MealBlocks.enabled(session.data.settings?.addons["meal_blocks"])
-                        .first { normalize($0.kind) == normalize(meal.mealSlot) }
+                        .first { normalize($0.kind) == normalize(MealBlocks.kind(for: meal)) }
                         .map { minute(ofClock: $0.time) } ?? 12 * 60
                     let timing = MealTimingEngine.daylineMealTiming(
                         loggedAt: meal.loggedAt,
@@ -897,7 +897,7 @@ struct APEXDaylineView: View {
                     return DaylineEntry(
                         id: "logged-\(meal.id)",
                         minute: timing.minute,
-                        slot: normalize(meal.mealSlot),
+                        slot: normalize(MealBlocks.kind(for: meal)),
                         title: meal.displayName,
                         plannedMeal: nil,
                         loggedMeal: meal,

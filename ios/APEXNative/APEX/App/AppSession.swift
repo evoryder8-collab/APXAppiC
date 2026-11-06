@@ -358,6 +358,7 @@ final class AppSession {
     private var realtimeDebounceTask: Task<Void, Never>?
     @ObservationIgnored private var workoutSyncTask: Task<Void, Never>?
     @ObservationIgnored private var accountGeneration = AccountGenerationGate()
+    @ObservationIgnored private var syncDrainGate = OfflineQueueDrainGate()
     @ObservationIgnored private var authenticatedOwnerID: UUID?
     private var customWorkoutMutationGate = CustomWorkoutMutationGate()
     @ObservationIgnored private var lastShadowObservationSignature: String?
@@ -372,6 +373,7 @@ final class AppSession {
 
     init(
         developerSandboxRole: DeveloperSandboxRole? = nil,
+        offlineStore: OfflineStore? = nil,
         foodSearchProvider: @escaping FoodSearchProvider = { query in
             try await SupabaseService.shared.searchFoods(query: query)
         }
@@ -379,7 +381,7 @@ final class AppSession {
         self.developerSandboxRole = developerSandboxRole
         let isSandbox = developerSandboxRole != nil
         service = isSandbox ? SupabaseService(localOnly: true) : .shared
-        offlineStore = isSandbox ? OfflineStore(memoryOnly: true) : .shared
+        self.offlineStore = offlineStore ?? (isSandbox ? OfflineStore(memoryOnly: true) : .shared)
         let suiteName = isSandbox ? "apex.developer-sandbox.\(UUID().uuidString)" : nil
         sandboxDefaultsSuiteName = suiteName
         defaults = suiteName.map { UserDefaults(suiteName: $0)! } ?? .standard
@@ -4660,7 +4662,7 @@ final class AppSession {
         let request = StructuredMealRequest(
             id: draft.id,
             localDate: draft.localDate,
-            mealSlot: draft.mealSlot,
+            mealSlot: MealBlocks.storageSlot(draft.mealSlot),
             displayName: draft.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 ? draft.mealSlot.capitalized
                 : draft.displayName.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -4702,7 +4704,7 @@ final class AppSession {
             id: draft.id,
             userID: ownerID,
             localDate: draft.localDate,
-            mealSlot: draft.mealSlot,
+            mealSlot: request.mealSlot,
             displayName: request.displayName,
             sourcePresetID: draft.sourcePresetID,
             sourcePlannedMealID: draft.sourcePlannedMealID,
@@ -6013,18 +6015,34 @@ final class AppSession {
         let ownerID = operation.ownerID
         guard let index = data.workoutLogs.firstIndex(where: {
                   $0.id == id && $0.userID == ownerID
+              }), let parent = data.workoutSessions.first(where: {
+                  $0.id == data.workoutLogs[index].sessionID && $0.userID == ownerID
               }) else {
             return false
         }
         let updated = WorkoutReceipt.correctedLog(data.workoutLogs[index], with: draft)
-        data.workoutLogs[index] = updated
-        await persistUpsert(
-            updated,
-            table: "workout_logs",
-            ownerID: ownerID,
-            expectedAccountToken: operation.generation
+        var candidate = data
+        candidate.workoutLogs[index] = updated
+        // The receipt may still be waiting for its original completion upload.
+        // Persist the parent and edit together before reporting local success.
+        try await offlineStore.saveDashboard(candidate, for: ownerID)
+        try requireCurrentAccountOperation(operation)
+        try await offlineStore.enqueue(
+            parent: OfflineOperation.upsert(parent, table: "workout_sessions", onConflict: nil),
+            dependents: [OfflineOperation.upsert(updated, table: "workout_logs", onConflict: nil)],
+            for: ownerID
         )
         try requireCurrentAccountOperation(operation)
+        if let currentIndex = data.workoutLogs.firstIndex(where: { $0.id == id && $0.userID == ownerID }) {
+            data.workoutLogs[currentIndex] = updated
+        }
+        let count = try? await offlineStore.pendingOperations(for: ownerID).count
+        try requireCurrentAccountOperation(operation)
+        pendingSyncCount = count ?? pendingSyncCount + 2
+        workoutSyncTask = Task { @MainActor [weak self] in
+            guard let self, self.accountOperationIsCurrent(operation) else { return }
+            await self.flushPendingChanges(for: ownerID)
+        }
         return true
     }
 
@@ -8260,6 +8278,13 @@ final class AppSession {
     }
 
     private func flushPendingChanges(for userID: UUID) async {
+        guard syncDrainGate.begin(for: userID) else { return }
+        repeat {
+            await drainPendingChanges(for: userID)
+        } while syncDrainGate.nextPass(for: userID)
+    }
+
+    private func drainPendingChanges(for userID: UUID) async {
         if isDeveloperSandbox { return }
         let accountToken = accountGeneration.token
         guard accountAccessAllowsPrivateWork(for: userID),

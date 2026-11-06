@@ -120,6 +120,16 @@ export function canonicalMealLogKind(value: unknown): LoggedMealKind {
     : 'custom'
 }
 
+function canonicalMealSlot(value: string): string {
+  return value === 'post_workout' ? 'snack' : value
+}
+
+function canonicalMealKey(key: string, slot: string): string {
+  return slot === 'post_workout' && key.length > 0 && !key.includes('apex-meal-block=')
+    ? `${key}|apex-meal-block=post_workout`
+    : key
+}
+
 /** Strip local/server-owned row fields before the JSON reaches the shared RPC. */
 export function canonicalStructuredMealRPCPayload(
   payload: LoggedMealSyncPayload | LegacyLoggedMealSyncPayload,
@@ -129,12 +139,12 @@ export function canonicalStructuredMealRPCPayload(
   const meal: StructuredMealRequest = {
     id: sourceMeal.id,
     local_date: sourceMeal.local_date,
-    meal_slot: sourceMeal.meal_slot,
+    meal_slot: canonicalMealSlot(sourceMeal.meal_slot),
     display_name: sourceMeal.display_name,
     ...(present(sourceMeal.source_preset_id) ? { source_preset_id: sourceMeal.source_preset_id } : {}),
     ...(present(sourceMeal.source_planned_meal_id) ? { source_planned_meal_id: sourceMeal.source_planned_meal_id } : {}),
     logged_at: sourceMeal.logged_at,
-    client_idempotency_key: sourceMeal.client_idempotency_key,
+    client_idempotency_key: canonicalMealKey(sourceMeal.client_idempotency_key, sourceMeal.meal_slot),
     logged_as: canonicalMealLogKind(sourceMeal.logged_as),
     ...(present(sourceMeal.replace_meal_id) ? { replace_meal_id: sourceMeal.replace_meal_id } : {}),
   }
@@ -179,7 +189,7 @@ export function canonicalMealPresetRPCPayload(
     p_preset: {
       id: sourcePreset.id,
       name: sourcePreset.name,
-      meal_slot: sourcePreset.meal_slot,
+      meal_slot: canonicalMealSlot(sourcePreset.meal_slot),
       ...(present(sourcePreset.source_planned_meal_id)
         ? { source_planned_meal_id: sourcePreset.source_planned_meal_id }
         : {}),

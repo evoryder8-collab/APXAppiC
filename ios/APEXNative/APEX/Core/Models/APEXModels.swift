@@ -1115,6 +1115,20 @@ struct StructuredMealRequest: Codable, Sendable {
     let loggedAs: String
     let replaceMealID: UUID?
 
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(id, forKey: .id)
+        try values.encode(localDate, forKey: .localDate)
+        try values.encode(MealBlocks.storageSlot(mealSlot), forKey: .mealSlot)
+        try values.encode(displayName, forKey: .displayName)
+        try values.encodeIfPresent(sourcePresetID, forKey: .sourcePresetID)
+        try values.encodeIfPresent(sourcePlannedMealID, forKey: .sourcePlannedMealID)
+        try values.encode(loggedAt, forKey: .loggedAt)
+        try values.encode(MealBlocks.storageKey(clientIdempotencyKey, kind: mealSlot), forKey: .clientIdempotencyKey)
+        try values.encode(loggedAs, forKey: .loggedAs)
+        try values.encodeIfPresent(replaceMealID, forKey: .replaceMealID)
+    }
+
     enum CodingKeys: String, CodingKey {
         case id
         case localDate = "local_date"
@@ -1350,7 +1364,7 @@ struct MealComposerDraft: Identifiable, Hashable, Sendable {
     /// Stable for retries of one save attempt, but renewed whenever the meal
     /// composer is opened again so a later edit is not mistaken for a replay.
     var clientIdempotencyKey: String {
-        "ios-meal-op-\(saveOperationID.uuidString.lowercased())"
+        MealBlocks.storageKey("ios-meal-op-\(saveOperationID.uuidString.lowercased())", kind: mealSlot)
     }
 
     var totals: FoodNutrients {
@@ -1389,6 +1403,15 @@ struct MealPresetRequest: Codable, Sendable {
     let mealSlot: String
     let sourcePlannedMealID: UUID?
     let archived: Bool
+
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(id, forKey: .id)
+        try values.encode(name, forKey: .name)
+        try values.encode(MealBlocks.storageSlot(mealSlot), forKey: .mealSlot)
+        try values.encodeIfPresent(sourcePlannedMealID, forKey: .sourcePlannedMealID)
+        try values.encode(archived, forKey: .archived)
+    }
 
     enum CodingKeys: String, CodingKey {
         case id, name, archived
