@@ -103,7 +103,7 @@ enum StrengthProgress {
     struct SessionTotals: Sendable {
         let sessionID: UUID
         let date: String
-        let time: String
+        let time: Date?
         var totals = LifetimeTotals()
         var heaviestSet: (kg: Double, reps: Int)?
         var bestSingleKG: Double?
@@ -111,15 +111,12 @@ enum StrengthProgress {
         init(_ session: WorkoutSession) {
             sessionID = session.id
             date = session.date
-            time = session.startedAt ?? session.completedAt ?? ""
+            time = ExternalWorkoutImport.parseTimestamp(session.startedAt) ?? ExternalWorkoutImport.parseTimestamp(session.completedAt)
         }
 
         static func chronological(_ lhs: Self, _ rhs: Self) -> Bool {
-            if lhs.date != rhs.date { return lhs.date < rhs.date }
-            if let l = ExternalWorkoutImport.parseTimestamp(lhs.time), let r = ExternalWorkoutImport.parseTimestamp(rhs.time), l != r {
-                return l < r
-            }
-            return (lhs.time, lhs.sessionID.uuidString) < (rhs.time, rhs.sessionID.uuidString)
+            (lhs.date, lhs.time ?? .distantPast, lhs.sessionID.uuidString)
+                < (rhs.date, rhs.time ?? .distantPast, rhs.sessionID.uuidString)
         }
     }
 

@@ -451,6 +451,23 @@ final class ExportReportTests: XCTestCase {
         XCTAssertFalse(text.contains(LanguageState.shared.text("Best single") + " · 24 kg"))
     }
 
+    func testSameDaySplitSessionsFollowTheirActualStartTimeAcrossTimezoneOffsets() {
+        var fixture = data()
+        var morning = fixture.workoutSessions[0]
+        morning.startedAt = "2026-01-05T12:00:00+03:00"
+        let later = WorkoutSession(id: UUID(), userID: user, date: morning.date, programDayID: dayID,
+            isLite: false, isDeload: false, isEventRecovery: false, completed: true, qualityScore: 1,
+            startedAt: "2026-01-05T10:00:00Z", completedAt: nil, notes: "")
+        fixture.workoutSessions = [later, morning]
+        let earlySet = log("Bulgarian Split Squat", set: 1, weight: 0, reps: 10, at: "")
+        let lateSet = WorkoutLog(id: UUID(), userID: user, sessionID: later.id, exerciseID: nil,
+            exerciseName: earlySet.exerciseName, setNumber: 1, weightKG: 9, reps: 8, rir: nil,
+            skipped: false, overrideFlag: false, createdAt: "")
+        let history = StrengthProgress.exerciseHistory(ownerID: user, sessions: fixture.workoutSessions, logs: [lateSet, earlySet])
+        XCTAssertEqual(history.first?.sessions.map(\.sessionID), [morning.id, later.id])
+        XCTAssertEqual(history.first?.sessions.compactMap { $0.heaviestSet?.kg }, [0, 9])
+    }
+
     func testAvatarReportCalendarRangesRejectInvalidDatesAndClampMonthEnds() {
         func bounds(_ preset: AvatarReportPeriod, _ today: String, _ from: String = "", _ to: String = "") -> ClosedRange<String>? {
             preset.resolve(today: today, earliest: "2023-03-17", customFrom: from, customTo: to)
