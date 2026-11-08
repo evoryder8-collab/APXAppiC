@@ -11,6 +11,7 @@ import { todayIso } from '../../lib/plan'
 import {
   assessJointCheckin,
   buildExerciseFamilies,
+  exerciseChartTitle,
   checkinDue,
   type DeloadState,
   type JointRegion,
@@ -154,7 +155,8 @@ export function StrengthProgressPanel() {
   const copy = COPY[language]
   const t = (value: string): string => translateInterfaceText(value, language)
   const history = useMemo(() => buildExerciseFamilies(data), [data])
-  const series = history.flatMap(family => family.variants.filter(variant => variant.points.length > 0))
+  const series = history.flatMap(family => family.variants.filter(variant => variant.points.length > 0)
+    .map(variant => ({ ...variant, ...exerciseChartTitle(family, variant.name, t) })))
   const [regionFilter, setRegionFilter] = useState<'all' | 'lower' | 'upper'>('all')
   const rankedFamilies = regionFilter === 'all' ? history : history.filter(family => family.region === regionFilter)
   const [showAll, setShowAll] = useState(false)
@@ -196,14 +198,14 @@ export function StrengthProgressPanel() {
       <div className="relative bg-[radial-gradient(circle_at_85%_0%,rgba(139,92,246,.18),transparent_32%),radial-gradient(circle_at_5%_80%,rgba(34,211,238,.14),transparent_32%)] p-5 sm:p-6">
         <p className="font-mono text-[9px] font-black tracking-[0.2em] text-violet-700 uppercase">{copy.eyebrow}</p>
         <div className="mt-1 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-          <div><h2 className="font-display text-xl font-black text-ink">{t('Progressive overload')}</h2><p className="mt-1 max-w-xl text-xs leading-relaxed font-medium text-ink-soft">{t('Heaviest recorded working load in each completed session.')}</p></div>
+          <div><h2 className="font-display text-xl font-black text-ink">{active?.title ?? t('Progressive overload')}</h2>{active?.subtitle && <p className="mt-0.5 text-sm font-semibold text-ink-soft">{active.subtitle}</p>}<p className="mt-1 max-w-xl text-xs leading-relaxed font-medium text-ink-soft">{t('Heaviest recorded working load in each completed session.')}</p></div>
           {active && <label className="min-w-0 sm:max-w-[50%]">
             <span className="sr-only">{copy.exercise}</span>
             <select value={active.key} onChange={(event) => setSelectedKey(event.target.value)} className="max-w-full rounded-2xl border border-white/80 bg-white/75 px-3 py-2.5 text-xs font-bold text-ink shadow-sm outline-none">
               {STRENGTH_REGIONS.map((region) => {
                 const options = series.filter((item) => item.region === region)
                 return options.length > 0 && <optgroup key={region} label={copy[region]}>
-                  {options.map((item) => <option key={item.key} value={item.key}>{t(item.name)} · {item.sessionCount}</option>)}
+                  {options.map((item) => <option key={item.key} value={item.key}>{item.title}{item.subtitle && ` · ${item.subtitle}`} · {item.sessionCount}</option>)}
                 </optgroup>
               })}
             </select>

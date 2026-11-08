@@ -19,6 +19,7 @@ export interface TrainingProfile {
   running: number
   medianReps: number | null
   comparison: Comparison | null
+  period?: { from: string; split: string; to: string; days: number }
 }
 
 const dayMilliseconds = 86_400_000
@@ -37,12 +38,13 @@ for (const name of [...runNames, 'indoorwalk','outdoorwalk','walking','indoorcyc
 for (const name of ['barre','stretching','mobility']) importModes.set(name,'Mobility')
 for (const name of ['strengthtraining','weighttraining']) importModes.set(name,'Resistance')
 
-export function trainingProfile(data: AppData, runs: ProfileRun[], today: string): TrainingProfile {
+export function trainingProfile(data: AppData, runs: ProfileRun[], today: string, rangeStart?: string): TrainingProfile {
   const owner = data.profile?.user_id ?? data.settings?.user_id
   const end = Date.parse(today + 'T12:00:00Z')
   const daysAgo = (days: number) => new Date(end - days * dayMilliseconds).toISOString().slice(0,10)
-  const from = daysAgo(89)
-  const split = daysAgo(44)
+  const from = rangeStart ?? daysAgo(89)
+  const days = 1 + Math.round((end - Date.parse(from + 'T12:00:00Z')) / dayMilliseconds)
+  const split = daysAgo(Math.ceil(days / 2) - 1)
   const types = { Resistance: new Set<string>(), Cardio: new Set<string>(), Mobility: new Set<string>() }
   const running = new Set<string>()
   const recentReps = new Map<string, number>()
@@ -143,7 +145,7 @@ export function trainingProfile(data: AppData, runs: ProfileRun[], today: string
   const addons = owner && data.settings?.user_id === owner ? data.settings.addons : undefined
   const goal = (addons?.training_induction ?? addons?.training_induction_baseline)?.goal
   return { focus, workouts, counts, running:running.size, medianReps:median([...recentReps.values()]), comparison,
-    muscleGrowthGoal: canonicalTrainingGoal(goal) === 'muscle' }
+    muscleGrowthGoal: canonicalTrainingGoal(goal) === 'muscle', ...(rangeStart ? { period: { from, split, to: today, days } } : {}) }
 }
 
 export function athleteTitle(profile: TrainingProfile): string {
@@ -159,7 +161,7 @@ export function athleteTitle(profile: TrainingProfile): string {
 
 export function trainingProfileLines(profile: TrainingProfile, locale: string, t: (text: string) => string): string[] {
   const format = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 }).format
-  const lines = [t('Classified workouts') + ' ' + format(profile.workouts) + ' · ' + t('Workouts per week') + ' ' + format(profile.workouts * 7 / 90)]
+  const lines = [t('Classified workouts') + ' ' + format(profile.workouts) + ' · ' + t('Workouts per week') + ' ' + format(profile.workouts * 7 / (profile.period?.days ?? 90))]
   const counts = Object.entries(profile.counts).filter(([,count]) => count > 0)
   if (counts.length) lines.push(counts.map(([label,count]) => t(label) + ' ' + format(count)).join(' · '))
   if (profile.running) lines.push(t('Running') + ' · ' + format(profile.running))
@@ -169,7 +171,14 @@ export function trainingProfileLines(profile: TrainingProfile, locale: string, t
   if (profile.comparison) {
     const { name, reps, previous, recent } = profile.comparison
     lines.push(t('Matched working load') + ' · ' + t(name) + ' × ' + format(reps))
-    lines.push(t('Previous 45 days') + ' ' + format(previous) + ' kg · ' + t('Last 45 days') + ' ' + format(recent) + ' kg')
+    if (profile.period) {
+      const { from, split, to } = profile.period
+      const lastEarly = new Date(Date.parse(split + 'T12:00:00Z') - dayMilliseconds).toISOString().slice(0,10)
+      lines.push(t('Earlier period') + ' · ' + from + ' – ' + lastEarly + ' · ' + format(previous) + ' kg')
+      lines.push(t('Later period') + ' · ' + split + ' – ' + to + ' · ' + format(recent) + ' kg')
+    } else {
+      lines.push(t('Previous 45 days') + ' ' + format(previous) + ' kg · ' + t('Last 45 days') + ' ' + format(recent) + ' kg')
+    }
     lines.push(t('Median session-best load at the same rep count.'))
   }
   return lines

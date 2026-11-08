@@ -20,6 +20,7 @@ import {
   trainingProtocolWeek,
 } from './focusT25.ts'
 import { activeInductionDayIds, activeTrainingProgramDays, inductionWeek, isInsideInductionWindow } from './trainingInduction.ts'
+import { simpleGuidedProgramSlug } from './simpleMode.ts'
 import { recoveryDayMatchesDate } from './recoveryPlanner.ts'
 
 export interface PlannedExercise extends Exercise {
@@ -480,6 +481,20 @@ export function programDaysForDate(
     )
     .sort((left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name))
     .map((day) => planForDate(data, slug, date, lite, day.id))
+}
+
+export function guidedProgramForDate(data: AppData, date: string, canFollowCoach: boolean, sponsoredOnly: boolean): ProgramSlug {
+  if (sponsoredOnly) return 'coach'
+  const owner = data.profile?.user_id ?? data.settings?.user_id
+  const slugs = new Map(data.programs.filter(p => p.user_id === owner).map(p => [p.id, p.slug]))
+  const prescribed = new Set(data.exercises.filter(e => e.user_id === owner && !e.is_lite).map(e => e.program_day_id))
+  const usable = new Set(activeTrainingProgramDays(data).filter(d => prescribed.has(d.id)).map(d => slugs.get(d.program_id)))
+  if (canFollowCoach && usable.has('coach')) return 'coach'
+  const induction = data.settings?.addons.training_induction
+  for (const phase of ['transition', 'main'] as const) {
+    if (induction && usable.has(phase) && isInsideInductionWindow(induction, phase, date)) return phase
+  }
+  return simpleGuidedProgramSlug(data.profile?.persona, usable.has('main'), usable.has('transition'))
 }
 
 /** An added custom workout shares the calendar with the active coached or individual programme. */

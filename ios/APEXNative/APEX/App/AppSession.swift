@@ -707,7 +707,12 @@ final class AppSession {
                 defaults.removeObject(forKey: key)
             }
             LanguageState.shared.language = .english
-            data = APEXDebugFixture.dashboard()
+            if ProcessInfo.processInfo.arguments.contains("-fitr-ui-test-june-sunday") {
+                data = APEXDebugFixture.juneSunday()
+                browsingDate = APEXDateMath.date(from: "2026-11-08")!
+            } else {
+                data = APEXDebugFixture.dashboard()
+            }
             if ProcessInfo.processInfo.arguments.contains("-fitr-ui-test-completion-repair"),
                var exercise = data.exercises.first {
                 exercise.sets = 2
@@ -1092,6 +1097,10 @@ final class AppSession {
         }
     }
 
+    var inductionRequiresStartingPoints: Bool {
+        coachClientPolicy.canUseAvatar && (profile?.needsAvatarStartingPoints ?? true)
+    }
+
     /// Turn questionnaire answers into a profile and a first twelve weeks.
     func completeInduction(
         _ input: TrainingInduction.Input,
@@ -1125,14 +1134,20 @@ final class AppSession {
         _ submission: TrainingInduction.Submission,
         operation: AccountOperationLease
     ) async {
+        guard accountOperationIsCurrent(operation) else { return }
+        if inductionRequiresStartingPoints && submission.avatarStartingPoints == nil {
+            alertMessage = "Choose starting points"
+            return
+        }
         if isDeveloperSandbox {
-            guard accountOperationIsCurrent(operation) else { return }
             let baseline = DeveloperSandboxSamples.dashboard(ownerID: operation.ownerID, name: "Sample")
             var settings = data.settings ?? baseline.settings!
             let plan = submission.generatedPlan(userID: operation.ownerID, existingPrograms: data.programs)
             settings = submission.applyingAccountMetadata(to: settings, plan: plan, existingData: data)
             data.foods = baseline.foods
             data.profile = submission.requiresProfile ? baseline.profile : nil
+            data.profile?.avatarStartingPointsRequired = true
+            data.profile?.avatarStartingPoints = submission.avatarStartingPoints
             if let goal = submission.profileGoal.flatMap(Goal.init(rawValue:)) { data.profile?.goal = goal }
             if let facts = submission.profileBaseline {
                 data.profile?.sex = facts.sex
@@ -1201,7 +1216,8 @@ final class AppSession {
                     userID: userID,
                     goal: submission.profileGoal,
                     baseline: submission.profileBaseline,
-                    activityLevel: submission.profileActivityLevel
+                    activityLevel: submission.profileActivityLevel,
+                    avatarStartingPoints: submission.avatarStartingPoints
                 )
                 try requireCurrentAccountOperation(operation)
                 guard profile.userID == operation.ownerID else { throw CancellationError() }
@@ -1272,6 +1288,8 @@ final class AppSession {
         settings = submission.applyingAccountMetadata(to: settings, plan: plan, existingData: data)
 
         data.profile = submission.requiresProfile ? fixture.profile : nil
+        data.profile?.avatarStartingPointsRequired = true
+        data.profile?.avatarStartingPoints = submission.avatarStartingPoints
         if let goal = submission.profileGoal.flatMap(Goal.init(rawValue:)) {
             data.profile?.goal = goal
         }
@@ -2156,7 +2174,7 @@ final class AppSession {
             // UI automation runs an unauthenticated local fixture; a remote
             // persist would fail into the offline path and raise an alert
             // over the screen mid-test.
-            if ProcessInfo.processInfo.arguments.contains("-apex-ui-test") { return }
+            if APEXRuntimeEnvironment.usesLocalUITestFixture() { return }
             #endif
             let accountToken = accountGeneration.token
             let previous = avatarPublicationTask
@@ -5373,6 +5391,22 @@ final class AppSession {
             expectedAccountToken: operation.generation
         )
         try requireCurrentAccountOperation(operation)
+    }
+
+    func saveAvatarStartingPoints(_ points: [String: Int], operation: AccountOperationLease) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard let profile, profile.userID == operation.ownerID, profile.avatarStartingPoints == nil,
+              ProfileIntegrityPolicy.authorizedProtocol(for: profile) == nil, AvatarStartingPoints.stats(points) != nil
+        else { throw CancellationError() }
+        if isDeveloperSandbox || APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            data.profile?.avatarStartingPoints = points
+        } else {
+            let saved = try await service.setAvatarStartingPoints(points, ownerID: operation.ownerID)
+            try requireCurrentAccountOperation(operation)
+            guard saved.userID == operation.ownerID, let accepted = saved.avatarStartingPoints else { throw CancellationError() }
+            data.profile?.avatarStartingPoints = accepted
+            try await saveLocalSnapshot(operation: operation)
+        }
     }
 
     func updateProfile(

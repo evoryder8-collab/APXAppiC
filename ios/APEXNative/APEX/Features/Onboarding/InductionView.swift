@@ -36,6 +36,8 @@ struct InductionView: View {
     @State private var shown = false
 
     @ScaledMetric(relativeTo: .body) private var pulseHeight = 470
+    @State private var choosingStartingPoints = false
+    @State private var advanceAfterSavingPoints = false
     private let stepCount = 8
 
     private struct Draft: Codable, Equatable {
@@ -69,7 +71,8 @@ struct InductionView: View {
         privacyAccepted = true
         input = saved.input
         input.startDate = Date().apexDateKey
-        step = saved.step
+        step = session.inductionRequiresStartingPoints && AvatarStartingPoints.stats(input.avatarStartingPoints) == nil
+            ? min(2, saved.step) : saved.step
         pulsePage = min(3, max(0, saved.pulse))
         baselineSex = saved.sex
         weightText = saved.weight
@@ -151,6 +154,12 @@ struct InductionView: View {
         .onChange(of: input) { _, _ in
             validationPrompt = nil
             validationFocused = false
+        }
+        .sheet(isPresented: $choosingStartingPoints) {
+            AvatarStartingPointsEditor(initial: input.avatarStartingPoints) { points in
+                input.avatarStartingPoints = points
+                if advanceAfterSavingPoints { withAnimation(.snappy) { step += 1 } }
+            }.modifier(DeveloperSandboxSheetClearance())
         }
         .sheet(item: $legalDocument) { document in
             OnboardingLegalDocumentView(document: document)
@@ -249,6 +258,9 @@ struct InductionView: View {
                         input.bodyBaseline = bodyBaseline
                         baselineField = nil
                         withAnimation(.snappy) { step += 1 }
+                    } else if step == 2 && session.inductionRequiresStartingPoints && input.avatarStartingPoints == nil {
+                        advanceAfterSavingPoints = true
+                        choosingStartingPoints = true
                     } else if step == stepCount - 1 {
                         guard let operation = session.accountOperationLease() else { return }
                         Task { await session.completeInduction(input, operation: operation) }
@@ -361,7 +373,8 @@ struct InductionView: View {
         case 4: language.text("Four quick, observable signals give FITR MAX a broad starting range. There is no penalty for not knowing.")
         case 5: language.text("Pick what you can reliably use on a busy week. You can change it later.")
         case 6: language.text("This decides what gets adapted or paused. Nothing here is shared with anyone.")
-        case 7: language.text("Broad early bands, never invented precision. You can sharpen them later from your Avatar.")
+        case 7: input.avatarStartingPoints == nil
+            ? language.text("Broad early bands, never invented precision. You can sharpen them later from your Avatar.") : nil
         default: nil
         }
     }
@@ -868,12 +881,32 @@ struct InductionView: View {
 
     private var startingMap: some View {
         VStack(alignment: .leading, spacing: 12) {
-            startingMapRow("Stamina", band: startingBands.cardiorespiratory)
-            startingMapRow("Upper body strength", band: startingBands.upperStrength)
-            startingMapRow("Lower body strength", band: startingBands.lowerStrength)
-            startingMapRow("Mobility", band: startingBands.mobility)
-            startingMapRow("Overall Fitness", band: .buildingBaseline)
-                .accessibilityIdentifier("induction-starting-overall")
+            if session.profile.map({ ProfileIntegrityPolicy.authorizedProtocol(for: $0) == nil && $0.avatarStartingPoints == nil }) ?? true {
+                Button(language.text("Choose starting points")) {
+                    advanceAfterSavingPoints = false
+                    choosingStartingPoints = true
+                }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("induction-starting-points")
+                if input.avatarStartingPoints != nil {
+                    Text(language.text("Self-selected starting points")).font(.subheadline)
+                    if !session.inductionRequiresStartingPoints {
+                        Button(language.text("Set up later")) { input.avatarStartingPoints = nil }
+                    }
+                }
+            }
+            if let points = input.avatarStartingPoints {
+                ForEach(AvatarStartingPoints.domains, id: \.0) { key, title in
+                    LabeledContent(language.text(title), value: String(points[key, default: 0]))
+                }
+            } else {
+                startingMapRow("Stamina", band: startingBands.cardiorespiratory)
+                startingMapRow("Upper body strength", band: startingBands.upperStrength)
+                startingMapRow("Lower body strength", band: startingBands.lowerStrength)
+                startingMapRow("Mobility", band: startingBands.mobility)
+                startingMapRow("Overall Fitness", band: .buildingBaseline)
+                    .accessibilityIdentifier("induction-starting-overall")
+            }
 
             if input.recentOperation || input.acuteSymptoms {
                 Label(
@@ -886,19 +919,21 @@ struct InductionView: View {
                 .background(.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
 
-            DisclosureGroup(
-                language.text("How FITR MAX estimated this"),
-                isExpanded: $showEstimateDetails
-            ) {
-                Text(language.text("These are broad early bands from your answers, not measured test results. Self-report stays low confidence. Overall Fitness stays at Building your baseline until each of your six training signals has evidence."))
-                    .font(APEXFont.body(13))
-                    .foregroundStyle(APEXColor.secondaryInk)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 8)
+            if input.avatarStartingPoints == nil {
+                DisclosureGroup(
+                    language.text("How FITR MAX estimated this"),
+                    isExpanded: $showEstimateDetails
+                ) {
+                    Text(language.text("These are broad early bands from your answers, not measured test results. Self-report stays low confidence. Overall Fitness stays at Building your baseline until each of your six training signals has evidence."))
+                        .font(APEXFont.body(13))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 8)
+                }
+                .font(APEXFont.body(15, weight: .semibold))
+                .padding(16)
+                .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
             }
-            .font(APEXFont.body(15, weight: .semibold))
-            .padding(16)
-            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("induction-starting-map")

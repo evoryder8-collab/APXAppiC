@@ -28,7 +28,7 @@ test('the coach workout page applies the custom-workout policy to every inline c
 
   assert.match(
     source,
-    /const canCreateCustomWorkouts = clientPolicyForAccount\(appAccess, coachContext\)\.can_create_custom_workouts/,
+    /const coachPolicy = clientPolicyForAccount\(appAccess, coachContext\)\s+const canCreateCustomWorkouts = coachPolicy\.can_create_custom_workouts/,
   )
   assert.match(source, /\{canCreateCustomWorkouts && \(\s*<TodayManualWorkoutCard/)
   assert.match(source, /\{canCreateCustomWorkouts && \(\s*<div className="relative overflow-hidden[\s\S]*?FITR MAX WORKOUT STUDIO/)

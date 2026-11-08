@@ -22,15 +22,15 @@ import { useStore } from '../store/AppStore'
 import { useFoodStore } from '../store/FoodStore'
 import { ACCENTS } from '../lib/theme'
 import { ACTIVITY_MULTIPLIERS, activityLevelLabel, buildTargetMealPlan, computeTargets, goalPresetsForPlan, nutritionPlanContext, type TargetMeal } from '../lib/nutrition'
-import { planForDate, simpleWorkoutPlans, workoutPlanSlug, workoutPlanRoute } from '../lib/plan'
+import { guidedProgramForDate, planForDate, simpleWorkoutPlans, workoutPlanSlug, workoutPlanRoute } from '../lib/plan'
 import { dailyGuidedSessions, guidedPlayerDraftKey, guidedPlayerDraftMatches } from '../lib/dailyGuidedSessions'
 import { dailyLogId } from '../lib/ids'
-import type { ActivityLevel, DailyLog, ProgramSlug, Supplement } from '../lib/types'
+import type { ActivityLevel, DailyLog, Supplement } from '../lib/types'
 import { aggregateConsumedMeals, displayFoodName, reconcileConsumedMeals, type ComposerFoodItem, type FoodRecord, type LoggedMeal, type MealSlot } from '../lib/food'
 import { GlassCard, GradientButton } from '../components/ui'
 import { AvatarIcon, DropletIcon, DumbbellIcon, OrbitIcon } from '../components/Icons'
 import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
-import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, simpleActivityProgress, simpleDailyProgress, simpleDaySwipeOffset, simpleGuidedProgramSlug, simpleWaterTargetComplete, simpleWorkoutEvidenceOrder, weightFromKg, weightToKg, weightUnitFromSettings, type SimpleMacroKey } from '../lib/simpleMode'
+import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, simpleActivityProgress, simpleDailyProgress, simpleDaySwipeOffset, simpleWaterTargetComplete, simpleWorkoutEvidenceOrder, weightFromKg, weightToKg, weightUnitFromSettings, type SimpleMacroKey } from '../lib/simpleMode'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { useOrbitStore } from '../orbit/store/OrbitStore'
 import { missionLabel } from '../orbit/domain/analysis'
@@ -53,7 +53,6 @@ import { catalogExerciseByName, displayExerciseName } from '../data/exerciseCata
 import { buildTimeline } from '../lib/playerTimeline'
 import { isFocusT25Name } from '../lib/focusT25'
 import { calendarDayState, loadActiveDate, rememberActiveDate } from '../lib/activeDate'
-import { activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
 import { activityLogsForOwnerDate, resolveDailyBurnedEnergy } from '../lib/activity'
 import { recommendActivityMode } from '../lib/personalProtocol'
 import { NutritionGoalPresetPicker } from '../components/nutrition/NutritionGoalPresetPicker'
@@ -309,31 +308,8 @@ export function SimpleHome() {
     [data.supplement_logs, selectedDate],
   )
   const supplementDoneIds = useMemo(() => new Set(dateSupplementLogs.map((log) => log.supplement_id)), [dateSupplementLogs])
-  const usableGuidedPrograms = useMemo(() => {
-    const activeDays = activeTrainingProgramDays(data)
-    const hasPrescription = (slug: ProgramSlug): boolean => {
-      const programIDs = new Set(
-        data.programs.filter((candidate) => candidate.slug === slug).map((candidate) => candidate.id),
-      )
-      const dayIDs = new Set(activeDays.filter((day) => programIDs.has(day.program_id)).map((day) => day.id))
-      return data.exercises.some((exercise) => dayIDs.has(exercise.program_day_id) && !exercise.is_lite)
-    }
-    return { main: hasPrescription('main'), transition: hasPrescription('transition'), coach: hasPrescription('coach') }
-  }, [data])
-  const fallbackGuidedProgramSlug = simpleGuidedProgramSlug(
-    profile?.persona,
-    usableGuidedPrograms.main,
-    usableGuidedPrograms.transition,
-  )
-  const induction = data.settings?.addons.training_induction
-  const guidedProgramSlug: ProgramSlug = sponsoredOnlyAccess
-    || coachPolicy.can_follow_coach_plan && usableGuidedPrograms.coach
-    ? 'coach'
-    : induction && isInsideInductionWindow(induction, 'transition', selectedDate) && usableGuidedPrograms.transition
-      ? 'transition'
-      : induction && isInsideInductionWindow(induction, 'main', selectedDate) && usableGuidedPrograms.main
-        ? 'main'
-        : fallbackGuidedProgramSlug
+  const guidedProgramSlug = useMemo(() => guidedProgramForDate(data, selectedDate, coachPolicy.can_follow_coach_plan, sponsoredOnlyAccess),
+    [data, selectedDate, coachPolicy.can_follow_coach_plan, sponsoredOnlyAccess])
   const guidedScheduleRoute = guidedProgramSlug === 'coach' ? '/coach-workouts' : guidedProgramSlug === 'main' ? '/main-phase' : '/transition'
   const plans = useMemo(
     () => simpleWorkoutPlans(data, guidedProgramSlug, selectedDate, false, canCreateManualWorkouts),

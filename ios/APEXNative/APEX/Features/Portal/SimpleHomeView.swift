@@ -121,28 +121,8 @@ struct SimpleHomeView: View {
         }
     }
 
-    private var todayWeekday: Int {
-        let weekday = Calendar.current.component(.weekday, from: selectedDate)
-        return weekday == 1 ? 7 : weekday - 1
-    }
-    private var guidedProgramSlug: String {
-        let hasInduction = session.data.settings?.addons["training_induction"]?.objectValue != nil
-        return SimpleHomeLogic.guidedProgramSlug(
-            persona: profile?.persona,
-            mainIsUsable: TrainingInduction.hasUsablePrescription(in: session.data, slug: "main"),
-            transitionIsUsable: TrainingInduction.hasUsablePrescription(in: session.data, slug: "transition"),
-            coachManaged: session.coachContext.activelyCoached
-                && !session.coachClientPolicy.canCreateCustomWorkouts,
-            coachIsUsable: session.coachClientPolicy.canFollowCoachPlan
-                && TrainingInduction.hasUsablePrescription(in: session.data, slug: "coach"),
-            transitionInductionIsUsable: hasInduction
-                && TrainingPlanEngine.isInsideInductionWindow(session.data, slug: "transition", date: today)
-                && TrainingInduction.hasUsablePrescription(in: session.data, slug: "transition"),
-            mainInductionIsUsable: hasInduction
-                && TrainingPlanEngine.isInsideInductionWindow(session.data, slug: "main", date: today)
-                && TrainingInduction.hasUsablePrescription(in: session.data, slug: "main")
-        )
-    }
+    private var schedule: SimpleHomeLogic.TrainingSchedule { session.trainingSchedule(on: today) }
+    private var guidedProgramSlug: String { schedule.primary }
     private var guidedProgramRoute: PortalDestination {
         if guidedProgramSlug == "coach" {
             return TrainingInduction.hasUsablePrescription(in: session.data, slug: "coach")
@@ -150,27 +130,9 @@ struct SimpleHomeView: View {
         }
         return guidedProgramSlug == "main" ? .mainPhase : .transition
     }
-    private var hasUsablePrimaryTrainingPlan: Bool {
-        guard TrainingInduction.hasUsablePrescription(in: session.data, slug: guidedProgramSlug) else {
-            return false
-        }
-        if guidedProgramSlug == "coach" { return true }
-        guard session.data.settings?.addons["training_induction"]?.objectValue != nil else {
-            return true
-        }
-        return TrainingPlanEngine.isInsideInductionWindow(
-            session.data,
-            slug: guidedProgramSlug,
-            date: today
-        )
-    }
-    private var hasUsableTrainingPlan: Bool {
-        hasUsablePrimaryTrainingPlan || (session.coachClientPolicy.canCreateCustomWorkouts
-            && TrainingInduction.hasUsablePrescription(in: session.data, slug: "custom"))
-    }
+    private var hasUsableTrainingPlan: Bool { schedule.hasPrescription }
     private func dailyPlans(lite: Bool) -> [PlannedDay] {
-        SimpleHomeLogic.workoutPlans(in: session.data, primarySlug: hasUsablePrimaryTrainingPlan ? guidedProgramSlug : nil,
-                                     includeCustom: session.coachClientPolicy.canCreateCustomWorkouts, date: today, lite: lite)
+        schedule.plans(in: session.data, on: today, lite: lite)
     }
     private var workoutPlans: [PlannedDay] {
         dailyPlans(lite: workoutIsLite)
@@ -306,7 +268,7 @@ struct SimpleHomeView: View {
             targetFatG: Double(targets.fatG),
             waterL: waterL,
             waterTargetL: waterTargetL,
-            workoutScheduled: todayProgramDay != nil,
+            workoutScheduled: !dailyTrainingSessions.isEmpty,
             workoutCompleted: workoutDone,
             activityProgress: activityProgress,
             supplements: supplements,
@@ -509,7 +471,7 @@ struct SimpleHomeView: View {
         .task { await session.refreshNudges() }
         .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(isPresented: $showWorkout) {
-            if let todayProgramDay,
+            if let todayProgramDay, !workoutExercises.isEmpty || workoutPlan.hasWalkOnly,
                let slug = session.data.programs.first(where: { $0.id == todayProgramDay.programID && $0.userID == todayProgramDay.userID })?.slug,
                SimpleHomeLogic.canPresentGuidedWorkout(
                 slug: slug,
@@ -598,13 +560,16 @@ struct SimpleHomeView: View {
                 } else {
                     TrainingQuickSheet(
                         day: todayProgramDay,
+                        fullExercises: todayProgramDay.map { workoutExercises(for: $0.id, lite: false) } ?? [],
+                        liteExercises: todayProgramDay.map { workoutExercises(for: $0.id, lite: true) } ?? [],
+                        warmup: workoutPlan.warmup, hasWalk: workoutPlan.hasWalkOnly,
                         hasUsablePrescription: hasUsableTrainingPlan,
                         isDeload: todayIsDeload,
                         completed: false,
                         onClose: { quickPanel = nil }
                     ) { lite in
                         quickPanel = nil
-                        guard todayProgramDay != nil else {
+                        guard todayProgramDay != nil, !workoutPlan.exercises.isEmpty || workoutPlan.hasWalkOnly else {
                             session.openPortalDestination(guidedProgramRoute)
                             return
                         }
@@ -662,7 +627,7 @@ struct SimpleHomeView: View {
                 icon: "figure.strengthtraining.traditional",
                 value: !hasUsableTrainingPlan
                     ? language.text("No plan")
-                    : todayProgramDay == nil
+                    : workoutPlan.exercises.isEmpty
                         ? language.text("Rest")
                         : workoutDone
                             ? language.text("Done")
@@ -842,10 +807,10 @@ struct SimpleHomeView: View {
                 button: "Mark group done", color: APEXColor.cyan
             ))
         }
-        if let todayProgramDay, !workoutDone {
+        if let todayProgramDay, !workoutDone, !workoutPlan.exercises.isEmpty {
             candidates.append(.init(
                 time: minutes(profile?.trainingTime ?? "19:00"), kind: .workout, eyebrow: "Today’s movement",
-                title: language.text(todayProgramDay.name), meta: language.format("~%d min · %d exercises", todayProgramDay.estimatedMinutes, fullWorkoutExerciseCount),
+                title: language.text(todayProgramDay.name), meta: language.format("~%d min · %d exercises", todayProgramDay.estimatedMinutes, workoutPlan.exercises.count),
                 button: "Start session", color: APEXColor.teal
             ))
         }
@@ -865,11 +830,6 @@ struct SimpleHomeView: View {
         }
         guard let index = SimpleHomeLogic.nextCandidateIndex(times: candidates.map(\.time), nowMinutes: nowMinutes) else { return nil }
         return candidates[index]
-    }
-
-    private var fullWorkoutExerciseCount: Int {
-        guard let todayProgramDay else { return 0 }
-        return session.data.exercises.filter { $0.programDayID == todayProgramDay.id && !$0.isLite }.count
     }
 
     private var nowMinutes: Int {
@@ -2415,36 +2375,20 @@ private struct StatsQuickSheet: View {
  * the sets, rests and holds that will actually run.
  */
 private struct TrainingQuickSheet: View {
-    @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     @State private var language = LanguageState.shared
     @State private var lite = false
     let day: ProgramDay?
+    let fullExercises: [Exercise]
+    let liteExercises: [Exercise]
+    let warmup: String
+    let hasWalk: Bool
     let hasUsablePrescription: Bool
     let isDeload: Bool
     let completed: Bool
     var onClose: () -> Void = {}
     let start: (Bool) -> Void
 
-    private func exercises(lite wantsLite: Bool) -> [Exercise] {
-        guard let day else { return [] }
-        let requested = session.data.exercises
-            .filter { $0.programDayID == day.id && $0.isLite == wantsLite }
-            .sorted { $0.sortOrder < $1.sortOrder }
-        let source: [Exercise]
-        if requested.isEmpty, wantsLite {
-            source = Array(session.data.exercises
-                .filter { $0.programDayID == day.id && !$0.isLite }
-                .sorted { $0.sortOrder < $1.sortOrder }
-                .prefix(3))
-        } else {
-            source = requested
-        }
-        return TrainingAdjustmentEngine.adjustedExercises(source, isDeload: isDeload)
-    }
-
-    private var fullExercises: [Exercise] { exercises(lite: false) }
-    private var liteExercises: [Exercise] { exercises(lite: true) }
     private var shown: [Exercise] { lite ? liteExercises : fullExercises }
 
     /* Web parity: est_minutes for the full day, timeline estimate for light */
@@ -2493,7 +2437,7 @@ private struct TrainingQuickSheet: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(language.text(completed ? "Completed training" : "Training preview"))
                         .font(APEXFont.display(20))
-                    if day != nil {
+                    if !shown.isEmpty {
                         Text(language.format("%d exercises · %d min", shown.count, shownMinutes))
                             .font(APEXFont.body(12, weight: .semibold))
                             .foregroundStyle(APEXColor.secondaryInk)
@@ -2508,9 +2452,10 @@ private struct TrainingQuickSheet: View {
                         .background(.white.opacity(0.7), in: Circle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(language.text("Close"))
             }
 
-            if let day {
+            if let day, !fullExercises.isEmpty || !liteExercises.isEmpty {
                 /* Prescription switch */
                 HStack(spacing: 0) {
                     ForEach([false, true], id: \.self) { wantsLite in
@@ -2634,14 +2579,14 @@ private struct TrainingQuickSheet: View {
                     Image(systemName: "moon.zzz.fill")
                         .font(.system(size: 38))
                         .foregroundStyle(APEXColor.teal.opacity(0.75))
-                    Text(language.text("Recovery day"))
+                    Text(language.text(day?.name ?? "Recovery day"))
                         .font(APEXFont.display(21))
-                    Text(language.text("No planned strength session today. Rest is part of the plan."))
+                    Text(language.text(warmup.isEmpty ? "No planned strength session today. Rest is part of the plan." : warmup))
                         .font(APEXFont.body(12))
                         .multilineTextAlignment(.center)
                         .foregroundStyle(APEXColor.secondaryInk)
                     Button { dismiss(); start(false) } label: {
-                        Text(language.text("Open plan"))
+                        Text(language.text(hasWalk ? "Walking" : "Open plan"))
                             .font(APEXFont.body(12, weight: .bold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity, minHeight: 48)

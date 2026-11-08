@@ -254,7 +254,7 @@ test('simple mode keeps every manual-workout entry behind the custom-workout pol
   assert.equal(individual.can_create_custom_workouts, true)
   assert.match(simpleHome, /const canCreateManualWorkouts = coachPolicy\.can_create_custom_workouts/)
   assert.match(simpleHome, /const sponsoredOnlyAccess = sponsoredAccess && !canCreateManualWorkouts/)
-  assert.match(simpleHome, /const guidedProgramSlug: ProgramSlug = sponsoredOnlyAccess[\s\S]*?\? 'coach'/)
+  assert.match(simpleHome, /guidedProgramForDate\(data, selectedDate, coachPolicy\.can_follow_coach_plan, sponsoredOnlyAccess\)/)
   assert.match(simpleHome, /canCreateManualWorkouts && <QuickWorkoutLauncher/)
   assert.match(simpleHome, /canCreateManualWorkouts && hasManualWorkout[\s\S]*?<TodayManualWorkoutCard/)
   assert.match(simpleHome, /canCreateManualWorkouts && \(\s*<ManualWorkoutLogger/)

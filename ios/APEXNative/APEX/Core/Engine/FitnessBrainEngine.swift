@@ -242,9 +242,8 @@ public enum FitnessBrainEngine {
 
     public static func compute(_ input: FBEngineInput, throughDate: String) -> FBEngineResult {
         let profile = input.profile
-        let start = profile.baselineDate
-        let total = FBDate.daysBetween(start, throughDate)
-        if total < 0 { return FBEngineResult(snapshots: [], synergies: []) }
+        let authored = profile.authorizedProtocol != nil
+        let allocated = authored ? nil : AvatarStartingPoints.stats(profile.avatarStartingPoints)
 
         var dayTypeByID: [String: FBDayType] = [:]
         for d in input.programDays { dayTypeByID[d.id] = d.dayType }
@@ -271,8 +270,23 @@ public enum FitnessBrainEngine {
             qualityBySession[session.id] = recordedQuality(session, logs: logsBySession[session.id] ?? [])
         }
 
+        var missedDomains: [String: Set<FBDayType>] = [:]
+        var uncertainWorkoutDates = Set<String>()
         for s in input.workoutSessions where s.completed {
-            guard let quality = qualityBySession[s.id], quality > 0 else { continue }
+            let quality = qualityBySession[s.id] ?? 0
+            if allocated != nil {
+                let logs = logsBySession[s.id] ?? []
+                let domain = dayTypeByID[s.programDayID]?.activityDomain
+                if quality == 0, let domain, !s.isDeload, !s.isEventRecovery,
+                   !logs.isEmpty, logs.allSatisfy(\.skipped) {
+                    missedDomains[s.date, default: []].insert(domain)
+                    _ = day(s.date)
+                } else if quality > 0 && (s.isDeload || s.isEventRecovery
+                            || (domain == nil && !logs.contains(where: { !($0.performedTypes ?? []).isEmpty }))) {
+                    uncertainWorkoutDates.insert(s.date)
+                }
+            }
+            guard quality > 0 else { continue }
             guard let type = dayTypeByID[s.programDayID], type != .custom else { continue }
             day(s.date).types.append(TypeEntry(
                 type: type,
@@ -380,6 +394,14 @@ public enum FitnessBrainEngine {
             d.mealRhythmVerdict = rhythm.verdict
         }
 
+        let earliestWork = allocated == nil ? nil : activity.keys.filter {
+            $0 < profile.baselineDate && $0 <= throughDate && activity[$0]?.types.isEmpty == false
+                && FBDate.validDate($0) != nil
+        }.min()
+        let start = earliestWork ?? profile.baselineDate
+        let total = FBDate.daysBetween(start, throughDate)
+        if total < 0 { return FBEngineResult(snapshots: [], synergies: []) }
+
         /* Streaks */
         var streak = 0
         for i in 0...total {
@@ -395,12 +417,11 @@ public enum FitnessBrainEngine {
 
         var snapshots: [FBSnapshot] = []
         var synergies: [FBSynergyEvent] = []
-        let authored = profile.authorizedProtocol != nil
         // A neutral numeric starting point is internal arithmetic. No standard domain
         // or historical composite is published until that domain actually has evidence.
-        var s = authored ? baseline(for: profile.persona) : StatBlock(
-            health: 50, joint: 50, flexibility: 50, endurance: 50, strengthUpper: 50, strengthLower: 50)
-        var firstObserved = authored ? Dictionary(uniqueKeysWithValues:
+        var s = allocated ?? (authored ? baseline(for: profile.persona) : StatBlock(
+            health: 50, joint: 50, flexibility: 50, endurance: 50, strengthUpper: 50, strengthLower: 50))
+        var firstObserved = authored || allocated != nil ? Dictionary(uniqueKeysWithValues:
             ["health", "joint", "flexibility", "endurance", "upper", "lower"].map { ($0, start) }) : [:]
         func observe(_ key: String, _ date: String) {
             if firstObserved[key] == nil { firstObserved[key] = date }
@@ -423,7 +444,7 @@ public enum FitnessBrainEngine {
             .filter { $0.vo2max != nil && $0.date < start }
             .sorted { $0.date < $1.date }
             .last
-        if let vo2 = preVo2?.vo2max {
+        if allocated == nil, let vo2 = preVo2?.vo2max {
             observe("endurance", start)
             let anchor = vo2ToStat(vo2)
             s.endurance += (anchor - s.endurance) * 0.5
@@ -433,7 +454,7 @@ public enum FitnessBrainEngine {
         }
         let preWindowStart = FBDate.addDays(start, -60)
         var preStrength = 0, preEndurance = 0, preMobility = 0
-        for imp in input.importedActivities where imp.date >= preWindowStart && imp.date < start {
+        for imp in input.importedActivities where allocated == nil && imp.date >= preWindowStart && imp.date < start {
             switch imp.kind {
             case .strength: if authored { preStrength += 1 }
             case .endurance: preEndurance += 1
@@ -480,6 +501,20 @@ public enum FitnessBrainEngine {
             }
 
             if let a {
+                if let missed = missedDomains[date], !uncertainWorkoutDates.contains(date) {
+                    let performed = Set(a.types.compactMap { $0.type.activityDomain })
+                    for domain in missed.subtracting(performed) {
+                        switch domain {
+                        case .legsA where a.importStrengthMin <= 0: s.strengthLower -= 1
+                        case .upper where a.importStrengthMin <= 0: s.strengthUpper -= 1
+                        case .mobility where a.importMobilityMin <= 0: s.flexibility -= 1
+                        case .cardio where a.importEnduranceMin <= 0: s.endurance -= 1
+                        default: continue
+                        }
+                        synergies.append(FBSynergyEvent(date: date, kind: .skippedSession,
+                                                       label: "Explicitly skipped workout: −1 training point"))
+                    }
+                }
                 let proteinHit = targets.isPublishable
                     && (a.protein ?? -1) >= targets.proteinG * 0.95
                 let deepDeficit = targets.isPublishable
@@ -659,11 +694,17 @@ public enum FitnessBrainEngine {
                 if !fedHealth { s.health = decay(s.health, floor: floors.health, halfLife: halfLife.health) }
             }
 
-            if authored, let calibration = input.healthCalibration, calibration.source == "manual",
+            if authored, let calibration = input.avatarCalibration, calibration.source == "manual",
                calibration.date == date, (0...100).contains(calibration.score) {
                 s.health = calibration.score
+                if let scores = calibration.scores {
+                    for (value, key) in [(scores.joint, \StatBlock.joint), (scores.flexibility, \.flexibility),
+                                         (scores.endurance, \.endurance)] {
+                        if let value, (0...100).contains(value) { s[keyPath: key] = value }
+                    }
+                }
                 synergies.append(FBSynergyEvent(date: date, kind: .manualHealthCalibration,
-                                               label: "Health score manually calibrated"))
+                    label: calibration.scores == nil ? "Health score manually calibrated" : "Avatar scores manually calibrated"))
             }
             s = StatBlock(
                 health: clamp(s.health), joint: clamp(s.joint), flexibility: clamp(s.flexibility),

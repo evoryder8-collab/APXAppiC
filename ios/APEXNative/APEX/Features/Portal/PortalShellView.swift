@@ -6,9 +6,24 @@ struct PortalShellView: View {
     @State private var showBaselineCalibration = false
 
     var body: some View {
+        if session.coachClientPolicy.canUseAvatar, session.profile?.needsAvatarStartingPoints == true {
+            if let operation = session.accountOperationLease() {
+                AvatarStartingPointsEditor(initial: nil, onSignOut: { Task { await session.signOut() } }) { points in
+                    try await session.saveAvatarStartingPoints(points, operation: operation)
+                }
+                .id(operation.ownerID)
+            } else {
+                ProgressView()
+            }
+        } else {
+            portal
+        }
+    }
+
+    private var portal: some View {
         @Bindable var session = session
 
-        NavigationStack(path: $session.navigationPath) {
+        return NavigationStack(path: $session.navigationPath) {
             Group {
                 if session.interfaceMode == .simple {
                     SimpleHomeView()

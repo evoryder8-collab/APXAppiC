@@ -85,3 +85,11 @@ test('account-owned baseline calibration changes only its visible Avatar capacit
   assert.equal(snapshot.health, uncalibrated.health)
   assert.equal(snapshot.joint, uncalibrated.joint)
 })
+
+test('chosen starting points replace the onboarding estimate and keep later capacity observations', () => {
+  const data = dashboard([{ ...evidence('cardio_capacity_score'), measured_at: profile.baseline_date + 'T08:00:00Z', protocol: 'apex_onboarding_pulse_v1' }])
+  data.profile = { ...profile, avatar_starting_points: { health: 35, joint: 50, flexibility: 50, endurance: 65, strength_lower: 50, strength_upper: 50 } }
+  assert.equal(computeEngine(data, profile.baseline_date).snapshots.at(-1)?.endurance, 65)
+  data.fitness_evidence.push(evidence('cardio_capacity_score'))
+  assert.ok(computeEngine(data, '2026-08-31').snapshots.at(-1)!.endurance < 65)
+})

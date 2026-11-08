@@ -11,8 +11,25 @@ enum WorkoutInsights {
         let sets: Int
         let reps: Int
         let volumeKG: Double?
+        let partialVolume: Bool
+        var volumeMarker: String { partialVolume ? "*" : "" }
+        var noteKey: String {
+            partialVolume ? "Volume sums each recorded load × reps. An asterisk marks incomplete records."
+                : "Only recorded workout facts. Linked wearable energy is counted once."
+        }
         let distanceKM: Double?
         let anniversaryYears: Int?
+
+        func localizedRange(locale: Locale) -> String {
+            let formatter = DateFormatter()
+            formatter.locale = locale
+            formatter.timeZone = .gmt
+            formatter.dateStyle = .medium
+            guard let start = APEXDateMath.date(from: from), let end = APEXDateMath.date(from: to) else {
+                return from == to ? from : from + " – " + to
+            }
+            return from == to ? formatter.string(from: start) : formatter.string(from: start) + " – " + formatter.string(from: end)
+        }
     }
 
     static func summarize(
@@ -21,7 +38,8 @@ enum WorkoutInsights {
         to requestedTo: String,
         sessions allSessions: [WorkoutSession],
         logs allLogs: [WorkoutLog],
-        importedActivities allImportedActivities: [ImportedActivity]
+        importedActivities allImportedActivities: [ImportedActivity],
+        exercises: [Exercise] = []
     ) -> Summary {
         let from = min(requestedFrom, requestedTo)
         let to = max(requestedFrom, requestedTo)
@@ -33,7 +51,7 @@ enum WorkoutInsights {
         }
         let sessions = allOwnedSessions.filter { $0.date >= from && $0.date <= to }
         let sessionIDs = Set(sessions.map(\.id))
-        let ownedDates = Dictionary(uniqueKeysWithValues: allOwnedSessions.map { ($0.id, $0.date) })
+        let ownedDates = Dictionary(allOwnedSessions.map { ($0.id, $0.date) }, uniquingKeysWith: { first, _ in first })
         func attributedDate(_ activity: ImportedActivity) -> String {
             activity.apexWorkoutSessionID.flatMap { ownedDates[$0] } ?? activity.date
         }
@@ -76,11 +94,8 @@ enum WorkoutInsights {
             return value
         }
         let reps = logs.reduce(0) { $0 + max(0, $1.reps ?? 0) }
-        let volumeFacts = logs.compactMap { log -> Double? in
-            guard let weight = log.weightKG, let repetitions = log.reps,
-                  weight > 0, repetitions > 0 else { return nil }
-            return weight * Double(repetitions)
-        }
+        let recorded = StrengthProgress.exerciseHistory(ownerID: ownerID, sessions: sessions, logs: logs, exercises: exercises)
+            .reduce(into: StrengthProgress.LifetimeTotals()) { $0.add($1.totals) }
         let activeDates = Set(sessions.map(\.date) + external.map(attributedDate))
         let standaloneExternal = external.filter { activity in
             guard let sessionID = activity.apexWorkoutSessionID else { return true }
@@ -98,7 +113,8 @@ enum WorkoutInsights {
             activeEnergyKcal: energyFacts.isEmpty ? nil : energyFacts.reduce(0, +),
             sets: logs.count,
             reps: reps,
-            volumeKG: volumeFacts.isEmpty ? nil : volumeFacts.reduce(0, +),
+            volumeKG: recorded.liftedVolumeKG,
+            partialVolume: recorded.liftedVolumeKG != nil && recorded.missingVolume,
             distanceKM: externalDistanceFacts.isEmpty && loggedDistanceFacts.isEmpty ? nil : distanceFacts,
             anniversaryYears: anniversaryYears(oldestEvidenceDate: oldestEvidenceDate, from: from, to: to)
         )

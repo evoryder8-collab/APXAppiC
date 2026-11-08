@@ -4,6 +4,7 @@ import SwiftUI
 struct AvatarView: View {
     let onCalibrateBaseline: () -> Void
 
+    @State private var choosingStartingPoints = false
     @State private var engineExpanded = false
     @State private var showEvolutionInfo = false
     @Environment(AppSession.self) private var session
@@ -56,7 +57,7 @@ struct AvatarView: View {
         ScrollView {
             LazyVStack(spacing: 20) {
                 APEXTopBar(profile: session.profile) { session.openPortalDestination(.settings) }
-                pageHeader(profile: profile)
+                pageHeader
                 /* Ordered by how often it is looked at, not by when it was
                    built. Who you are, then the index, then the shape of the
                    index, then the numbers behind it. The long prose blocks sit
@@ -68,6 +69,15 @@ struct AvatarView: View {
                 if snapshot != nil {
                     bodyIndexCard
                     radarCard
+                }
+                if let profile = session.profile, ProfileIntegrityPolicy.authorizedProtocol(for: profile) == nil {
+                    if profile.avatarStartingPoints == nil {
+                        Button(language.text("Choose starting points")) { choosingStartingPoints = true }
+                            .buttonStyle(.bordered)
+                            .accessibilityIdentifier("avatar.starting-points")
+                    } else {
+                        Text(language.text("Self-selected starting points")).font(.subheadline)
+                    }
                 }
                 calibrationControl
                 if snapshot != nil {
@@ -102,6 +112,13 @@ struct AvatarView: View {
         .onAppear {
             loadJointCheck()
         }
+        .sheet(isPresented: $choosingStartingPoints) {
+            if let operation = session.accountOperationLease() {
+                AvatarStartingPointsEditor(initial: nil) { points in
+                    try await session.saveAvatarStartingPoints(points, operation: operation)
+                }.id(operation.ownerID).modifier(DeveloperSandboxSheetClearance())
+            }
+        }
         .sheet(item: $recoveryTarget) { target in
             RecoveryPlannerView(target: target)
                 .presentationDetents([.large])
@@ -109,26 +126,14 @@ struct AvatarView: View {
         }
     }
 
-    private func pageHeader(profile: TrainingProfile90?) -> some View {
+    private var pageHeader: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(language.text("Avatar")).font(APEXFont.display(38))
                 Spacer()
                 if let account = session.accountOperationLease(), session.accountOperationIsCurrent(account) {
-                    let report = AvatarReport(
-                        ownerID: account.ownerID, displayName: session.profile?.displayName ?? "",
-                        snapshots: session.data.snapshots, partialScores: session.avatarDomainScores,
-                        sessions: session.data.workoutSessions, logs: session.data.workoutLogs,
-                        unit: .current(session.data.settings), exercises: session.data.exercises, trainingProfile: profile
-                    )
-                    ShareLink(item: report, preview: SharePreview(report.fileName)) {
-                        Label(language.text("Share Avatar report"), systemImage: "square.and.arrow.up")
-                            .labelStyle(.iconOnly)
-                            .frame(width: 44, height: 44)
-                            .background(APEXColor.green.opacity(0.1), in: Circle())
-                    }
-                    .foregroundStyle(APEXColor.green)
-                    .accessibilityIdentifier("avatar.share-report")
+                    AvatarReportExportControl(account: account)
+                        .id(account.ownerID)
                 }
             }
             Text(language.text("Your body, as a living stat sheet"))
@@ -535,7 +540,7 @@ struct AvatarView: View {
 
     private func synergyColor(_ kind: FBSynergyKind) -> Color {
         switch kind {
-        case .manualHealthCalibration, .proteinStrength, .deficitStrength, .mealRhythm: return APEXColor.amber
+        case .skippedSession, .manualHealthCalibration, .proteinStrength, .deficitStrength, .mealRhythm: return APEXColor.amber
         case .hydrationEndurance, .importFeed: return APEXColor.cyan
         case .mobilityAfterLegs, .deloadHonored: return APEXColor.teal
         case .recoverySignal: return APEXColor.green
@@ -1030,7 +1035,8 @@ private struct StrengthHistoryCard: View {
                             if !options.isEmpty {
                                 Section(language.text(region.rawValue)) {
                                     ForEach(options, id: \.key) { item in
-                                        Text("\(language.text(item.name)) · \(item.sessionCount)").tag(item.key)
+                                        let title = item.titleParts(language)
+                                        Text(([title.main, title.variation, String(item.sessionCount)].compactMap { $0 }).joined(separator: " · ")).tag(item.key)
                                     }
                                 }
                             }
@@ -1193,6 +1199,164 @@ private struct AvatarHero: View {
         .onAppear {
             guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) { pulse = true }
+        }
+    }
+}
+
+struct AvatarStartingPointsEditor: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var language = LanguageState.shared
+    @State private var entries: [String: String]
+    @FocusState private var editing: String?
+    private var points: [String: Int] {
+        entries.compactMapValues { text in
+            guard let value = Int(text), (0...100).contains(value) else { return nil }
+            return value
+        }
+    }
+    @State private var saving = false
+    @State private var errorMessage: String?
+    let save: ([String: Int]) async throws -> Void
+
+    let onSignOut: (() -> Void)?
+
+    init(initial: [String: Int]?, onSignOut: (() -> Void)? = nil, save: @escaping ([String: Int]) async throws -> Void) {
+        _entries = State(initialValue: (initial ?? AvatarStartingPoints.balanced).mapValues { String($0) })
+        self.save = save
+        self.onSignOut = onSignOut
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    Text(language.text("Distribute 300 points across six Avatar stats. These are game scores you choose. Logged activity changes them over time."))
+                    Text(language.text("You can save your starting points once."))
+                    Text(language.format("%d / 300 points", points.values.reduce(0, +)))
+                        .font(.headline.monospacedDigit())
+                }
+                ForEach(AvatarStartingPoints.domains, id: \.0) { key, title in
+                    VStack(alignment: .leading) {
+                        HStack {
+                            Text(language.text(title))
+                            Spacer()
+                            TextField("0–100", text: Binding(
+                                get: { entries[key] ?? "" }, set: { entries[key] = $0 }
+                            ))
+                            .keyboardType(.numberPad)
+                            .textFieldStyle(.roundedBorder)
+                            .multilineTextAlignment(.trailing)
+                            .monospacedDigit()
+                            .frame(width: 76)
+                            .focused($editing, equals: key)
+                            .accessibilityLabel(language.text(title))
+                            .accessibilityIdentifier("avatar.points." + key)
+                        }
+                        Slider(value: Binding(get: { Double(points[key] ?? 0) }, set: { entries[key] = String(Int($0)) }),
+                               in: 0...100, step: 1)
+                            .accessibilityLabel(language.text(title))
+                    }
+                }
+                if let errorMessage { Text(errorMessage).foregroundStyle(.red) }
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .disabled(saving)
+            .safeAreaInset(edge: .bottom) {
+                Button(language.text("Save starting points")) {
+                    saving = true
+                    Task {
+                        defer { saving = false }
+                        do {
+                            try await save(points)
+                            dismiss()
+                        } catch is CancellationError { dismiss() }
+                        catch { errorMessage = error.localizedDescription }
+                    }
+                }
+                .buttonStyle(APEXPrimaryButtonStyle())
+                .padding(.horizontal)
+                .padding(.vertical, 6)
+                .frame(maxWidth: .infinity)
+                .background(.bar)
+                .disabled(AvatarStartingPoints.stats(points) == nil || saving)
+                .accessibilityIdentifier("avatar.starting-points.save")
+            }
+            .navigationTitle(language.text("Choose starting points"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button(language.text("Done")) { editing = nil }
+                }
+                ToolbarItem(placement: .cancellationAction) {
+                    if let onSignOut {
+                        Button(language.text("Sign out"), action: onSignOut).disabled(saving)
+                    } else {
+                        Button(language.text("Cancel")) { dismiss() }.disabled(saving)
+                    }
+                }
+            }
+            .interactiveDismissDisabled(saving)
+        }
+    }
+}
+
+private struct AvatarReportExportControl: View {
+    let account: AccountOperationLease
+    @Environment(AppSession.self) private var session
+    @State private var language = LanguageState.shared
+    @State private var showingPeriods = false
+    @State private var period: AvatarReportPeriod = .allTime
+    @State private var customFrom = Calendar.current.date(byAdding: .month, value: -1, to: .now) ?? .now
+    @State private var customTo = Date.now
+
+    var body: some View {
+        Button { showingPeriods = true } label: {
+            Label(language.text("Share Avatar report"), systemImage: "square.and.arrow.up")
+                .labelStyle(.iconOnly)
+                .frame(width: 44, height: 44)
+                .background(APEXColor.green.opacity(0.1), in: Circle())
+        }
+        .foregroundStyle(APEXColor.green)
+        .accessibilityIdentifier("avatar.share-report")
+        .sheet(isPresented: $showingPeriods) {
+            NavigationStack {
+                Form {
+                    Picker(language.text("Report period"), selection: $period) {
+                        ForEach(AvatarReportPeriod.allCases) { option in
+                            Text(language.text(option.rawValue)).tag(option)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .accessibilityIdentifier("avatar.report-period")
+                    if period == .custom {
+                        DatePicker(language.text("From"), selection: $customFrom, in: ...min(customTo, .now), displayedComponents: .date)
+                        DatePicker(language.text("To"), selection: $customTo, in: min(customFrom, .now)...Date.now, displayedComponents: .date)
+                    }
+                    if session.accountOperationIsCurrent(account) {
+                        let today = Date.now.apexDateKey
+                        let earliest = period == .allTime ? AvatarReport.earliestDate(in: session.data, owner: account.ownerID, today: today) : today
+                        if let dates = period.resolve(today: today, earliest: earliest, customFrom: customFrom.apexDateKey,
+                                                      customTo: customTo.apexDateKey) {
+                            Text(language.dateKey(dates.lowerBound) + " – " + language.dateKey(dates.upperBound))
+                            let report = AvatarReport.scoped(ownerID: account.ownerID, data: session.data,
+                                partialScores: session.avatarDomainScores, period: period, dates: dates, today: today)
+                            ShareLink(item: report, preview: SharePreview(report.fileName)) {
+                                Label(language.text("Share Avatar report"), systemImage: "square.and.arrow.up")
+                            }
+                            .accessibilityIdentifier("avatar.share-selected-report")
+                        }
+                    }
+                }
+                .navigationTitle(language.text("Share Avatar report"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button(language.text("Cancel")) { showingPeriods = false }
+                    }
+                }
+            }
+            .presentationDetents([.medium, .large])
         }
     }
 }

@@ -109,6 +109,22 @@ final class ProfileIntegrityTests: XCTestCase {
         XCTAssertFalse(ProfileIntegrityPolicy.isBodyFatEnergyEligible(decoded))
     }
 
+    func testNewAvatarRequirementSurvivesCacheAndExemptsExistingAndBespokeAccounts() throws {
+        var standard = profile()
+        XCTAssertFalse(standard.needsAvatarStartingPoints)
+        standard.avatarStartingPointsRequired = true
+        let cached = try JSONDecoder().decode(Profile.self, from: JSONEncoder().encode(standard))
+        XCTAssertTrue(cached.needsAvatarStartingPoints)
+        let payload = try JSONSerialization.jsonObject(with: JSONEncoder().encode(RemoteProfilePayload(standard))) as? [String: Any]
+        XCTAssertNil(payload?["avatar_starting_points_required"])
+        standard.avatarStartingPoints = AvatarStartingPoints.balanced
+        XCTAssertFalse(standard.needsAvatarStartingPoints)
+        var bespoke = profile(userID: UUID(uuidString: "f1cc8158-0480-47c9-a2f1-bd03890182f9")!,
+                              persona: .june, kind: .bespoke, protocolID: .juneV84)
+        bespoke.avatarStartingPointsRequired = true
+        XCTAssertFalse(bespoke.needsAvatarStartingPoints)
+    }
+
     func testRemoteProfilePayloadPersistsAStandardPolicyAndExplicitBodyFatClear() throws {
         let value = profile(bodyFat: nil, source: nil)
         let object = try XCTUnwrap(

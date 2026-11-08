@@ -24,6 +24,7 @@ struct PlannedDay: Sendable {
     var exercises: [PlannedExercise] = []
     var warmup: String = ""
     var warmupDuration: Int = 0
+    var hasWalkOnly: Bool { exercises.isEmpty && warmupDuration > 0 && PlayerTimeline.WarmupOnly.isWalk(warmup) }
     var badges: [String] = []
     var isDeload = false
     var isEventDay = false

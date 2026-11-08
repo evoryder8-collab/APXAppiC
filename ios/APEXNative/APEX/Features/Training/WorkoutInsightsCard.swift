@@ -31,7 +31,7 @@ struct WorkoutInsightsCard: View {
     @State private var mode: WorkoutInsightRangeMode = .week
     @State private var customFrom = Calendar.current.date(byAdding: .year, value: -1, to: .now) ?? .now
     @State private var customTo = Date.now
-    @State private var renderedURL: URL?
+    @State private var rendered: (url: URL, summary: WorkoutInsights.Summary)?
     @State private var rendering = false
     @State private var errorMessage: String?
     @State private var expanded: Bool
@@ -77,11 +77,12 @@ struct WorkoutInsightsCard: View {
             to: range.to,
             sessions: session.data.workoutSessions,
             logs: session.data.workoutLogs,
-            importedActivities: session.data.importedActivities
+            importedActivities: session.data.importedActivities,
+            exercises: session.data.exercises
         )
     }
 
-    private var metrics: [WorkoutInsightMetric] {
+    private func metrics(_ summary: WorkoutInsights.Summary) -> [WorkoutInsightMetric] {
         [
             .init(id: "workouts", label: language.text("Workouts"), value: integer(summary.workouts)),
             .init(id: "days", label: language.text("Active days"), value: integer(summary.activeDays)),
@@ -89,7 +90,7 @@ struct WorkoutInsightsCard: View {
             .init(id: "energy", label: language.text("Active energy"), value: optional(summary.activeEnergyKcal, unit: "kcal")),
             .init(id: "reps", label: language.text("Reps"), value: integer(summary.reps)),
             .init(id: "sets", label: language.text("Sets / efforts"), value: integer(summary.sets)),
-            .init(id: "volume", label: language.text("Recorded volume"), value: optional(summary.volumeKG, unit: "kg")),
+            .init(id: "volume", label: language.text("Recorded volume"), value: optional(summary.volumeKG, unit: "kg") + summary.volumeMarker),
             .init(id: "distance", label: language.text("Distance"), value: optional(summary.distanceKM, unit: "km", digits: 2)),
         ]
     }
@@ -122,16 +123,17 @@ struct WorkoutInsightsCard: View {
                 .accessibilityValue(language.text(expanded ? "Expanded" : "Collapsed"))
 
                 if expanded {
+                let summary = self.summary
                 HStack(alignment: .top, spacing: 12) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(localizedRange(summary.from, summary.to))
+                        Text(summary.localizedRange(locale: language.language.locale))
                             .font(APEXFont.body(11, weight: .semibold))
                             .foregroundStyle(APEXColor.secondaryInk)
                             .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 4)
-                    if let renderedURL {
-                        ShareLink(item: renderedURL) {
+                    if let rendered, rendered.summary == summary {
+                        ShareLink(item: rendered.url) {
                             Label(language.shortText("Share PNG"), systemImage: "square.and.arrow.up")
                                 .font(APEXFont.body(11, weight: .bold))
                                 .frame(minHeight: 42)
@@ -141,7 +143,7 @@ struct WorkoutInsightsCard: View {
                         .accessibilityIdentifier("workout-insights-share")
                     } else {
                         Button {
-                            renderPNG()
+                            renderPNG(summary)
                         } label: {
                             if rendering {
                                 ProgressView().tint(.white)
@@ -185,7 +187,7 @@ struct WorkoutInsightsCard: View {
                 }
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 9) {
-                    ForEach(metrics) { metric in
+                    ForEach(metrics(summary)) { metric in
                         VStack(alignment: .leading, spacing: 4) {
                             Text(metric.label.uppercased(with: language.language.locale))
                                 .font(APEXFont.mono(8, weight: .bold))
@@ -203,7 +205,7 @@ struct WorkoutInsightsCard: View {
                     }
                 }
 
-                Text(language.text("Only recorded workout facts. Linked wearable energy is counted once."))
+                Text(language.text(summary.noteKey))
                     .font(APEXFont.body(10, weight: .semibold))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)
@@ -219,9 +221,10 @@ struct WorkoutInsightsCard: View {
         }
         .accessibilityIdentifier("workout-insights-card")
         .onAppear(perform: useOldestEvidenceForCustomRange)
-        .onChange(of: customFrom) { _, _ in renderedURL = nil }
-        .onChange(of: customTo) { _, _ in renderedURL = nil }
-        .onChange(of: ownerID) { _, _ in expanded = !collapsedInitially }
+        .onChange(of: ownerID) { _, _ in
+            rendered = nil
+            expanded = !collapsedInitially
+        }
     }
 
     private func toggleExpanded() {
@@ -237,7 +240,6 @@ struct WorkoutInsightsCard: View {
         let foreground = isSelected ? Color.white : APEXColor.secondaryInk
         return Button {
             mode = option
-            renderedURL = nil
         } label: {
             Text(language.shortText(option.title))
                 .font(APEXFont.body(10, weight: .bold))
@@ -307,28 +309,19 @@ struct WorkoutInsightsCard: View {
         return "\(integer(hours)) \(hourUnit) \(integer(remainder)) \(minuteUnit)"
     }
 
-    private func localizedRange(_ from: String, _ to: String) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = language.language.locale
-        formatter.timeZone = TimeZone(secondsFromGMT: 0)
-        formatter.dateStyle = .medium
-        guard let start = ISO8601DateFormatter.apexDateOnly.date(from: from),
-              let end = ISO8601DateFormatter.apexDateOnly.date(from: to) else { return "\(from) - \(to)" }
-        return from == to ? formatter.string(from: start) : "\(formatter.string(from: start)) - \(formatter.string(from: end))"
-    }
-
     @MainActor
-    private func renderPNG() {
+    private func renderPNG(_ summary: WorkoutInsights.Summary) {
         rendering = true
         defer { rendering = false }
         do {
-            renderedURL = try WorkoutInsightsPoster.render(
+            let url = try WorkoutInsightsPoster.render(
                 summary: summary,
                 athleteName: session.profile?.displayName ?? language.text("FITR MAX athlete"),
-                rangeLabel: localizedRange(summary.from, summary.to),
+                rangeLabel: summary.localizedRange(locale: language.language.locale),
                 accent: accent,
-                labels: .init(language: language)
+                labels: .init(language: language, noteKey: summary.noteKey)
             )
+            rendered = (url, summary)
             errorMessage = nil
         } catch {
             errorMessage = language.text("The workout card could not be rendered.")
@@ -352,7 +345,7 @@ private struct WorkoutInsightsPosterLabels {
     let minuteUnit: String
 
     @MainActor
-    init(language: LanguageState) {
+    init(language: LanguageState, noteKey: String) {
         title = language.text("Workout insights")
         workouts = language.text("Workouts")
         activeDays = language.text("Active days")
@@ -363,7 +356,7 @@ private struct WorkoutInsightsPosterLabels {
         volume = language.text("Recorded volume")
         distance = language.text("Distance")
         anniversary = language.text("Anniversary")
-        verified = language.text("Only recorded workout facts. Linked wearable energy is counted once.")
+        verified = language.text(noteKey)
         hourUnit = language.shortText("h")
         minuteUnit = language.shortText("min")
     }
@@ -384,7 +377,7 @@ private struct WorkoutInsightsArtwork: View {
             (labels.energy, summary.activeEnergyKcal.map { "\(Int($0.rounded())) kcal" } ?? "—"),
             (labels.reps, "\(summary.reps)"),
             (labels.sets, "\(summary.sets)"),
-            (labels.volume, summary.volumeKG.map { "\(Int($0.rounded())) kg" } ?? "—"),
+            (labels.volume, summary.volumeKG.map { "\(Int($0.rounded())) kg" + summary.volumeMarker } ?? "—"),
             (labels.distance, summary.distanceKM.map { String(format: "%.2f km", $0) } ?? "—"),
         ]
     }

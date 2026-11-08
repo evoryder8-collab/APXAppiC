@@ -89,6 +89,24 @@ final class APEXSmokeUITests: XCTestCase {
 
         app.buttons["induction-choice-rebuild"].tap()
         app.buttons["induction-next"].tap()
+        let health = app.textFields["avatar.points.health"]
+        XCTAssertTrue(health.waitForExistence(timeout: 5))
+        app.buttons["Cancel"].tap()
+        XCTAssertTrue(app.buttons["induction-choice-rebuild"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["induction-skip"].exists)
+        app.buttons["induction-next"].tap()
+        XCTAssertTrue(health.waitForExistence(timeout: 5))
+        health.coordinate(withNormalizedOffset: CGVector(dx: 0.83, dy: 0.5)).doubleTap()
+        health.typeText("100")
+        XCTAssertEqual(health.value as? String, "100")
+        app.buttons["Done"].tap()
+        let savePoints = app.buttons["avatar.starting-points.save"]
+        XCTAssertFalse(savePoints.isEnabled)
+        app.sliders["Joint Health Balance"].adjust(toNormalizedSliderPosition: 0)
+        XCTAssertEqual(app.textFields["avatar.points.joint"].value as? String, "0")
+        XCTAssertTrue(savePoints.isEnabled)
+        capture("onboarding-starting-points")
+        savePoints.tap()
         app.buttons["induction-choice-mixed_day"].tap()
         capture("normal-week-after-activity-choice")
         XCTAssertTrue(app.buttons["induction-next"].isEnabled, "Continue must guide the user to the missing question, not silently disable itself")
@@ -128,8 +146,8 @@ final class APEXSmokeUITests: XCTestCase {
         app.buttons["induction-next"].tap()
 
         XCTAssertTrue(app.descendants(matching: .any)["induction-starting-map"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.descendants(matching: .any)["induction-starting-overall"].exists)
-        XCTAssertTrue(app.staticTexts["Building your baseline"].exists)
+        XCTAssertTrue(app.staticTexts["Self-selected starting points"].exists)
+        XCTAssertFalse(app.buttons["Set up later"].exists)
         XCTAssertEqual(app.buttons["induction-next"].label, "Build my plan")
         capture("distilled-onboarding-starting-map")
         app.buttons["induction-next"].tap()
@@ -175,6 +193,9 @@ final class APEXSmokeUITests: XCTestCase {
         app.buttons["induction-choice-fat_loss"].tap()
         app.buttons["induction-next"].tap()
 
+        let savePoints = app.buttons["avatar.starting-points.save"]
+        XCTAssertTrue(savePoints.waitForExistence(timeout: 3))
+        savePoints.tap()
         XCTAssertTrue(skip.waitForExistence(timeout: 3), "optional workout questions may be skipped after the baseline")
         XCTAssertTrue(skip.isHittable)
         skip.tap()
@@ -533,6 +554,11 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(avatar.waitForExistence(timeout: 5))
         avatar.tap()
         app.buttons["avatar.share-report"].tap()
+        let period = app.buttons["avatar.report-period"]
+        XCTAssertTrue(period.waitForExistence(timeout: 5))
+        period.tap()
+        app.buttons["1 month"].tap()
+        app.buttons["avatar.share-selected-report"].tap()
         let save = app.descendants(matching: .any).matching(NSPredicate(format: "label ==[c] %@ OR identifier == %@", "Save to Files", "com.apple.DocumentManagerUICore.SaveToFiles")).firstMatch
         XCTAssertTrue(save.waitForExistence(timeout: 6), app.debugDescription)
         save.tap()
@@ -1669,6 +1695,37 @@ final class APEXSmokeUITests: XCTestCase {
         )
         capture("unilateral-full-rest-after-both-sides")
         // Leave the isolated session unfinished; this check must not save a workout.
+    }
+
+    func testSundayRecoveryAgreesAcrossSimpleAndAlternatePhasePreview() {
+        let app = configuredApp()
+        app.launchArguments.append("-fitr-ui-test-june-sunday")
+        app.launch()
+        app.buttons["SIMPLE"].tap()
+        let training = app.buttons["simple-training-metric"]
+        XCTAssertTrue(scrollUntilVisible(training, in: app))
+        training.tap()
+        XCTAssertTrue(app.staticTexts["Rest · Full recovery"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.buttons["Walking"].exists)
+        XCTAssertFalse(app.buttons["start-full"].exists)
+        XCTAssertFalse(app.buttons["start-light"].exists)
+        capture("sunday-simple-optional-walk")
+        app.buttons["Close"].firstMatch.tap()
+        for _ in 0..<8 where !app.buttons["ADVANCED"].isHittable { app.swipeDown() }
+        app.buttons["ADVANCED"].tap()
+        XCTAssertTrue(expandFitnessPlan(in: app))
+        let alternate = app.buttons["portal.transition"]
+        XCTAssertTrue(scrollUntilVisible(alternate, in: app))
+        tapClearOfDock(alternate)
+        let current = app.staticTexts["training-today-title"]
+        XCTAssertTrue(current.waitForExistence(timeout: 5))
+        XCTAssertEqual(current.label, "Rest · Full recovery")
+        XCTAssertFalse(app.descendants(matching: .any)["training-session-mode"].exists)
+        capture("sunday-advanced-active-day")
+        let sunday = app.buttons["training-day-7"]
+        XCTAssertTrue(scrollUntilVisible(sunday, in: app))
+        XCTAssertTrue(sunday.label.contains("Pull B · Heavy Pull 2"))
+        XCTAssertFalse(sunday.label.contains("TODAY"))
     }
 
     func testRecoveredWarmupWalkSavesObservedMinutesWithoutSets() {

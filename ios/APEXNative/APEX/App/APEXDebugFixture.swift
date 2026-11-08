@@ -2,6 +2,27 @@
 import Foundation
 
 enum APEXDebugFixture {
+    static func juneSunday() -> DashboardData {
+        var data = dashboard()
+        data.profile?.persona = .june
+        data.events = []
+        data.workoutSessions = []
+        data.workoutLogs = []
+        let owner = data.profile!.userID
+        let main = data.programs.first { $0.slug == "main" }!
+        let transition = data.programs.first { $0.slug == "transition" }!
+        data.programs[data.programs.firstIndex { $0.id == main.id }!].name = "Glute Architecture"
+        data.programs[data.programs.firstIndex { $0.id == transition.id }!].name = "Growth Minimum"
+        data.programDays[data.programDays.firstIndex { $0.programID == main.id }!].weekday = 1
+        let alternate = data.programDays.firstIndex { $0.programID == transition.id }!
+        data.programDays[alternate].name = "Pull B · Heavy Pull 2"
+        data.programDays[alternate].weekday = 7
+        data.programDays.append(ProgramDay(id: UUID(), userID: owner, programID: main.id, weekday: 7,
+            name: "Rest · Full recovery", dayType: "mobility", estimatedMinutes: 0,
+            warmupNote: "Full rest. A gentle walk is optional.", sortOrder: 7))
+        return data
+    }
+
     static func dashboard(userID: UUID = UUID()) -> DashboardData {
         let transitionID = UUID()
         let mainID = UUID()

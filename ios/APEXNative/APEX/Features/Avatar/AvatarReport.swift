@@ -3,6 +3,33 @@ import CoreText
 import UIKit
 import UniformTypeIdentifiers
 
+enum AvatarReportPeriod: String, CaseIterable, Identifiable {
+    case month = "1 month", quarter = "3 months", halfYear = "6 months", year = "1 year"
+    case allTime = "All time", custom = "Custom"
+    var id: Self { self }
+
+    func resolve(today: String, earliest: String, customFrom: String, customTo: String) -> ClosedRange<String>? {
+        func valid(_ day: String) -> Bool {
+            guard let date = APEXDateMath.date(from: day) else { return false }
+            return APEXDateMath.key(from: date) == day
+        }
+        guard valid(today) else { return nil }
+        switch self {
+        case .custom:
+            guard valid(customFrom), valid(customTo), customFrom <= customTo, customTo <= today else { return nil }
+            return customFrom...customTo
+        case .allTime:
+            return (valid(earliest) ? min(earliest, today) : today)...today
+        default:
+            let months = self == .month ? 1 : self == .quarter ? 3 : self == .halfYear ? 6 : 12
+            guard let end = APEXDateMath.date(from: today),
+                  let prior = APEXDateMath.calendar.date(byAdding: .month, value: -months, to: end) else { return nil }
+            let start = APEXDateMath.adding(days: 1, to: APEXDateMath.key(from: prior))
+            return start...today
+        }
+    }
+}
+
 struct AvatarReport: Transferable {
     let ownerID: UUID
     let displayName: String
@@ -13,6 +40,53 @@ struct AvatarReport: Transferable {
     let unit: WeightUnit
     var exercises: [Exercise] = []
     var trainingProfile: TrainingProfile90? = nil
+    var currentBodyweightKG: Double? = nil
+    var period: AvatarReportPeriod = .allTime
+    var reportDates: ClosedRange<String>? = nil
+
+    static func earliestDate(in data: DashboardData, owner: UUID, today: String) -> String {
+        let sessions = data.workoutSessions.filter { $0.userID == owner && $0.completed }
+        let byID = Dictionary(sessions.map { ($0.id, $0.date) }, uniquingKeysWith: { first, _ in first })
+        let imports = data.importedActivities.compactMap { row -> String? in
+            guard row.userID == owner, row.hiddenAt == nil, row.durationMinutes > 0,
+                  !ExternalWorkoutImport.isAPEXBundleIdentifier(row.sourceBundleIdentifier ?? "") else { return nil }
+            if let linked = row.apexWorkoutSessionID { return byID[linked] }
+            return row.date
+        }
+        let runs = data.orbitRuns.filter { $0.userID == owner && $0.status == "completed" }.map(\.localDate)
+        let scores = data.snapshots.filter { $0.userID == owner }.map(\.date)
+        return (sessions.map(\.date) + imports + runs + scores).filter { day in
+            day <= today && APEXDateMath.date(from: day).map { APEXDateMath.key(from: $0) } == day
+        }.min() ?? today
+    }
+
+    static func scoped(ownerID: UUID, data: DashboardData, partialScores: [String: Double],
+                       period: AvatarReportPeriod, dates: ClosedRange<String>, today: String) -> Self {
+        let sessions = data.workoutSessions.filter { $0.userID == ownerID && $0.completed && dates.contains($0.date) }
+        let ids = Set(sessions.map(\.id))
+        let profile = TrainingProfile90.summarize(ownerID: ownerID, data: data,
+            from: period == .allTime ? nil : dates.lowerBound, through: dates.upperBound)
+        return Self(ownerID: ownerID, displayName: data.profile?.userID == ownerID ? data.profile?.displayName ?? "" : "",
+                    snapshots: data.snapshots.filter { $0.userID == ownerID && dates.contains($0.date) },
+                    partialScores: period == .allTime && dates.upperBound == today ? partialScores : [:],
+                    sessions: sessions, logs: data.workoutLogs.filter { $0.userID == ownerID && ids.contains($0.sessionID) },
+                    unit: .current(data.settings?.userID == ownerID ? data.settings : nil),
+                    exercises: data.exercises.filter { $0.userID == ownerID }, trainingProfile: profile,
+                    currentBodyweightKG: dates.upperBound == today ? currentBodyweight(in: data, owner: ownerID) : nil,
+                    period: period, reportDates: dates)
+    }
+
+    static func currentBodyweight(in data: DashboardData, owner: UUID) -> Double? {
+        guard let profile = data.profile, profile.userID == owner, profile.weightKG.isFinite, profile.weightKG > 0 else { return nil }
+        let kg = profile.weightKG
+        // Standard profiles can carry a database default of 70 kg before a weight is entered.
+        if kg != 70 || ProfileIntegrityPolicy.authorizedProtocol(for: profile) != nil { return kg }
+        let today = Date.now.apexDateKey
+        let confirmed = data.healthMetrics.contains { $0.userID == owner && $0.date <= today && $0.weightKG == kg }
+            || data.dailyLogs.contains { $0.userID == owner && $0.date <= today && $0.weightKG == kg }
+            || (data.fitnessEvidence ?? []).contains { $0.userID == owner && $0.metric == .bodyMass && $0.unit == "kg" && $0.value == kg && String($0.measuredAt.prefix(10)) <= today }
+        return confirmed ? kg : nil
+    }
 
     var fileName: String {
         let separators = CharacterSet(charactersIn: "/\\:").union(.controlCharacters)
@@ -53,7 +127,7 @@ struct AvatarReport: Transferable {
             }
             pages.drawScores(scores)
             if pages.page == 0 {
-                pages.begin("Avatar report", subtitle: pages.language.text("Building your baseline"))
+                pages.begin("Avatar report", subtitle: pages.language.text(period == .allTime ? "Building your baseline" : "No data for this period"))
             }
         }
     }
@@ -82,7 +156,11 @@ struct AvatarReport: Transferable {
             label(report.displayName, 260, 32, 314, size: 12, alignment: .right)
             line(38, 61, 574, 61, color: ink)
             line(38, 748, 574, 748, color: rule)
-            label(language.text("Avatar report"), 38, 758, 440, size: 10, color: muted)
+            let footer = report.reportDates.map {
+                language.text("Avatar report") + "   ·   " + language.text(report.period.rawValue) + "   ·   "
+                    + language.dateKey($0.lowerBound) + " – " + language.dateKey($0.upperBound)
+            } ?? language.text("Avatar report")
+            label(footer, 38, 758, 462, size: 10, color: muted)
             label(String(page), 508, 758, 66, size: 10, alignment: .right)
             y = 83
         }
@@ -149,7 +227,7 @@ struct AvatarReport: Transferable {
             ink.setFill()
             UIBezierPath(roundedRect: CGRect(x: 38, y: top, width: 536, height: height), cornerRadius: 15).fill()
             let mint = UIColor(red: 0.68, green: 0.93, blue: 0.82, alpha: 1)
-            label(language.text("90-day training profile"), 58, top + 15, 496, size: 12, weight: .semibold, color: mint)
+            label(language.text(report.period == .allTime ? "90-day training profile" : "Training profile"), 58, top + 15, 496, size: 12, weight: .semibold, color: mint)
             y = top + 32
             for part in title {
                 label(part, 58, y, 496, size: 32, weight: .bold, color: .white)
@@ -166,8 +244,11 @@ struct AvatarReport: Transferable {
                 y += 4
                 paragraph(language.text("Matched working load") + " · " + language.text(match.exercise) + " · "
                           + language.format("%d reps", match.reps), size: 12)
-                paragraph(language.text("Previous 45 days") + " " + weight(match.earlierKG) + "   →   "
-                          + language.text("Last 45 days") + " " + weight(match.recentKG), size: 12, color: green)
+                let earlierEnd = APEXDateMath.adding(days: -1, to: profile.laterStart)
+                paragraph(language.text("Earlier period") + " · " + language.dateKey(profile.from) + " – "
+                          + language.dateKey(earlierEnd) + " · " + weight(match.earlierKG), size: 12)
+                paragraph(language.text("Later period") + " · " + language.dateKey(profile.laterStart) + " – "
+                          + language.dateKey(profile.to) + " · " + weight(match.recentKG), size: 12, color: green)
                 paragraph(language.text("Median session-best load at the same rep count."), size: 10, color: muted)
             }
             y += 16
@@ -187,7 +268,7 @@ struct AvatarReport: Transferable {
         func drawLifetimeTotals(_ rows: [StrengthProgress.RankedFamily]) {
             let totals = rows.reduce(into: StrengthProgress.LifetimeTotals()) { $0.add($1.totals) }
             if page == 0 || y > 420 { beginPage() }
-            label(language.text("All-time training totals"), 38, y, 536, size: 21, weight: .bold)
+            label(language.text(report.period == .allTime ? "All-time training totals" : "Training totals"), 38, y, 536, size: 21, weight: .bold)
             y += 31
             let dates = rows.flatMap { $0.sessions.map(\.date) }.filter { APEXDateMath.date(from: $0) != nil }
             if let first = dates.min(), let last = dates.max() {
@@ -351,18 +432,100 @@ struct AvatarReport: Transferable {
             }
         }
 
+        private enum LegSupport: String, Decodable { case rearFootElevated, singleSupport, sharedSupport, externalOnly }
+
+        private static let legGuide: [String: LegSupport] = {
+            guard let url = Bundle.main.url(forResource: "unilateral-load-guide", withExtension: "json"),
+                  let bytes = try? Data(contentsOf: url) else { return [:] }
+            return (try? JSONDecoder().decode([String: LegSupport].self, from: bytes)) ?? [:]
+        }()
+
+        private struct LegPanel {
+            let movement: String
+            let tiles: [(String, String)]
+            let bodyAndLoad: String?
+            let note: String?
+            let source: URL?
+        }
+
+        private func legPanel(_ variant: StrengthProgress.ExerciseHistory, load: Double) -> LegPanel? {
+            let id = variant.key.hasPrefix("movement:") ? String(variant.key.dropFirst(9)) : ExerciseCatalog.movementID(matchingName: variant.name)
+            guard let id, var support = Self.legGuide[id] else { return nil }
+            let words = Set(variant.name.lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init))
+            if !words.isDisjoint(with: ["or", "assisted", "supported", "machine", "smith", "cable", "band"]) { support = .externalOnly }
+            var tiles = [(language.text("Added weight"), weight(load))]
+            var bodyAndLoad: String?
+            var note: String?
+            var source: URL?
+            if support != .externalOnly, let body = report.currentBodyweightKG, body.isFinite, body > 0 {
+                let combined = body + load
+                bodyAndLoad = weight(body) + " + " + weight(load)
+                tiles.append((language.text("Body + load"), weight(combined)))
+                if support == .sharedSupport {
+                    note = language.text("The share on each foot varies with stance and support.")
+                } else {
+                    let split = support == .rearFootElevated
+                    let estimate = report.unit.value(fromKilograms: combined * (split ? 0.8436 : 1)).rounded()
+                    let label = language.text(split ? "Front foot · estimated" : "Standing foot · estimated")
+                    tiles.insert((label, "≈ " + number(estimate) + " " + report.unit.suffix), at: 0)
+                    note = language.text(split ? "At rest · based on Helme et al." : "Assumes one foot on the floor and no hand support.")
+                    if split { source = URL(string: "https://doi.org/10.1519/JSC.0000000000003727") }
+                }
+            }
+            return LegPanel(movement: id, tiles: tiles, bodyAndLoad: bodyAndLoad, note: note, source: source)
+        }
+
+        private func drawLegPanel(_ panel: LegPanel) {
+            let top = y + 5
+            let frame = CGRect(x: 38, y: top, width: 536, height: 124)
+            UIColor(red: 0.94, green: 0.97, blue: 0.96, alpha: 1).setFill()
+            UIBezierPath(roundedRect: frame, cornerRadius: 14).fill()
+            if let url = Bundle.main.url(forResource: panel.movement, withExtension: "webp", subdirectory: "leg-anatomy"),
+               let illustration = UIImage(contentsOfFile: url.path) {
+                let scale = min(103 / illustration.size.width, 115 / illustration.size.height)
+                let size = CGSize(width: illustration.size.width * scale, height: illustration.size.height * scale)
+                illustration.draw(in: CGRect(x: 92 - size.width / 2, y: frame.midY - size.height / 2, width: size.width, height: size.height))
+            }
+            label(language.text("Working leg"), 152, top + 9, 404, size: 16, weight: .bold)
+            let gap: CGFloat = 6
+            let width = (409 - gap * CGFloat(panel.tiles.count - 1)) / CGFloat(panel.tiles.count)
+            for (index, tile) in panel.tiles.enumerated() {
+                let x = 152 + CGFloat(index) * (width + gap)
+                (index == 0 ? UIColor(red: 0.81, green: 0.94, blue: 0.90, alpha: 1) : UIColor.white).setFill()
+                UIBezierPath(roundedRect: CGRect(x: x, y: top + 37, width: width, height: 61), cornerRadius: 9).fill()
+                for (row, part) in wrapped(tile.0, width: width - 12, size: 9).enumerated() {
+                    label(part, x + 7, top + 41 + CGFloat(row) * 10, width - 12, size: 9, color: muted)
+                }
+                label(tile.1, x + 7, top + 63, width - 12, size: 20, weight: .bold, color: index == 0 ? green : ink)
+                if index == panel.tiles.count - 1, let bodyAndLoad = panel.bodyAndLoad {
+                    label(bodyAndLoad, x + 8, top + 86, width - 14, size: 8, color: muted)
+                }
+            }
+            if let note = panel.note {
+                for (index, part) in wrapped(note, width: 409, size: 9).enumerated() {
+                    label(part, 152, top + 102 + CGFloat(index) * 10, 409, size: 9, color: panel.source == nil ? muted : green)
+                }
+                if let source = panel.source { context.setURL(source, for: CGRect(x: 152, y: top + 100, width: 409, height: 23)) }
+            }
+            y = frame.maxY + 4
+        }
+
         private func drawChart(_ variant: StrengthProgress.ExerciseHistory, points: [ChartPoint], firstInSection: Bool) {
             guard let first = points.first, let last = points.last,
                   let peak = points.max(by: { $0.value < $1.value }) else { return }
             let highest = peak.value
             let calendar = WorkoutChartCalendar(first: first.date, last: last.date)
-            let title = wrapped(language.text(variant.name), width: 530, size: 19, weight: .bold)
+            let parts = variant.titleParts(language)
+            let title = wrapped(parts.main, width: 530, size: 19, weight: .bold)
+            let subtitle = parts.variation.map { wrapped($0, width: 530, size: 12) } ?? []
+            let panel = legPanel(variant, load: last.value)
             let totals = [(language.text("Recorded reps"), recordedReps(variant.totals)),
                           (language.text("Lifted volume"), liftedVolume(variant.totals))]
                 .compactMap { key, value in value.map { key + " " + $0 } }
-            let totalLines = totals.isEmpty ? [] : wrapped(language.text("All time") + "   ·   " + totals.joined(separator: "   ·   "),
+            let totalLines = totals.isEmpty ? [] : wrapped(language.text(report.period.rawValue) + "   ·   " + totals.joined(separator: "   ·   "),
                                                          width: 536, size: 11, weight: .semibold)
-            let height = 248 + CGFloat(title.count - 1) * 24 + CGFloat(totalLines.count) * 16
+            let height = 248 + CGFloat(title.count - 1) * 24 + CGFloat(subtitle.count + totalLines.count) * 16
+                + (panel == nil ? 0 : 133)
             func heading() {
                 begin("Strength progress", subtitle: language.text("Heaviest recorded working load in each completed session."))
             }
@@ -372,8 +535,11 @@ struct AvatarReport: Transferable {
                 label(titleLine, 38, y, 536, size: 19, weight: .bold)
                 y += 24
             }
+            for part in subtitle {
+                label(part, 38, y, 530, size: 12, color: muted)
+                y += 16
+            }
             y -= 24
-            if y + 248 + CGFloat(totalLines.count) * 16 > 730 { heading() }
             let field = CGRect(x: 38, y: y + 33, width: 536, height: 141)
             UIColor(red: 0.96, green: 0.95, blue: 0.99, alpha: 1).setFill()
             UIBezierPath(roundedRect: field, cornerRadius: 12).fill()
@@ -396,8 +562,7 @@ struct AvatarReport: Transferable {
             }
             drawLoadTrace(coordinates, baseline: plot.maxY)
             func display(_ point: ChartPoint) -> String {
-                weight(point.value)
-                    + (point.reps.map { " × \($0) " + language.text("reps") } ?? "")
+                (point.reps.map { language.format("%d reps", $0) + " × " } ?? "") + weight(point.value)
             }
             let change = last.value - first.value
             let delta = (change > 0 ? "+" : "") + weight(change)
@@ -424,6 +589,7 @@ struct AvatarReport: Transferable {
                 label(part, 38, y, 536, size: 11, weight: .semibold)
                 y += 16
             }
+            if let panel { drawLegPanel(panel) }
             y += 12
         }
 

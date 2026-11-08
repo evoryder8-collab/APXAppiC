@@ -164,7 +164,7 @@ export function workoutInsightsCardBlob(
     [options.labels.energy, summary.activeEnergyKcal == null ? '\u2014' : `${metricValue(summary.activeEnergyKcal, options.locale)} kcal`],
     [options.labels.reps, metricValue(summary.reps, options.locale)],
     [options.labels.sets, metricValue(summary.sets, options.locale)],
-    [options.labels.volume, summary.volumeKg == null ? '\u2014' : `${metricValue(summary.volumeKg, options.locale)} kg`],
+    [options.labels.volume, summary.volumeKg == null ? '\u2014' : `${metricValue(summary.volumeKg, options.locale, 2)} kg${summary.partialVolume ? '*' : ''}`],
     [options.labels.distance, summary.distanceKm == null ? '\u2014' : `${metricValue(summary.distanceKm, options.locale, 2)} km`],
   ]
 

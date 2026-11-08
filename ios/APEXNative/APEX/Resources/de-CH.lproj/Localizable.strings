@@ -500,7 +500,7 @@
 
 /* Chrome: editing, routes, exports, capture */
 "Core" = "Rumpf";
-"Custom" = "Eigeni";
+"Custom" = "Sälber wähle";
 "Custom meal" = "Eigeni Mahlzit";
 "Custom workouts" = "Eigeni Workouts";
 "Create meal" = "Mahlzit erstelle";
@@ -1847,7 +1847,7 @@
 "- Strength:   " = "- Stärke:";
 "1 banana or another saved fruit" = "1 Banane oder eine andere gerettete Frucht";
 "1 kiwi" = "1 Kiwi";
-"1 year" = "1 Jahr";
+"1 year" = "1 Jaar";
 
 /* Translation coverage closure 106-140 · 2026-08-27 */
 "10 g EVOO" = "10 g EVOO";
@@ -1871,7 +1871,7 @@
 "30 days" = "30 Tage";
 "300 g sweet potato, cooked" = "300 g Süsskartoffeln, gekocht";
 "5 g coconut flakes" = "5 g Kokosflocken";
-"6 months" = "6 Monate";
+"6 months" = "6 Mönet";
 "6-month plan" = "Sechsmonatsplan";
 "60 minutes" = "60 Minuten";
 "65 g oats" = "65 g Hafer";
@@ -5813,3 +5813,44 @@
 "All-rounder" = "Allrounder";
 "Health score manually calibrated" = "Gsundheitswert vo Hand kalibriert";
 "Recipe estimate from the Royal Thai Air Force foodservice manual (pp. 119–120). One bowl assumes 350 g of edible soup, excluding bones and rice. Recipes vary." = "Schätzig nach em Verpflegigshandbuech vo de thailändische Luftwaffe (S. 119–120). Pro Schale rächned mir mit 350 g Suppe zum Ässe, ohni Chnoche und Riis. D Rezept sind verschide.";
+"Avatar scores manually calibrated" = "Avatar-Wärt vo Hand kalibriert";
+"Choose starting points" = "Startpünkt verteile";
+"Distribute 300 points across six Avatar stats. These are game scores you choose. Logged activity changes them over time." = "Verteil 300 Pünkt uf sechs Avatar-Wärt. Du wählsch dini Startwärt im Spiel. Was du iträägsch, veränderet die Wärt mit de Ziit.";
+"%d / 300 points" = "%d / 300 Pünkt";
+"Save starting points" = "Startpünkt speichere";
+"Self-selected starting points" = "Sälber gwählti Startpünkt";
+"Points remaining" = "Übrigi Pünkt";
+"Set up later" = "Spöter iirichte";
+"You can save your starting points once." = "Du chasch dini Startpünkt eimal feschtlege.";
+"Explicitly skipped workout: −1 training point" = "Training als uusglaa markiert: −1 Trainingspunkt";
+"Starting points were already saved on another device." = "Dini Startpünkt sind scho uf eme andere Grät gspeicheret.";
+"Could not save starting points. Check your connection and try again." = "D Startpünkt händ sich nöd speichere laa. Lueg, öb d Verbindig staht, und probiers nomal.";
+"Per-leg load · latest set" = "Last pro Bei · letschte Satz";
+"Logged external load" = "Iitreits Zuesatzgwicht";
+"Current bodyweight" = "Aktuells Körpergwicht";
+"Bodyweight + external load" = "Körpergwicht + Zuesatzgwicht";
+"Estimated front-foot support at rest" = "Gschätzti Last uf em vordere Fuess im Stand";
+"Estimated standing-foot support at rest" = "Gschätzti Last uf em Standfuess im Stand";
+"Assumes the logged load is the total carried." = "D Schätzig gaht devo us, dass s ganze Zuesatzgwicht iitreit isch.";
+"The share on each foot varies with stance and support." = "Wie viel Last uf jede Fuess chunnt, hängt vom Stand und de Stütz ab.";
+"Assumes one foot on the floor and no hand support." = "Die Schätzig gilt, wänn ein Fuess am Bode isch und du dich nöd mit de Hand abstützisch.";
+"Study average for rear-foot-elevated split squats · Helme et al." = "Studiemittelwärt für Split Squats mit em hindere Fuess uf ere Erhöhig · Helme et al.";
+"Working leg" = "Belastets Bei";
+"Front foot · estimated" = "Vordere Fuess · Schätzig";
+"Standing foot · estimated" = "Standfuess · Schätzig";
+"Added weight" = "Zuesatzgwicht";
+"Body + load" = "Körper + Zuesatzgwicht";
+"At rest · based on Helme et al." = "Im Stand · nach Helme et al.";
+"Report period" = "Brichtsziitruum";
+"1 month" = "1 Monet";
+"3 months" = "3 Mönet";
+"Training totals" = "Trainingstotal";
+"Training profile" = "Trainingsprofil";
+"Earlier period" = "Früenere Ziitruum";
+"Later period" = "Spötere Ziitruum";
+"No data for this period" = "Kei Iiträg i däre Ziit";
+"Open workout" = "Training ufmache";
+"Plan preview" = "Planvorschau";
+"Active plan" = "Aktive Plan";
+"Date range" = "Ziitruum";
+"Best in range" = "Beschtwärt i däre Ziit";

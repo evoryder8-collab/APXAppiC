@@ -313,6 +313,12 @@ test('empty or partially logged meal days do not debit Health and a manual score
   assert.ok(result.snapshots[2].health < 73)
   assert.deepEqual(computeEngine(data, through).snapshots, result.snapshots)
   assert.equal(result.synergies.filter(e => e.kind === 'manual_health_calibration').length, 1)
+  settings.avatar_health_calibration.scores = { joint: 57, flexibility: 66, endurance: 52 }
+  const adjusted = computeEngine(data, through).snapshots
+  assert.deepEqual(adjusted[0], baseline[0])
+  assert.deepEqual([adjusted[1].joint, adjusted[1].flexibility, adjusted[1].endurance, adjusted[1].health], [57, 66, 52, 73])
+  assert.equal(adjusted[1].strength, baseline[1].strength)
+  assert.ok(adjusted[2].flexibility < 66)
   assert.deepEqual(computeEngine({ ...data, settings: { ...settings, user_id: ownerID } }, through).snapshots, baseline)
   const standard = computeEngine({ ...data, profile: { ...subject, profile_kind: 'standard' } }, through)
   assert.equal(standard.firstObserved.health, undefined)

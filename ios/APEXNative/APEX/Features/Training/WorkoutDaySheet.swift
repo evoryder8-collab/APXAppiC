@@ -183,8 +183,7 @@ struct WorkoutDaySheet: View {
                             }
                         }
                         .accessibilityIdentifier("day-sheet-start")
-                    } else if recordedSession == nil, plan.programDay != nil, plan.warmupDuration > 0,
-                              PlayerTimeline.WarmupOnly.isWalk(plan.warmup) {
+                    } else if recordedSession == nil, plan.programDay != nil, plan.hasWalkOnly {
                         Button {
                             showGuidedPlayer = true
                         } label: {

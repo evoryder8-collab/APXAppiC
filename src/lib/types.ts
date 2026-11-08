@@ -1,3 +1,4 @@
+import type { AvatarStartingPoints } from './avatarStartingPoints'
 /* Domain model. Every row carries user_id so RLS policies scope to auth.uid(). */
 
 import type { PersonaSlug } from './persona'
@@ -80,6 +81,8 @@ export interface Profile {
   id: string
   user_id: string
   persona: PersonaSlug
+  avatar_starting_points_required?: boolean
+  avatar_starting_points?: AvatarStartingPoints | null
   profile_kind?: ProfileKind | null
   bespoke_protocol_id?: BespokeProtocolID | null
   display_name: string
@@ -421,7 +424,12 @@ export interface ImportedActivity {
 
 export interface Settings {
   user_id: string
-  avatar_health_calibration?: { date: string; score: number; source: 'manual' } | null
+  avatar_health_calibration?: {
+    date: string
+    score: number // Health, including calibrations written by earlier clients
+    source: 'manual'
+    scores?: Partial<Record<'joint' | 'flexibility' | 'endurance', number>>
+  } | null
   voice_on: boolean
   ticks_on: boolean
   notifications_on: boolean

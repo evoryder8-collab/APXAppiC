@@ -25,13 +25,16 @@ struct TrainingProgramView: View {
         TrainingInduction.visibleProgramDays(in: session.data, slug: slug)
             .filter { $0.scheduledDate == nil }
     }
-    private var todayWeekday: Int {
-        let weekday = Calendar.current.component(.weekday, from: .now)
-        return weekday == 1 ? 7 : weekday - 1
+    private var selectedDate: String { session.browsingDate.apexDateKey }
+    private var isToday: Bool { selectedDate == Date().apexDateKey }
+    private var schedule: SimpleHomeLogic.TrainingSchedule { session.trainingSchedule(on: selectedDate) }
+    private var isAlternatePhase: Bool {
+        (slug == "main" || slug == "transition") && schedule.hasPrimary && schedule.primary != slug
     }
+
     private var todayIsDeload: Bool {
         TrainingAdjustmentEngine.isDeload(
-            on: Date().apexDateKey,
+            on: selectedDate,
             marks: session.data.deloadMarks ?? []
         )
     }
@@ -89,19 +92,26 @@ struct TrainingProgramView: View {
     #endif
 
     private var todayPlans: [PlannedDay] {
-        TrainingPlanEngine.programDays(session.data, slug: slug, date: Date().apexDateKey, lite: lite)
+        if slug == "custom" {
+            return TrainingPlanEngine.programDays(session.data, slug: slug, date: selectedDate, lite: lite)
+        }
+        return schedule.plans(in: session.data, on: selectedDate, lite: lite)
     }
 
-    private var todayPlan: PlannedDay {
-        todayPlans.first
-            ?? TrainingPlanEngine.plan(session.data, slug: slug, date: Date().apexDateKey, lite: lite)
+    private var todayPlan: PlannedDay { todayPlans.first ?? PlannedDay(programDay: nil) }
+
+    private var dailyHeading: String {
+        let day = isToday ? language.text("TODAY") : language.dateKey(selectedDate)
+        guard isAlternatePhase, let active = TrainingInduction.ownedProgram(in: session.data, slug: schedule.primary) else { return day }
+        return day + " · " + language.text(active.name)
     }
 
     /// The hero, hologram and briefing must describe the same prescription.
     /// Looking up the weekly template independently allowed a generated rest
     /// day to keep an upper-body hologram and explanation.
     private var todayMuscleDayType: String {
-        guard hasUsablePrescription else { return "none" }
+        guard slug == "custom" ? hasUsablePrescription : schedule.hasPrescription else { return "none" }
+        if todayPlan.exercises.isEmpty { return "rest" }
         if todayPlan.isRecoveryMicro { return "mobility" }
         return todayPlan.programDay?.dayType ?? "rest"
     }
@@ -112,7 +122,7 @@ struct TrainingProgramView: View {
 
     /// Last night, if the watch had something to say about it.
     private var readiness: RecoveryAssessment.Verdict? {
-        RecoveryAssessment.todaysCheckin(session.data, date: Date().apexDateKey)
+        RecoveryAssessment.todaysCheckin(session.data, date: selectedDate)
             .map { RecoveryAssessment.assess($0) }
     }
 
@@ -130,7 +140,7 @@ struct TrainingProgramView: View {
         let plan = todayPlan
         return GlassCard(radius: 26, padding: 17) {
             VStack(alignment: .leading, spacing: 9) {
-                Text(language.text("TODAY"))
+                Text(dailyHeading)
                     .font(APEXFont.mono(9, weight: .bold))
                     .tracking(1.6)
                     .foregroundStyle(APEXColor.secondaryInk)
@@ -158,25 +168,29 @@ struct TrainingProgramView: View {
                     .background(readinessTint(readiness.state).opacity(0.1), in: RoundedRectangle(cornerRadius: 15))
                     .accessibilityIdentifier("training-readiness")
                 }
-                Text(language.text(!hasUsablePrescription
+                Text(language.text(!schedule.hasPrescription
                     ? "No workout prescribed"
                     : plan.isRecoveryMicro
                         ? "Recovery micro-session"
                         : (plan.programDay?.name ?? "Rest day")))
                 .font(APEXFont.display(21))
-                .accessibilityIdentifier(hasUsablePrescription ? "training-today-title" : "training-no-plan")
-                if !hasUsablePrescription {
+                .accessibilityIdentifier(schedule.hasPrescription ? "training-today-title" : "training-no-plan")
+                if !schedule.hasPrescription {
                     Text(language.text("Build your plan above before FITR MAX labels any day as training or rest."))
                         .font(APEXFont.body(12, weight: .semibold))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
-                if hasUsablePrescription {
-                    if let day = plan.programDay {
+                if schedule.hasPrescription {
+                    if let day = plan.programDay, !plan.exercises.isEmpty {
                         Text(language.format("~%d min · %d exercises", day.estimatedMinutes, plan.exercises.count))
                             .font(APEXFont.body(12, weight: .semibold))
                             .foregroundStyle(APEXColor.secondaryInk)
                     }
-                    if !plan.badges.isEmpty {
+                    if plan.exercises.isEmpty && !plan.warmup.isEmpty {
+                        Text(language.text(plan.warmup)).font(APEXFont.body(12, weight: .semibold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    }
+                    if !plan.badges.isEmpty && !plan.exercises.isEmpty {
                         VStack(alignment: .leading, spacing: 5) {
                             ForEach(plan.badges.prefix(3), id: \.self) { badge in
                                 Text(language.text(badge))
@@ -188,14 +202,14 @@ struct TrainingProgramView: View {
                             }
                         }
                     }
-                    if !plan.exercises.isEmpty {
+                    if !plan.exercises.isEmpty || plan.hasWalkOnly {
                         Button {
                             selectedDay = CalendarDaySelection(
-                                date: Date().apexDateKey,
+                                date: selectedDate,
                                 programDayID: plan.programDay?.id
                             )
                         } label: {
-                            Label(language.text("Open today"), systemImage: "arrow.right")
+                            Label(language.text(plan.hasWalkOnly ? "Walking" : isToday ? "Open today" : "Open"), systemImage: "arrow.right")
                                 .font(APEXFont.body(13, weight: .bold))
                                 .frame(maxWidth: .infinity, minHeight: 44)
                                 .foregroundStyle(.white)
@@ -215,7 +229,7 @@ struct TrainingProgramView: View {
         ForEach(Array(todayPlans.dropFirst().enumerated()), id: \.offset) { index, plan in
             GlassCard(radius: 26, padding: 17) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(language.text(index == 0 ? "LATER TODAY" : "ANOTHER SESSION"))
+                    Text(language.text(index == 0 && isToday ? "LATER TODAY" : "ANOTHER SESSION"))
                         .font(APEXFont.mono(9, weight: .bold))
                         .tracking(1.4)
                         .foregroundStyle(APEXColor.secondaryInk)
@@ -227,14 +241,14 @@ struct TrainingProgramView: View {
                             .font(APEXFont.body(12, weight: .semibold))
                             .foregroundStyle(APEXColor.secondaryInk)
                     }
-                    if !plan.exercises.isEmpty {
+                    if !plan.exercises.isEmpty || plan.hasWalkOnly {
                         Button {
                             selectedDay = CalendarDaySelection(
-                                date: Date().apexDateKey,
+                                date: selectedDate,
                                 programDayID: plan.programDay?.id
                             )
                         } label: {
-                            Label(language.text("Open today"), systemImage: "arrow.right")
+                            Label(language.text(plan.hasWalkOnly ? "Walking" : isToday ? "Open today" : "Open"), systemImage: "arrow.right")
                                 .font(APEXFont.body(13, weight: .bold))
                                 .frame(maxWidth: .infinity, minHeight: 44)
                                 .foregroundStyle(.white)
@@ -279,8 +293,7 @@ struct TrainingProgramView: View {
     /// The date this weekday lands on in the current week, so a plan for it can
     /// be resolved without asking the person to pick a date first.
     private func dateOfNext(weekday: Int) -> String {
-        let today = Date().apexDateKey
-        return APEXDateMath.adding(days: weekday - todayWeekday, to: today)
+        APEXDateMath.adding(days: weekday - APEXDateMath.isoWeekday(selectedDate), to: selectedDate)
     }
 
     private var fallbackTitle: String {
@@ -320,7 +333,7 @@ struct TrainingProgramView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(language.text(program?.name ?? fallbackTitle).uppercased(with: language.language.locale))
+                    Text(((isAlternatePhase ? language.text("Training preview") + " · " : "") + language.text(program?.name ?? fallbackTitle)).uppercased(with: language.language.locale))
                         .font(APEXFont.mono(11))
                         .tracking(2)
                         .foregroundStyle(accent)
@@ -351,14 +364,14 @@ struct TrainingProgramView: View {
                         .environment(session)
                 }
 
-                if slug != "custom" && hasUsablePrescription {
+                if slug != "custom" && schedule.hasPrescription {
                     MuscleMapCard(
                         dayType: todayMuscleDayType,
-                        sessionDate: Date().apexDateKey,
+                        sessionDate: selectedDate,
                         exerciseNames: todayExerciseNames,
                         height: 442,
                         accent: accent,
-                        eyebrow: language.text("TODAY'S SIGNAL"),
+                        eyebrow: isToday ? language.text("TODAY'S SIGNAL") : language.dateKey(selectedDate),
                         focus: language.text(muscleFocus)
                     )
                 }
@@ -372,7 +385,7 @@ struct TrainingProgramView: View {
                         .accessibilityIdentifier("training-today-card")
                 }
 
-                if slug != "custom" && hasUsablePrescription {
+                if slug != "custom" && !todayPlan.exercises.isEmpty {
                     Picker("Mode", selection: $lite) {
                         Text(language.text("Full session")).tag(false)
                         Text(language.text("Minimum effective")).tag(true)
@@ -395,7 +408,7 @@ struct TrainingProgramView: View {
 
                 CompletedWorkoutHistoryCards(date: session.browsingDate.apexDateKey, accent: accent)
 
-                WorkoutInsightsCard(anchorDate: Date().apexDateKey, accent: accent)
+                WorkoutInsightsCard(anchorDate: session.browsingDate.apexDateKey, accent: accent)
 
                 if slug == "custom", session.coachClientPolicy.canCreateCustomWorkouts {
                     MuscleMapCard(
@@ -479,7 +492,7 @@ struct TrainingProgramView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
-                if todayIsDeload {
+                if isToday && todayIsDeload {
                     GlassCard(radius: 22, padding: 14) {
                         HStack(spacing: 12) {
                             Image(systemName: "gauge.with.dots.needle.33percent")
@@ -507,13 +520,19 @@ struct TrainingProgramView: View {
                     }
                 }
 
+                if isAlternatePhase {
+                    Text(language.text("Training preview") + " · " + language.text(program?.name ?? fallbackTitle))
+                        .font(APEXFont.body(15, weight: .semibold)).frame(maxWidth: .infinity, alignment: .leading)
+                }
+                let activeDayIDs = isToday ? Set(todayPlans.compactMap { $0.programDay?.id }) : []
                 ForEach(days) { day in
+                    let activeToday = activeDayIDs.contains(day.id)
                     NavigationLink {
                         WorkoutDayView(
                             day: day,
                             accent: accent,
                             lite: lite,
-                            isDeload: day.weekday == todayWeekday && todayIsDeload,
+                            isDeload: activeToday && todayIsDeload,
                             date: dateOfNext(weekday: day.weekday),
                             slug: slug
                         )
@@ -521,8 +540,8 @@ struct TrainingProgramView: View {
                         DayCard(
                             day: day,
                             accent: accent,
-                            isToday: day.weekday == todayWeekday,
-                            isDeload: day.weekday == todayWeekday && todayIsDeload
+                            isToday: activeToday,
+                            isDeload: activeToday && todayIsDeload
                         )
                     }
                     .buttonStyle(.plain)
@@ -544,7 +563,7 @@ struct TrainingProgramView: View {
                             }
                             .disabled(session.customWorkoutMutationIsActive)
                         }
-                        if day.weekday == todayWeekday {
+                        if activeToday {
                             Button {
                                 toggleDeload()
                             } label: {
@@ -631,7 +650,11 @@ struct TrainingProgramView: View {
                height with the calendar still visible behind it. */
             WorkoutDaySheet(
                 date: selection.date,
-                slug: slug,
+                slug: selection.programDayID.flatMap { id in
+                    session.data.programDays.first { $0.id == id }.flatMap { day in
+                        session.data.programs.first { $0.id == day.programID && $0.userID == day.userID }?.slug
+                    }
+                } ?? slug,
                 accent: accent,
                 initialProgramDayID: selection.programDayID
             )
@@ -1403,7 +1426,7 @@ struct WorkoutDayView: View {
 
     private var exercises: [PlannedExercise] {
         let planned = plan
-        guard planned.programDay?.id == day.id, !planned.exercises.isEmpty else {
+        guard planned.programDay?.id == day.id else {
             let source = session.data.exercises
                 .filter { $0.programDayID == day.id && $0.isLite == lite }
                 .sorted { $0.sortOrder < $1.sortOrder }
@@ -1437,7 +1460,7 @@ struct WorkoutDayView: View {
         ScrollView {
             VStack(spacing: 17) {
                 MuscleMapCard(
-                    dayType: day.dayType,
+                    dayType: exercises.isEmpty ? "rest" : day.dayType,
                     sessionDate: date,
                     exerciseNames: exercises.map(\.name),
                     height: 270,
@@ -1445,7 +1468,7 @@ struct WorkoutDayView: View {
                 )
 
                 VStack(alignment: .leading, spacing: 7) {
-                    Text(language.text(lite ? "MINIMUM EFFECTIVE" : "FULL SESSION"))
+                    Text(language.text(exercises.isEmpty ? "Recovery day" : lite ? "MINIMUM EFFECTIVE" : "FULL SESSION"))
                         .font(APEXFont.mono(10))
                         .tracking(1.5)
                         .foregroundStyle(accent)
@@ -1550,7 +1573,7 @@ struct WorkoutDayView: View {
                         }
                     }
                     .accessibilityIdentifier("workout-start-session")
-                } else if PlayerTimeline.WarmupOnly.isWalk(plan.warmup), plan.warmupDuration > 0 {
+                } else if plan.hasWalkOnly {
                     Button {
                         showGuidedPlayer = true
                     } label: {

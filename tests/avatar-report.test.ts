@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { avatarReportHTML, downloadableAvatarReport } from '../src/lib/avatarReport.ts'
+import { avatarReportHTML, downloadableAvatarReport, reportBodyweight } from '../src/lib/avatarReport.ts'
+import { avatarReportRange } from '../src/lib/avatarReportRange.ts'
+import { exerciseChartTitle } from '../src/lib/strengthProgress.ts'
+import { EMPTY_DATA } from '../src/lib/types.ts'
+import { seedProfile } from '../src/data/seed.ts'
 import { liftedMassCaption } from '../src/lib/liftedMassComparison.ts'
 
 const noWork = { sets: 0, recordedReps: null, liftedKg: null, loadedReps: 0, missingReps: false, missingVolume: false }
@@ -29,7 +33,7 @@ test('report exports every frequency rank, graphs only loaded exercises and esca
   const html = avatarReportHTML({ ...input, families })
   assert.equal((html.match(/<tr class="family">/g) || []).length, 11)
   assert.equal((html.match(/<svg/g) || []).length, 10)
-  assert.match(html, /52.5 kg × 6/)
+  assert.match(html, /6 reps × 52.5 kg/)
   assert.match(html, /Lift 10 &lt;test&gt;/)
   assert.doesNotMatch(html, /<test>|NaN|Infinity/)
 })
@@ -48,7 +52,7 @@ test('family frequency keeps each variation while charts require comparable sess
   assert.match(html, /data-label="Load per rep">15 kg\*</)
   assert.match(html, /data-label="Lifted volume" title="300 kg">300 kg\*</)
   assert.equal((html.match(/<tr class="variant">/g) ?? []).length, 2)
-  assert.match(html, /<h3>Dumbbell Hip Thrust<\/h3>/)
+  assert.match(html, /<h3>Hip Thrust<\/h3><p class="variation">Dumbbell<\/p>/)
   assert.doesNotMatch(html, /<h3>Single-Leg Hip Thrust<\/h3>/)
   assert.match(html, /<dt>Recorded reps<\/dt><dd>83<\/dd>/)
   assert.match(html, /<dt>Lifted volume<\/dt><dd>1.2 t<\/dd>/)
@@ -69,7 +73,7 @@ test('report leads with the athlete category and comparable loads, then keeps pa
   assert.match(html, /Lifted volume<\/h3><b class="score">160 kg\*<\/b>/)
   assert.doesNotMatch(html, /<h2>Reps per session|<h2>Recorded volume per session|≈/)
   assert.ok(html.includes(liftedMassCaption(160, 'en')!.caption))
-  assert.match(html, /#1 · Nov 7, 2026 · 10 kg × 8/)
+  assert.match(html, /#1 · Nov 7, 2026 · 8 reps × 10 kg/)
   assert.match(html, /#2 · Nov 7, 2026 · 14 kg/)
   assert.equal(new Set([...html.matchAll(/<circle cx="([^"]+)"/g)].map(match => match[1])).size,2)
   assert.match(html, /<\/svg>[\s\S]*?<dl><div><dt>Recorded reps<\/dt><dd>28\*<\/dd><\/div><div><dt>Lifted volume<\/dt><dd>160 kg\*<\/dd>/)
@@ -105,4 +109,78 @@ test('download fetches only the selected object and embeds its WebP next to the 
   const before = fetchImage.mock.callCount()
   assert.equal(await downloadableAvatarReport(input, '/APXAppiC/'),avatarReportHTML(input))
   assert.equal(fetchImage.mock.callCount(),before)
+})
+
+test('unilateral estimates distinguish recorded load, combined mass and support for the actual variation', () => {
+  const profile = seedProfile('user')
+  profile.weight_kg = 70
+  const data = { ...EMPTY_DATA, profile, health_metrics: [
+    { id:'future',user_id:'user',date:'2027-01-01',weight_kg:70,vo2max:null,resting_hr:null },
+    { id:'other',user_id:'other',date:'2026-11-07',weight_kg:70,vo2max:null,resting_hr:null },
+  ] }
+  assert.equal(reportBodyweight(data, input.today),null)
+  data.health_metrics.push({ ...data.health_metrics[0], id:'known', date:'2026-11-07' })
+  assert.equal(reportBodyweight(data, input.today),70)
+  const make = (key: string, name: string, currentBodyweight: number | null = 70) => {
+    const points = [{date:'2026-11-01',topWeight:20,topReps:5},{date:'2026-11-02',topWeight:20,topReps:8}]
+    return avatarReportHTML({ ...input, currentBodyweight, families:[{ key:'family:split_squat', name:'Split Squat',
+      work:noWork, sessionCount:2, variants:[{ key, name, points, work:noWork, sessionCount:2 }] }] })
+  }
+  const rfess = make('movement:bulgarian_split_squat','Bulgarian Split Squat')
+  assert.match(rfess, /<h3>Split Squat<\/h3><p class="variation">Bulgarian<\/p>/)
+  assert.match(rfess, /<title>#1 · Nov 1, 2026 · 5 reps × 20 kg<\/title>/)
+  assert.match(rfess, /<title>#2 · Nov 2, 2026 · 8 reps × 20 kg<\/title>/)
+  assert.match(rfess, /Personal best · <strong>8 reps × 20 kg/)
+  assert.match(rfess, /Body \+ load<\/span><strong>90 kg/)
+  assert.match(rfess, /Front foot · estimated<\/span><strong>≈ 76 kg/)
+  assert.match(rfess, /https:\/\/doi.org\/10.1519\/JSC.0000000000003727/)
+  assert.match(make('name:bulgarian split squat','Bulgarian Split Squat'), /Helme/)
+  assert.match(make('movement:single_leg_romanian_deadlift','Single-Leg Romanian Deadlift'), /Standing foot · estimated<\/span><strong>≈ 90 kg/)
+  const shared = make('movement:reverse_lunge','Reverse Lunge')
+  assert.match(shared,/The share on each foot varies/)
+  assert.doesNotMatch(shared,/Helme|Front foot · estimated/)
+  for (const html of [make('movement:smith_split_squat','Smith Split Squat'),
+    make('movement:bulgarian_split_squat','Bulgarian Split Squat (hand-supported)'),
+    make('movement:bulgarian_split_squat','Bulgarian Split Squat',null)]) {
+    assert.match(html,/Added weight<\/span><strong>20 kg/)
+    assert.doesNotMatch(html,/Body \+ load|Helme|Standing foot · estimated/)
+  }
+  assert.doesNotMatch(make('name:custom','Custom split squat variation'), /Working leg/)
+})
+
+test('strength headings show variant modifiers once and keep custom names intact', () => {
+  const family = { key:'family:hip_thrust', name:'Hip Thrust' }
+  assert.deepEqual(exerciseChartTitle(family, 'Weighted Dumbbell Hip Thrusts', s => s),
+    { title:'Hip Thrust', subtitle:'Weighted Dumbbell' })
+  assert.deepEqual(exerciseChartTitle(family, 'Hip Thrust', s => s), { title:'Hip Thrust', subtitle:'' })
+  assert.deepEqual(exerciseChartTitle({ key:'name:custom', name:'Personal lift' }, 'My Lift', s => s),
+    { title:'My Lift', subtitle:'' })
+  assert.deepEqual(exerciseChartTitle(family, 'Cable Setup', s => s), { title:'Hip Thrust', subtitle:'Cable Setup' })
+})
+
+test('report periods use inclusive calendar boundaries, clamped months, and reject invalid custom dates', () => {
+  const start = (period, end) => avatarReportRange(period, end, '2020-01-01','','')?.from
+  assert.equal(start('month','2024-03-31'),'2024-03-01')
+  assert.equal(start('month','2026-11-08'),'2026-10-09')
+  assert.equal(start('quarter','2026-11-08'),'2026-08-09')
+  assert.equal(start('half','2026-11-08'),'2026-05-09')
+  assert.equal(start('year','2024-02-29'),'2023-03-01')
+  assert.equal(start('all','2026-11-08'),'2020-01-01')
+  const custom = (from,to) => avatarReportRange('custom','2026-11-08','2020-01-01',from,to)
+  assert.deepEqual(custom('2026-07-01','2026-07-01'),{from:'2026-07-01',to:'2026-07-01',allTime:false})
+  for (const dates of [['2026-02-30','2026-03-01'],['2026-05-03','2026-05-02'],['2026-10-01','2026-11-09']]) assert.equal(custom(...dates),null)
+})
+test('download embeds each chart anatomy once per movement fetch and retains the tiles when offline', async t => {
+  const webp = 'UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEAAUAmJaQAA3AA/v89WAAAAA=='
+  const points = [{date:'2026-11-01', topWeight:10,topReps:5},{date:'2026-11-02',topWeight:20,topReps:10}]
+  const variant = { key:'movement:bulgarian_split_squat',name:'Bulgarian Split Squat',points,work:noWork,sessionCount:2 }
+  const options = { ...input, currentBodyweight:70, families:[{name:'Split Squat',work:noWork,sessionCount:2,variants:[variant,variant]}] }
+  const fetchImage = t.mock.method(globalThis,'fetch',async () => new Response(Buffer.from(webp,'base64')))
+  const html = await downloadableAvatarReport(options,'/app/')
+  assert.deepEqual(fetchImage.mock.calls.map(call=>call.arguments[0]),['/app/leg-anatomy/bulgarian_split_squat.webp'])
+  assert.equal((html.match(/<img alt="" src="data:image\/webp;base64,/g) ?? []).length,2)
+  fetchImage.mock.mockImplementation(async () => new Response('missing',{status:404}))
+  const offline = await downloadableAvatarReport(options,'/app/')
+  assert.doesNotMatch(offline,/<img/)
+  assert.match(offline,/Front foot · estimated/)
 })

@@ -1,22 +1,60 @@
 // A standalone document: the downloaded report needs neither a login nor a network connection.
 import { athleteTitle, trainingProfileLines, type TrainingProfile } from './trainingProfile.ts'
 import { datedChartAxis, distinctSessionPositions } from './datedChartAxis.ts'
-import { totalRecordedWork, type ExerciseFrequencyFamily, type RecordedWork, type RankedExerciseHistory } from './strengthProgress.ts'
+import { exerciseChartTitle, totalRecordedWork, type ExerciseFrequencyFamily, type RecordedWork, type RankedExerciseHistory } from './strengthProgress.ts'
 import { formattedMass, heroLiftCaption, liftedMassCaption } from './liftedMassComparison.ts'
-import type { RpgSnapshot } from './types'
+import guide from '../../shared/unilateral-load-guide.json' with { type: 'json' }
+import { MOVEMENT_ALIASES, MOVEMENTS } from '../data/movements.ts'
+import { bespokeProtocolFor } from './profilePolicy.ts'
+import { isIsoDate } from './activeDate.ts'
+import type { AppData, RpgSnapshot } from './types'
+import type { AvatarReportRange } from './avatarReportRange'
 import type { StatBlock } from './rpg'
 
 type ReportPoint = { date: string; value: number; reps?: number | null }
 type ReportWorkRow = Pick<ExerciseFrequencyFamily, 'name' | 'sessionCount' | 'work'>
 type ReportFamily = ReportWorkRow & {
-  variants: Array<ReportWorkRow & Pick<RankedExerciseHistory, 'points'>>
+  key?: string
+  variants: Array<ReportWorkRow & { key?: string } & Pick<RankedExerciseHistory, 'points'>>
 }
 type ReportInput = {
-  name: string; locale: string; today: string; snapshots: RpgSnapshot[]
+  name: string; locale: string; today: string; snapshots: RpgSnapshot[]; currentBodyweight?: number | null; range?: AvatarReportRange
   observed: Partial<StatBlock>; training: TrainingProfile; families: ReportFamily[]; translate: (text: string) => string
 }
 type Illustration = { filename: string; dataURL: string }
 type Score = keyof StatBlock | 'overall' | 'strength'
+
+const loadGuides = new Map(Object.entries(guide))
+const normalizedName = (name: string) => name.toLocaleLowerCase('en').replace(/[^\p{L}\p{N}]/gu, '')
+const exactMovementNames = new Map<string, string | null>()
+for (const [name, id] of [...MOVEMENTS.map(m => [m.name, m.id]), ...Object.entries(MOVEMENT_ALIASES)]) {
+  const key = normalizedName(name)
+  exactMovementNames.set(key, !exactMovementNames.has(key) || exactMovementNames.get(key) === id ? id : null)
+}
+
+function loadGuide(variant: ReportFamily['variants'][number]) {
+  const key = variant.key
+  const name = variant.points.at(-1)?.topSetName ?? variant.name
+  const id = key?.startsWith('movement:') ? key.slice('movement:'.length) : exactMovementNames.get(normalizedName(name))
+  const kind = id ? loadGuides.get(id) : undefined
+  if (!id || !kind) return null
+  const supported = /[+/]|\b(?:or|support(?:ed)?|assisted|smith|cable|machine|counterweight(?:ed)?)\b/i.test(name)
+  return { id, kind: supported ? 'externalOnly' : kind }
+}
+
+export function reportBodyweight(data: AppData, today: string): number | null {
+  const profile = data.profile
+  if (!profile || !Number.isFinite(profile.weight_kg) || profile.weight_kg <= 0) return null
+  if (profile.weight_kg !== 70 || bespokeProtocolFor(profile)) return profile.weight_kg
+  // A new database profile defaults to 70 kg even when nobody has entered a weight.
+  const recorded = (row: { user_id: string; date: string; weight_kg: number | null }) =>
+    row.user_id === profile.user_id && isIsoDate(row.date) && row.date <= today && row.weight_kg === profile.weight_kg
+  if (data.daily_logs.some(recorded) || data.health_metrics.some(recorded)) return profile.weight_kg
+  const owned = data.fitness_evidence.filter(row => row.user_id === profile.user_id)
+  const superseded = new Set(owned.map(row => row.supersedes_id))
+  return owned.some(row => row.metric === 'body_mass' && row.unit === 'kg' && row.value === profile.weight_kg
+    && !superseded.has(row.id) && isIsoDate(row.measured_at.slice(0,10)) && row.measured_at.slice(0,10) <= today) ? profile.weight_kg : null
+}
 
 const scoreLabels: Record<Score, string> = {
   overall: 'Overall Fitness Level', health: 'Health', joint: 'Joint Health Balance',
@@ -28,13 +66,13 @@ function escape(value: string) {
   return value.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!))
 }
 
-export function avatarReportHTML(options: ReportInput, illustration?: Illustration) {
+export function avatarReportHTML(options: ReportInput, illustration?: Illustration, legArt: ReadonlyMap<string, string> = new Map()) {
   const { name, locale, snapshots, observed, families, training, today, translate } = options
   const t = (s: string) => escape(translate(s))
   const fmt = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 })
   const dates = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
   const stamp = (d: string) => dates.format(new Date(d + 'T12:00:00Z'))
-  const metric = (p: ReportPoint, unit: string) => fmt.format(p.value) + unit + (p.reps != null && p.reps > 0 ? ' × ' + fmt.format(p.reps) : '')
+  const metric = (p: ReportPoint, unit: string) => (p.reps != null && p.reps > 0 ? fmt.format(p.reps) + ' ' + t('reps') + ' × ' : '') + fmt.format(p.value) + unit
   const chart = (series: ReportPoint[], unit: string, label: string, perSession = false) => {
     if (series.length < 2) return ''
     const max = unit ? series.reduce((peak, p) => Math.max(peak, p.value), 0) : 100
@@ -68,18 +106,44 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
   function volumeTotal(work: RecordedWork) {
     return work.liftedKg == null ? null : formattedMass(work.liftedKg, locale) + (work.missingVolume ? '*' : '')
   }
-  const lifts = families.flatMap(family => family.variants.filter(variant => variant.points.length >= 2)).map(variant => {
+  function perLegNote(load: ReturnType<typeof loadGuide>, external: number) {
+    if (!load) return ''
+    const body = options.currentBodyweight
+    const total = load.kind !== 'externalOnly' && body != null && Number.isFinite(body) && body > 0 ? external + body : null
+    const tiles: Array<[string, string, string?]> = []
+    let note = ''
+    if (total != null && load.kind === 'rearFootElevated') {
+      tiles.push(['Front foot · estimated', '≈ ' + fmt.format(Math.round(0.8436 * total))])
+      note = `<a href="https://doi.org/10.1519/JSC.0000000000003727" title="${t('Study average for rear-foot-elevated split squats · Helme et al.')}">${t('At rest · based on Helme et al.')}</a>`
+    } else if (total != null && load.kind === 'singleSupport') {
+      tiles.push(['Standing foot · estimated', '≈ ' + fmt.format(Math.round(total))])
+      note = t('Assumes one foot on the floor and no hand support.')
+    } else if (total != null) {
+      note = t('The share on each foot varies with stance and support.')
+    }
+    tiles.push(['Added weight', fmt.format(external)])
+    if (total != null && body != null) tiles.push(['Body + load', fmt.format(total), fmt.format(body) + ' + ' + fmt.format(external) + ' kg'])
+    const art = legArt.get(load.id)
+    const image = art?.startsWith('data:image/webp;base64,') ? `<img alt="" src="${escape(art)}">` : ''
+    return `<aside class="leg-load"><h4>${t('Working leg')}</h4><div class="leg-panel">${image}<div class="leg-tiles">
+      ${tiles.map(([label, value, detail]) => `<div class="leg-tile"><span>${t(label)}</span><strong>${value} kg</strong>${detail ? `<small>${detail}</small>` : ''}</div>`).join('')}</div></div>
+      ${note ? `<p>${note}</p>` : ''}</aside>`
+  }
+  const lifts = families.flatMap(family => family.variants.filter(variant => variant.points.length >= 2).map(variant => {
     const points = variant.points.map(p => ({ date: p.date, value: p.topWeight, reps: p.topReps }))
-    const best = points.reduce((peak, p) => Math.max(peak, p.value), 0)
+    const best = points.reduce((peak, p) => p.value > peak.value || (p.value === peak.value && (p.reps ?? 0) > (peak.reps ?? 0)) ? p : peak)
+    const latest = variant.points[variant.points.length - 1]
+    const { title, subtitle } = exerciseChartTitle(family, variant.name, t)
     const reps = repsTotal(variant.work)
     const volume = volumeTotal(variant.work)
     const stats = [
       reps && `<div><dt>${t('Recorded reps')}</dt><dd>${reps}</dd></div>`,
       volume && `<div><dt>${t('Lifted volume')}</dt><dd>${volume}</dd></div>`,
     ].join('')
-    return `<article><h3>${t(variant.name)}</h3><p>${t('Personal best')} · <strong>${fmt.format(best)} kg</strong></p>
-      ${chart(points, ' kg', t(variant.name), true)}${stats ? `<dl>${stats}</dl>` : ''}</article>`
-  })
+    return `<article><h3>${title}</h3>${subtitle ? `<p class="variation">${subtitle}</p>` : ''}<p>${t(options.range && !options.range.allTime ? 'Best in range' : 'Personal best')} · <strong>${metric(best, ' kg')}</strong></p>
+      ${chart(points, ' kg', t(variant.name), true)}${stats ? `<dl>${stats}</dl>` : ''}
+      ${perLegNote(loadGuide(variant), latest.topWeight)}</article>`
+  }))
   const total = totalRecordedWork(families)
   const object = liftedMassCaption(total.liftedKg ?? 0, locale, translate)
   const hero = heroLiftCaption(total.liftedKg ?? 0, locale, translate)
@@ -110,6 +174,9 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
     const showVariants = family.variants.length > 1 || family.variants[0]?.name !== family.name
     return `<tbody>${workRow(family, i + 1)}${showVariants ? family.variants.map(v => workRow(v)).join('') : ''}</tbody>`
   })
+  const range = options.range
+  const bounds = (from: string, to: string) => stamp(from) + ' – ' + stamp(to)
+  const profileStart = training.period?.from ?? new Date(Date.parse((range?.to ?? today) + 'T12:00:00Z') - 89 * 86400000).toISOString().slice(0,10)
   const profileLines = training.workouts ? trainingProfileLines(training, locale, translate)
     : [translate('A pattern needs at least three classified workouts.')]
   return `<!doctype html><html lang="${escape(locale)}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${t('Avatar report')} · FITR MAX</title><style>
@@ -117,41 +184,55 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
 .totals{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}.totals figure{margin:.6em 0;break-inside:avoid}.award-art{display:block;max-width:100%;width:100%;height:150px;object-fit:contain;margin-bottom:.6em}@media print{.award-art{height:32mm}}
 .profile{background:linear-gradient(115deg,#f1eafa,#e2d7f7);border-left:6px solid #7442be;border-radius:0 18px 18px 0;padding:clamp(18px,4vw,32px);break-inside:avoid}
 .profile h1{color:#41246b;font-size:clamp(32px,6.8vw,58px);margin:.16em 0 .25em}
-.profile .period{font-size:.82em;font-weight:700;color:#563280}
+.report-range{margin:0 0 8px;font-weight:600}.profile .period{font-size:.82em;font-weight:700;color:#563280}
 .profile p{margin:.15em 0}
 .masthead{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:4px 16px;margin-bottom:12px}
 .masthead strong{letter-spacing:.12em}.masthead p{font-size:.88em}
 .lifts dl{display:flex;flex-wrap:wrap;gap:4px 22px;margin:10px 0 0;padding-top:8px;border-top:1px solid #e6e0ed}
 .lifts dl div{display:flex;gap:6px;align-items:baseline}.lifts dt{color:#584d69;font-size:.82em}.lifts dd{font-weight:700;margin:0}
-.lifts>p{margin-bottom:8px}
+.lifts>p{margin-bottom:8px}.variation{font-weight:600}.leg-load{margin-top:10px;border-top:1px solid #e6e0ed;padding-top:10px}.leg-load h4{margin:0 0 6px;font-size:.95em}
+.leg-panel{display:flex;align-items:stretch;gap:8px}.leg-panel img{width:24%;max-height:100px;object-fit:contain}
+.leg-tiles{display:flex;gap:5px;flex:1;min-width:0}.leg-tile{flex:1;min-width:0;border-radius:8px;padding:8px 10px;background:#e4f2ee;color:#164b40}
+.leg-tile:nth-child(2){background:#f3ebd9;color:#58421d}.leg-tile:nth-child(3){background:#ebe5f7;color:#4c3271}
+.leg-tile small{font-size:.7em;color:inherit}.leg-tile span{display:block;font-size:.73em;line-height:1.25;overflow-wrap:anywhere}.leg-tile strong{display:block;font-size:clamp(16px,2.5vw,25px);font-variant-numeric:tabular-nums}
+.leg-load p{font-size:.76em;margin:.4em 0 0}@media screen and (max-width:480px){.leg-panel{gap:4px}.leg-tile{padding:6px 4px}.leg-tiles{gap:3px}.leg-tile strong{font-size:15px}}
+@media print{.leg-panel img{max-height:21mm}.leg-tile strong{font-size:16pt}}
 @media screen and (max-width:600px){svg text{font-size:17px}.profile p:not(.period){font-size:.9em}.lifts article{padding:14px}.ends{gap:2px 10px}}
 @media print{.profile{padding:14px 20px}.profile h1{font-size:29pt}.totals{display:flex;columns:auto;align-items:flex-start}.totals article{flex:1;min-width:0}}
 </style><main><div class="masthead"><strong>FITR MAX · ${t('Avatar report')}</strong><p>${escape(name)} · ${stamp(today)}</p></div>
-<header class="profile"><p class="period">${t('90-day training profile')}</p><h1>${t(athleteTitle(training))}</h1>${profileLines.map(line => `<p>${escape(line)}</p>`).join('')}</header>
+${range ? `<p class="report-range">${t(range.allTime ? 'All time' : 'Date range')} · ${bounds(range.from, range.to)}</p>` : ''}
+<header class="profile"><p class="period">${t(training.period ? 'Training profile' : '90-day training profile')}${range ? ' · ' + bounds(profileStart, range.to) : ''}</p><h1>${t(athleteTitle(training))}</h1>${profileLines.map(line => `<p>${escape(line)}</p>`).join('')}</header>
 ${lifts.length ? `<section class="lifts"><h2>${t('Recorded load')}</h2><p>${t('Heaviest recorded set per session, in kilograms.')}</p>${lifts.join('')}</section>` : ''}
-${totalTiles.length ? `<section><h2>${t('All-time training totals')}</h2><div class="grid totals">${totalTiles.join('')}</div><p class="work-note">${t('Known external load × recorded reps. Body mass, assistance and timed work are excluded from volume. Skipped sets are excluded from all totals.')} ${t('Volume sums each recorded load × reps. An asterisk marks incomplete records.')}</p></section>` : ''}
+${totalTiles.length ? `<section><h2>${t(range && !range.allTime ? 'Training totals' : 'All-time training totals')}</h2><div class="grid totals">${totalTiles.join('')}</div><p class="work-note">${t('Known external load × recorded reps. Body mass, assistance and timed work are excluded from volume. Skipped sets are excluded from all totals.')} ${t('Volume sums each recorded load × reps. An asterisk marks incomplete records.')}</p></section>` : ''}
 ${tiles.length ? `<section><h2>${t('Stats')}</h2><p>${t('Legacy game scores. Not medical measurements.')}</p><div class="grid">${tiles.join('')}</div></section>` : ''}
 ${rankings.length ? `<section><h2>${t('Most trained exercises')}</h2><p>${t('Each completed workout counts once per exercise family.')}</p><table class="work"><thead><tr><th>${t('Exercise')}</th>${headers.map(label => `<th>${label}</th>`).join('')}</tr></thead>${rankings.join('')}</table><p class="work-note">${t('Volume sums each recorded load × reps. An asterisk marks incomplete records.')} ${t('Load per rep averages only reps with a measured load.')}</p></section>` : ''}</main></html>`
+}
+
+async function embeddedWebP(url: string) {
+  try {
+    const response = await fetch(url, { signal: AbortSignal.timeout(8000) })
+    if (!response.ok) return
+    const bytes = new Uint8Array(await response.arrayBuffer())
+    const tag = (from: number) => String.fromCharCode(...bytes.subarray(from, from + 4))
+    if (tag(0) === 'RIFF' && tag(8) === 'WEBP') {
+      return 'data:image/webp;base64,' + btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))
+    }
+  } catch {
+    // An unavailable illustration leaves a complete text report.
+  }
 }
 
 export async function downloadableAvatarReport(options: ReportInput, baseURL: string) {
   const kg = totalRecordedWork(options.families).liftedKg
   const filename = kg == null ? undefined : liftedMassCaption(kg, options.locale, options.translate)?.artwork
-  let illustration: Illustration | undefined
-  if (filename && /^[a-z0-9-]+\.webp$/.test(filename)) {
-    try {
-      const response = await fetch(baseURL + 'award-objects/' + filename, { signal: AbortSignal.timeout(8000) })
-      if (response.ok) {
-        const bytes = new Uint8Array(await response.arrayBuffer())
-        const tag = (from: number) => String.fromCharCode(...bytes.subarray(from, from + 4))
-        if (tag(0) === 'RIFF' && tag(8) === 'WEBP') {
-          const data = btoa(Array.from(bytes, byte => String.fromCharCode(byte)).join(''))
-          illustration = { filename, dataURL: 'data:image/webp;base64,' + data }
-        }
-      }
-    } catch {
-      // A missing or offline illustration still leaves a complete text report.
-    }
-  }
-  return avatarReportHTML(options, illustration)
+  const ids = new Set(options.families.flatMap(family => family.variants.flatMap(variant => {
+    const load = variant.points.length >= 2 ? loadGuide(variant) : null
+    return load ? [load.id] : []
+  })))
+  const [award, anatomy] = await Promise.all([
+    filename && /^[a-z0-9-]+\.webp$/.test(filename) ? embeddedWebP(baseURL + 'award-objects/' + filename) : undefined,
+    Promise.all([...ids].map(async id => [id, await embeddedWebP(baseURL + 'leg-anatomy/' + id + '.webp')] as const)),
+  ])
+  return avatarReportHTML(options, filename && award ? { filename, dataURL: award } : undefined,
+    new Map(anatomy.filter((entry): entry is readonly [string, string] => entry[1] != null)))
 }

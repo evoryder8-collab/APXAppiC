@@ -188,6 +188,13 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
     var subscriptionExpiresAt: String?
     /// Storage path of a user-chosen picture. Nil keeps the built-in portrait.
     var avatarPath: String?
+    var avatarStartingPoints: [String: Int]?
+    var avatarStartingPointsRequired: Bool?
+
+    var needsAvatarStartingPoints: Bool {
+        avatarStartingPointsRequired == true && ProfileIntegrityPolicy.authorizedProtocol(for: self) == nil
+            && AvatarStartingPoints.stats(avatarStartingPoints) == nil
+    }
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -198,6 +205,8 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
         case subscriptionTier = "subscription_tier"
         case subscriptionExpiresAt = "subscription_expires_at"
         case avatarPath = "avatar_path"
+        case avatarStartingPoints = "avatar_starting_points"
+        case avatarStartingPointsRequired = "avatar_starting_points_required"
         case persona
         case profileKind = "profile_kind"
         case bespokeProtocolID = "bespoke_protocol_id"
@@ -238,6 +247,8 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
         try container.encodeIfPresent(subscriptionTier, forKey: .subscriptionTier)
         try container.encodeIfPresent(subscriptionExpiresAt, forKey: .subscriptionExpiresAt)
         try container.encodeIfPresent(avatarPath, forKey: .avatarPath)
+        try container.encodeIfPresent(avatarStartingPoints, forKey: .avatarStartingPoints)
+        try container.encodeIfPresent(avatarStartingPointsRequired, forKey: .avatarStartingPointsRequired)
         try container.encode(persona, forKey: .persona)
         if let profileKind {
             try container.encode(profileKind, forKey: .profileKind)
@@ -288,6 +299,7 @@ struct RemoteProfilePayload: Encodable, Sendable {
         let decoded = try JSONDecoder().decode(JSONValue.self, from: data)
         if var object = decoded.objectValue {
             object.removeValue(forKey: "custom_bmr")
+            object.removeValue(forKey: "avatar_starting_points_required")
             value = .object(object)
         } else {
             value = decoded
@@ -300,7 +312,7 @@ struct RemoteProfilePayload: Encodable, Sendable {
 }
 
 struct UserSettings: Codable, Hashable, Sendable {
-    var avatarHealthCalibration: FBHealthCalibration? = nil
+    var avatarCalibration: FBAvatarCalibration? = nil
     let userID: UUID
     var voiceOn: Bool
     var ticksOn: Bool
@@ -310,7 +322,7 @@ struct UserSettings: Codable, Hashable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case userID = "user_id"
-        case avatarHealthCalibration = "avatar_health_calibration"
+        case avatarCalibration = "avatar_health_calibration"
         case voiceOn = "voice_on"
         case ticksOn = "ticks_on"
         case notificationsOn = "notifications_on"
@@ -323,7 +335,7 @@ struct UserSettings: Codable, Hashable, Sendable {
     /// before a write reaches an RLS-protected table.
     func rebound(to userID: UUID) -> UserSettings {
         UserSettings(
-            avatarHealthCalibration: self.userID == userID ? avatarHealthCalibration : nil,
+            avatarCalibration: self.userID == userID ? avatarCalibration : nil,
             userID: userID,
             voiceOn: voiceOn,
             ticksOn: ticksOn,

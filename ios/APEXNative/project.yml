@@ -27,7 +27,7 @@ settings:
     IPHONEOS_DEPLOYMENT_TARGET: 17.0
     DEVELOPMENT_TEAM: UG979XDY72
     CODE_SIGN_STYLE: Automatic
-    CURRENT_PROJECT_VERSION: 411
+    CURRENT_PROJECT_VERSION: 412
     MARKETING_VERSION: 1.0.1
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED: YES
@@ -41,9 +41,14 @@ targets:
       - path: APEX
         excludes:
           - Resources/GuidedArtwork
+      - path: ../../shared/unilateral-load-guide.json
+        buildPhase: resources
       - path: ../../shared/spicy-pork-leg-soup.json
         buildPhase: resources
       - path: ../../shared/exercise-frequency-families.json
+        buildPhase: resources
+      - path: ../../public/leg-anatomy
+        type: folder
         buildPhase: resources
       - path: ../../public/award-objects
         type: folder

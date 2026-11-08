@@ -363,6 +363,12 @@ test('training profile compares equal-rep session peaks across inclusive halves 
   data.workout_logs.push({...data.workout_logs[4]}, {...set,id:'x',session_id:'s2',movement_id:'wrist_roller',reps:400},
     {...set,id:'y',session_id:'s1',skipped:true,weight_kg:1000})
   const result = trainingProfile(data,[],'2026-11-08')
+  const scoped = trainingProfile(data, [], '2026-10-01', '2026-09-01')
+  assert.equal(scoped.workouts,2)
+  assert.deepEqual(scoped.period,{ from:'2026-09-01', split:'2026-09-16', to:'2026-10-01', days:31 })
+  const scopedLines = trainingProfileLines(scoped,'en',s=>s).join(' ')
+  assert.match(scopedLines,/Earlier period · 2026-09-01 – 2026-09-15/)
+  assert.match(scopedLines,/Later period · 2026-09-16 – 2026-10-01/)
   assert.equal(result.focus,'Resistance-focused')
   assert.equal(athleteTitle(result), 'Strength athlete')
   assert.equal(athleteTitle({ ...result, muscleGrowthGoal: true }), 'Bodybuilder')

@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { createClient } from '@supabase/supabase-js'
+import { equalStartingPoints, saveRemoteStartingPoints } from '../src/lib/avatarStartingPoints.ts'
 import { computeEngine, observedDomainScores, publishableSnapshots } from '../src/lib/rpg.ts'
 import { EMPTY_DATA, type AppData, type WorkoutLog, type WorkoutSession } from '../src/lib/types.ts'
 
@@ -208,4 +210,72 @@ test('breakfast and a partial diary cannot be judged as a full-day calorie defic
   } } } } as AppData['settings']
   assert.equal(deficits(date).length, 0)
   assert.equal(deficits('2026-11-03').length, 1)
+})
+
+const allocation = { health: 0, joint: 45, flexibility: 50, endurance: 65, strength_upper: 100, strength_lower: 40 }
+const allocatedProfile = { ...baseline.profile!, avatar_starting_points: allocation }
+
+test('self-selected starting scores publish exactly once, stay stable without receipts, and reject invalid allocations', () => {
+  const noHistory = { ...baseline, profile: allocatedProfile }
+  const engine = computeEngine(noHistory, date)
+  assert.deepEqual(observedDomainScores(engine), allocation)
+  const priorWatchReading = { id: 'prior', user_id: owner, date: '2026-10-30', vo2max: 55, weight_kg: null, resting_hr: null }
+  assert.deepEqual(observedDomainScores(computeEngine({ ...noHistory, health_metrics: [priorWatchReading] }, date)), allocation)
+  assert.equal(publishableSnapshots(engine)[0].date, allocatedProfile.baseline_date)
+  for (const invalid of [{ ...allocation, health: 1 }, { ...allocation, health: 1.5, joint: 43.5 },
+    { ...allocation, unexpected: 0 }, { ...allocation, health: -1, joint: 46 }, null]) {
+    const engine = computeEngine({ ...baseline, profile: { ...baseline.profile!, avatar_starting_points: invalid } }, date)
+    assert.equal(publishableSnapshots(engine).length, 0)
+  }
+})
+
+test('backdated Quick Log activity replays from the allocation and editing or deleting the receipt removes its old gain', () => {
+  const day = '2026-10-28'
+  const data = { ...custom([log()], [session({ date: day })]), profile: allocatedProfile }
+  const trained = computeEngine(data, date)
+  assert.equal(publishableSnapshots(trained)[0].date, day)
+  assert.ok(trained.snapshots.at(-1)!.strength_lower > allocation.strength_lower)
+  const edited = latest({ ...data, workout_logs: [log({ movement_id: 'cat_cow' })] })
+  assert.equal(edited.strength_lower, allocation.strength_lower)
+  assert.ok(edited.flexibility > allocation.flexibility)
+  assert.deepEqual(observedDomainScores(computeEngine({ ...data, workout_sessions: [] }, date)), allocation)
+})
+
+test('only recorded all-skipped training lowers the selected domain, and a matching backfill erases that deduction', () => {
+  const data = custom([log({ session_id: 'skip', skipped: true })], [session({ id: 'skip', program_day_id: 'lower' })])
+  data.program_days.push({ ...data.program_days[0], id: 'lower', day_type: 'legs_a' })
+  const allocated = { ...data, profile: allocatedProfile }
+  assert.equal(latest(allocated).strength_lower, allocation.strength_lower - 1)
+  assert.equal(latest({ ...allocated, workout_sessions: [session({ program_day_id: 'lower', completed: false })] }).strength_lower, allocation.strength_lower)
+  assert.equal(latest(data).strength_lower, 50)
+  const correction = { ...allocated, workout_sessions: [...allocated.workout_sessions,session()], workout_logs: [...allocated.workout_logs,log()] }
+  assert.equal(latest(correction).strength_lower, latest({ ...custom(), profile: allocatedProfile }).strength_lower)
+  assert.deepEqual(computeEngine(correction, date).synergies.filter(row => row.kind === 'skipped_session'), [])
+})
+
+test('one-time save reads the winning device allocation and sends only an owner-scoped conditional update', async () => {
+  const saved = { ...equalStartingPoints }
+  let writes = 0
+  let reads = 0
+  const client = createClient('https://example.invalid', 'test', {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: async (url, init) => {
+      const request = new Request(url, init)
+      const path = new URL(request.url)
+      assert.equal(path.pathname, '/rest/v1/profile')
+      assert.equal(path.searchParams.get('user_id'), 'eq.' + owner)
+      if (request.method === 'PATCH') {
+        assert.equal(path.searchParams.get('avatar_starting_points'), 'is.null')
+        assert.deepEqual(await request.json(), { avatar_starting_points: allocation })
+        writes++
+        return new Response(null, { status: 204 })
+      }
+      assert.equal(request.method, 'GET')
+      assert.equal(path.searchParams.get('select'), 'avatar_starting_points')
+      reads++
+      return Response.json({ avatar_starting_points: saved })
+    } },
+  })
+  assert.deepEqual(await saveRemoteStartingPoints(client, owner, allocation), saved)
+  assert.deepEqual([writes, reads], [1, 1])
 })

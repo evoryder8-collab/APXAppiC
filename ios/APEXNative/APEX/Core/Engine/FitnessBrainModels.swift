@@ -34,6 +34,25 @@ public enum FBDayType: String, Codable, Sendable {
     }
 }
 
+enum AvatarStartingPoints {
+    static let domains = [
+        ("health", "Health"), ("joint", "Joint Health Balance"), ("flexibility", "Body Flexibility"),
+        ("endurance", "Endurance & VO₂ max"), ("strength_upper", "Upper Body Strength"),
+        ("strength_lower", "Lower Body Strength")
+    ]
+    static let balanced = Dictionary(uniqueKeysWithValues: domains.map { ($0.0, 50) })
+
+    static func stats(_ points: [String: Int]?) -> StatBlock? {
+        guard let points, points.count == domains.count,
+              points.values.allSatisfy({ (0...100).contains($0) }), points.values.reduce(0, +) == 300,
+              let health = points["health"], let joint = points["joint"], let flexibility = points["flexibility"],
+              let endurance = points["endurance"], let upper = points["strength_upper"],
+              let lower = points["strength_lower"] else { return nil }
+        return StatBlock(health: Double(health), joint: Double(joint), flexibility: Double(flexibility),
+                         endurance: Double(endurance), strengthUpper: Double(upper), strengthLower: Double(lower))
+    }
+}
+
 public struct FBProfile: Codable, Sendable {
     public var userID: String
     public var persona: FBPersona
@@ -49,6 +68,7 @@ public struct FBProfile: Codable, Sendable {
     public var activityLevel: FBActivityLevel
     public var goal: FBGoal
     public var baselineDate: String
+    public var avatarStartingPoints: [String: Int]?
 
     enum CodingKeys: String, CodingKey {
         case userID = "user_id"
@@ -64,6 +84,7 @@ public struct FBProfile: Codable, Sendable {
         case activityLevel = "activity_level"
         case goal
         case baselineDate = "baseline_date"
+        case avatarStartingPoints = "avatar_starting_points"
     }
 
     public init(
@@ -382,14 +403,21 @@ public struct FBMealRhythmDayRaw: Codable, Sendable {
     }
 }
 
-public struct FBHealthCalibration: Codable, Hashable, Sendable {
+public struct FBAvatarCalibration: Codable, Hashable, Sendable {
+    public struct Scores: Codable, Hashable, Sendable {
+        public var joint: Double?
+        public var flexibility: Double?
+        public var endurance: Double?
+    }
+
+    public var scores: Scores? = nil
     public let date: String
     public let score: Double
     public let source: String
 }
 
 public struct FBEngineInput: Sendable {
-    public var healthCalibration: FBHealthCalibration?
+    public var avatarCalibration: FBAvatarCalibration?
     public var profile: FBProfile
     public var trainingGoal: String?
     public var planWeeks: Int?
@@ -472,6 +500,7 @@ public struct FBSnapshot: Codable, Sendable, Equatable {
 }
 
 public enum FBSynergyKind: String, Codable, Sendable {
+    case skippedSession = "skipped_session"
     case proteinStrength = "protein_strength"
     case deficitStrength = "deficit_strength"
     case hydrationEndurance = "hydration_endurance"

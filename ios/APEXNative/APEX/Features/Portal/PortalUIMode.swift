@@ -82,6 +82,36 @@ enum SimpleHomeLogic {
         }
     }
 
+    struct TrainingSchedule {
+        let primary: String
+        let hasPrimary: Bool
+        let includeCustom: Bool
+        let hasCustom: Bool
+        var hasPrescription: Bool { hasPrimary || hasCustom }
+
+        func plans(in data: DashboardData, on date: String, lite: Bool) -> [PlannedDay] {
+            SimpleHomeLogic.workoutPlans(in: data, primarySlug: hasPrimary ? primary : nil, includeCustom: includeCustom,
+                                         date: date, lite: lite)
+        }
+    }
+
+    static func trainingSchedule(in data: DashboardData, on date: String, coachManaged: Bool,
+                                 followsCoach: Bool, includeCustom: Bool) -> TrainingSchedule {
+        let main = TrainingInduction.hasUsablePrescription(in: data, slug: "main")
+        let transition = TrainingInduction.hasUsablePrescription(in: data, slug: "transition")
+        let coach = followsCoach && TrainingInduction.hasUsablePrescription(in: data, slug: "coach")
+        let induction = data.settings?.addons["training_induction"]?.objectValue != nil
+        let currentMain = main && TrainingPlanEngine.isInsideInductionWindow(data, slug: "main", date: date)
+        let currentTransition = transition && TrainingPlanEngine.isInsideInductionWindow(data, slug: "transition", date: date)
+        let primary = guidedProgramSlug(persona: data.profile?.persona, mainIsUsable: main, transitionIsUsable: transition,
+                                        coachManaged: coachManaged, coachIsUsable: coach,
+                                        transitionInductionIsUsable: induction && currentTransition,
+                                        mainInductionIsUsable: induction && currentMain)
+        let hasPrimary = primary == "coach" ? coach : primary == "main" ? currentMain : currentTransition
+        return TrainingSchedule(primary: primary, hasPrimary: hasPrimary, includeCustom: includeCustom,
+                                hasCustom: includeCustom && TrainingInduction.hasUsablePrescription(in: data, slug: "custom"))
+    }
+
     static func workoutPlans(in data: DashboardData, primarySlug: String?, includeCustom: Bool, date: String, lite: Bool) -> [PlannedDay] {
         let slugs = [primarySlug, includeCustom ? "custom" : nil].compactMap { $0 }
         let plans = slugs.flatMap { TrainingPlanEngine.programDays(data, slug: $0, date: date, lite: lite) }
@@ -386,5 +416,15 @@ struct PortalModeSwitcher: View {
         .shadow(color: .black.opacity(0.05), radius: 9, y: 4)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(language.text("Interface mode"))
+    }
+}
+
+
+extension AppSession {
+    func trainingSchedule(on date: String) -> SimpleHomeLogic.TrainingSchedule {
+        let policy = coachClientPolicy
+        return SimpleHomeLogic.trainingSchedule(in: data, on: date,
+            coachManaged: coachContext.activelyCoached && !policy.canCreateCustomWorkouts,
+            followsCoach: policy.canFollowCoachPlan, includeCustom: policy.canCreateCustomWorkouts)
     }
 }

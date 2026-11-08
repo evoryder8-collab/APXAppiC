@@ -2,6 +2,8 @@ import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AmbientBackground } from './components/AmbientBackground'
+import { needsStartingPoints } from './lib/avatarStartingPoints'
+import { AvatarStartingPoints } from './components/avatar/AvatarStartingPoints'
 import { TopBar } from './components/TopBar'
 import { ProfileSwitcher } from './components/ProfileSwitcher'
 import { AccessRecovery } from './components/AccessRecovery'
@@ -95,7 +97,7 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<Page>{settingsOnly ? <AccountFeature capability="can_rebuild_fitness_plan"><WorkoutSection slug="transition" accent={ACCENTS.teal} title="Transition Phase" /></AccountFeature> : simple ? <SimpleHome /> : <Portal />}</Page>} />
+        <Route path="/" element={<Page><AvatarStartingPoints key={data.profile?.user_id} />{settingsOnly ? <AccountFeature capability="can_rebuild_fitness_plan"><WorkoutSection slug="transition" accent={ACCENTS.teal} title="Transition Phase" /></AccountFeature> : simple ? <SimpleHome /> : <Portal />}</Page>} />
         <Route path="/nutrition" element={<AccountFeature capability="can_use_nutrition"><Page><Nutrition /></Page></AccountFeature>} />
         <Route
           path="/transition"
@@ -160,7 +162,7 @@ function Reminders() {
 }
 
 function Shell() {
-  const { appAccess, coachContext, ready, authed, signOut, toasts } = useStore()
+  const { appAccess, coachContext, data, ready, authed, signOut, toasts } = useStore()
   const location = useLocation()
   const workoutPlayerOpen = location.pathname.startsWith('/player/')
   const [selectedPersona, setSelectedPersonaState] = useState<PersonaSlug | null>(() =>
@@ -251,6 +253,13 @@ function Shell() {
         <Toasts items={toasts} />
       </>
     )
+  }
+  if (needsStartingPoints(data.profile)) {
+    return <main className="mx-auto min-h-dvh max-w-3xl px-4 py-12 sm:py-20">
+      <AvatarStartingPoints key={data.profile?.user_id} required />
+      <ProfileSwitcher activePersona={selectedPersona} busy={switchingPersona} onSwitch={() => void returnToPersonaIntro()} />
+      <Toasts items={toasts} />
+    </main>
   }
   return (
     <>

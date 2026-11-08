@@ -12,6 +12,7 @@ export interface StrengthPoint {
   sessionId: string
   date: string
   topWeight: number
+  topSetName?: string
   topReps: number | null
   estimated1rm: number
   volume: number
@@ -77,6 +78,18 @@ export interface ExerciseFrequencyFamily {
   lastPerformedDate: string
   variants: RankedExerciseHistory[]
   sessions: SessionWork[]
+}
+
+export function exerciseChartTitle(family: { key?: string; name: string }, name: string, translate: (text: string) => string) {
+  const variant = translate(name)
+  const title = family.key?.startsWith('family:') ? translate(family.name) : variant
+  const folded = variant.trim().toLocaleLowerCase()
+  const familyName = title.trim().toLocaleLowerCase()
+  if (folded === familyName) return { title, subtitle: '' }
+  for (const suffix of [' ' + familyName, ' ' + familyName + 's']) {
+    if (folded.endsWith(suffix)) return { title, subtitle: variant.trim().slice(0, -suffix.length).trim() }
+  }
+  return { title, subtitle: variant }
 }
 
 const familyByMovement = new Map(frequencyFamilies.flatMap(family => family.movementIDs.map(id => [id, family] as const)))
@@ -146,6 +159,7 @@ function historyMovement(name: string, movementId: string | null) {
   const region = family?.region
   const hasRepField = descriptor.fields.includes('reps') && (!movement || movement.repUnit === 'reps')
   const sameExternalLoad = !composite || ['hip_thrust', 'biceps_curl', 'calf_raise'].includes(explicitFamily?.id ?? '')
+    || (explicitFamily?.id === 'push_up' && movementId === 'weighted_push_up')
   const assisted = /\b(?:assisted|counterweight(?:ed)?)\b/i.test(`${name} ${movement?.id.replaceAll('_', ' ') ?? ''}`)
   const bodyweight = descriptor.kind === 'bodyweight' || (family?.id === 'push_up' && !descriptor.movementId)
   const measuresExternalWeight = sameExternalLoad && !substitute && !assisted && !bandLabel && !bandEquipment
@@ -176,7 +190,12 @@ export function estimatedOneRepMax(weight: number, reps: number | null): number 
   return Math.round(weight * (1 + boundedReps / 30) * 10) / 10
 }
 
-export function* performedWorkoutObservations(data: AppData, range?: { from: string; to: string }) {
+type WorkoutHistoryInput = Pick<AppData, 'workout_sessions' | 'workout_logs' | 'exercises'> & {
+  profile?: { user_id: string } | null
+  settings?: { user_id: string } | null
+}
+
+export function* performedWorkoutObservations(data: WorkoutHistoryInput, range?: { from: string; to: string }) {
   const owner = data.profile?.user_id ?? data.settings?.user_id
   if (!owner) return
   const sessions = new Map(data.workout_sessions
@@ -231,7 +250,7 @@ export function* performedWorkoutObservations(data: AppData, range?: { from: str
   }
 }
 
-export function buildExerciseFamilies(data: AppData): ExerciseFrequencyFamily[] {
+export function buildExerciseFamilies(data: WorkoutHistoryInput, range?: { from: string; to: string }): ExerciseFrequencyFamily[] {
   const sessionTimes = new Map<string, string>()
   function sessionOrder(a: Pick<SessionWork, 'sessionId' | 'date'>, b: typeof a) {
     return a.date.localeCompare(b.date)
@@ -245,7 +264,7 @@ export function buildExerciseFamilies(data: AppData): ExerciseFrequencyFamily[] 
     points: Map<string, StrengthPoint>
   }>()
 
-  for (const { session, log, movement, name, loadedWeight, reps, repBased } of performedWorkoutObservations(data)) {
+  for (const { session, log, movement, name, loadedWeight, reps, repBased } of performedWorkoutObservations(data, range)) {
     const group = groups.get(movement.key) ?? {
       family: movement.family,
       history: {
@@ -287,6 +306,7 @@ export function buildExerciseFamilies(data: AppData): ExerciseFrequencyFamily[] 
     }
     if (weight > point.topWeight || (weight === point.topWeight && (reps ?? 0) > (point.topReps ?? 0))) {
       point.topWeight = weight
+      point.topSetName = name
       point.topReps = reps
     }
     point.estimated1rm = Math.max(point.estimated1rm, estimatedOneRepMax(weight, reps))

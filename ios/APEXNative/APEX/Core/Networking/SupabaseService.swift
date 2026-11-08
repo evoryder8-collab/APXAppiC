@@ -26,6 +26,7 @@ struct ProfileCreationRequest: Encodable, Sendable {
     let heightCM: Double?
     let birthdate: String?
     let activityLevel: ActivityLevel?
+    let avatarStartingPoints: [String: Int]?
     let profileKind = ProfileIntegrityPolicy.Kind.standard
     let displayName = "APEX Athlete"
     let seedVersion = SeedVersion.current
@@ -34,7 +35,8 @@ struct ProfileCreationRequest: Encodable, Sendable {
         userID: UUID,
         goal: String?,
         baseline: TrainingInduction.BodyBaseline? = nil,
-        activityLevel: ActivityLevel? = nil
+        activityLevel: ActivityLevel? = nil,
+        avatarStartingPoints: [String: Int]? = nil
     ) {
         /* One account owns one profile. Reusing the authenticated UUID makes
            retries deterministic and satisfies the schema's non-null primary
@@ -47,6 +49,7 @@ struct ProfileCreationRequest: Encodable, Sendable {
         heightCM = baseline?.heightCM
         birthdate = baseline?.birthdate
         self.activityLevel = activityLevel
+        self.avatarStartingPoints = avatarStartingPoints
     }
 
     enum CodingKeys: String, CodingKey {
@@ -59,6 +62,7 @@ struct ProfileCreationRequest: Encodable, Sendable {
         case birthdate
         case activityLevel = "activity_level"
         case profileKind = "profile_kind"
+        case avatarStartingPoints = "avatar_starting_points"
         case displayName = "display_name"
         case seedVersion = "seed_version"
     }
@@ -314,25 +318,40 @@ actor SupabaseService {
         userID: UUID,
         goal: String?,
         baseline: TrainingInduction.BodyBaseline? = nil,
-        activityLevel: ActivityLevel? = nil
+        activityLevel: ActivityLevel? = nil,
+        avatarStartingPoints: [String: Int]? = nil
     ) async throws -> Profile {
         assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
         let existing: [Profile] = try await client.from("profile")
             .select().eq("user_id", value: userID).limit(1).execute().value
-        if let profile = existing.first { return profile }
+        if let profile = existing.first {
+            if let avatarStartingPoints, profile.avatarStartingPoints == nil, ProfileIntegrityPolicy.authorizedProtocol(for: profile) == nil {
+                return try await setAvatarStartingPoints(avatarStartingPoints, ownerID: userID)
+            }
+            return profile
+        }
 
         let inserted: [Profile] = try await client.from("profile")
             .insert(ProfileCreationRequest(
                 userID: userID,
                 goal: goal,
                 baseline: baseline,
-                activityLevel: activityLevel
+                activityLevel: activityLevel, avatarStartingPoints: avatarStartingPoints
             ))
             .select()
             .execute().value
         guard let profile = inserted.first else { throw APEXServiceError.configurationMissing }
         return profile
+    }
+
+    func setAvatarStartingPoints(_ points: [String: Int], ownerID: UUID) async throws -> Profile {
+        assertRemoteMutationAllowed()
+        guard let client else { throw APEXServiceError.configurationMissing }
+        // A second device may already have saved the one-time choice.
+        try await client.from("profile").update(["avatar_starting_points": points])
+            .eq("user_id", value: ownerID).is("avatar_starting_points", value: nil).execute()
+        return try await client.from("profile").select().eq("user_id", value: ownerID).single().execute().value
     }
 
     /// A skipped questionnaire still needs writable account settings so the

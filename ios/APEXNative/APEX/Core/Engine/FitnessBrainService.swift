@@ -51,7 +51,7 @@ enum FitnessBrainService {
     static func engineInput(from data: DashboardData) -> FBEngineInput? {
         guard let storedProfile = data.profile else { return nil }
         let profile = RestingEnergyPolicy.applied(to: storedProfile, settings: data.settings)
-        let fbProfile = FBProfile(
+        var fbProfile = FBProfile(
             userID: profile.userID.uuidString.lowercased(),
             persona: FBPersona(rawValue: profile.persona.rawValue) ?? .constantine,
             sex: profile.sex,
@@ -68,6 +68,9 @@ enum FitnessBrainService {
             bodyFatSource: profile.bodyFatSource?.rawValue
         )
 
+        fbProfile.avatarStartingPoints = profile.avatarStartingPoints
+        let hasChosenStart = ProfileIntegrityPolicy.authorizedProtocol(for: profile) == nil
+            && AvatarStartingPoints.stats(profile.avatarStartingPoints) != nil
         let ownerID = profile.userID
         let programDays = data.programDays.compactMap { day -> FBProgramDayRef? in
             guard day.userID == ownerID,
@@ -151,7 +154,10 @@ enum FitnessBrainService {
             healthMetrics: metrics,
             importedActivities: imports,
             capacityCalibrationEvidence: capacityCalibrationEvidence(
-                from: data.fitnessEvidence ?? [],
+                from: (data.fitnessEvidence ?? []).filter { record in
+                    !hasChosenStart
+                        || record.protocol != "apex_onboarding_pulse_v1" || String(record.measuredAt.prefix(10)) > profile.baselineDate
+                },
                 ownerID: profile.userID
             ),
             recoveryHistory: recoveryHistory(from: data.settings?.addons),
@@ -159,7 +165,7 @@ enum FitnessBrainService {
             trainingGoal: nutritionPlanContext?.trainingGoal,
             planWeeks: nutritionPlanContext?.planWeeks
         )
-        if data.settings?.userID == ownerID { input.healthCalibration = data.settings?.avatarHealthCalibration }
+        if data.settings?.userID == ownerID { input.avatarCalibration = data.settings?.avatarCalibration }
         return input
     }
 

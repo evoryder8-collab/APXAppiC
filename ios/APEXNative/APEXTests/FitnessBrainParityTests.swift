@@ -119,6 +119,68 @@ final class FitnessBrainParityTests: XCTestCase {
         XCTAssertTrue(lower.publishableSnapshots.isEmpty)
     }
 
+    func testAllocatedStartShowsChosenScoresAndReplaysEditedHistoricalQuickLogs() throws {
+        var input = performedWorkoutInput()
+        let points = ["health": 0, "joint": 45, "flexibility": 50, "endurance": 65,
+                      "strength_upper": 100, "strength_lower": 40]
+        input.profile.avatarStartingPoints = points
+        let day = "2026-11-02"
+        let base = FitnessBrainEngine.compute(input, throughDate: day)
+        XCTAssertEqual(base.domainScores, ["health": 0, "joint": 45, "flexibility": 50, "endurance": 65, "upper": 100, "lower": 40])
+        XCTAssertEqual(base.publishableSnapshots.count, 2)
+        input.profile.avatarStartingPoints?["health"] = 1
+        XCTAssertTrue(FitnessBrainEngine.compute(input, throughDate: day).publishableSnapshots.isEmpty)
+        input.profile.avatarStartingPoints = points
+        input.workoutSessions[0].date = "2026-10-30"
+        input.workoutLogs = [performedLog("barbell_back_squat")]
+        let trained = FitnessBrainEngine.compute(input, throughDate: day)
+        XCTAssertEqual(trained.publishableSnapshots.first?.date, "2026-10-30")
+        XCTAssertGreaterThan(try XCTUnwrap(trained.domainScores["lower"]), 40)
+        input.workoutLogs = [performedLog("cat_cow", reps: nil, duration: 120)]
+        let edited = FitnessBrainEngine.compute(input, throughDate: day)
+        XCTAssertEqual(edited.domainScores["lower"], 40)
+        XCTAssertGreaterThan(try XCTUnwrap(edited.domainScores["flexibility"]), 50)
+        input.workoutSessions.removeAll()
+        XCTAssertEqual(FitnessBrainEngine.compute(input, throughDate: day).snapshots, base.snapshots)
+    }
+
+    func testChosenDayZeroKeepsStartingPointsWithOlderWearableHistory() {
+        var input = performedWorkoutInput()
+        input.profile.avatarStartingPoints = AvatarStartingPoints.balanced
+        input.healthMetrics = [FBHealthMetric(date: "2026-10-24", vo2max: 60, restingHR: nil)]
+        input.importedActivities = [FBImportedActivity(date: "2026-10-27", kind: .mobility, durationMin: 30)]
+        let result = FitnessBrainEngine.compute(input, throughDate: input.profile.baselineDate)
+        XCTAssertEqual(result.publishableSnapshots.first?.endurance, 50)
+        XCTAssertEqual(result.publishableSnapshots.first?.flexibility, 50)
+    }
+
+    func testMissedWorkoutUsesOnlyExplicitSkipsAndBackfillReplacesTheLoss() throws {
+        var input = performedWorkoutInput()
+        input.profile.avatarStartingPoints = AvatarStartingPoints.balanced
+        input.programDays.append(FBProgramDayRef(id: "lower-day", dayType: .legsA))
+        let custom = input.workoutSessions[0]
+        var missed = custom
+        missed.id = "skipped-session"
+        missed.programDayID = "lower-day"
+        var skip = performedLog("barbell_back_squat")
+        skip.sessionID = missed.id
+        skip.skipped = true
+        input.workoutSessions = [missed]
+        input.workoutLogs = [skip, skip]
+        func result() -> FBEngineResult { FitnessBrainEngine.compute(input, throughDate: "2026-11-03") }
+        XCTAssertEqual(result().domainScores["lower"], 49)
+        XCTAssertEqual(result().synergies.filter { $0.kind == .skippedSession }.count, 1)
+        input.workoutSessions[0].completed = false
+        XCTAssertEqual(result().domainScores["lower"], 50)
+        input.workoutSessions[0] = missed
+        input.workoutSessions.append(custom)
+        input.workoutLogs.append(performedLog("barbell_back_squat"))
+        let corrected = result()
+        XCTAssertFalse(corrected.synergies.contains { $0.kind == .skippedSession })
+        input.workoutSessions = [custom]
+        XCTAssertEqual(corrected.snapshots, result().snapshots)
+    }
+
     func testPartialIntakeAndPersonalWaterGoalsDetermineWhichSynergiesAppear() {
         var input = performedWorkoutInput()
         let day = "2026-11-02"
@@ -443,13 +505,20 @@ final class FitnessBrainParityTests: XCTestCase {
                 loggedMeals: verdict == "no_meals" ? 0 : 1, completionScore: 0, rhythmScore: 0, verdict: verdict)
             XCTAssertEqual(FitnessBrainEngine.compute(input, throughDate: through).snapshots, unadjusted)
         }
-        input.healthCalibration = .init(date: "2026-01-02", score: 73, source: "manual")
+        input.avatarCalibration = .init(date: "2026-01-02", score: 73, source: "manual")
         let result = FitnessBrainEngine.compute(input, throughDate: through)
         XCTAssertEqual(result.snapshots[0], unadjusted[0])
         XCTAssertEqual(result.snapshots[1].health, 73)
         XCTAssertEqual(result.snapshots[1].strength, unadjusted[1].strength)
         XCTAssertLessThan(result.snapshots[2].health, 73)
         XCTAssertEqual(result.synergies.filter { $0.kind == .manualHealthCalibration }.count, 1)
+        input.avatarCalibration?.scores = .init(joint: 57, flexibility: 66, endurance: 52)
+        let adjusted = FitnessBrainEngine.compute(input, throughDate: through).snapshots
+        XCTAssertEqual(adjusted[0], unadjusted[0])
+        XCTAssertEqual([adjusted[1].joint, adjusted[1].flexibility, adjusted[1].endurance, adjusted[1].health],
+                       [57, 66, 52, 73])
+        XCTAssertEqual(adjusted[1].strength, unadjusted[1].strength)
+        XCTAssertLessThan(adjusted[2].flexibility, 66)
         input.profile.profileKind = "standard"
         XCTAssertNil(FitnessBrainEngine.compute(input, throughDate: through).domainScores["health"])
     }

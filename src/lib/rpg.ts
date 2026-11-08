@@ -24,6 +24,8 @@ import type {
   RecoveryDataSource,
   RpgSnapshot,
 } from './types'
+import { equalStartingPoints, validStartingPoints } from './avatarStartingPoints.ts'
+import { isIsoDate } from './activeDate.ts'
 import { bespokeProtocolFor } from './profilePolicy.ts'
 import { waterTargetResolver } from './dayHydration.ts'
 import { resolveHydrationDay } from './hydrationLedger.ts'
@@ -70,8 +72,8 @@ const MATTHEW_BASELINE: StatBlock = {
 }
 
 export function baselineForProfile(profile: Profile | null): StatBlock {
-  if (!profile || !bespokeProtocolFor(profile)) return {
-    health: 50, joint: 50, flexibility: 50, endurance: 50, strength_upper: 50, strength_lower: 50,
+  if (!profile || !bespokeProtocolFor(profile)) {
+    return { ...(validStartingPoints(profile?.avatar_starting_points) ? profile.avatar_starting_points : equalStartingPoints) }
   }
   if (profile.persona === 'june') return { ...JUNE_BASELINE }
   if (profile?.persona === 'matthew') return { ...MATTHEW_BASELINE }
@@ -112,6 +114,7 @@ export type SynergyKind =
   | 'mobility_after_legs'
   | 'recovery_signal'
   | 'meal_rhythm'
+  | 'skipped_session'
   | 'manual_health_calibration'
   | 'vo2_anchor'
   | 'import_feed'
@@ -205,6 +208,7 @@ function capacityCalibrationTimeline(
   data: AppData,
   baselineDate: string,
   throughDate: string,
+  ignoreOnboardingThrough?: string,
 ): CapacityCalibrationTimeline {
   const ownerID = data.profile?.user_id
   const owned = data.fitness_evidence.filter((record) => record.user_id === ownerID)
@@ -222,6 +226,7 @@ function capacityCalibrationTimeline(
       || record.confidence !== 'low'
       || record.unit !== 'score_0_100'
       || !capacityCalibrationProtocols.has(record.protocol ?? '')
+      || (record.protocol === 'apex_onboarding_pulse_v1' && ignoreOnboardingThrough != null && measuredOn <= ignoreOnboardingThrough)
       || !Number.isFinite(record.value)
       || record.value < 0
       || record.value > 100
@@ -322,12 +327,8 @@ export function computeEngine(data: AppData, throughDate: string,
   const healthMetrics = data.health_metrics.filter((row) => row.user_id === ownerID)
   const importedActivities = signalBearingImportedActivitiesForOwner(data)
   const healthCalibration = data.settings?.user_id === ownerID ? data.settings.avatar_health_calibration : null
-  const start = profile.baseline_date
-  const total = differenceInCalendarDays(
-    new Date(throughDate + 'T12:00:00'),
-    new Date(start + 'T12:00:00'),
-  )
-  if (total < 0) return { snapshots: [], synergies: [], firstObserved: {}, hydrationDays: {} }
+  const authored = bespokeProtocolFor(profile) != null
+  const allocated = !authored && validStartingPoints(profile.avatar_starting_points)
 
   const dayTypeById = new Map(programDays.map((d) => [d.id, d.day_type]))
   const targets = computeTargets(profile, nutritionPlanContext(data.settings?.addons.training_induction ?? data.settings?.addons.training_induction_baseline))
@@ -360,10 +361,25 @@ export function computeEngine(data: AppData, throughDate: string,
   const qualityBySession = new Map(workoutSessions.map((session) => [
     session.id, recordedWorkoutQuality(session, logsBySession.get(session.id) ?? []),
   ]))
+  const skippedDomains = new Map<string, Set<PerformedWorkoutType>>()
+  const uncertainWorkoutDates = new Set<string>()
   for (const s of workoutSessions) {
     const quality = qualityBySession.get(s.id) ?? 0
-    if (quality === 0) continue
     const type = dayTypeById.get(s.program_day_id)
+    if (allocated && s.completed) {
+      const logs = logsBySession.get(s.id) ?? []
+      const domain = workoutActivityDomain(type ?? '')
+      if (!quality && domain && !s.is_deload && !s.is_event_recovery && logs.length && logs.every(log => log.skipped)) {
+        const domains = skippedDomains.get(s.date) ?? new Set<PerformedWorkoutType>()
+        domains.add(domain)
+        skippedDomains.set(s.date, domains)
+        getDay(s.date)
+      } else if (quality && (s.is_deload || s.is_event_recovery
+        || (!domain && !logs.some(log => performedWorkoutTypes(log).length)))) {
+        uncertainWorkoutDates.add(s.date)
+      }
+    }
+    if (quality === 0) continue
     if (!type || type === 'custom') continue
     getDay(s.date).types.push({
       type,
@@ -484,6 +500,18 @@ export function computeEngine(data: AppData, throughDate: string,
     day.mealRhythmVerdict = rhythm.verdict
   }
 
+  let start = profile.baseline_date
+  if (allocated) {
+    for (const [date, day] of activity) {
+      if (date < start && date <= throughDate && day.types.length && isIsoDate(date)) start = date
+    }
+  }
+  const total = differenceInCalendarDays(
+    new Date(throughDate + 'T12:00:00'),
+    new Date(start + 'T12:00:00'),
+  )
+  if (total < 0) return { snapshots: [], synergies: [], firstObserved: {}, hydrationDays: {} }
+
   /* Streak per date (consecutive days with a completed APEX session) */
   let streak = 0
   for (let i = 0; i <= total; i++) {
@@ -496,14 +524,13 @@ export function computeEngine(data: AppData, throughDate: string,
 
   const snapshots: RpgSnapshot[] = []
   const synergies: SynergyEvent[] = []
-  const authored = bespokeProtocolFor(profile) != null
   let s: StatBlock = baselineForProfile(profile)
   const firstObserved: EngineResult['firstObserved'] = {}
   const hydrationDays: Record<string, boolean> = {}
   function observe(key: keyof StatBlock, day: string) { firstObserved[key] ??= day }
-  if (authored) for (const key of Object.keys(s) as (keyof StatBlock)[]) observe(key, start)
+  if (authored || allocated) for (const key of Object.keys(s) as (keyof StatBlock)[]) observe(key, start)
   let lastLegsOffset = -99 // day index of the last completed leg session
-  const calibrationTimeline = capacityCalibrationTimeline(data, start, throughDate)
+  const calibrationTimeline = capacityCalibrationTimeline(data, start, throughDate, allocated ? profile.baseline_date : undefined)
   const atBaseline = applyCapacityCalibration(s, calibrationTimeline.beforeBaseline)
   for (const [metric, key] of Object.entries({cardiorespiratory: 'endurance', upper_strength: 'strength_upper',
     lower_strength: 'strength_lower', flexibility: 'flexibility'})) {
@@ -517,7 +544,7 @@ export function computeEngine(data: AppData, throughDate: string,
     .filter((m) => m.vo2max != null && m.date < start)
     .sort((a, b) => a.date.localeCompare(b.date))
     .pop()
-  if (preVo2?.vo2max != null) {
+  if (!allocated && preVo2?.vo2max != null) {
     observe('endurance', start)
     const anchor = vo2ToStat(preVo2.vo2max)
     s.endurance += (anchor - s.endurance) * 0.5
@@ -530,7 +557,7 @@ export function computeEngine(data: AppData, throughDate: string,
   const preWindowStart = addDaysIso(start, -60)
   const preCounts = { strength: 0, endurance: 0, mobility: 0 }
   for (const imp of importedActivities) {
-    if (imp.date >= preWindowStart && imp.date < start && (authored || imp.kind !== 'strength')) preCounts[imp.kind] += 1
+    if (!allocated && imp.date >= preWindowStart && imp.date < start && (authored || imp.kind !== 'strength')) preCounts[imp.kind] += 1
   }
   if (preCounts.strength > 0) observe('strength_upper', start)
   if (preCounts.endurance > 0) observe('endurance', start)
@@ -579,6 +606,18 @@ export function computeEngine(data: AppData, throughDate: string,
       fed.lower = calibrated.has('lower_strength')
 
       if (a) {
+        const missed = skippedDomains.get(date)
+        if (missed && !uncertainWorkoutDates.has(date)) {
+          const stats = { upper: 'strength_upper', legs_a: 'strength_lower', cardio: 'endurance', mobility: 'flexibility' } as const
+          for (const domain of missed) {
+            const covered = a.types.some(entry => workoutActivityDomain(entry.type) === domain)
+              || (domain === 'cardio' ? a.importEnduranceMin > 0 : domain === 'mobility' ? a.importMobilityMin > 0 : a.importStrengthMin > 0)
+            if (!covered) {
+              s[stats[domain]] -= 1
+              synergies.push({ date, kind: 'skipped_session', label: 'Explicitly skipped workout: −1 training point' })
+            }
+          }
+        }
         /* --- the brain: nutrition context for this training day --- */
         const proteinHit = canScoreNutrition
           && a.protein != null
@@ -763,7 +802,12 @@ export function computeEngine(data: AppData, throughDate: string,
       if (authored && healthCalibration?.source === 'manual' && healthCalibration.date === date
         && Number.isFinite(healthCalibration.score) && healthCalibration.score >= 0 && healthCalibration.score <= 100) {
         s.health = healthCalibration.score
-        synergies.push({ date, kind: 'manual_health_calibration', label: 'Health score manually calibrated' })
+        for (const key of ['joint', 'flexibility', 'endurance'] as const) {
+          const value = healthCalibration.scores?.[key]
+          if (typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100) s[key] = value
+        }
+        synergies.push({ date, kind: 'manual_health_calibration', label: healthCalibration.scores
+          ? 'Avatar scores manually calibrated' : 'Health score manually calibrated' })
       }
       s = {
         health: clamp(s.health),

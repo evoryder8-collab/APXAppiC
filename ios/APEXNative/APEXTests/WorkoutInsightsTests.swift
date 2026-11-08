@@ -227,6 +227,47 @@ final class WorkoutInsightsTests: XCTestCase {
         XCTAssertEqual(summary.durationMinutes, 2)
     }
 
+    func testInsightsVolumeMatchesAvatarForTheSelectedDatesAndRecordedExternalMass() {
+        let workout = session(date: "2026-11-08"), later = session(date: "2026-11-09")
+        let timed = Exercise(id: UUID(), userID: ownerID, programDayID: workout.programDayID,
+                             name: "Custom hold", sets: 1, repMin: 1, repMax: 30, repUnit: "seconds", perSide: false,
+                             restSeconds: 30, tempoUp: 1, tempoDown: 1, tempoPause: 0, tempoNote: "", notes: "",
+                             incrementKG: 0, isLite: false, optional: false, sortOrder: 0)
+        func row(_ name: String, _ movement: String?, _ kg: Double?, _ reps: Int) -> WorkoutLog {
+            var set = log(sessionID: workout.id, weight: kg, reps: reps)
+            set.exerciseName = name
+            set.movementID = movement
+            return set
+        }
+        let weighted = row("Weighted or Feet-Elevated Push-Up", "weighted_push_up", 6, 12)
+        let rows = [weighted, weighted, row("Weighted or Feet-Elevated Push-Up", nil, 6, 12),
+                    row("Band Abduction", "hip_abduction", 10, 15), row("Band Face Pull", "face_pull", 12, 12),
+                    row("Counterweighted pull up", "pull_up", 20, 5), row("Custom hold", nil, 8, 30),
+                    row("Bulgarian Split Squat", "bulgarian_split_squat", 12, 10), row("Squat", nil, nil, 12),
+                    log(sessionID: later.id, weight: 100, reps: 10)]
+        let summary = WorkoutInsights.summarize(ownerID: ownerID, from: "2025-11-08", to: "2026-11-08",
+                                               sessions: [workout, later], logs: rows, importedActivities: [], exercises: [timed])
+        let avatar = StrengthProgress.exerciseHistory(ownerID: ownerID, sessions: [workout], logs: rows, exercises: [timed])
+        let totals = StrengthProgress.rankedFamilies(avatar).reduce(into: StrengthProgress.LifetimeTotals()) { $0.add($1.totals) }
+        XCTAssertEqual(summary.volumeKG, 192)
+        XCTAssertEqual(summary.volumeKG, totals.liftedVolumeKG)
+        XCTAssertEqual(summary.partialVolume, totals.missingVolume)
+        XCTAssertTrue(summary.partialVolume)
+        XCTAssertEqual(summary.workouts, 1)
+        XCTAssertEqual(summary.durationMinutes, 60)
+        XCTAssertTrue(avatar.first { $0.name == weighted.exerciseName }?.points.isEmpty == true)
+    }
+
+    func testInsightsDateLabelMatchesNovemberSelectionInZurich() throws {
+        var zurich = Calendar(identifier: .gregorian)
+        zurich.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Zurich"))
+        let selected = try XCTUnwrap(zurich.date(from: DateComponents(year: 2026, month: 11, day: 8)))
+        let endKey = selected.formatted(Date.ISO8601FormatStyle(timeZone: zurich.timeZone).year().month().day())
+        let summary = WorkoutInsights.summarize(ownerID: ownerID, from: "2025-11-08", to: endKey,
+                                               sessions: [], logs: [], importedActivities: [])
+        XCTAssertEqual(summary.localizedRange(locale: Locale(identifier: "en_US")), "Nov 8, 2025 – Nov 8, 2026")
+    }
+
     func testAnniversaryNeedsSelectedRangeAndActualEvidenceTenure() {
         XCTAssertEqual(WorkoutInsights.anniversaryYears(oldestEvidenceDate: "2016-08-29", from: "2016-08-29", to: "2026-08-29"), 10)
         XCTAssertEqual(WorkoutInsights.anniversaryYears(oldestEvidenceDate: "2021-08-29", from: "2021-08-29", to: "2026-08-29"), 5)

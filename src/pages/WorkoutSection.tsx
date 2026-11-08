@@ -7,7 +7,7 @@ import type { Accent } from '../lib/theme'
 import { ACCENTS } from '../lib/theme'
 import type { EventType, ProgramSlug } from '../lib/types'
 import { useStore } from '../store/AppStore'
-import { planForDate, programDaysForDate, todayIso } from '../lib/plan'
+import { guidedProgramForDate, planForDate, programDaysForDate, simpleWorkoutPlans, todayIso } from '../lib/plan'
 import { currentStreak } from '../lib/streak'
 import { buildReport, copyReport, downloadReport } from '../lib/exportReport'
 import {
@@ -34,7 +34,7 @@ import { useFoodStore } from '../store/FoodStore'
 import { timeZoneFromSettings } from '../lib/mealTiming'
 import { CompletedWorkoutHistoryCards } from '../components/workout/CompletedWorkoutHistoryCards'
 import { WorkoutInsightsCard } from '../components/workout/WorkoutInsightsCard'
-import { clientPolicyForAccount } from '../lib/coachAccess'
+import { accountAccessHasSponsoredAccess, clientPolicyForAccount } from '../lib/coachAccess'
 import { activeCustomWorkoutDays, stageCustomWorkoutArchive } from '../lib/customWorkout'
 import { loadActiveDate, rememberActiveDate } from '../lib/activeDate'
 
@@ -54,7 +54,8 @@ const EVENT_TYPES: Array<{ value: EventType; label: string }> = [
 
 export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; accent: Accent; title: string }) {
   const { appAccess, coachContext, commitOwnerBoundMutation, data, upsert, remove, toast } = useStore()
-  const canCreateCustomWorkouts = clientPolicyForAccount(appAccess, coachContext).can_create_custom_workouts
+  const coachPolicy = clientPolicyForAccount(appAccess, coachContext)
+  const canCreateCustomWorkouts = coachPolicy.can_create_custom_workouts
   const ownerId = data.profile?.user_id ?? data.settings?.user_id
   const foodStore = useFoodStore()
   const orbit = useOrbitStore()
@@ -81,7 +82,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
 
   const today = todayIso()
   const receiptDate = loadActiveDate(ownerId, today, selectedDay)
-  const program = data.programs.find((candidate) => candidate.slug === slug)
+  const program = data.programs.find((candidate) => candidate.slug === slug && candidate.user_id === ownerId)
   const customProgram = useMemo(
     () => data.programs.find((candidate) => candidate.slug === 'custom' && candidate.user_id === ownerId) ?? null,
     [data.programs, ownerId],
@@ -101,8 +102,14 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
     ? slug === 'transition' ? 'For beginners' : 'Bodybuilding'
     : program?.description ?? (slug === 'transition' ? 'Current program, home only' : 'Full training programme')
   const streak = useMemo(() => currentStreak(data, today), [data, today])
-  const todayPlans = useMemo(() => programDaysForDate(data, slug, today, lite), [data, lite, slug, today])
-  const todayPlan = todayPlans[0] ?? planForDate(data, slug, today, lite)
+  const activeSlug = useMemo(() => guidedProgramForDate(data, receiptDate, coachPolicy.can_follow_coach_plan,
+    accountAccessHasSponsoredAccess(appAccess) && !canCreateCustomWorkouts), [data, receiptDate, coachPolicy.can_follow_coach_plan, appAccess, canCreateCustomWorkouts])
+  const preview = (slug === 'transition' || slug === 'main' || slug === 'coach') && slug !== activeSlug
+  const activePlans = useMemo(() => preview ? simpleWorkoutPlans(data, activeSlug, receiptDate, false, canCreateCustomWorkouts) : [],
+    [data, activeSlug, receiptDate, canCreateCustomWorkouts, preview])
+  const fullPlans = useMemo(() => programDaysForDate(data, slug, receiptDate), [data, slug, receiptDate])
+  const selectedPlans = useMemo(() => lite ? programDaysForDate(data, slug, receiptDate, true) : fullPlans, [data, lite, slug, receiptDate, fullPlans])
+  const selectedPlan = selectedPlans[0] ?? planForDate(data, slug, receiptDate, lite)
   const hasInstalledPlan = Boolean(data.settings?.addons.training_induction)
   const visibleOrbitSessions = useMemo(() => orbit.state.sessions.filter((session) => session.date.startsWith(format(month, 'yyyy-MM'))), [month, orbit.state.sessions])
   const showTrainingInduction = Boolean(
@@ -240,8 +247,8 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           <div data-training-section="signal">
             <Suspense fallback={<div className="glass h-[300px] rounded-3xl" aria-hidden />}>
               <HologramStage
-                dayType={todayPlan.programDay?.day_type ?? null}
-                exerciseNames={todayPlan.exercises.map((exercise) => exercise.name)}
+                dayType={selectedPlan.programDay?.day_type ?? null}
+                exerciseNames={selectedPlan.exercises.map((exercise) => exercise.name)}
                 accent={accent}
                 height={300}
               />
@@ -251,12 +258,15 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
 
         {/* Today hero */}
         <div data-training-section="today" className="space-y-3">
-          {(todayPlans.length > 0 ? todayPlans : [todayPlan]).map((dailyPlan, index) => (
+          {preview && <p className="rounded-xl bg-white/70 px-4 py-3 text-sm font-semibold text-ink-soft">
+            {t('Active plan')} · {activePlans.filter(p => p.exercises.length).map(p => planText(p.programDay?.name ?? '')).join(' · ') || t('Rest day')}
+          </p>}
+          {(selectedPlans.length > 0 ? selectedPlans : [selectedPlan]).map((dailyPlan, index) => (
             <motion.div key={dailyPlan.programDay?.id ?? `rest-${index}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: index * 0.04, ease: EASE }}>
               <GlassCard accent={accent} breathe className="p-5">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">{index === 0 ? 'Today' : 'Later today'}</p>
+                    <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">{preview ? t('Plan preview') + ' · ' + receiptDate : receiptDate === today ? t(index === 0 ? 'Today' : 'Later today') : receiptDate}</p>
                     <h2 data-plan-day-id={dailyPlan.programDay?.id ?? ''} className="break-words font-display text-xl font-bold text-ink">
                       {planText(dailyPlan.isRecoveryMicro ? 'Recovery micro-session' : (dailyPlan.programDay?.name ?? 'Rest day'))}
                     </h2>
@@ -267,7 +277,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
                     )}
                   </div>
                   {dailyPlan.exercises.length > 0 && (
-                    <GradientButton accent={accent} onClick={() => { setSelectedProgramDayId(dailyPlan.programDay?.id ?? null); setSelectedDay(today) }} className="shrink-0">
+                    <GradientButton accent={accent} onClick={() => { setSelectedProgramDayId(dailyPlan.programDay?.id ?? null); setSelectedDay(receiptDate) }} className="shrink-0">
                       Open
                     </GradientButton>
                   )}
@@ -286,7 +296,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           ))}
         </div>
 
-        {slug !== 'custom' && hasInstalledPlan && (
+        {slug !== 'custom' && hasInstalledPlan && fullPlans.some(plan => plan.exercises.length > 0) && (
           <div data-training-section="mode" className="grid grid-cols-2 rounded-2xl bg-ink/5 p-1" role="group" aria-label={t('Session mode')}>
             {[
               { label: t('Full session'), value: false },
@@ -347,7 +357,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
         {canCreateCustomWorkouts && (
           <TodayManualWorkoutCard
             detailed={detailedInterface}
-            date={today}
+            date={receiptDate}
             onAdd={() => {
               setEditingManualSessionId(null)
               setEditingManualExerciseId(null)
@@ -363,7 +373,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
         )}
 
         <CompletedWorkoutHistoryCards date={receiptDate} accent={accent} includeQuickLogs={false} />
-        <WorkoutInsightsCard anchorDate={today} accent={accent} />
+        <WorkoutInsightsCard anchorDate={receiptDate} accent={accent} />
 
         {/* Custom workout studio */}
         {canCreateCustomWorkouts && (

@@ -43,14 +43,7 @@ struct SponsoredSimpleWorkoutTests {
     func simpleViewUsesCompleteSelectionAndChecksDirectPresentation() throws {
         let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
         let source = try String(contentsOf: root.appendingPathComponent("APEX/Features/Portal/SimpleHomeView.swift"))
-        let start = try #require(source.range(of: "private var guidedProgramSlug: String"))
-        let end = try #require(source.range(of: "private var guidedProgramRoute", range: start.upperBound..<source.endIndex))
-        let selection = String(source[start.lowerBound..<end.lowerBound])
-        #expect(selection.contains("return SimpleHomeLogic.guidedProgramSlug("))
-        #expect(selection.contains("transitionInductionIsUsable:"))
-        #expect(selection.contains("mainInductionIsUsable:"))
-        #expect(selection.contains("return \"transition\"") == false)
-        #expect(selection.contains("return \"main\"") == false)
+        #expect(source.contains("session.trainingSchedule(on: today)"))
         let cover = try #require(source.range(of: ".fullScreenCover(isPresented: $showWorkout)"))
         let player = try #require(source.range(of: "WorkoutPlayerView(", range: cover.upperBound..<source.endIndex))
         #expect(source[cover.upperBound..<player.lowerBound].contains("SimpleHomeLogic.canPresentGuidedWorkout("))
@@ -58,6 +51,24 @@ struct SponsoredSimpleWorkoutTests {
 }
 
 final class SimpleHomeLogicTests: XCTestCase {
+    func testJuneSundayResolvesTheMainRestDayWithOptionalWalkAcrossPhasePreviews() throws {
+        let data = APEXDebugFixture.juneSunday(), date = "2026-11-08"
+        let schedule = SimpleHomeLogic.trainingSchedule(in: data, on: date, coachManaged: false, followsCoach: false, includeCustom: true)
+        XCTAssertEqual(schedule.primary, "main")
+        for lite in [false, true] {
+            let active = try XCTUnwrap(schedule.plans(in: data, on: date, lite: lite).first)
+            XCTAssertEqual(active.programDay?.name, "Rest · Full recovery")
+            XCTAssertTrue(active.exercises.isEmpty)
+            XCTAssertTrue(active.hasWalkOnly)
+        }
+        let preview = try XCTUnwrap(TrainingPlanEngine.programDays(data, slug: "transition", date: date, lite: false).first)
+        XCTAssertEqual(preview.programDay?.name, "Pull B · Heavy Pull 2")
+        XCTAssertFalse(preview.exercises.isEmpty)
+        let monday = try XCTUnwrap(schedule.plans(in: data, on: "2026-11-09", lite: false).first)
+        XCTAssertFalse(monday.exercises.isEmpty)
+        XCTAssertFalse(monday.hasWalkOnly)
+    }
+
     @MainActor
     func testScheduleCombinesCustomPrescriptionsWithoutIncludingOneOffReceipts() throws {
         let owner = UUID(), date = Date().apexDateKey

@@ -87,6 +87,7 @@ enum TrainingInduction {
         var availableMinutes = 0
         var goal: String = "rebuild"
         var baselineAnswers = OnboardingBaselineAnswers.unanswered
+        var avatarStartingPoints: [String: Int]?
         var bodyBaseline: BodyBaseline?
         var dataConsent: DataConsent?
 
@@ -224,6 +225,14 @@ enum TrainingInduction {
         var profileGoal: String? {
             switch self {
             case .answered(let input), .baselineOnly(let input): goalColumn(for: input.goal)
+            case .skipped: nil
+            }
+        }
+
+        var avatarStartingPoints: [String: Int]? {
+            switch self {
+            case .answered(let input), .baselineOnly(let input):
+                AvatarStartingPoints.stats(input.avatarStartingPoints) == nil ? nil : input.avatarStartingPoints
             case .skipped: nil
             }
         }

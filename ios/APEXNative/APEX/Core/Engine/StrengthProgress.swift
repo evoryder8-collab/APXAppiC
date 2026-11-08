@@ -134,6 +134,21 @@ enum StrengthProgress {
             guard points.count >= 2, let first = points.first, let last = points.last else { return nil }
             return round1(last.topWeight - first.topWeight)
         }
+
+        @MainActor
+        func titleParts(_ language: LanguageState) -> (main: String, variation: String?) {
+            let full = language.text(name)
+            guard let familyName else { return (full, nil) }
+            let main = language.text(familyName)
+            guard main.localizedCaseInsensitiveCompare(full) != .orderedSame else { return (full, nil) }
+            for suffix in [" " + main, " " + main + "s"] {
+                if let match = full.range(of: suffix, options: [.backwards, .anchored, .caseInsensitive]),
+                   match.lowerBound != full.startIndex {
+                    return (main, String(full[..<match.lowerBound]))
+                }
+            }
+            return (main, full)
+        }
     }
 
     struct RankedFamily {
@@ -419,7 +434,8 @@ enum StrengthProgress {
             let measuresReps = !episode && descriptor.fields.contains(.reps) && treadmill == nil
                 && [storedUnit, catalogUnit].compactMap { $0 }.allSatisfy { $0 == "reps" || $0 == "max" }
             // A recorded mass still measures a same-implement set when the log leaves its stance unspecified.
-            let comparableMass = !isComposite || ["hip_thrust", "biceps_curl", "calf_raise"].contains(aliasFamily?.id ?? "")
+            let loadedPushUp = log.movementID == "weighted_push_up" && aliasFamily?.id == "push_up" && explicitLoad
+            let comparableMass = !isComposite || loadedPushUp || ["hip_thrust", "biceps_curl", "calf_raise"].contains(aliasFamily?.id ?? "")
             let assisted = (normalized + " " + (movement?.id ?? "")).split(whereSeparator: { !$0.isLetter })
                 .contains { ["assisted", "counterweight", "counterweighted"].contains($0) }
             let measuresExternalLoad = measuresReps && comparableMass && !substitute && !assisted

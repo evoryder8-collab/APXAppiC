@@ -2376,3 +2376,11 @@ Build 411 opens the Avatar PDF with the recent training profile. Strength charts
 Automatically closed days with incomplete meal logs no longer incur a Health deduction. An explicitly dated manual Health calibration can anchor the selected account while subsequent days continue to reflect logged activity.
 
 Spicy Pork Leg Soup (ต้มยำขาหมู) has one shared food ID in the public catalogue and the offline web and iOS searches. The entry includes Thai and romanized aliases and identifies its 350 g edible serving as an estimate.
+
+Build 412 requires new standard accounts to confirm all 300 Avatar starting points before continuing. Existing standard accounts can choose their allocation once. The server accepts six whole numbers from 0 to 100 totaling 300. Activity is scored on the workout date. An explicitly skipped training domain can lose one game point that day, and a later log for that domain on the same day clears the deduction. A dated bespoke calibration can adjust individual Avatar scores while preserving the workout history.
+
+Strength charts lead with the exercise family and identify its variation below. Sets display reps × external load. The per-leg summary uses the current bodyweight and assumes the logged weight is the total carried. For rear-foot-elevated split squats, the estimated front-foot support applies the mean lead-foot share from [Helme et al.](https://doi.org/10.1519/JSC.0000000000003727) to the combined mass. Lunges show combined mass and explain that the foot split varies. Bodyweight and support estimates are excluded from lifted volume.
+
+The Avatar export offers one, three, or six months, one year, all time, or inclusive custom dates. The report shows its period. Historical exports omit current bodyweight when estimating leg loads. The dashboard, PNG and PDF use the same recorded-volume calculation, including explicit positive added weight on weighted push-up receipts. Nominal band resistance stays outside the mass total.
+
+Simple and Advanced use the active programme on the selected calendar day. An alternative phase remains browsable as a preview. Rest days with no prescribed movement do not launch the workout player.

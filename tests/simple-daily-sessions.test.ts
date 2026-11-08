@@ -92,3 +92,22 @@ test('added tracked custom work has its own launch route and unrelated Quick Log
   assert.ok(!prescriptionDays(custom).some((row) => row.id === legacy.id))
   assert.equal(simpleWorkoutPlans(custom, 'main', date, false, false).length, plans.length)
 })
+
+test('June’s dated active programme stays main while a non-active transition workout remains separately previewable', async () => {
+  const { buildSeedData } = await import('../src/data/seed.ts')
+  const { guidedProgramForDate, programDaysForDate } = await import('../src/lib/plan.ts')
+  const owner = 'f1cc8158-0480-47c9-a2f1-bd03890182f9'
+  const data = buildSeedData(owner,'june')
+  const date = '2026-11-08'
+  const transition = data.programs.find(p=>p.slug==='transition')!
+  const old = data.program_days.find(d=>d.program_id===transition.id && d.weekday===7)!
+  old.name = 'Pull B'
+  old.day_type = 'pull'
+  const source = data.exercises.find(e=>!e.is_lite)!
+  data.exercises.push({ ...source, id:'old-pull', program_day_id:old.id })
+  assert.equal(guidedProgramForDate(data,date,false,false),'main')
+  assert.equal(guidedProgramForDate(data,date,true,true),'coach')
+  assert.equal(programDaysForDate(data,'main',date).every(plan=>!plan.exercises.length),true)
+  assert.ok(programDaysForDate(data,'transition',date).some(plan=>plan.programDay?.name==='Pull B' && plan.exercises.length))
+  assert.ok(programDaysForDate(data,'main','2026-11-09').some(plan=>plan.exercises.length))
+})

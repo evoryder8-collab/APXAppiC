@@ -1,5 +1,6 @@
 import { warmupReceipt } from './workoutTimingMetadata.ts'
-import type { ImportedActivity, WorkoutLog, WorkoutSession } from './types.ts'
+import { buildExerciseFamilies, totalRecordedWork } from './strengthProgress.ts'
+import type { Exercise, ImportedActivity, WorkoutLog, WorkoutSession } from './types.ts'
 import { isAPEXWorkoutSourceBundle } from './wearableWorkoutLinking.ts'
 
 export interface WorkoutInsightInput {
@@ -8,6 +9,7 @@ export interface WorkoutInsightInput {
   to: string
   sessions: WorkoutSession[]
   logs: WorkoutLog[]
+  exercises?: Exercise[]
   importedActivities: ImportedActivity[]
 }
 
@@ -21,6 +23,7 @@ export interface WorkoutInsightSummary {
   sets: number
   reps: number
   volumeKg: number | null
+  partialVolume: boolean
   distanceKm: number | null
   anniversaryYears: 1 | 5 | 10 | null
 }
@@ -122,13 +125,10 @@ export function workoutInsights(input: WorkoutInsightInput): WorkoutInsightSumma
     .filter((value): value is number => value != null && Number.isFinite(value) && value >= 0)
 
   const reps = logs.reduce((total, entry) => total + Math.max(0, entry.reps ?? 0), 0)
-  const volumeFacts = logs.flatMap((entry) => {
-    const weight = entry.weight_kg
-    const repetitions = entry.reps
-    return weight != null && repetitions != null && weight > 0 && repetitions > 0
-      ? [weight * repetitions]
-      : []
-  })
+  const work = totalRecordedWork(buildExerciseFamilies({
+    profile: { user_id: input.ownerID }, exercises: input.exercises ?? [],
+    workout_sessions: sessions, workout_logs: logs,
+  }))
   const activeDates = new Set([
     ...sessions.map((session) => session.date),
     ...external.map(attributedDate),
@@ -148,7 +148,8 @@ export function workoutInsights(input: WorkoutInsightInput): WorkoutInsightSumma
     activeEnergyKcal: energyFacts.length > 0 ? energyFacts.reduce((total, value) => total + value, 0) : null,
     sets: logs.length,
     reps,
-    volumeKg: volumeFacts.length > 0 ? volumeFacts.reduce((total, value) => total + value, 0) : null,
+    volumeKg: work.liftedKg,
+    partialVolume: work.liftedKg != null && work.missingVolume,
     distanceKm: externalDistanceFacts.length + loggedDistanceFacts.length > 0
       ? externalDistanceFacts.reduce((total, value) => total + value, 0)
         + loggedDistanceFacts.reduce((total, value) => total + value, 0) / 1_000

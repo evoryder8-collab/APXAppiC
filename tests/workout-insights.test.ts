@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { buildExerciseFamilies, totalRecordedWork } from '../src/lib/strengthProgress.ts'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import type { ImportedActivity, WorkoutLog, WorkoutSession } from '../src/lib/types.ts'
@@ -164,4 +165,24 @@ test('multi-year native insights load complete paginated workout facts', () => {
   assert.match(service, /private func loadAllWorkoutLogs[\s\S]*?Self\.collectPaginatedRows/)
   assert.doesNotMatch(dashboard, /client\.from\("workout_sessions"\)\.select\(\)\.order\("date", ascending: false\)\.limit\(180\)/)
   assert.doesNotMatch(dashboard, /client\.from\("workout_logs"\)\.select\(\)\.order\("created_at", ascending: false\)\.limit\(2000\)/)
+})
+
+test('dashboard and export agree on historic completed external load in the selected period', () => {
+  const ownerID = 'owner'
+  const sessions = [session('a'), session('outside', { date:'2026-07-01' }), session('incomplete', { completed:false })]
+  const exercises = [{ id:'seconds', user_id:ownerID, name:'Legacy hold', rep_unit:'seconds' as const }]
+  const weight = { ...log('positive', 'a', { exercise_name:'Weighted or Feet-Elevated Push-Up', reps:8, weight_kg:5 }), movement_id:'weighted_push_up' }
+  const logs = [weight, weight, log('missing','a',{ weight_kg:null }), log('squat','a',{ reps:12, weight_kg:50 }),
+    { ...log('hold','a',{ exercise_name:'Legacy hold', reps:30, weight_kg:20 }), exercise_id:'seconds' },
+    log('band','a',{ exercise_name:'Band Row', reps:10, weight_kg:15 }),
+    log('assisted','a',{ exercise_name:'Assisted Pull-Up', reps:6, weight_kg:35 }),
+    log('skipped','a',{ skipped:true }), log('out','outside'), log('uncompleted','incomplete')]
+  const summary = workoutInsights({ ownerID, sessions, logs, exercises, importedActivities:[], from:'2026-08-29', to:'2026-08-29' })
+  const sameDate = totalRecordedWork(buildExerciseFamilies({ profile:{ user_id:ownerID }, exercises,
+    workout_sessions:sessions.filter(s=>s.date==='2026-08-29'), workout_logs:logs }))
+  assert.equal(summary.volumeKg,640)
+  assert.equal(summary.partialVolume,true)
+  assert.equal(summary.volumeKg,sameDate.liftedKg)
+  const all = workoutInsights({ ownerID, sessions, logs, exercises, importedActivities:[], from:'2026-01-01', to:'2026-08-29' })
+  assert.equal(all.volumeKg,1140)
 })

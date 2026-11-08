@@ -295,25 +295,31 @@ final class ExportReportTests: XCTestCase {
         XCTAssertEqual(profile.classifiedWorkouts, 3)
         let pdf = AvatarReport(ownerID: user, displayName: "Alex Morgan", snapshots: [], partialScores: [:],
                                sessions: fixture.workoutSessions, logs: fixture.workoutLogs, unit: .kilograms,
-                               trainingProfile: profile).pdfData()
+                               trainingProfile: profile, currentBodyweightKG: 60).pdfData()
         let document = try XCTUnwrap(PDFDocument(data: pdf))
         let pages = (0..<document.pageCount).compactMap { document.page(at: $0)?.string }
         let language = LanguageState.shared
-        XCTAssertEqual(pages.count, 3)
         let summary = try XCTUnwrap(pages.first)
         XCTAssertTrue(summary.contains(language.text(profile.athleteTitle)))
         XCTAssertTrue(summary.contains(language.text("All-time training totals")))
-        let charts = try XCTUnwrap(document.page(at: 1)?.string)
+        let charts = pages.filter { $0.contains(language.text("Strength progress")) }.joined(separator: "\n")
         XCTAssertTrue(charts.contains(language.text("Strength progress")))
-        XCTAssertTrue(charts.contains(language.text("Bulgarian Split Squat")))
-        XCTAssertTrue(charts.contains(language.text("Reverse Lunge")))
+        XCTAssertTrue(charts.contains("Split Squat"))
+        XCTAssertTrue(charts.contains("Bulgarian"))
+        XCTAssertTrue(charts.contains("Reverse"))
+        XCTAssertTrue(charts.contains(language.format("%d reps", 10) + " × 18 kg"))
+        XCTAssertTrue(charts.contains(language.text("Working leg")))
+        XCTAssertTrue(charts.contains(language.text("Front foot · estimated")))
+        XCTAssertTrue(charts.contains("≈ 66 kg"))
+        XCTAssertTrue(charts.contains(language.text("Body + load")))
+        XCTAssertTrue(charts.contains("72 kg"))
         XCTAssertFalse(charts.contains(language.text("Push-Up")))
         XCTAssertFalse(charts.contains(language.text("Dumbbell Curl")))
         for (reps, kg) in [(18, 292), (30, 332)] {
             XCTAssertTrue(charts.contains(language.text("Recorded reps") + " " + String(reps)))
             XCTAssertTrue(charts.contains(language.text("Lifted volume") + " " + String(kg) + " kg"))
         }
-        let rankings = try XCTUnwrap(document.page(at: 2)?.string)
+        let rankings = try XCTUnwrap(pages.first { $0.contains(language.text("Most trained exercises")) })
         XCTAssertTrue(rankings.contains(language.text("Most trained exercises")))
         XCTAssertTrue(rankings.contains(language.text("Push-Up")))
         XCTAssertTrue(rankings.contains(language.text("Dumbbell Curl")))
@@ -355,6 +361,59 @@ final class ExportReportTests: XCTestCase {
         attachment.name = "Avatar family progress.pdf"
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+
+    func testAvatarReportCalendarRangesRejectInvalidDatesAndClampMonthEnds() {
+        func bounds(_ preset: AvatarReportPeriod, _ today: String, _ from: String = "", _ to: String = "") -> ClosedRange<String>? {
+            preset.resolve(today: today, earliest: "2023-03-17", customFrom: from, customTo: to)
+        }
+        XCTAssertEqual(bounds(.month, "2024-03-31"), "2024-03-01"..."2024-03-31")
+        XCTAssertEqual(bounds(.quarter, "2026-11-08"), "2026-08-09"..."2026-11-08")
+        XCTAssertEqual(bounds(.halfYear, "2026-11-08"), "2026-05-09"..."2026-11-08")
+        XCTAssertEqual(bounds(.year, "2024-02-29"), "2023-03-01"..."2024-02-29")
+        XCTAssertEqual(bounds(.allTime, "2026-11-08"), "2023-03-17"..."2026-11-08")
+        XCTAssertEqual(bounds(.custom, "2026-11-08", "2026-10-01", "2026-10-01"), "2026-10-01"..."2026-10-01")
+        XCTAssertNil(bounds(.custom, "2026-11-08", "2026-11-08", "2026-11-09"))
+        XCTAssertNil(bounds(.custom, "2026-11-08", "2026-11-08", "2026-11-07"))
+        XCTAssertNil(bounds(.custom, "2026-11-08", "2026-02-30", "2026-03-01"))
+    }
+
+    @MainActor
+    func testAvatarCustomPDFScopesSessionsScoresAndTrainingProfile() throws {
+        let squat = log("Squat", set: 1, weight: 40, reps: 4, at: "")
+        var fixture = data(logs: [squat])
+        let previousID = UUID()
+        let outside = WorkoutSession(id: previousID, userID: user, date: "2025-12-31", programDayID: dayID,
+                                 isLite: false, isDeload: false, isEventRecovery: false, completed: true,
+                                 qualityScore: 1, startedAt: nil, completedAt: nil, notes: "")
+        fixture.workoutSessions.append(outside)
+        fixture.workoutLogs.append(WorkoutLog(id: UUID(), userID: user, sessionID: previousID, exerciseID: nil,
+            exerciseName: "Outside-window exercise", setNumber: 1, weightKG: 80, reps: 10, rir: 2,
+            skipped: false, overrideFlag: false, createdAt: ""))
+        fixture.snapshots = [RPGSnapshot(id: UUID(), userID: user, date: outside.date, overall: 91, health: 91,
+            joint: 91, flexibility: 91, endurance: 91, strength: 91, strengthUpper: 91, strengthLower: 91)]
+        let dates = "2026-01-05"..."2026-01-11"
+        let report = AvatarReport.scoped(ownerID: user, data: fixture, partialScores: ["health": 88],
+                                         period: .custom, dates: dates, today: "2026-11-08")
+        XCTAssertEqual(report.sessions.map(\.id), [sessionID])
+        XCTAssertEqual(report.logs.map(\.id), [squat.id])
+        XCTAssertTrue(report.snapshots.isEmpty)
+        XCTAssertTrue(report.partialScores.isEmpty)
+        let profile = try XCTUnwrap(report.trainingProfile)
+        XCTAssertEqual(profile.from, dates.lowerBound)
+        XCTAssertEqual(profile.to, dates.upperBound)
+        XCTAssertEqual(profile.dayCount, 7)
+        XCTAssertEqual(profile.laterStart, "2026-01-08")
+        XCTAssertEqual(profile.classifiedWorkouts, 1)
+        let extracted = try XCTUnwrap(PDFDocument(data: report.pdfData())?.string)
+        for expected in ["Training totals", "Training profile"] {
+            XCTAssertTrue(extracted.contains(LanguageState.shared.text(expected)))
+        }
+        XCTAssertTrue(extracted.contains("160 kg"))
+        XCTAssertTrue(extracted.contains(LanguageState.shared.dateKey(dates.upperBound)))
+        for excluded in ["All-time training totals", "90-day training profile", "Outside-window exercise", "91 / 100", "88 / 100"] {
+            XCTAssertFalse(extracted.contains(LanguageState.shared.text(excluded)))
+        }
     }
 
     @MainActor

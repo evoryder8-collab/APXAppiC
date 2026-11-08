@@ -80,10 +80,13 @@ export function WorkoutInsightsCard({
     to: range.to,
     sessions: data.workout_sessions,
     logs: data.workout_logs,
+    exercises: data.exercises,
     importedActivities: data.imported_activities,
-  }), [data.imported_activities, data.workout_logs, data.workout_sessions, ownerID, range.from, range.to])
+  }), [data.exercises, data.imported_activities, data.workout_logs, data.workout_sessions, ownerID, range.from, range.to])
   const number = useMemo(() => new Intl.NumberFormat(language, { maximumFractionDigits: 2 }), [language])
   const missing = '\u2014'
+  const footnote = [t('Only recorded workout facts. Linked wearable energy is counted once.'),
+    summary.partialVolume && t('Volume sums each recorded load × reps. An asterisk marks incomplete records.')].filter(Boolean).join(' ')
   const metrics = [
     { label: t('Workouts'), value: number.format(summary.workouts) },
     { label: t('Active days'), value: number.format(summary.activeDays) },
@@ -91,7 +94,7 @@ export function WorkoutInsightsCard({
     { label: t('Active energy'), value: summary.activeEnergyKcal == null ? missing : `${number.format(summary.activeEnergyKcal)} kcal` },
     { label: t('Reps'), value: number.format(summary.reps) },
     { label: t('Sets / efforts'), value: number.format(summary.sets) },
-    { label: t('Recorded volume'), value: summary.volumeKg == null ? missing : `${number.format(summary.volumeKg)} kg` },
+    { label: t('Recorded volume'), value: summary.volumeKg == null ? missing : `${number.format(summary.volumeKg)} kg${summary.partialVolume ? '*' : ''}` },
     { label: t('Distance'), value: summary.distanceKm == null ? missing : `${number.format(summary.distanceKm)} km` },
   ]
 
@@ -115,7 +118,7 @@ export function WorkoutInsightsCard({
           volume: t('Recorded volume'),
           distance: t('Distance'),
           anniversary: t('Anniversary'),
-          verified: t('Only recorded workout facts. Linked wearable energy is counted once.'),
+          verified: footnote,
         },
       })
       const filename = `apex-workout-insights-${summary.from}-${summary.to}.png`
@@ -180,7 +183,7 @@ export function WorkoutInsightsCard({
         <p className="mt-1 break-words font-display text-lg font-bold text-ink">{metric.value}</p>
       </div>)}
     </div>
-    <p className="mt-4 text-[10px] font-semibold leading-relaxed text-ink-faint">{t('Only recorded workout facts. Linked wearable energy is counted once.')}</p>
+    <p className="mt-4 text-[10px] font-semibold leading-relaxed text-ink-faint">{footnote}</p>
     </>}
   </GlassCard>
 }

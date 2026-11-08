@@ -1,3 +1,5 @@
+import { AvatarStartingPoints } from '../components/avatar/AvatarStartingPoints'
+import { avatarStatKeys, avatarStatLabels, validStartingPoints } from '../lib/avatarStartingPoints'
 import { bespokeProtocolFor } from '../lib/profilePolicy'
 /*
  * RPG Avatar dashboard: level HUD, hexagonal radar, six animated stat bars
@@ -102,6 +104,7 @@ export function AvatarPage() {
       <SectionHeader accent={emerald} title="Avatar" subtitle="Your body, as a living stat sheet" />
       <div className="mb-3 flex justify-end"><AvatarReportButton /></div>
       {data.profile && <AvatarPortraitHero profile={data.profile} />}
+      <AvatarStartingPoints key={`starting-${data.profile?.user_id}`} />
       {coachPolicy.can_view_visual_progress && <button type="button" className="font-semibold" onClick={() => navigate('/progress', { state: { from: '/avatar' } })}>{t('Private Visual Progress')}</button>}
       <GlassCard accent={emerald} className="p-5">
         <h2 className="font-display text-xl font-bold">{t('Building your baseline')}</h2>
@@ -156,6 +159,7 @@ export function AvatarPage() {
 
       <div className="space-y-5">
         {profile && <AvatarPortraitHero profile={profile} />}
+        <AvatarStartingPoints key={`starting-${profile?.user_id}`} />
 
         {coachPolicy.can_view_visual_progress && <button type="button" onClick={() => navigate('/progress', { state: { from: '/avatar' } })} className="w-full text-left">
           <GlassCard accent={ACCENTS.violet} className="p-4 sm:p-5">
@@ -428,7 +432,10 @@ export function AvatarPage() {
               className="mt-3 space-y-2.5 text-[13.5px] leading-relaxed font-medium text-ink-soft"
             >
               <li>
-                {profile
+                {profile && !bespokeProtocolFor(profile) && validStartingPoints(profile.avatar_starting_points)
+                  ? <><strong>{t('Self-selected starting points')}</strong><dl className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1">
+                    {avatarStatKeys.map(key => <div key={key}><dt className="inline">{t(avatarStatLabels[key])}</dt>{' '}<dd className="inline font-bold">{baseline[key]}</dd></div>)}
+                  </dl></> : profile
                   ? t(`Calibrated for ${profile.display_name}: age ${ageFrom(profile.birthdate)}, ${profile.weight_kg} kg${bodyFatBaselineClause(profile)} and ${profile.height_cm} cm. ${profile.profile_note}`)
                   : 'Calibrated from the current body profile and available performance history.'}
               </li>
@@ -466,6 +473,7 @@ function IdentityMetric({ label, value, positive }: { label: string; value: stri
 /* ---------------- the engine: explainable synergy feed ---------------- */
 
 const SYNERGY_DOT: Record<SynergyKind, string> = {
+  skipped_session: '#f59e0b',
   manual_health_calibration: '#f59e0b',
   protein_strength: 'linear-gradient(135deg, #f59e0b, #fb7185)',
   deficit_strength: 'linear-gradient(135deg, #dc2626, #f59e0b)',
@@ -602,6 +610,7 @@ function Radar({ snapshot }: { snapshot: RpgSnapshot }) {
 
         {/* glow underlay, then the crisp figure */}
         <motion.path
+          initial={false}
           d={d}
           animate={{ d }}
           transition={{ duration: 0.8, ease: EASE }}
@@ -613,6 +622,7 @@ function Radar({ snapshot }: { snapshot: RpgSnapshot }) {
           filter="url(#radar-glow)"
         />
         <motion.path
+          initial={false}
           d={d}
           animate={{ d }}
           transition={{ duration: 0.8, ease: EASE }}

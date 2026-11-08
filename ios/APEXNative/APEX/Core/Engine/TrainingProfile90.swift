@@ -16,6 +16,8 @@ struct TrainingProfile90: Sendable {
 
     let from: String
     let to: String
+    var dayCount: Int { APEXDateMath.calendarDaysBetween(from: from, to: to) + 1 }
+    var laterStart: String { APEXDateMath.adding(days: dayCount / 2, to: from) }
     let classifiedWorkouts: Int
     let counts: [Mode: Int]
     let runs: Int
@@ -60,7 +62,7 @@ struct TrainingProfile90: Sendable {
 
     @MainActor func metrics(language: LanguageState) -> [Metric] {
         var rows = [Metric(key: "Classified workouts", value: String(classifiedWorkouts))]
-        let weekly = (Double(classifiedWorkouts) * 7 / 90).formatted(.number.locale(language.language.locale).precision(.fractionLength(0...1)))
+        let weekly = (Double(classifiedWorkouts) * 7 / Double(dayCount)).formatted(.number.locale(language.language.locale).precision(.fractionLength(0...1)))
         rows.append(Metric(key: "Workouts per week", value: weekly))
         rows += Mode.allCases.map { Metric(key: $0.rawValue, value: String(counts[$0, default: 0])) }
         if runs > 0 { rows.append(Metric(key: "Running", value: String(runs))) }
@@ -85,9 +87,10 @@ struct TrainingProfile90: Sendable {
     private static let catalogUnits = Dictionary(ExerciseCatalog.all.map { ($0.movementID, $0.unit) },
                                                 uniquingKeysWith: { first, _ in first })
 
-    static func summarize(ownerID: UUID, data: DashboardData, through to: String) -> Self {
-        let from = APEXDateMath.adding(days: -89, to: to)
-        let split = APEXDateMath.adding(days: -44, to: to)
+    static func summarize(ownerID: UUID, data: DashboardData, from start: String? = nil, through to: String) -> Self {
+        let from = start ?? APEXDateMath.adding(days: -89, to: to)
+        let days = APEXDateMath.calendarDaysBetween(from: from, to: to) + 1
+        let split = APEXDateMath.adding(days: days / 2, to: from)
         let window = from...to
         let sessions = data.workoutSessions.filter { $0.userID == ownerID && $0.completed }
         let byID = Dictionary(sessions.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })

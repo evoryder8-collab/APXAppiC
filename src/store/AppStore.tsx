@@ -16,6 +16,7 @@ import {
   type ReactNode,
 } from 'react'
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
+import { avatarStatKeys, saveRemoteStartingPoints, validStartingPoints, type AvatarStartingPoints } from '../lib/avatarStartingPoints.ts'
 import { createSessionBoundSupabase, isLocalMode, supabase } from '../lib/supabase'
 import {
   clearAllLocal,
@@ -182,6 +183,7 @@ interface StoreValue {
   upsert: <T extends { id: string }>(table: ListTable, row: T) => void
   bulkUpsert: <T extends { id: string }>(table: ListTable, rows: T[], options?: SyncWriteOptions) => void
   remove: (table: ListTable, id: string) => void
+  saveAvatarStartingPoints: (owner: string, points: AvatarStartingPoints) => Promise<'saved' | 'already_saved'>
   setProfile: (patch: Partial<AppData['profile']> & object) => void
   setSettings: (patch: Partial<Settings>, options?: SyncWriteOptions) => void
   setHydrationPreferences: (patch: Partial<HydrationPreferences>) => void
@@ -814,6 +816,31 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     },
     [persist, enqueue],
   )
+
+  const saveAvatarStartingPoints = useCallback(async (owner: string, points: AvatarStartingPoints) => {
+    const profile = dataRef.current.profile
+    if (!profile || scopeRef.current !== owner || profile.user_id !== owner
+      || resolveProfilePolicy(profile).kind !== 'standard' || !validStartingPoints(points)) {
+      throw new Error('Invalid starting points or account')
+    }
+    let saved = profile.avatar_starting_points
+    if (!validStartingPoints(saved)) {
+      if (isLocalMode) {
+        saved = points
+      } else {
+        const active = sessionRef.current
+        const client = active?.user.id === owner ? createSessionBoundSupabase(active.access_token) : null
+        if (!client) throw new Error('Account changed')
+        saved = await saveRemoteStartingPoints(client, owner, points)
+      }
+      const latest = dataRef.current
+      if (scopeRef.current !== owner || latest.profile?.user_id !== owner) throw new Error('Account changed')
+      mutationRevision.current += 1
+      persist({ ...latest, profile: { ...latest.profile, avatar_starting_points: saved } })
+    }
+    const confirmed = saved
+    return avatarStatKeys.every(key => confirmed[key] === points[key]) ? 'saved' as const : 'already_saved' as const
+  }, [persist])
 
   const setSettings = useCallback(
     (patch: Partial<Settings>, options?: SyncWriteOptions) => {
@@ -1611,6 +1638,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     bulkUpsert,
     remove,
     setProfile,
+    saveAvatarStartingPoints,
     setSettings,
     setHydrationPreferences,
     recordFitnessEvidence,
@@ -1637,6 +1665,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     refreshCoachContext,
     session,
     setProfile,
+    saveAvatarStartingPoints,
     setSettings,
     setHydrationPreferences,
     signIn,
