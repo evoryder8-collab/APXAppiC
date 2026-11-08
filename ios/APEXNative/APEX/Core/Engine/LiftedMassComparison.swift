@@ -49,7 +49,7 @@ enum LiftedMassComparison {
         let style = FloatingPointFormatStyle<Double>.number.locale(locale)
             .precision(.significantDigits(1...5)).rounded(rule: partial ? .down : .toNearestOrAwayFromZero)
         guard let words = massWords[key] ?? massWords["en"] else {
-            return (partial ? "at least " : "") + kilograms.formatted(style) + " kg"
+            return (partial ? "≥ " : "") + kilograms.formatted(style) + " kg"
         }
         let scales: [Double] = [1, 1e3, 1e6, 1e9, 1e12, 1e15, 1e18, 1e21, 1e24, 1e27, 1e30, 1e33]
         let unit = scales.lastIndex(where: { kilograms >= $0 }) ?? 0
