@@ -382,7 +382,14 @@ public struct FBMealRhythmDayRaw: Codable, Sendable {
     }
 }
 
+public struct FBHealthCalibration: Codable, Hashable, Sendable {
+    public let date: String
+    public let score: Double
+    public let source: String
+}
+
 public struct FBEngineInput: Sendable {
+    public var healthCalibration: FBHealthCalibration?
     public var profile: FBProfile
     public var trainingGoal: String?
     public var planWeeks: Int?
@@ -471,6 +478,7 @@ public enum FBSynergyKind: String, Codable, Sendable {
     case mobilityAfterLegs = "mobility_after_legs"
     case recoverySignal = "recovery_signal"
     case mealRhythm = "meal_rhythm"
+    case manualHealthCalibration = "manual_health_calibration"
     case vo2Anchor = "vo2_anchor"
     case importFeed = "import_feed"
     case deloadHonored = "deload_honored"

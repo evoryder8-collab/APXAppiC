@@ -1,4 +1,5 @@
 import type { OrbitRun } from '../orbit/domain/types'
+import { canonicalTrainingGoal } from './nutrition.ts'
 import { ACTIVITY_KIND } from './healthImport.ts'
 import type { AppData } from './types'
 import { performedWorkoutObservations } from './strengthProgress.ts'
@@ -12,6 +13,7 @@ type Comparison = { name: string; reps: number; previous: number; recent: number
 
 export interface TrainingProfile {
   focus: Focus
+  muscleGrowthGoal?: boolean
   workouts: number
   counts: Record<TrainingType, number>
   running: number
@@ -138,7 +140,21 @@ export function trainingProfile(data: AppData, runs: ProfileRun[], today: string
       || a.key.localeCompare(b.key, 'en') || a.reps - b.reps)[0]
   const comparison = best ? { name:best.name, reps:best.reps,
     previous:median([...best.previous.values()])!, recent:median([...best.recent.values()])! } : null
-  return { focus, workouts, counts, running:running.size, medianReps:median([...recentReps.values()]), comparison }
+  const addons = owner && data.settings?.user_id === owner ? data.settings.addons : undefined
+  const goal = (addons?.training_induction ?? addons?.training_induction_baseline)?.goal
+  return { focus, workouts, counts, running:running.size, medianReps:median([...recentReps.values()]), comparison,
+    muscleGrowthGoal: canonicalTrainingGoal(goal) === 'muscle' }
+}
+
+export function athleteTitle(profile: TrainingProfile): string {
+  switch (profile.focus) {
+    case 'Resistance-focused': return profile.muscleGrowthGoal ? 'Bodybuilder' : 'Strength athlete'
+    case 'Running-focused': return 'Runner'
+    case 'Cardio-focused': return 'Endurance athlete'
+    case 'Mobility-focused': return 'Mobility athlete'
+    case 'Mixed training': return 'All-rounder'
+    case 'Limited history': return 'Building your baseline'
+  }
 }
 
 export function trainingProfileLines(profile: TrainingProfile, locale: string, t: (text: string) => string): string[] {

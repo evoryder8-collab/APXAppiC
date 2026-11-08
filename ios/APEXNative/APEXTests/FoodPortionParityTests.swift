@@ -102,6 +102,21 @@ final class FoodPortionParityTests: XCTestCase {
         XCTAssertEqual(MealMemory.searchFoods(query: "steak", foods: foods, preferences: []).first?.id, steak.id)
     }
 
+    func testBundledSpicyPorkLegSoupSearchAndReferenceServing() throws {
+        let id = "d988c8b0-4aaa-46d9-9a13-20aaae43d2a9"
+        for name in ["Spicy Pork Leg Soup", "Thai spicy pork leg suop", "Spciy Pork Leg Soup",
+                     "ต้มยำขาหมู", "ต้มยมขาหมู", "ต้มแซ่บขาหมู", "tom saeb kha moo"] {
+            let result = try XCTUnwrap(MealMemory.searchFoods(query: name, foods: [], preferences: []).first, name)
+            XCTAssertEqual(result.id, id)
+            XCTAssertEqual(result.servingGramsOrML, 350)
+            XCTAssertEqual(result.nutrients(forEquivalentAmount: 350).kcal, 248, accuracy: 0.2)
+            XCTAssertTrue(FoodPortionMath.provenanceLabel(result).contains("350 g"))
+        }
+        for name in ["ข้าวขาหมู", "ต้มแซ่บกระดูกหมู", "tom yum goong"] {
+            XCTAssertFalse(MealMemory.searchFoods(query: name, foods: [], preferences: []).contains { $0.id == id })
+        }
+    }
+
     func testMatchesWebComposerScreenshotNumbers() throws {
         let portion = try XCTUnwrap(
             FoodPortionMath.portion(food(), quantity: 20, unit: .grams))

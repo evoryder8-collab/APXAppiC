@@ -629,18 +629,6 @@ public enum FitnessBrainEngine {
                         synergies.append(FBSynergyEvent(
                             date: date, kind: .mealRhythm,
                             label: "All planned meals were logged, but their timing rhythm was \(Int(rhythmScore))/100"))
-                    case .missedMeals where authored:
-                        s.health -= 0.35
-                        healthFed = true
-                        synergies.append(FBSynergyEvent(
-                            date: date, kind: .mealRhythm,
-                            label: "The closed day recorded \(Int(a.mealCompletionScore ?? 0))% of configured meals. A later correction will replay this verdict"))
-                    case .noMeals where authored:
-                        s.health -= 0.55
-                        healthFed = true
-                        synergies.append(FBSynergyEvent(
-                            date: date, kind: .mealRhythm,
-                            label: "The day closed with no configured meal recorded. This can still be corrected from the calendar"))
                     case .noMeals, .missedMeals, .open:
                         break
                     }
@@ -671,6 +659,12 @@ public enum FitnessBrainEngine {
                 if !fedHealth { s.health = decay(s.health, floor: floors.health, halfLife: halfLife.health) }
             }
 
+            if authored, let calibration = input.healthCalibration, calibration.source == "manual",
+               calibration.date == date, (0...100).contains(calibration.score) {
+                s.health = calibration.score
+                synergies.append(FBSynergyEvent(date: date, kind: .manualHealthCalibration,
+                                               label: "Health score manually calibrated"))
+            }
             s = StatBlock(
                 health: clamp(s.health), joint: clamp(s.joint), flexibility: clamp(s.flexibility),
                 endurance: clamp(s.endurance), strengthUpper: clamp(s.strengthUpper),

@@ -101,6 +101,10 @@ final class WorkoutInsightsTests: XCTestCase {
         let profile = TrainingProfile90.summarize(ownerID: ownerID, data: data, through: "2026-11-08")
         XCTAssertEqual(profile.from, "2026-08-11")
         XCTAssertEqual(profile.category, "Resistance-focused")
+        XCTAssertEqual(profile.athleteTitle, "Strength athlete")
+        var growthProfile = profile
+        growthProfile.muscleGrowthGoal = true
+        XCTAssertEqual(growthProfile.athleteTitle, "Bodybuilder")
         XCTAssertEqual(profile.classifiedWorkouts, 3)
         XCTAssertEqual(profile.counts[.resistance], 3)
         XCTAssertEqual(profile.recentMedianReps, 18)
@@ -137,6 +141,7 @@ final class WorkoutInsightsTests: XCTestCase {
         data.orbitRuns = [orbit("09"), orbit("14"), orbit("14")]
         let limited = TrainingProfile90.summarize(ownerID: ownerID, data: data, through: workout.date)
         XCTAssertEqual(limited.category, "Limited history")
+        XCTAssertEqual(limited.athleteTitle, "Building your baseline")
         XCTAssertEqual(limited.classifiedWorkouts, 2)
         XCTAssertEqual(limited.runs, 2)
         XCTAssertEqual(limited.counts[.mobility], 1)

@@ -112,6 +112,7 @@ export type SynergyKind =
   | 'mobility_after_legs'
   | 'recovery_signal'
   | 'meal_rhythm'
+  | 'manual_health_calibration'
   | 'vo2_anchor'
   | 'import_feed'
   | 'deload_honored'
@@ -320,6 +321,7 @@ export function computeEngine(data: AppData, throughDate: string,
   )
   const healthMetrics = data.health_metrics.filter((row) => row.user_id === ownerID)
   const importedActivities = signalBearingImportedActivitiesForOwner(data)
+  const healthCalibration = data.settings?.user_id === ownerID ? data.settings.avatar_health_calibration : null
   const start = profile.baseline_date
   const total = differenceInCalendarDays(
     new Date(throughDate + 'T12:00:00'),
@@ -712,12 +714,7 @@ export function computeEngine(data: AppData, throughDate: string,
             healthFed = true
           }
         }
-        /*
-         * A closed day is explicit evidence, not missing telemetry. It can
-         * therefore influence Health while the still-open current day never
-         * receives a premature penalty. Correcting a past meal rewrites this
-         * source record and deterministic replay removes the old verdict.
-         */
+        // Only completed meal logs establish timing. Unlogged meals are unknown.
         if (a.mealRhythmScore != null && a.mealRhythmVerdict != null) {
           if (a.mealRhythmVerdict === 'complete_on_time') {
             s.health += 0.7 * headroom(s.health)
@@ -734,22 +731,6 @@ export function computeEngine(data: AppData, throughDate: string,
               date,
               kind: 'meal_rhythm',
               label: `All planned meals were logged, but their timing rhythm was ${a.mealRhythmScore}/100`,
-            })
-          } else if (authored && a.mealRhythmVerdict === 'missed_meals') {
-            s.health -= 0.35
-            healthFed = true
-            synergies.push({
-              date,
-              kind: 'meal_rhythm',
-              label: `The closed day recorded ${a.mealCompletionScore ?? 0}% of configured meals. A later correction will replay this verdict`,
-            })
-          } else if (authored && a.mealRhythmVerdict === 'no_meals') {
-            s.health -= 0.55
-            healthFed = true
-            synergies.push({
-              date,
-              kind: 'meal_rhythm',
-              label: 'The day closed with no configured meal recorded. This can still be corrected from the calendar',
             })
           }
         }
@@ -779,6 +760,11 @@ export function computeEngine(data: AppData, throughDate: string,
         if (!fed.health) s.health = decay(s.health, FLOORS.health, HALF_LIFE.health)
       }
 
+      if (authored && healthCalibration?.source === 'manual' && healthCalibration.date === date
+        && Number.isFinite(healthCalibration.score) && healthCalibration.score >= 0 && healthCalibration.score <= 100) {
+        s.health = healthCalibration.score
+        synergies.push({ date, kind: 'manual_health_calibration', label: 'Health score manually calibrated' })
+      }
       s = {
         health: clamp(s.health),
         joint: clamp(s.joint),

@@ -135,6 +135,7 @@ enum FoodPortionMath {
     }
 
     static func provenanceLabel(_ food: Food) -> String {
+        if let note = food.referenceNote { return note }
         if food.source == "private" { return "Your private food" }
         if food.source == "open_food_facts" {
             return "Check the package label."

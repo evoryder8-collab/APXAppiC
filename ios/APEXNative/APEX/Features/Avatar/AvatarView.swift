@@ -535,7 +535,7 @@ struct AvatarView: View {
 
     private func synergyColor(_ kind: FBSynergyKind) -> Color {
         switch kind {
-        case .proteinStrength, .deficitStrength, .mealRhythm: return APEXColor.amber
+        case .manualHealthCalibration, .proteinStrength, .deficitStrength, .mealRhythm: return APEXColor.amber
         case .hydrationEndurance, .importFeed: return APEXColor.cyan
         case .mobilityAfterLegs, .deloadHonored: return APEXColor.teal
         case .recoverySignal: return APEXColor.green

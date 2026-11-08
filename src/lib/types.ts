@@ -421,6 +421,7 @@ export interface ImportedActivity {
 
 export interface Settings {
   user_id: string
+  avatar_health_calibration?: { date: string; score: number; source: 'manual' } | null
   voice_on: boolean
   ticks_on: boolean
   notifications_on: boolean

@@ -1,3 +1,4 @@
+import porkLegSoup from '../../shared/spicy-pork-leg-soup.json' with { type: 'json' }
 import { estimateWaterContent } from '../lib/hydration.ts'
 import type { FoodRecord } from '../lib/food'
 import { EXPANDED_FOOD_SPECS, type CatalogFoodSpec } from './foodCatalogExpansion.ts'
@@ -881,4 +882,13 @@ export const COMMON_FOODS: FoodRecord[] = [
   ...PROTOCOL_FOODS,
   ...RETAILER_REFERENCE_FOODS,
   ...SWISS_FAST_FOOD_REFERENCE_FOODS,
+  {
+    ...food(porkLegSoup.id, porkLegSoup.name, porkLegSoup.names_i18n.de, porkLegSoup.names_i18n.fr, porkLegSoup.names_i18n.it,
+      porkLegSoup.kcal_100, porkLegSoup.protein_100, porkLegSoup.carbs_100, porkLegSoup.fat_100, 'prepared', {
+        providerId: porkLegSoup.provider_product_id, servingGrams: porkLegSoup.serving_grams_or_ml, servingAmount: 1, servingUnit: 'serving',
+      }),
+    names_i18n: porkLegSoup.names_i18n,
+    search_aliases: porkLegSoup.search_aliases,
+    reference_note: porkLegSoup.reference_note,
+  },
 ]

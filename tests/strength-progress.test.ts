@@ -353,7 +353,7 @@ test('legacy holds, checkmarks and timed prescriptions count as sets without con
 })
 
 test('training profile compares equal-rep session peaks across inclusive halves and ignores skipped, future and timed reps', async () => {
-  const { trainingProfile,trainingProfileLines } = await import('../src/lib/trainingProfile.ts')
+  const { trainingProfile,trainingProfileLines,athleteTitle } = await import('../src/lib/trainingProfile.ts')
   const data = strengthData()
   data.workout_sessions = ['2026-08-11','2026-09-01','2026-10-01','2026-11-08','2026-08-10','2026-11-09'].map((date,i) =>
     ({...data.workout_sessions[0], id: 's'+i, date}))
@@ -364,6 +364,9 @@ test('training profile compares equal-rep session peaks across inclusive halves 
     {...set,id:'y',session_id:'s1',skipped:true,weight_kg:1000})
   const result = trainingProfile(data,[],'2026-11-08')
   assert.equal(result.focus,'Resistance-focused')
+  assert.equal(athleteTitle(result), 'Strength athlete')
+  assert.equal(athleteTitle({ ...result, muscleGrowthGoal: true }), 'Bodybuilder')
+  assert.equal(athleteTitle({ ...result, focus: 'Mixed training', muscleGrowthGoal: true }), 'All-rounder')
   assert.equal(result.workouts,4)
   assert.equal(result.medianReps,11)
   assert.deepEqual(result.comparison,{name:'Dumbbell Hip Thrust',reps:8,previous:55,recent:65})

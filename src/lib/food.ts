@@ -53,6 +53,8 @@ export interface FoodRecord {
   piece_grams_or_ml: number | null
   provider_updated_at: string | null
   confidence: NutritionConfidence
+  search_aliases?: string[] | null
+  reference_note?: string | null
   nutrient_evidence?: NutrientEvidenceObservation[]
   created_at: string
   updated_at: string
@@ -1198,7 +1200,7 @@ function catalogAliases(food: FoodRecord): string[] {
   const aliases = food.provider_product_id ? FOOD_CATALOG_ALIASES[food.provider_product_id] ?? [] : []
   // Lookup responses carry corpus synonyms outside the persisted foods schema.
   // Keep those matches when the web client ranks the server results again.
-  const providerAliases = (food as FoodRecord & { search_aliases?: string[] | null }).search_aliases
+  const providerAliases = food.search_aliases
   // Sirloin is a beef-steak cut. Keep the precise cut/preparation on the card;
   // these common search names do not substitute its nutrition for other cuts.
   const steakAliases = /^apex-protocol:[^:]+:beef-sirloin-/.test(food.provider_product_id ?? '')

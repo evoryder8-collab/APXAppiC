@@ -123,6 +123,7 @@
 		5FE70D7E3BF921E84072006F /* bundle.js in Resources */ = {isa = PBXBuildFile; fileRef = A6F726BF795538B01541803E /* bundle.js */; };
 		6227F8BFC3310BF52BA17F2F /* DaylineSwipeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC1512A57154952F2B5701F /* DaylineSwipeTests.swift */; };
 		14406EBDAB20261108000002 /* GuidedArtwork in Resources */ = {isa = PBXBuildFile; fileRef = 14406EBDAB20261108000001 /* GuidedArtwork */; };
+		14411EBDAB20261108000015 /* spicy-pork-leg-soup.json in Resources */ = {isa = PBXBuildFile; fileRef = 14411EBDAB20261108000016 /* spicy-pork-leg-soup.json */; };
 		14406EBDAB20261108000005 /* exercise-frequency-families.json in Resources */ = {isa = PBXBuildFile; fileRef = 14406EBDAB20261108000006 /* exercise-frequency-families.json */; };
 		14407EBDAB20261108000005 /* lifted-mass-landmarks.json in Resources */ = {isa = PBXBuildFile; fileRef = 14407EBDAB20261108000006 /* lifted-mass-landmarks.json */; };
 		14407EBDAB20261108000011 /* award-objects in Resources */ = {isa = PBXBuildFile; fileRef = 14407EBDAB20261108000012 /* award-objects */; };
@@ -432,6 +433,7 @@
 		2EFDFD9852F284C2D009DA48 /* TrainingProgramView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingProgramView.swift; sourceTree = "<group>"; };
 		2FC9E251EB7BB3E5A44FAC00 /* CoachPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachPlanView.swift; sourceTree = "<group>"; };
 		14406EBDAB20261108000001 /* GuidedArtwork */ = {isa = PBXFileReference; lastKnownFileType = folder; path = GuidedArtwork; sourceTree = "<group>"; };
+		14411EBDAB20261108000016 /* spicy-pork-leg-soup.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/spicy-pork-leg-soup.json"; sourceTree = SOURCE_ROOT; };
 		14406EBDAB20261108000006 /* exercise-frequency-families.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/exercise-frequency-families.json"; sourceTree = SOURCE_ROOT; };
 		14407EBDAB20261108000006 /* lifted-mass-landmarks.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/lifted-mass-landmarks.json"; sourceTree = SOURCE_ROOT; };
 		14407EBDAB20261108000012 /* award-objects */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "../../public/award-objects"; sourceTree = SOURCE_ROOT; };
@@ -1003,6 +1005,7 @@
 			isa = PBXGroup;
 			children = (
 				14406EBDAB20261108000001 /* GuidedArtwork */,
+				14411EBDAB20261108000016 /* spicy-pork-leg-soup.json */,
 				14406EBDAB20261108000006 /* exercise-frequency-families.json */,
 				14407EBDAB20261108000006 /* lifted-mass-landmarks.json */,
 				14407EBDAB20261108000012 /* award-objects */,
@@ -1413,6 +1416,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				14406EBDAB20261108000002 /* GuidedArtwork in Resources */,
+				14411EBDAB20261108000015 /* spicy-pork-leg-soup.json in Resources */,
 				14406EBDAB20261108000005 /* exercise-frequency-families.json in Resources */,
 				14407EBDAB20261108000005 /* lifted-mass-landmarks.json in Resources */,
 				14407EBDAB20261108000011 /* award-objects in Resources */,
@@ -1991,7 +1995,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 410;
+				CURRENT_PROJECT_VERSION = 411;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -2055,7 +2059,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 410;
+				CURRENT_PROJECT_VERSION = 411;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;

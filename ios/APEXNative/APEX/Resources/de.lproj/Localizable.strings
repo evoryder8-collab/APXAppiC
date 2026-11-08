@@ -5805,3 +5805,11 @@
 "About %@ %@" = "Etwa %@ %@";
 "Previous route" = "Vorherige Route";
 "Next route" = "Nächste Route";
+"Bodybuilder" = "Bodybuilding";
+"Strength athlete" = "Kraftsport";
+"Runner" = "Laufsport";
+"Endurance athlete" = "Ausdauersport";
+"Mobility athlete" = "Beweglichkeitstraining";
+"All-rounder" = "Allrounder";
+"Health score manually calibrated" = "Gesundheitswert manuell kalibriert";
+"Recipe estimate from the Royal Thai Air Force foodservice manual (pp. 119–120). One bowl assumes 350 g of edible soup, excluding bones and rice. Recipes vary." = "Schätzwert nach dem Verpflegungshandbuch der thailändischen Luftwaffe (S. 119–120). Angenommen werden 350 g essbare Suppe pro Schale, ohne Knochen und Reis. Rezepte variieren.";

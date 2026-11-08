@@ -1,0 +1,50 @@
+{
+  "id": "d988c8b0-4aaa-46d9-9a13-20aaae43d2a9",
+  "name": "Spicy Pork Leg Soup",
+  "names_i18n": {
+    "en": "Spicy Pork Leg Soup",
+    "th": "ต้มยำขาหมู",
+    "de": "Scharfe thailändische Schweinshaxensuppe",
+    "fr": "Soupe thaïlandaise épicée au jarret de porc",
+    "it": "Zuppa thailandese piccante di stinco di maiale",
+    "ro": "Supă thailandeză picantă cu ciolan de porc",
+    "es": "Sopa tailandesa picante de codillo de cerdo",
+    "pt": "Sopa tailandesa picante de joelho de porco",
+    "ja": "タイ風豚すね肉の辛いスープ"
+  },
+  "search_aliases": [
+    "Thai Spicy Pork Leg Soup",
+    "spicy pork hock soup",
+    "hot and sour pork leg soup",
+    "Thai pork knuckle soup",
+    "tom yum kha moo",
+    "tom yam kha mu",
+    "tom yum ka moo",
+    "tom saep kha moo",
+    "tom saeb kha moo",
+    "tom saab kha moo",
+    "tom zap kha moo",
+    "ต้มแซ่บขาหมู",
+    "ต้มแซบขาหมู",
+    "spicy pork leg suop",
+    "Thai spicy pork leg suop"
+  ],
+  "provider_product_id": "apex-curated:spicy-pork-leg-soup",
+  "serving_grams_or_ml": 350,
+  "kcal_100": 70.9,
+  "protein_100": 5.55,
+  "carbs_100": 4.14,
+  "fat_100": 3.57,
+  "reference_note": "Recipe estimate from the Royal Thai Air Force foodservice manual (pp. 119–120). One bowl assumes 350 g of edible soup, excluding bones and rice. Recipes vary.",
+  "source": "apex_cache",
+  "nutrition_basis": "per_100g",
+  "preparation_state": "prepared",
+  "confidence": "complete",
+  "serving_amount": 1,
+  "serving_unit": "serving",
+  "sources": [
+    "https://quarter.rtaf.mi.th/web/content/650?download=true&unique=824276502d592c946b673d8e3673771a8b451ff2",
+    "https://www.knorr.com/th/r/ต้มแซ่บขาหมู.html/117336",
+    "https://www.youtube.com/watch?v=jzWjiSG8coU"
+  ]
+}

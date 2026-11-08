@@ -466,6 +466,7 @@ function IdentityMetric({ label, value, positive }: { label: string; value: stri
 /* ---------------- the engine: explainable synergy feed ---------------- */
 
 const SYNERGY_DOT: Record<SynergyKind, string> = {
+  manual_health_calibration: '#f59e0b',
   protein_strength: 'linear-gradient(135deg, #f59e0b, #fb7185)',
   deficit_strength: 'linear-gradient(135deg, #dc2626, #f59e0b)',
   meal_rhythm: 'linear-gradient(135deg, #f59e0b, #14b8a6)',

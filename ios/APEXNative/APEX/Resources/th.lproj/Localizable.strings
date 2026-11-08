@@ -5787,3 +5787,11 @@
 "About %@ %@" = "ประมาณ %@ %@";
 "Previous route" = "เส้นทางก่อนหน้า";
 "Next route" = "เส้นทางถัดไป";
+"Bodybuilder" = "นักเพาะกาย";
+"Strength athlete" = "สายฝึกความแข็งแรง";
+"Runner" = "นักวิ่ง";
+"Endurance athlete" = "สายฝึกความทนทาน";
+"Mobility athlete" = "สายฝึกการเคลื่อนไหว";
+"All-rounder" = "นักกีฬาอเนกประสงค์";
+"Health score manually calibrated" = "ปรับเทียบคะแนนสุขภาพด้วยตนเอง";
+"Recipe estimate from the Royal Thai Air Force foodservice manual (pp. 119–120). One bowl assumes 350 g of edible soup, excluding bones and rice. Recipes vary." = "ประมาณจากสูตรในคู่มือประกอบอาหารของกองทัพอากาศไทย (หน้า 119–120) โดยคิดส่วนที่กินได้ 350 กรัมต่อชาม ไม่รวมกระดูกและข้าว คุณค่าทางโภชนาการอาจต่างกันตามสูตร";

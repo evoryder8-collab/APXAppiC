@@ -141,7 +141,7 @@ enum FitnessBrainService {
         }
 
         let nutritionPlanContext = NutritionGoalPolicy.context(from: data.settings)
-        return FBEngineInput(
+        var input = FBEngineInput(
             profile: fbProfile,
             programDays: programDays,
             exercises: exercises,
@@ -159,6 +159,8 @@ enum FitnessBrainService {
             trainingGoal: nutritionPlanContext?.trainingGoal,
             planWeeks: nutritionPlanContext?.planWeeks
         )
+        if data.settings?.userID == ownerID { input.healthCalibration = data.settings?.avatarHealthCalibration }
+        return input
     }
 
     /// Fold meals and the hydration ledger once when replaying many days of history.

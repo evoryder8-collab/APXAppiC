@@ -2370,3 +2370,9 @@ Build 408 gives close single objects priority. Where one object is a poor match,
 Build 409 bases native email sign-in on the authenticated owner and their verified dashboard. A prior portrait choice cannot reject another account's valid credentials. Web and iPhone sign-out revoke the current session by default. Finishing a native password reset explicitly revokes all sessions. Account isolation, dashboard owner checks and the local sign-out privacy boundary still apply.
 
 Build 410 places Orbit’s route selector next to the map. Previous and next cycle through ranked alternatives; tapping the selected option opens the full list. The visible route, guidance, save and start actions follow the same selection. Generating routes brings the preview into view.
+
+Build 411 opens the Avatar PDF with the recent training profile. Strength charts require two comparable working-load records from distinct sessions. Reps and recorded volume appear below each chart, with other exercises retained in the rankings.
+
+Automatically closed days with incomplete meal logs no longer incur a Health deduction. An explicitly dated manual Health calibration can anchor the selected account while subsequent days continue to reflect logged activity.
+
+Spicy Pork Leg Soup (ต้มยำขาหมู) has one shared food ID in the public catalogue and the offline web and iOS searches. The entry includes Thai and romanized aliases and identifies its 350 g edible serving as an estimate.

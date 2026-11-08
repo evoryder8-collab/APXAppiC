@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
+import { seedSettings } from '../src/data/seed.ts'
+import { buildMealRhythmDay } from '../src/lib/mealRhythm.ts'
 import { assessBodyState, computeEngine, whatYourBodyNeeds } from '../src/lib/rpg.ts'
 import {
   EMPTY_DATA,
@@ -167,8 +169,8 @@ test('foreign nutrition cannot earn an owner target synergy', () => {
   assert.equal(withForeignNutrition.snapshots.at(-1)?.health, withoutNutrition.snapshots.at(-1)?.health)
 })
 
-test('publishable bespoke targets retain their authored nutrition synergy', () => {
-  const subject = profile({
+function bespokeProfile() {
+  return profile({
     user_id: '9a0fffbc-bb02-40ac-834a-d4e339b32574',
     persona: 'constantine',
     profile_kind: 'bespoke',
@@ -176,6 +178,10 @@ test('publishable bespoke targets retain their authored nutrition synergy', () =
     birthdate: 'malformed',
     goal: 'recomp',
   })
+}
+
+test('publishable bespoke targets retain their authored nutrition synergy', () => {
+  const subject = bespokeProfile()
   const result = computeEngine(strengthDay(subject, [
     nutritionLog(day, subject.user_id, 2_450, 150),
   ]), day)
@@ -282,4 +288,32 @@ test('foreign evidence days cannot inflate an owner assessment confidence', () =
   }
 
   assert.equal(assessBodyState(data, [snapshot()])?.confidence, 'Building signal')
+})
+
+
+test('empty or partially logged meal days do not debit Health and a manual score applies once to its owner', () => {
+  const subject = bespokeProfile()
+  subject.baseline_date = '2026-09-01'
+  const settings = seedSettings(subject.user_id)
+  const data = { ...EMPTY_DATA, profile: subject, settings }
+  const through = '2026-09-03'
+  const baseline = computeEngine(data, through).snapshots
+  const closed = buildMealRhythmDay({ date: day, today: through, settings, meals: [] })
+  for (const verdict of ['no_meals', 'missed_meals'] as const) {
+    settings.addons.meal_rhythm_history = { [day]: { ...closed, verdict } }
+    assert.deepEqual(computeEngine(data, through).snapshots, baseline)
+  }
+  settings.avatar_health_calibration = { date: day, score: 73, source: 'manual' }
+  const result = computeEngine(data, through)
+  assert.equal(result.snapshots[1].health, 73)
+  assert.deepEqual(result.snapshots[0], baseline[0])
+  for (const key of ['joint', 'endurance', 'strength', 'flexibility'] as const) {
+    assert.equal(result.snapshots[1][key], baseline[1][key])
+  }
+  assert.ok(result.snapshots[2].health < 73)
+  assert.deepEqual(computeEngine(data, through).snapshots, result.snapshots)
+  assert.equal(result.synergies.filter(e => e.kind === 'manual_health_calibration').length, 1)
+  assert.deepEqual(computeEngine({ ...data, settings: { ...settings, user_id: ownerID } }, through).snapshots, baseline)
+  const standard = computeEngine({ ...data, profile: { ...subject, profile_kind: 'standard' } }, through)
+  assert.equal(standard.firstObserved.health, undefined)
 })

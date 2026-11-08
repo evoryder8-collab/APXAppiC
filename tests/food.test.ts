@@ -966,3 +966,19 @@ test('Open Food Facts keeps reported micronutrients as bounded per-100 evidence'
   )
   assert.equal(food.nutrient_evidence?.some((row) => row.nutrient_code === 'VITD'), false)
 })
+
+test('Thai pork leg soup stays first for names and mild typos and logs an estimated edible bowl', () => {
+  const soup = COMMON_FOODS.find(food => food.provider_product_id === 'apex-curated:spicy-pork-leg-soup')!
+  for (const query of ['Spicy Pork Leg Soup', 'Thai spicy pork leg suop', 'Spciy Pork Leg Soup', 'ต้มยำขาหมู',
+    'ต้มยมขาหมู', 'ต้มแซ่บขาหมู', 'tom yam kha mu', 'tom saeb kha moo']) {
+    assert.equal(rankFoods(query, COMMON_FOODS, [], 'dinner')[0]?.id, soup.id, query)
+  }
+  for (const other of ['ข้าวขาหมู', 'ต้มแซ่บกระดูกหมู', 'tom yum goong']) {
+    assert.notEqual(rankFoods(other, COMMON_FOODS, [], 'dinner')[0]?.id, soup.id, other)
+  }
+  const portion = calculatePortion(soup, 1, 'serving')!
+  assert.deepEqual([portion.equivalent_amount, portion.kcal, portion.protein_g, portion.carbs_g, portion.fat_g],
+    [350, 248, 19.4, 14.5, 12.5])
+  assert.match(soup.reference_note!, /350 g of edible soup/)
+  assert.equal(soup.salt_100, null)
+})

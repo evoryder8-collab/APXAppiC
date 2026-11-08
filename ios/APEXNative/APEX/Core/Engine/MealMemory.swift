@@ -234,6 +234,12 @@ enum MealMemory {
         return result
     }
 
+    private static let porkLegSoup: Food? = {
+        guard let url = Bundle.main.url(forResource: "spicy-pork-leg-soup", withExtension: "json"),
+              let data = try? Data(contentsOf: url) else { return nil }
+        return (try? JSONDecoder().decode(Food.self, from: data)).map(FoodHydration.resolved)
+    }()
+
     /// Searches the account's in-memory Food Memory before any public
     /// provider is contacted. This keeps private foods, personal names,
     /// aliases and localized catalogue names useful while offline.
@@ -250,10 +256,13 @@ enum MealMemory {
         let scopedPreferences = preferences.filter { preference in
             userID != nil && preference.userID == userID
         }
-        let scopedFoods = foods.filter { food in
+        var scopedFoods = foods.filter { food in
             guard let ownerUserID = food.ownerUserID else { return true }
             guard let userID else { return false }
             return ownerUserID == userID
+        }
+        if let porkLegSoup, !scopedFoods.contains(where: { $0.id.caseInsensitiveCompare(porkLegSoup.id) == .orderedSame }) {
+            scopedFoods.append(porkLegSoup)
         }
         let preferenceByFoodID = Dictionary(
             scopedPreferences.map { ($0.foodID.uuidString.lowercased(), $0) },
@@ -397,7 +406,9 @@ enum MealMemory {
         }
         guard queryToken.count >= 4, candidateToken.count >= 4,
               queryToken.first == candidateToken.first else { return 0 }
-        let limit = queryToken.count >= 9 || (queryToken.count >= 5 && queryToken.count <= 6) ? 2 : 1
+        // A Thai syllable can contain several editable letters and marks in one grapheme.
+        let length = queryToken.unicodeScalars.count
+        let limit = length >= 9 || (5...6).contains(length) ? 2 : 1
         let distance = editDistance(queryToken, candidateToken, limit: limit)
         guard distance <= limit else { return 0 }
         let similarity = 1 - Double(distance) / Double(max(queryToken.count, candidateToken.count))

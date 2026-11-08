@@ -21,6 +21,18 @@ struct TrainingProfile90: Sendable {
     let runs: Int
     let recentMedianReps: Double?
     let matchedLoad: MatchedLoad?
+    var muscleGrowthGoal = false
+
+    var athleteTitle: String {
+        switch category {
+        case "Resistance-focused": muscleGrowthGoal ? "Bodybuilder" : "Strength athlete"
+        case "Running-focused": "Runner"
+        case "Cardio-focused": "Endurance athlete"
+        case "Mobility-focused": "Mobility athlete"
+        case "Mixed training": "All-rounder"
+        default: "Building your baseline"
+        }
+    }
 
     // These describe the mix of logged sessions. Rep counts and loads are
     // reported independently because neither establishes a person's training goal.
@@ -156,7 +168,8 @@ struct TrainingProfile90: Sendable {
         }
         return Self(from: from, to: to, classifiedWorkouts: modes.count, counts: counts, runs: runs.count,
                     recentMedianReps: median(repsBySession.values.map(Double.init)),
-                    matchedLoad: compareLoads(loadLogs, split: split, ownerID: ownerID, sessions: sessions, exercises: data.exercises))
+                    matchedLoad: compareLoads(loadLogs, split: split, ownerID: ownerID, sessions: sessions, exercises: data.exercises),
+                    muscleGrowthGoal: data.settings?.userID == ownerID && NutritionGoalPolicy.context(from: data.settings)?.trainingGoal == "muscle")
     }
 
     private static let importedTypes: [String: Mode] = {

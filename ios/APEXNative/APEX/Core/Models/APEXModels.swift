@@ -300,6 +300,7 @@ struct RemoteProfilePayload: Encodable, Sendable {
 }
 
 struct UserSettings: Codable, Hashable, Sendable {
+    var avatarHealthCalibration: FBHealthCalibration? = nil
     let userID: UUID
     var voiceOn: Bool
     var ticksOn: Bool
@@ -309,6 +310,7 @@ struct UserSettings: Codable, Hashable, Sendable {
 
     enum CodingKeys: String, CodingKey {
         case userID = "user_id"
+        case avatarHealthCalibration = "avatar_health_calibration"
         case voiceOn = "voice_on"
         case ticksOn = "ticks_on"
         case notificationsOn = "notifications_on"
@@ -321,6 +323,7 @@ struct UserSettings: Codable, Hashable, Sendable {
     /// before a write reaches an RLS-protected table.
     func rebound(to userID: UUID) -> UserSettings {
         UserSettings(
+            avatarHealthCalibration: self.userID == userID ? avatarHealthCalibration : nil,
             userID: userID,
             voiceOn: voiceOn,
             ticksOn: ticksOn,
@@ -861,11 +864,13 @@ struct Food: Codable, Identifiable, Hashable, Sendable {
     var servingGramsOrML: Double?
     var pieceGramsOrML: Double?
     var confidence: String
+    var referenceNote: String? = nil
     var searchAliases: [String]? = nil
     var nutrientEvidence: [NutrientEvidenceObservation]? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, name, brand, barcode, source, confidence
+        case referenceNote = "reference_note"
         case searchAliases = "search_aliases"
         case nutrientEvidence = "nutrient_evidence"
         case ownerUserID = "owner_user_id"

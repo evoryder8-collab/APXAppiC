@@ -5805,3 +5805,11 @@
 "About %@ %@" = "およそ%2$@%1$@個分";
 "Previous route" = "前のルート";
 "Next route" = "次のルート";
+"Bodybuilder" = "ボディビルダー";
+"Strength athlete" = "筋力トレーニング型";
+"Runner" = "ランナー";
+"Endurance athlete" = "持久系アスリート";
+"Mobility athlete" = "モビリティ重視型";
+"All-rounder" = "オールラウンダー";
+"Health score manually calibrated" = "健康スコアを手動で調整しました";
+"Recipe estimate from the Royal Thai Air Force foodservice manual (pp. 119–120). One bowl assumes 350 g of edible soup, excluding bones and rice. Recipes vary." = "タイ王国空軍の給食マニュアル（119～120ページ）のレシピによる推定値です。1杯は骨とご飯を除いた可食部350 gと仮定しています。作り方によって異なります。";

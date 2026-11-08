@@ -412,8 +412,8 @@ final class FitnessBrainParityTests: XCTestCase {
         XCTAssertEqual(target.carbsG, 0)
     }
 
-    func testMalformedBespokeReferenceDataCannotExposeNonFiniteTargets() {
-        let profile = FBProfile(
+    private func bespokeProfile() -> FBProfile {
+        FBProfile(
             userID: "9a0fffbc-bb02-40ac-834a-d4e339b32574",
             persona: .constantine,
             sex: "male",
@@ -430,6 +430,32 @@ final class FitnessBrainParityTests: XCTestCase {
             bodyFatSource: "dexa"
         )
 
+    }
+
+    func testMissingMealLogsAndDatedManualHealthCalibration() {
+        var profile = bespokeProfile()
+        profile.baselineDate = "2026-01-01"
+        var input = FBEngineInput(profile: profile)
+        let through = "2026-01-03"
+        let unadjusted = FitnessBrainEngine.compute(input, throughDate: through).snapshots
+        for verdict in ["no_meals", "missed_meals"] {
+            input.mealRhythmHistory["2026-01-02"] = .init(finalized: true, expectedMeals: 3,
+                loggedMeals: verdict == "no_meals" ? 0 : 1, completionScore: 0, rhythmScore: 0, verdict: verdict)
+            XCTAssertEqual(FitnessBrainEngine.compute(input, throughDate: through).snapshots, unadjusted)
+        }
+        input.healthCalibration = .init(date: "2026-01-02", score: 73, source: "manual")
+        let result = FitnessBrainEngine.compute(input, throughDate: through)
+        XCTAssertEqual(result.snapshots[0], unadjusted[0])
+        XCTAssertEqual(result.snapshots[1].health, 73)
+        XCTAssertEqual(result.snapshots[1].strength, unadjusted[1].strength)
+        XCTAssertLessThan(result.snapshots[2].health, 73)
+        XCTAssertEqual(result.synergies.filter { $0.kind == .manualHealthCalibration }.count, 1)
+        input.profile.profileKind = "standard"
+        XCTAssertNil(FitnessBrainEngine.compute(input, throughDate: through).domainScores["health"])
+    }
+
+    func testMalformedBespokeReferenceDataCannotExposeNonFiniteTargets() {
+        let profile = bespokeProfile()
         let target = FitnessBrainTargets.computeTargets(profile, asOf: "2026-09-02")
 
         XCTAssertEqual(target.kcal, 2_450)

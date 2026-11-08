@@ -147,14 +147,15 @@ final class ExportReportTests: XCTestCase {
         let pdf = AvatarReport(ownerID: user, displayName: "Sample", snapshots: scores + [otherOwner], partialScores: [:],
                                sessions: data().workoutSessions + [second], logs: once + recorded, unit: .pounds).pdfData()
         let document = try XCTUnwrap(PDFDocument(data: pdf))
-        XCTAssertGreaterThanOrEqual(document.pageCount, 3)
-        let firstPage = try XCTUnwrap(document.page(at: 0)?.string)
-        XCTAssertTrue(firstPage.contains("63 / 100"))
-        XCTAssertTrue(firstPage.contains("2026-01-05"))
-        XCTAssertFalse(firstPage.contains("99 / 100"))
+        let pages = (0..<document.pageCount).compactMap { document.page(at: $0)?.string }
+        let scorePage = try XCTUnwrap(pages.first { $0.contains(LanguageState.shared.text("Avatar scores")) })
+        XCTAssertTrue(scorePage.contains("63 / 100"))
+        XCTAssertTrue(scorePage.contains("2026-01-05"))
         let extracted = try XCTUnwrap(document.string)
+        XCTAssertFalse(extracted.contains("99 / 100"))
         XCTAssertTrue(extracted.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ").contains("last word"))
-        let charts = try XCTUnwrap(document.page(at: document.pageCount - 1)?.string)
+        let charts = try XCTUnwrap(pages.first { $0.contains(LanguageState.shared.text("Strength progress")) })
+        XCTAssertGreaterThan(pages.filter { $0.contains(LanguageState.shared.text("Most trained exercises")) }.count, 1)
         let localizedLatest = 66.1.formatted(.number.locale(LanguageState.shared.language.locale))
         XCTAssertTrue(charts.contains(localizedLatest + " lb"))
         XCTAssertTrue(charts.contains("+22 lb"))
@@ -165,7 +166,9 @@ final class ExportReportTests: XCTestCase {
         let middleDate = axis.label(axis.ticks[2], locale: LanguageState.shared.language.locale)
         XCTAssertTrue(charts.contains(middleDate), "The PDF must label dates between the first and latest set")
         XCTAssertTrue(charts.contains("6 " + LanguageState.shared.text("reps")))
-        XCTAssertTrue(charts.contains(LanguageState.shared.text("One recorded session")))
+        XCTAssertFalse(charts.contains("Accessory"))
+        XCTAssertFalse(charts.contains(LanguageState.shared.text("Squat")))
+        XCTAssertFalse(extracted.contains(LanguageState.shared.text("One recorded session")))
         let attachment = XCTAttachment(data: pdf, uniformTypeIdentifier: "com.adobe.pdf")
         attachment.name = "Avatar report.pdf"
         attachment.lifetime = .keepAlways
@@ -189,7 +192,9 @@ final class ExportReportTests: XCTestCase {
         let pdf = AvatarReport(ownerID: user, displayName: "Sample", snapshots: [], partialScores: [:],
                                sessions: data().workoutSessions + [sameDay], logs: rows, unit: .kilograms).pdfData()
         let document = try XCTUnwrap(PDFDocument(data: pdf))
-        let page = try XCTUnwrap(document.page(at: 1))
+        let page = try XCTUnwrap((0..<document.pageCount).compactMap { document.page(at: $0) }.first {
+            $0.string?.contains(LanguageState.shared.text("Most trained exercises")) == true
+        })
         let text = try XCTUnwrap(page.string)
         let language = LanguageState.shared
         XCTAssertTrue(text.contains(language.text("Hip Thrust") + " · " + language.text("Lower body")))
@@ -264,6 +269,9 @@ final class ExportReportTests: XCTestCase {
         let second = WorkoutSession(id: UUID(), userID: user, date: "2026-02-09", programDayID: dayID,
                                     isLite: false, isDeload: false, isEventRecovery: false, completed: true,
                                     qualityScore: 1, startedAt: nil, completedAt: nil, notes: "")
+        let third = WorkoutSession(id: UUID(), userID: user, date: "2026-03-02", programDayID: dayID,
+                                   isLite: false, isDeload: false, isEventRecovery: false, completed: true,
+                                   qualityScore: 1, startedAt: nil, completedAt: nil, notes: "")
         func later(_ name: String, _ movement: String?, _ kg: Double?, _ reps: Int) -> WorkoutLog {
             WorkoutLog(id: UUID(), userID: user, sessionID: second.id, exerciseID: nil, exerciseName: name,
                        setNumber: 1, weightKG: kg, reps: reps, rir: nil, movementID: movement,
@@ -277,23 +285,43 @@ final class ExportReportTests: XCTestCase {
             later("Bulgarian Split Squat", "bulgarian_split_squat", 18, 10),
             log("Reverse Lunge", set: 1, weight: 10, reps: 14, at: ""),
             later("Reverse Lunge", "reverse_lunge", 12, 16),
-        ] + (1...6).map { log("Accessory \($0)", set: 1, weight: Double($0), reps: 4, at: "") }
-        let pdf = AvatarReport(ownerID: user, displayName: "Training example", snapshots: [], partialScores: [:],
-                               sessions: data().workoutSessions + [second], logs: rows + [rows[0]], unit: .kilograms).pdfData()
+        ] + (1...3).map { set in
+            WorkoutLog(id: UUID(), userID: user, sessionID: third.id, exerciseID: nil, exerciseName: "Dumbbell Curl",
+                       setNumber: set, weightKG: 3.5, reps: 8, rir: 2, skipped: false, overrideFlag: false, createdAt: "")
+        }
+        var fixture = data(logs: rows + [rows[0]])
+        fixture.workoutSessions += [second, third]
+        let profile = TrainingProfile90.summarize(ownerID: user, data: fixture, through: third.date)
+        XCTAssertEqual(profile.classifiedWorkouts, 3)
+        let pdf = AvatarReport(ownerID: user, displayName: "Alex Morgan", snapshots: [], partialScores: [:],
+                               sessions: fixture.workoutSessions, logs: fixture.workoutLogs, unit: .kilograms,
+                               trainingProfile: profile).pdfData()
         let document = try XCTUnwrap(PDFDocument(data: pdf))
         let pages = (0..<document.pageCount).compactMap { document.page(at: $0)?.string }
         let language = LanguageState.shared
-        let repsPages = pages.filter { $0.contains(language.text("Reps per session")) }
-        let pushUpPage = try XCTUnwrap(repsPages.first { $0.contains(language.text("Push-Up")) })
-        XCTAssertTrue(pushUpPage.contains("20 " + language.text("reps")))
-        XCTAssertTrue(pushUpPage.contains("25 " + language.text("reps")))
-        let volumePages = pages.filter { $0.contains(language.text("Recorded volume per session")) }.joined(separator: " ")
-        for kg in [112, 180, 140, 192] { XCTAssertTrue(volumePages.contains("\(kg) kg")) }
-        let loadPages = pages.filter { $0.contains(language.text("Strength progress")) }.joined(separator: " ")
-        for i in 1...6 { XCTAssertTrue(loadPages.contains("Accessory \(i)")) }
-        let summary = try XCTUnwrap(pages.first { $0.contains(language.text("All-time training totals")) })
+        XCTAssertEqual(pages.count, 3)
+        let summary = try XCTUnwrap(pages.first)
+        XCTAssertTrue(summary.contains(language.text(profile.athleteTitle)))
+        XCTAssertTrue(summary.contains(language.text("All-time training totals")))
+        let charts = try XCTUnwrap(document.page(at: 1)?.string)
+        XCTAssertTrue(charts.contains(language.text("Strength progress")))
+        XCTAssertTrue(charts.contains(language.text("Bulgarian Split Squat")))
+        XCTAssertTrue(charts.contains(language.text("Reverse Lunge")))
+        XCTAssertFalse(charts.contains(language.text("Push-Up")))
+        XCTAssertFalse(charts.contains(language.text("Dumbbell Curl")))
+        for (reps, kg) in [(18, 292), (30, 332)] {
+            XCTAssertTrue(charts.contains(language.text("Recorded reps") + " " + String(reps)))
+            XCTAssertTrue(charts.contains(language.text("Lifted volume") + " " + String(kg) + " kg"))
+        }
+        let rankings = try XCTUnwrap(document.page(at: 2)?.string)
+        XCTAssertTrue(rankings.contains(language.text("Most trained exercises")))
+        XCTAssertTrue(rankings.contains(language.text("Push-Up")))
+        XCTAssertTrue(rankings.contains(language.text("Dumbbell Curl")))
+        for section in ["Reps per session", "Recorded volume per session", "Avatar scores"] {
+            XCTAssertFalse(pages.contains { $0.contains(language.text(section)) })
+        }
         XCTAssertTrue(summary.contains("708 kg"))
-        XCTAssertTrue(summary.split(whereSeparator: { $0.isWhitespace }).contains("13"))
+        XCTAssertTrue(summary.split(whereSeparator: { $0.isWhitespace }).contains("10"))
         XCTAssertTrue(summary.split(whereSeparator: { $0.isWhitespace }).contains("117"))
         let summaryText = summary.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
         let mass = try XCTUnwrap(LiftedMassComparison.caption(kilograms: 708))
@@ -335,10 +363,15 @@ final class ExportReportTests: XCTestCase {
                                sessions: [], logs: [], unit: .kilograms).pdfData()
         let document = try XCTUnwrap(PDFDocument(data: pdf))
         let text = try XCTUnwrap(document.string)
-        XCTAssertEqual(document.pageCount, 2)
-        XCTAssertTrue(text.contains(LanguageState.shared.text("Building your baseline")))
+        XCTAssertEqual(document.pageCount, 1)
         XCTAssertTrue(text.contains("51 / 100"))
-        XCTAssertTrue(text.contains(LanguageState.shared.text("No exercises recorded yet.")))
-        XCTAssertTrue(text.contains(LanguageState.shared.text("No recorded reps or working loads yet.")))
+        for section in ["Most trained exercises", "Strength progress", "Overall Fitness Level", "All-time training totals"] {
+            XCTAssertFalse(text.contains(LanguageState.shared.text(section)))
+        }
+        let empty = AvatarReport(ownerID: user, displayName: "Sample", snapshots: [], partialScores: [:],
+                                 sessions: [], logs: [], unit: .kilograms)
+        let baseline = try XCTUnwrap(PDFDocument(data: empty.pdfData()))
+        XCTAssertEqual(baseline.pageCount, 1)
+        XCTAssertTrue(try XCTUnwrap(baseline.string).contains(LanguageState.shared.text("Building your baseline")))
     }
 }
