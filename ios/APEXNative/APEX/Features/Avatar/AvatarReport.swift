@@ -156,8 +156,11 @@ struct AvatarReport: Transferable {
             if let trainingProfile, trainingProfile.classifiedWorkouts > 0 {
                 pages.drawTrainingProfile(trainingProfile)
             }
+            if !families.isEmpty { pages.drawLifetimeTotals(families) }
+            if let trainingProfile, trainingProfile.classifiedWorkouts > 0 {
+                pages.drawProfileSummary(trainingProfile)
+            }
             if !families.isEmpty {
-                pages.drawLifetimeTotals(families)
                 pages.drawCharts(families)
                 pages.drawRankings(families)
             }
@@ -272,22 +275,15 @@ struct AvatarReport: Transferable {
             label(language.dateKey(profile.from) + " – " + language.dateKey(profile.to),
                   58, y + 3, 496, size: 12, color: mint)
             y = top + height + 16
-            let metrics = profile.metrics(language: language).filter { $0.value != "0" || $0.key == "Workouts per week" }
-            let summary = metrics.map { language.text($0.key) + " " + $0.value }.joined(separator: "   ·   ")
-            paragraph(summary, size: 12)
-            if let note = profile.note { paragraph(language.text(note), size: 11, color: muted) }
-            if let match = profile.matchedLoad {
-                y += 4
-                paragraph(language.text("Matched working load") + " · " + language.text(match.exercise) + " · "
-                          + language.format("%d reps", match.reps), size: 12)
-                let earlierEnd = APEXDateMath.adding(days: -1, to: profile.laterStart)
-                paragraph(language.text("Earlier period") + " · " + language.dateKey(profile.from) + " – "
-                          + language.dateKey(earlierEnd) + " · " + weight(match.earlierKG), size: 12)
-                paragraph(language.text("Later period") + " · " + language.dateKey(profile.laterStart) + " – "
-                          + language.dateKey(profile.to) + " · " + weight(match.recentKG), size: 12, color: green)
-                paragraph(language.text("Median session-best load at the same rep count."), size: 10, color: muted)
+        }
+
+        func drawProfileSummary(_ profile: TrainingProfile90) {
+            let metrics = profile.metrics(language: language).filter {
+                ($0.value != "0" || $0.key == "Workouts per week") && $0.key != "Recent median reps per resistance session"
             }
-            y += 16
+            let summary = metrics.map { language.text($0.key) + " " + $0.value }.joined(separator: "   ·   ")
+            y += 8
+            paragraph(summary, size: 12, color: muted)
         }
 
         private func paragraph(_ text: String, size: CGFloat, color: UIColor? = nil) {
@@ -306,12 +302,6 @@ struct AvatarReport: Transferable {
             if page == 0 || y > 420 { beginPage() }
             label(language.text(report.period == .allTime ? "All-time training totals" : "Training totals"), 38, y, 536, size: 21, weight: .bold)
             y += 31
-            let dates = rows.flatMap { $0.sessions.map(\.date) }.filter { APEXDateMath.date(from: $0) != nil }
-            if let first = dates.min(), let last = dates.max() {
-                let range = first == last ? language.dateKey(first) : language.dateKey(first) + " – " + language.dateKey(last)
-                label(range, 38, y, 536, size: 11, color: muted)
-                y += 20
-            }
             let metrics: [(String, String?)] = [
                 ("Performed sets", String(totals.sets)),
                 ("Recorded reps", recordedReps(totals)),
@@ -328,8 +318,9 @@ struct AvatarReport: Transferable {
                 drawComparisons(object: LiftedMassComparison.caption(kilograms: kg),
                                 hero: LiftedMassComparison.heroCaption(kilograms: kg))
             }
-            let note = language.text("Known external load × recorded reps. Body mass, assistance and timed work are excluded from volume. Skipped sets are excluded from all totals.")
-            paragraph(note, size: 10, color: muted)
+            if totals.missingVolume || totals.missingReps {
+                paragraph("* " + language.text("Incomplete records"), size: 10, color: muted)
+            }
         }
 
         private func drawComparisons(object: LiftedMassComparison.Comparison?, hero: LiftedMassComparison.Comparison?) {
@@ -378,13 +369,10 @@ struct AvatarReport: Transferable {
             ]
             func heading() {
                 begin("Most trained exercises", subtitle: language.text("Each completed workout counts once per exercise family."))
-                let explanation = language.text("Volume sums each recorded load × reps. An asterisk marks incomplete records.")
-                    + " " + language.text("Load per rep averages only reps with a measured load.")
-                for part in wrapped(explanation, width: 536, size: 10) {
-                    label(part, 38, y, 536, size: 10, color: muted)
-                    y += 14
+                if rows.contains(where: { $0.totals.missingVolume || $0.totals.missingReps }) {
+                    paragraph("* " + language.text("Incomplete records"), size: 10, color: muted)
+                    y += 6
                 }
-                y += 9
                 var height: CGFloat = 0
                 for (i, column) in columns.enumerated() {
                     let lines = wrapped(language.text(column.title), width: column.width - 3, size: 10, weight: .bold)
@@ -480,93 +468,73 @@ struct AvatarReport: Transferable {
 
         private struct LegPanel {
             let movement: String
-            let basis: String
-            let first: (value: String, date: String)
-            let peak: (value: String, date: String)
-            let latest: (value: String, date: String)
-            let notes: [String]
+            let tiles: [(String, String)]
+            let bodyAndLoad: String?
+            let note: String?
             let source: URL?
-
-            var height: CGFloat { 163 + CGFloat(notes.count) * 12 }
         }
 
-        private func legPanel(_ variant: StrengthProgress.ExerciseHistory, points: [ChartPoint]) -> LegPanel? {
+        private func legPanel(_ variant: StrengthProgress.ExerciseHistory, latest: ChartPoint) -> LegPanel? {
             let id = variant.key.hasPrefix("movement:") ? String(variant.key.dropFirst(9)) : ExerciseCatalog.movementID(matchingName: variant.name)
-            guard let id, var support = Self.legGuide[id], let first = points.first, let last = points.last else { return nil }
+            guard let id, var support = Self.legGuide[id] else { return nil }
             let words = Set(variant.name.lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init))
             if !words.isDisjoint(with: ["or", "assisted", "supported", "machine", "smith", "cable", "band"]) { support = .externalOnly }
-            let known = points.compactMap { report.bodyweightBySession[$0.sessionID] }
-            let reference = known.isEmpty ? report.currentBodyweightKG : nil
-            let estimate = (support == .rearFootElevated || support == .singleSupport)
-                && (known.count == points.count || reference != nil)
-            let factor = support == .rearFootElevated ? 0.8436 : 1
-            func load(_ point: ChartPoint) -> Double {
-                guard estimate, let body = report.bodyweightBySession[point.sessionID] ?? reference else { return point.value }
-                return (body + point.value) * factor
-            }
-            func observation(_ point: ChartPoint) -> (String, String) {
-                let value = load(point)
-                let display = estimate ? "≈ " + number(report.unit.value(fromKilograms: value).rounded()) + " " + report.unit.suffix : weight(value)
-                return (display, point.date.formatted(Date.FormatStyle(locale: language.language.locale, timeZone: .gmt).year().month(.abbreviated).day()))
-            }
-            let peak = points.dropFirst().reduce(first) { best, next in load(next) > load(best) ? next : best }
-            var notes: [String] = []
+            let load = latest.value
+            var tiles = [(language.text("Added weight"), weight(load))]
+            var bodyAndLoad: String?
+            var note: String?
             var source: URL?
-            let basis: String
-            if estimate {
-                basis = support == .rearFootElevated ? "Front foot · estimated" : "Standing foot · estimated"
-                if support == .rearFootElevated {
-                    notes.append("At rest · based on Helme et al.")
-                    source = URL(string: "https://doi.org/10.1519/JSC.0000000000003727")
+            let datedWeight = report.bodyweightBySession[latest.sessionID]
+            let reference = report.bodyweightBySession.isEmpty ? report.currentBodyweightKG : nil
+            if support != .externalOnly, let body = datedWeight ?? reference, body.isFinite, body > 0 {
+                let combined = body + load
+                bodyAndLoad = (datedWeight == nil ? language.text("Current bodyweight") + " " : "") + weight(body) + " + " + weight(load)
+                tiles.append((language.text("Body + load"), weight(combined)))
+                if support == .sharedSupport {
+                    note = language.text("The share on each foot varies with stance and support.")
                 } else {
-                    notes.append("Assumes one foot on the floor and no hand support.")
-                }
-                if reference != nil { notes.append("Current bodyweight used as a reference for every set.") }
-            } else {
-                basis = "External load during single-leg sets"
-                if support == .sharedSupport { notes.append("The share on each foot varies with stance and support.") }
-                else if support != .externalOnly && !known.isEmpty {
-                    notes.append("Bodyweight history is incomplete. External load is shown for every set.")
+                    let split = support == .rearFootElevated
+                    let estimate = report.unit.value(fromKilograms: combined * (split ? 0.8436 : 1)).rounded()
+                    let label = language.text(split ? "Front foot · estimated" : "Standing foot · estimated")
+                    tiles.insert((label, "≈ " + number(estimate) + " " + report.unit.suffix), at: 0)
+                    note = language.text(split ? "At rest · based on Helme et al." : "Assumes one foot on the floor and no hand support.")
+                    if split { source = URL(string: "https://doi.org/10.1519/JSC.0000000000003727") }
                 }
             }
-            return LegPanel(movement: id, basis: language.text(basis), first: observation(first), peak: observation(peak),
-                            latest: observation(last), notes: notes.flatMap { wrapped(language.text($0), width: 504, size: 9) }, source: source)
+            return LegPanel(movement: id, tiles: tiles, bodyAndLoad: bodyAndLoad, note: note, source: source)
         }
 
         private func drawLegPanel(_ panel: LegPanel) {
             let top = y + 8
-            let frame = CGRect(x: 38, y: top, width: 536, height: panel.height)
+            let frame = CGRect(x: 38, y: top, width: 536, height: 124)
             UIColor(red: 0.94, green: 0.97, blue: 0.96, alpha: 1).setFill()
-            UIBezierPath(roundedRect: frame, cornerRadius: 13).fill()
-            label(language.text("Working leg"), 52, top + 10, 505, size: 16, weight: .bold)
-            label(panel.basis, 52, top + 31, 505, size: 11, weight: .medium, color: muted)
-            let illustration = Bundle.main.url(forResource: panel.movement, withExtension: "webp", subdirectory: "leg-anatomy")
-                .flatMap { UIImage(contentsOfFile: $0.path) }
-            for (index, item) in [("First", panel.first), ("Peak", panel.peak)].enumerated() {
-                let x: CGFloat = index == 0 ? 51 : 312
-                let tile = CGRect(x: x, y: top + 50, width: 248, height: 80)
-                UIColor.white.setFill()
-                UIBezierPath(roundedRect: tile, cornerRadius: 9).fill()
-                var textX = x + 13
-                if let illustration {
-                    let scale = min(66 / illustration.size.width, 71 / illustration.size.height)
-                    let size = CGSize(width: illustration.size.width * scale, height: illustration.size.height * scale)
-                    illustration.draw(in: CGRect(x: x + 42 - size.width / 2, y: tile.midY - size.height / 2,
-                                                 width: size.width, height: size.height))
-                    textX = x + 80
+            UIBezierPath(roundedRect: frame, cornerRadius: 14).fill()
+            if let url = Bundle.main.url(forResource: panel.movement, withExtension: "webp", subdirectory: "leg-anatomy"),
+               let illustration = UIImage(contentsOfFile: url.path) {
+                let scale = min(103 / illustration.size.width, 115 / illustration.size.height)
+                let size = CGSize(width: illustration.size.width * scale, height: illustration.size.height * scale)
+                illustration.draw(in: CGRect(x: 92 - size.width / 2, y: frame.midY - size.height / 2, width: size.width, height: size.height))
+            }
+            label(language.text("Working leg"), 152, top + 9, 404, size: 16, weight: .bold)
+            let gap: CGFloat = 6
+            let width = (409 - gap * CGFloat(panel.tiles.count - 1)) / CGFloat(panel.tiles.count)
+            for (index, tile) in panel.tiles.enumerated() {
+                let x = 152 + CGFloat(index) * (width + gap)
+                (index == 0 ? UIColor(red: 0.81, green: 0.94, blue: 0.90, alpha: 1) : UIColor.white).setFill()
+                UIBezierPath(roundedRect: CGRect(x: x, y: top + 37, width: width, height: 61), cornerRadius: 9).fill()
+                for (row, part) in wrapped(tile.0, width: width - 12, size: 9).enumerated() {
+                    label(part, x + 7, top + 41 + CGFloat(row) * 10, width - 12, size: 9, color: muted)
                 }
-                let width = tile.maxX - textX - 7
-                label(language.text(item.0), textX, tile.minY + 8, width, size: 11, weight: .semibold, color: muted)
-                label(item.1.value, textX, tile.minY + 23, width, size: 23, weight: .bold, color: green)
-                label(item.1.date, textX, tile.minY + 55, width, size: 10, color: muted)
+                label(tile.1, x + 7, top + 63, width - 12, size: 20, weight: .bold, color: index == 0 ? green : ink)
+                if index == panel.tiles.count - 1, let bodyAndLoad = panel.bodyAndLoad {
+                    label(bodyAndLoad, x + 8, top + 86, width - 14, size: 8, color: muted)
+                }
             }
-            let latest = [language.text("Latest"), panel.latest.value, panel.latest.date].joined(separator: " · ")
-            label(latest, 52, top + 137, 504, size: 12, weight: .semibold)
-            for (i, part) in panel.notes.enumerated() {
-                label(part, 52, top + 157 + CGFloat(i) * 12, 504, size: 9, color: muted)
-            }
-            if let source = panel.source {
-                context.setURL(source, for: CGRect(x: 52, y: top + 156, width: 504, height: 12))
+            if let note = panel.note {
+                for (index, part) in wrapped(note, width: 409, size: 9).enumerated() {
+                    label(part, 152, top + 102 + CGFloat(index) * 10, 409, size: 9, color: panel.source == nil ? muted : green)
+                }
+                if let source = panel.source { context.setURL(source, for: CGRect(x: 152, y: top + 100, width: 409, height: 23)) }
             }
             y = frame.maxY + 4
         }
@@ -579,14 +547,14 @@ struct AvatarReport: Transferable {
             let parts = variant.titleParts(language)
             let title = wrapped(parts.main, width: 530, size: 19, weight: .bold)
             let subtitle = parts.variation.map { wrapped($0, width: 530, size: 12) } ?? []
-            let panel = legPanel(variant, points: points)
+            let panel = legPanel(variant, latest: last)
             let totals = [(language.text("Recorded reps"), recordedReps(variant.totals)),
                           (language.text("Lifted volume"), liftedVolume(variant.totals))]
                 .compactMap { key, value in value.map { key + " " + $0 } }
             let totalLines = totals.isEmpty ? [] : wrapped(language.text(report.period.rawValue) + "   ·   " + totals.joined(separator: "   ·   "),
                                                          width: 536, size: 11, weight: .semibold)
             let height = 268 + CGFloat(title.count - 1) * 24 + CGFloat(subtitle.count + totalLines.count) * 16
-                + (panel.map { $0.height + 12 } ?? 0)
+                + (panel == nil ? 0 : 136)
             func heading() {
                 begin("Strength progress", subtitle: language.text("Heaviest recorded working load in each completed session."))
             }

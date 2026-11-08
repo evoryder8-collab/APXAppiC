@@ -229,7 +229,8 @@ final class ExportReportTests: XCTestCase {
         let engine = try XCTUnwrap(LiftedMassComparison.caption(kilograms: 37_833))
         XCTAssertEqual(engine.caption, "About the weight of a fully loaded airport fire engine")
         let pianos = try XCTUnwrap(LiftedMassComparison.caption(kilograms: 708))
-        XCTAssertEqual(pianos.caption, "About three upright pianos")
+        XCTAssertEqual(pianos.caption, "Around 3x Upright pianos")
+        XCTAssertEqual(LiftedMassComparison.caption(kilograms: 752)?.caption, "Around 4x Treadmills")
         XCTAssertTrue(pianos.fact?.contains("Yamaha") == true)
         XCTAssertEqual(pianos.artworkURL?.lastPathComponent, "upright-piano.webp")
         XCTAssertEqual(LiftedMassComparison.caption(kilograms: .leastNonzeroMagnitude)?.caption,
@@ -311,10 +312,10 @@ final class ExportReportTests: XCTestCase {
         XCTAssertTrue(charts.contains(language.text("Working leg")))
         XCTAssertTrue(charts.contains(language.text("Front foot · estimated")))
         XCTAssertTrue(charts.contains("≈ 66 kg"))
-        XCTAssertFalse(charts.contains(language.text("Body + load")))
-        XCTAssertFalse(charts.contains(language.text("Added weight")))
-        XCTAssertTrue(charts.contains(language.text("External load during single-leg sets")))
-        XCTAssertTrue(charts.contains(language.text("Current bodyweight used as a reference for every set.")))
+        XCTAssertTrue(charts.contains(language.text("Body + load")))
+        XCTAssertTrue(charts.contains(language.text("Added weight")))
+        XCTAssertTrue(charts.contains(language.text("The share on each foot varies with stance and support.")))
+        XCTAssertTrue(charts.contains(language.text("Current bodyweight")))
         XCTAssertFalse(charts.contains(language.text("Push-Up")))
         XCTAssertFalse(charts.contains(language.text("Dumbbell Curl")))
         for (reps, kg) in [(18, 292), (30, 332)] {
@@ -366,7 +367,7 @@ final class ExportReportTests: XCTestCase {
     }
 
     @MainActor
-    func testWorkingLegPDFComparesEveryDatedLoadAndKeepsLatestBelowTheFirstAndPeak() throws {
+    func testWorkingLegPDFUsesLatestInRangeLoadAndDatedBodyweight() throws {
         var fixture = data()
         let language = LanguageState.shared
         let previous = language.language
@@ -399,34 +400,34 @@ final class ExportReportTests: XCTestCase {
         })
         let text = try XCTUnwrap(page.string)
         XCTAssertTrue(text.contains("Best working load · 8 reps × 24 kg"))
-        XCTAssertTrue(text.contains("Latest · ≈ 62 kg"))
+        XCTAssertTrue(text.contains("≈ 62 kg"))
+        XCTAssertTrue(text.contains("55 kg + 18 kg"))
         XCTAssertFalse(text.contains("200 kg"))
-        func location(_ label: String, minimumX: CGFloat = 0) throws -> CGRect {
-            let matches = document.findString(label, withOptions: .literal).filter { $0.pages.first == page }
-                .map { $0.bounds(for: page) }.filter { $0.minX >= minimumX }
-            return try XCTUnwrap(matches.first, label)
+        let cover = try XCTUnwrap(document.page(at: 0))
+        func coverY(_ label: String) throws -> CGFloat {
+            let mark = try XCTUnwrap(document.findString(label, withOptions: .literal).first { $0.pages.first == cover }, label)
+            return mark.bounds(for: cover).midY
         }
-        let first = try location("≈ 61 kg")
-        let peak = try location("≈ 76 kg")
-        let latest = try location("Latest · ≈ 62 kg")
-        XCTAssertLessThan(first.minX, peak.minX)
-        XCTAssertEqual(first.midY, peak.midY, accuracy: 1)
-        XCTAssertLessThan(latest.midY, first.midY)
-        let expectedDate = try XCTUnwrap(APEXDateMath.date(from: "2026-03-17")).formatted(
-            Date.FormatStyle(locale: language.language.locale, timeZone: .gmt).year().month(.abbreviated).day()
-        )
-        let peakDate = try location(expectedDate, minimumX: peak.minX - 1)
-        XCTAssertLessThan(peakDate.maxY, peak.minY)
+        let hero = try XCTUnwrap(LiftedMassComparison.heroCaption(kilograms: 752))
+        XCTAssertGreaterThan(try coverY("Strength athlete"), try coverY("Training totals"))
+        XCTAssertGreaterThan(try coverY("Training totals"), try coverY("Around 4x Treadmills"))
+        XCTAssertGreaterThan(try coverY("Around 4x Treadmills"), try coverY(hero.caption))
+        XCTAssertGreaterThan(try coverY(hero.caption), try coverY("Classified workouts"))
+        let copy = try XCTUnwrap(document.string)
+        for obsolete in ["Matched working load", "Median session-best", "Known external load", "Volume sums each"] {
+            XCTAssertFalse(copy.contains(obsolete))
+        }
         let attachment = XCTAttachment(data: pdf, uniformTypeIdentifier: "com.adobe.pdf")
-        attachment.name = "Working leg first peak latest.pdf"
+        attachment.name = "Working leg latest recorded load.pdf"
         attachment.lifetime = .keepAlways
         add(attachment)
 
-        // A weight measured midway through this range cannot estimate the earlier sessions.
-        fixture.healthMetrics.removeFirst(2)
+        // No in-range bodyweight can be recovered from foreign or future measurements.
+        fixture.healthMetrics.removeAll { $0.userID == user }
+        fixture.healthMetrics.append(HealthMetric(id: UUID(), userID: user, date: "2026-04-01", weightKG: 90))
         let partial = try XCTUnwrap(PDFDocument(data: report().pdfData())?.string)
-        XCTAssertTrue(partial.contains("Bodyweight history is incomplete. External load is shown for every set."))
-        XCTAssertTrue(partial.contains("Latest · 18 kg"))
+        XCTAssertTrue(partial.contains("Added weight"))
+        XCTAssertFalse(partial.contains("Body + load"))
         XCTAssertFalse(partial.contains("Front foot · estimated"))
     }
 

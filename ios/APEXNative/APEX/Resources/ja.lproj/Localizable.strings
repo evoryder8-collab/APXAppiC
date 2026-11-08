@@ -5857,3 +5857,4 @@
 "External load during single-leg sets" = "片脚セットの追加重量";
 "Current bodyweight used as a reference for every set." = "全セットで現在の体重を基準にしています。";
 "Bodyweight history is incomplete. External load is shown for every set." = "体重履歴が不足しているため、全セットで追加重量を表示しています。";
+"Incomplete records" = "記録が一部不足";
