@@ -475,7 +475,7 @@ struct AvatarReport: Transferable {
                         }
                         paragraph(language.text(variant.name), size: 17)
                         if let single { paragraph(single, size: 11, color: green) }
-                        if let panel { drawLegPanel(panel) }
+                        if let panel { drawLegPanel(panel, exercise: variant.name) }
                         y += 12
                     } else { continue }
                     firstInSection = false
@@ -503,7 +503,7 @@ struct AvatarReport: Transferable {
             let after: Entry
             let estimateLabel: String
             let record: [String]
-            var height: CGFloat { 232 + CGFloat(max(1, record.count)) * 15 }
+            var height: CGFloat { 244 + CGFloat(max(1, record.count)) * 15 }
         }
 
         private func legPanel(_ variant: StrengthProgress.ExerciseHistory) -> LegPanel? {
@@ -539,27 +539,32 @@ struct AvatarReport: Transferable {
             if let peak, let set = peak.heaviestSet {
                 let metric = language.text(useBody ? "Body + load" : "Added weight")
                 let title = language.text("Personal record") + " · " + metric
-                record = wrapped(title, width: 237, size: 10, weight: .semibold)
+                record = wrapped(title, width: 237, size: 11, weight: .semibold)
                 let details = language.format("%d reps", set.reps) + " × " + weight(combined(peak) ?? set.kg)
                     + " · " + language.dateKey(peak.date)
-                record += wrapped(details, width: 237, size: 10, weight: .semibold)
+                record += wrapped(details, width: 237, size: 11, weight: .semibold)
+                if useBody {
+                    record += wrapped(language.text("Added weight") + " · " + weight(set.kg),
+                                      width: 237, size: 11, weight: .semibold)
+                }
             }
             return LegPanel(movement: id, before: entry(earliest), after: entry(latest),
                             estimateLabel: language.text(support == .rearFootElevated ? "Front foot · estimated" : "Standing foot · estimated"),
                             record: record)
         }
 
-        private func drawLegPanel(_ panel: LegPanel) {
+        private func drawLegPanel(_ panel: LegPanel, exercise: String) {
+            if y + 8 + panel.height > 742 { begin(exercise, subtitle: "") }
             let top = y + 8
             let frame = CGRect(x: 38, y: top, width: 536, height: panel.height)
             UIColor(red: 0.94, green: 0.97, blue: 0.96, alpha: 1).setFill()
             UIBezierPath(roundedRect: frame, cornerRadius: 14).fill()
-            label(language.text("Working leg"), 52, top + 9, 504, size: 16, weight: .bold)
+            label(language.text("Working leg"), 52, top + 12, 504, size: 25, weight: .heavy)
             let illustration = Bundle.main.url(forResource: panel.movement, withExtension: "webp", subdirectory: "leg-anatomy")
                 .flatMap { UIImage(contentsOfFile: $0.path) }
             for (i, entry) in [panel.before, panel.after].enumerated() {
                 let x: CGFloat = i == 0 ? 50 : 311
-                let tile = CGRect(x: x, y: top + 35, width: 251, height: 187)
+                let tile = CGRect(x: x, y: top + 56, width: 251, height: 176)
                 (i == 0 ? UIColor.white : UIColor(red: 0.81, green: 0.94, blue: 0.90, alpha: 1)).setFill()
                 UIBezierPath(roundedRect: tile, cornerRadius: 9).fill()
                 let title = language.text(i == 0 ? "Before" : "After").uppercased(with: language.language.locale)
@@ -579,15 +584,15 @@ struct AvatarReport: Transferable {
                     label(combined, textX, tile.minY + 130, 163, size: 22, weight: .bold, color: green)
                 }
                 if let estimate = entry.estimate {
-                    label(panel.estimateLabel + " " + estimate, textX, tile.minY + 166, 163, size: 9, color: muted)
+                    label(panel.estimateLabel + " " + estimate, textX, tile.minY + 157, 163, size: 9, color: muted)
                 }
             }
             if let joined = report.joinedDate {
                 label(language.text("Joined FITR MAX") + " · " + language.dateKey(joined),
-                      59, top + 226, 237, size: 10, color: muted)
+                      59, top + 237, 237, size: 10, color: muted)
             }
             for (i, part) in panel.record.enumerated() {
-                label(part, 320, top + 227 + CGFloat(i) * 15, 239, size: 10, weight: .semibold, color: green)
+                label(part, 320, top + 237 + CGFloat(i) * 15, 239, size: 11, weight: .semibold, color: green)
             }
             y = frame.maxY + 4
         }
@@ -621,10 +626,14 @@ struct AvatarReport: Transferable {
                 y += 16
             }
             y -= 24
-            let field = CGRect(x: 38, y: y + 33, width: 536, height: 141)
+            let chartReduction: CGFloat = panel.map {
+                let panelBottom = y + 268 + CGFloat(totalLines.count) * 16 + (single == nil ? 0 : 16) + 8 + $0.height
+                return min(32, max(0, panelBottom - 738))
+            } ?? 0
+            let field = CGRect(x: 38, y: y + 33, width: 536, height: 141 - chartReduction)
             UIColor(red: 0.96, green: 0.95, blue: 0.99, alpha: 1).setFill()
             UIBezierPath(roundedRect: field, cornerRadius: 12).fill()
-            let plot = CGRect(x: 102, y: field.minY + 15, width: 436, height: 92)
+            let plot = CGRect(x: 102, y: field.minY + 15, width: 436, height: 92 - chartReduction)
             for tick in [0, highest / 2, highest] {
                 let tickY = plot.maxY - CGFloat(tick / highest) * plot.height
                 label(weight(tick), 40, tickY - 7, 56, size: 10, color: muted, alignment: .right)
@@ -642,6 +651,7 @@ struct AvatarReport: Transferable {
                         y: plot.maxY - point.value / highest * plot.height)
             }
             drawLoadTrace(coordinates, baseline: plot.maxY)
+            y -= chartReduction
             func display(_ point: ChartPoint) -> String {
                 (point.reps.map { language.format("%d reps", $0) + " × " } ?? "") + weight(point.value)
             }
@@ -671,7 +681,7 @@ struct AvatarReport: Transferable {
                 label(part, 38, y, 536, size: 11, weight: .semibold)
                 y += 16
             }
-            if let panel { drawLegPanel(panel) }
+            if let panel { drawLegPanel(panel, exercise: variant.name) }
             y += 12
         }
 

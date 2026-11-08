@@ -170,6 +170,7 @@ test('split records keep lifetime first, current in-range work, mid-period best 
   assert.match(html, /<h5>Before<\/h5>[\s\S]*?Jan 1, 2026<\/time>[\s\S]*?Joined FITR MAX · Aug 5, 2025[\s\S]*?Added weight<\/dt><dd>0 kg[\s\S]*?Body \+ load<\/dt><dd>39 kg/)
   assert.match(html, /<h5>After<\/h5>[\s\S]*?Nov 2, 2026<\/time>[\s\S]*?Added weight<\/dt><dd>12 kg[\s\S]*?Body \+ load<\/dt><dd>53 kg/)
   assert.match(html, /Personal record<\/b>\s*<strong>67 kg<\/strong><small>Body \+ load · 6 reps · Nov 1, 2026/)
+  assert.match(html, /class="record-added">Added weight · <b>25 kg<\/b>/)
   assert.match(html, /Best single<\/b> · 1 rep × 24 kg · Nov 1, 2026/)
   assert.match(html, /Best single<\/b> · 1 rep × 35 kg · Nov 2, 2026/)
   assert.doesNotMatch(html,/1RM|1000 kg|Nov 7, 2026/)

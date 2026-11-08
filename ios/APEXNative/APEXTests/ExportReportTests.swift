@@ -432,6 +432,7 @@ final class ExportReportTests: XCTestCase {
         XCTAssertTrue(text.contains("0 kg"))
         XCTAssertTrue(text.contains("BEFORE") && text.contains(language.dateKey("2026-02-01")))
         XCTAssertTrue(text.contains("AFTER") && text.contains(language.dateKey("2026-03-31")))
+        XCTAssertTrue(text.contains("Added weight · 20 kg"))
         XCTAssertTrue(text.contains("8 reps × 90 kg · " + language.dateKey("2026-03-17")))
         XCTAssertTrue(try XCTUnwrap(document.string).contains("Joined FITR MAX"))
         XCTAssertFalse(text.contains("200 kg"))
