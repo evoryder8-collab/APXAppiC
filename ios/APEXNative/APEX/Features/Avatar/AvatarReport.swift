@@ -399,23 +399,21 @@ struct AvatarReport: Transferable {
                 let size: CGFloat = variant ? 10 : 12
                 let indent: CGFloat = variant ? 12 : 0
                 let fontWeight: UIFont.Weight = variant ? .regular : .semibold
-                let lines = wrapped(title, width: columns[0].width - indent - 4, size: size, weight: fontWeight)
-                if y + min(500, CGFloat(lines.count) * (size + 3) + 8) > 730 { heading() }
-                if !variant { line(38, y, 574, y, color: rule) }
-                let reps = recordedReps(totals)
-                let mark = totals.missingVolume ? "*" : ""
-                let lifted = liftedVolume(totals)
-                let average = totals.averageLoadKG.map { weight($0) + mark }
-                let values = [String(sessions), reps ?? "", average ?? "", lifted ?? ""]
-                for (index, value) in values.enumerated() {
-                    let column = columns[index + 1]
-                    label(value, column.x, y + 3, column.width, size: size, weight: fontWeight,
-                          color: variant ? muted : ink, alignment: .right)
+                let average = totals.averageLoadKG.map { weight($0) + (totals.missingVolume ? "*" : "") }
+                let values = [title, String(sessions), recordedReps(totals) ?? "", average ?? "", liftedVolume(totals) ?? ""]
+                let cells = zip(columns, values).enumerated().map { i, cell in
+                    wrapped(cell.1, width: cell.0.width - (i == 0 ? indent : 0) - 3, size: size, weight: fontWeight)
                 }
-                for part in lines {
+                let lineCount = cells.map(\.count).max() ?? 1
+                if y + min(500, CGFloat(lineCount) * (size + 3) + 8) > 730 { heading() }
+                if !variant { line(38, y, 574, y, color: rule) }
+                for rowIndex in 0..<lineCount {
                     if y + size + 6 > 730 { heading() }
-                    label(part, 38 + indent, y + 3, columns[0].width - indent, size: size,
-                          weight: fontWeight, color: variant ? muted : ink)
+                    for (i, cell) in cells.enumerated() where rowIndex < cell.count {
+                        let inset = i == 0 ? indent : 0
+                        label(cell[rowIndex], columns[i].x + inset, y + 3, columns[i].width - inset, size: size,
+                              weight: fontWeight, color: variant ? muted : ink, alignment: i == 0 ? .left : .right)
+                    }
                     y += size + 3
                 }
                 y += variant ? 3 : 6
@@ -596,20 +594,20 @@ struct AvatarReport: Transferable {
             }
             if let record = panel.record {
                 let card = CGRect(x: 50, y: top + 245, width: 512, height: 55)
-                ink.setFill()
+                UIColor(red: 0.905, green: 0.97, blue: 0.95, alpha: 1).setFill()
                 UIBezierPath(roundedRect: card, cornerRadius: 9).fill()
                 let heading = language.text("Personal record").uppercased(with: language.language.locale)
                 let headingLines = wrapped(heading, width: 189, size: 16, weight: .heavy)
                 for (i, part) in headingLines.enumerated() {
-                    label(part, 61, card.minY + 5 + CGFloat(i) * 17, 189, size: 16, weight: .heavy, color: .white)
+                    label(part, 61, card.minY + 5 + CGFloat(i) * 17, 189, size: 16, weight: .heavy, color: ink)
                 }
-                label(record.performance, 61, card.minY + (headingLines.count > 1 ? 39 : 30), 189, size: 11, color: .white)
+                label(record.performance, 61, card.minY + (headingLines.count > 1 ? 39 : 30), 189, size: 11, color: muted)
                 let metrics = [(language.text("Added weight"), Optional(record.added)), (language.text("Body + load"), record.combined)]
                 for (i, metric) in metrics.enumerated() {
                     guard let value = metric.1 else { continue }
                     let x: CGFloat = 257 + CGFloat(i) * 152
-                    label(metric.0, x, card.minY + 6, 145, size: 12, weight: .semibold, color: .white)
-                    label(value, x, card.minY + 23, 145, size: 20, weight: .bold, color: .white)
+                    label(metric.0, x, card.minY + 6, 145, size: 12, weight: .semibold, color: ink)
+                    label(value, x, card.minY + 23, 145, size: 20, weight: .bold, color: green)
                 }
             }
             y = frame.maxY + 4
