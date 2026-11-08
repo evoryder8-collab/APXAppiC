@@ -58,7 +58,7 @@ final class PlayerTimelineTests: XCTestCase {
             XCTAssertGreaterThan(pixels.width, 0)
         }
         func thumbnail(_ artwork: GuidedArtwork, elapsed: Double) throws -> [UInt8] {
-            let playerImage = GuidedArtworkView(artwork: artwork, exercise: pushUp, elapsed: elapsed, accent: .mint)
+            let playerImage = GuidedArtworkView(artwork: artwork, exercise: pushUp, elapsed: elapsed)
                 .frame(width: 200, height: 160)
                 .background(.white)
             let rendered = try XCTUnwrap(ImageRenderer(content: playerImage).cgImage)
@@ -87,6 +87,34 @@ final class PlayerTimelineTests: XCTestCase {
         XCTAssertNil(GuidedArtwork.movement(exercise("abs")))
         XCTAssertNil(GuidedArtwork.movement(exercise("Suitcase Hold or March")))
         XCTAssertEqual(ExerciseCatalog.artworkMovementID(for: exercise("Weighted backpack push-up")), "weighted_push_up")
+    }
+
+    @MainActor
+    func testEveryLibraryExerciseResolvesToItsOwnDecodablePlayerArtwork() throws {
+        let items = ExerciseCatalog.all
+        XCTAssertEqual(items.count, 549, "Update the art inventory when changing the exercise library.")
+        for item in items {
+            try autoreleasepool {
+                var prescribed = exercise(item.name)
+                prescribed.movementID = item.movementID
+                let artwork = try XCTUnwrap(GuidedArtwork.movement(prescribed), item.movementID)
+                let stems: [String]
+                switch artwork {
+                case .reference(let id):
+                    XCTAssertEqual(id, item.movementID)
+                    stems = [id]
+                case .pair(let id, let cadence):
+                    XCTAssertEqual(id, item.movementID)
+                    XCTAssertNotNil(cadence, id)
+                    stems = [id + "-1", id + "-2"]
+                }
+                for stem in stems {
+                    let pixels = try XCTUnwrap(GuidedArtwork.image(stem)?.cgImage, stem)
+                    XCTAssertGreaterThan(pixels.width, 0, stem)
+                    XCTAssertGreaterThan(pixels.height, 0, stem)
+                }
+            }
+        }
     }
 
     func testGuidedPhotosFollowOrderedPrescriptionAndPauseAtItsEndpoint() throws {

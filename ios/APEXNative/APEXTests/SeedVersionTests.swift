@@ -88,6 +88,32 @@ final class BespokeProgrammeUpgradeTests: XCTestCase {
         }
     }
 
+    func testBespokeGuidedArtworkUsesExactVariantsAndRejectsLoggingSubstitutes() throws {
+        let result = try XCTUnwrap(BespokeProgrammeUpgrade.prepare(in: legacy(), authenticatedOwnerID: owner))
+        var row = try XCTUnwrap(result.dashboard.exercises.first { $0.name == "Weighted backpack push-up" })
+        for (name, expected) in [
+            ("Weighted backpack push-up", "weighted_push_up"), ("Weighted Dumbbell Hip Thrust", "hip_thrust_dumbbell"),
+            ("Strict Push-Up", "push_up"), ("Strict Push-Up Max Test", "push_up"),
+            ("Strict Push-Up Back-Off at 60–70%", "push_up"), ("Weighted Push-Up Back-Off", "weighted_push_up"),
+            ("Dumbbell Overhead Press", "dumbbell_overhead_press"), ("Backpack RDL", "backpack_rdl"),
+            ("Band Pull-Aparts (posture closer)", "band_pull_apart"),
+        ] {
+            row.name = name
+            row.movementID = nil
+            XCTAssertEqual(ExerciseCatalog.artworkMovementID(for: row), expected)
+            XCTAssertNotNil(GuidedArtwork.movement(row))
+        }
+        for (name, substitute) in [
+            ("Band Abduction", "hip_abduction"), ("Gimbal Front Hold", "plank"),
+            ("Band-Assisted Chin-Up", "chin_up"), ("Posture and Wrist Circuit", "bird_dog"),
+            ("Weighted or Feet-Elevated Push-Up", "weighted_push_up"), ("Focus T25 · Core", "burpee"),
+        ] {
+            row.name = name
+            row.movementID = substitute
+            XCTAssertNil(GuidedArtwork.movement(row), name)
+        }
+    }
+
     func testDeloadAndLightMorningKeepEveryEligibleTargetAtTwoSets() throws {
         let result = try XCTUnwrap(BespokeProgrammeUpgrade.prepare(in: legacy(), authenticatedOwnerID: owner))
         for (date, lite) in [("2026-09-28", false), ("2026-09-14", true)] {

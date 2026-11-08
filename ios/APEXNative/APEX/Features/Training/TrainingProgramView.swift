@@ -2474,8 +2474,7 @@ struct WorkoutPlayerView: View {
                     if let artwork = GuidedArtwork.movement(current) {
                         GuidedArtworkView(
                             artwork: artwork, exercise: current, elapsed: repElapsed,
-                            advancing: cadenceGate.allowsTick(paused: paused, foreground: scenePhase == .active),
-                            accent: accent
+                            advancing: cadenceGate.allowsTick(paused: paused, foreground: scenePhase == .active)
                         )
                         .id(current.id)
                         .frame(height: 174)
@@ -2614,7 +2613,7 @@ struct WorkoutPlayerView: View {
 
                 HStack(spacing: 16) {
                     if let artwork = GuidedArtwork.waterBreak {
-                        GuidedArtworkView(artwork: artwork, accent: accent)
+                        GuidedArtworkView(artwork: artwork)
                             .frame(maxWidth: 170)
                             .frame(height: 124)
                     }

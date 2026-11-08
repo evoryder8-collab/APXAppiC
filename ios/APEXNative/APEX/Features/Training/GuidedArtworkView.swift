@@ -96,7 +96,6 @@ struct GuidedArtworkView: View {
     var exercise: Exercise?
     var elapsed: Double = 0
     var advancing = false
-    let accent: Color
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var language = LanguageState.shared
 
@@ -107,10 +106,7 @@ struct GuidedArtworkView: View {
 
     var body: some View {
         let cue = cue
-        ZStack {
-            RoundedRectangle(cornerRadius: 22, style: .continuous)
-                .fill(LinearGradient(colors: [accent.opacity(0.10), .white.opacity(0.34)],
-                                     startPoint: .bottomLeading, endPoint: .topTrailing))
+        Group {
             switch artwork {
             case .reference(let stem):
                 photo(stem)
