@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { assessJointCheckin, buildExerciseFamilies, buildStrengthSeries, checkinDue, distinctInsightTexts, sessionStrengthInsights } from '../src/lib/strengthProgress.ts'
+import { assessJointCheckin, buildExerciseFamilies, buildStrengthSeries, checkinDue, distinctInsightTexts, sessionStrengthInsights, totalRecordedWork } from '../src/lib/strengthProgress.ts'
 import { seedProfile } from '../src/data/seed.ts'
 import { recommendLoad } from '../src/lib/progression.ts'
 import { EMPTY_DATA, type AppData, type Exercise, type JointCheckin } from '../src/lib/types.ts'
@@ -277,22 +277,79 @@ test('lifetime work sums actual external kg × measured reps from each eligible 
   const families = buildExerciseFamilies(data)
   const hip = families.find(f => f.name === 'Hip Thrust')!
   assert.equal(hip.sessionCount,1)
-  assert.deepEqual(hip.work,{recordedReps:23, liftedKg:880, loadedReps:19, missingReps:true, missingVolume:true})
+  assert.deepEqual(hip.work,{sets:5, recordedReps:23, liftedKg:880, loadedReps:19, missingReps:true, missingVolume:true})
   assert.deepEqual(hip.variants.find(v => v.name === 'Dumbbell Hip Thrust')?.work,
-    {recordedReps:13, liftedKg:700, loadedReps:13, missingReps:false, missingVolume:false})
+    {sets:2, recordedReps:13, liftedKg:700, loadedReps:13, missingReps:false, missingVolume:false})
   const unilateral = hip.variants.find(v => v.name.startsWith('B-Stance'))!
   assert.equal(unilateral.work.liftedKg,180)
   assert.equal(unilateral.points.length,0)
   assert.deepEqual(families.find(f => f.name === 'Push-Up')?.work,
-    {recordedReps:24, liftedKg:60, loadedReps:6, missingReps:false, missingVolume:false})
+    {sets:3, recordedReps:24, liftedKg:60, loadedReps:6, missingReps:false, missingVolume:false})
   assert.deepEqual(families.find(f => f.name === 'Pull-Up')?.work,
-    {recordedReps:24, liftedKg:null, loadedReps:0, missingReps:false, missingVolume:false})
+    {sets:3, recordedReps:24, liftedKg:null, loadedReps:0, missingReps:false, missingVolume:false})
   assert.equal(families.find(f => f.name === 'Row')?.work.recordedReps,12)
   assert.equal(families.find(f => f.name === 'Row')?.work.liftedKg,null)
   for (const name of ['Treadmill Run','Wrist Roller']) {
     assert.equal(families.find(f => f.name === name)?.work.recordedReps,null)
     assert.equal(families.find(f => f.name === name)?.work.liftedKg,null)
   }
+  assert.deepEqual(totalRecordedWork(families), {
+    sets: 14, recordedReps: 83, liftedKg: 940, loadedReps: 25, missingReps: true, missingVolume: true,
+  })
+})
+
+test('family charts aggregate variations per completed session and keep same-day workouts separate', () => {
+  const data = strengthData()
+  data.workout_sessions = ['pm', 'am'].map(id => ({
+    ...data.workout_sessions[0], id, started_at: '2026-04-15T' + (id === 'am' ? '06' : '18') + ':00:00Z',
+  }))
+  const exercise = progressionData(2).exercise
+  data.exercises = [{ ...exercise, id: 'bulgarian', name: 'Bulgarian Split Squats', per_side: true }]
+  const set = data.workout_logs[0]
+  data.workout_logs = [
+    { ...set, session_id:'pm', exercise_name:'Strict Push-Up', reps:9, weight_kg:null },
+    { ...set, session_id:'am', exercise_name:'Strict Push-Up', reps:12, weight_kg:null },
+    { ...set, session_id:'am', exercise_name:'Hindu Push-Up', movement_id:'hindu_push_up', reps:6, weight_kg:null },
+    { ...set, session_id:'am', exercise_name:'Bulgarian Split Squats', exercise_id:'bulgarian', reps:8, weight_kg:14 },
+    { ...set, session_id:'am', exercise_name:'Walking Lunges', reps:10, weight_kg:7 },
+    { ...set, session_id:'pm', exercise_name:'Bulgarian Split Squats', exercise_id:'bulgarian', reps:null, weight_kg:15 },
+  ].map((log,i) => ({ ...log, id:'set-' + i }))
+  const history = buildExerciseFamilies(data)
+  const pushUp = history.find(family => family.name === 'Push-Up')!
+  assert.deepEqual(pushUp.sessions.map(s => [s.sessionId,s.work.recordedReps]), [['am',18],['pm',9]])
+  const splitSquat = history.find(family => family.name === 'Split Squat')!
+  assert.deepEqual(splitSquat.sessions.map(s => [s.work.liftedKg,s.work.missingVolume]), [[112,false],[null,true]])
+  assert.equal(history.find(family => family.name === 'Lunge')?.work.liftedKg,70)
+  assert.equal(totalRecordedWork(history).liftedKg,182)
+})
+
+test('legacy holds, checkmarks and timed prescriptions count as sets without contributing reps or load', () => {
+  const data = strengthData()
+  const exercise = progressionData(2).exercise
+  data.exercises = [
+    { ...exercise, id:'side', name:'Side Plank', rep_unit:'seconds' },
+    { ...exercise, id:'new', name:'Cable hold practice', rep_unit:'seconds' },
+    { ...exercise, id:'foreign', name:'Cable hold practice', user_id:'foreign', rep_unit:'reps' },
+  ]
+  const set = data.workout_logs[0]
+  data.workout_logs = [
+    ...Array.from({length:4}, () => ({ ...set, exercise_id:null, exercise_name:'Dead Hang', reps:30 })),
+    ...Array.from({length:2}, () => ({ ...set, exercise_id:'side', exercise_name:'Side Plank', reps:25 })),
+    { ...set, exercise_id:'deleted', exercise_name:'Cable hold practice', reps:12 },
+    { ...set, exercise_id:null, exercise_name:'Focus T25 · Stretch', reps:1 },
+    { ...set, exercise_id:null, exercise_name:'FocusT25 session (Shaun T), Alpha or Beta cycle', reps:25 },
+    { ...set, exercise_id:null, exercise_name:'Dead Hang', reps:999, duration_seconds:0 },
+    { ...set, exercise_id:null, exercise_name:'Dead Hang', reps:null, duration_seconds:15 },
+    { ...set, exercise_id:null, exercise_name:'Dead Hang', reps:35, skipped:true },
+    { ...set, exercise_id:null, exercise_name:'Custom set', reps:8, weight_kg:10 },
+  ].map((log,i) => ({ ...log, id:'set-' + i }))
+  const families = buildExerciseFamilies(data)
+  assert.equal(families.find(f => f.name === 'Dead Hang')?.work.sets,5)
+  assert.equal(families.find(f => f.name === 'Side Plank')?.work.sets,2)
+  assert.equal(families.find(f => f.name === 'Cable hold practice')?.work.recordedReps,null)
+  assert.deepEqual(totalRecordedWork(families), {
+    sets:11, recordedReps:8, liftedKg:80, loadedReps:8, missingReps:false, missingVolume:false,
+  })
 })
 
 test('training profile compares equal-rep session peaks across inclusive halves and ignores skipped, future and timed reps', async () => {

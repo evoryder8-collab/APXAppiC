@@ -61,6 +61,7 @@ enum StrengthProgress {
     }
 
     struct LifetimeTotals: Sendable {
+        private(set) var sets = 0
         private(set) var reps = 0
         private(set) var loadedReps = 0
         private(set) var volumeKG = 0.0
@@ -72,6 +73,7 @@ enum StrengthProgress {
         var averageLoadKG: Double? { liftedVolumeKG.map { $0 / Double(loadedReps) } }
 
         mutating func record(_ log: WorkoutLog, measuresReps: Bool, measuresLoad: Bool) {
+            sets += 1
             guard measuresReps else { return }
             guard let count = log.reps, count > 0 else {
                 missingReps = true
@@ -89,6 +91,7 @@ enum StrengthProgress {
         }
 
         mutating func add(_ other: Self) {
+            sets += other.sets
             reps += other.reps
             loadedReps += other.loadedReps
             volumeKG += other.volumeKG
@@ -97,16 +100,33 @@ enum StrengthProgress {
         }
     }
 
+    struct SessionTotals: Sendable {
+        let sessionID: UUID
+        let date: String
+        let time: String
+        var totals = LifetimeTotals()
+
+        init(_ session: WorkoutSession) {
+            sessionID = session.id
+            date = session.date
+            time = session.startedAt ?? session.completedAt ?? ""
+        }
+
+        static func chronological(_ lhs: Self, _ rhs: Self) -> Bool {
+            (lhs.date, lhs.time, lhs.sessionID.uuidString) < (rhs.date, rhs.time, rhs.sessionID.uuidString)
+        }
+    }
+
     struct ExerciseHistory: Sendable {
         let key: String
         let name: String
         let region: BodyRegion
-        let sessionIDs: Set<UUID>
+        let sessions: [SessionTotals]
         let familyKey: String
         let familyName: String?
         let familyRegion: BodyRegion
         let totals: LifetimeTotals
-        var sessionCount: Int { sessionIDs.count }
+        var sessionCount: Int { sessions.count }
         let lastPerformed: String
         let points: [Point]
 
@@ -119,7 +139,8 @@ enum StrengthProgress {
     struct RankedFamily {
         let key: String
         let name: String
-        let sessionCount: Int
+        let sessions: [SessionTotals]
+        var sessionCount: Int { sessions.count }
         let lastPerformed: String
         let region: BodyRegion
         let totals: LifetimeTotals
@@ -171,9 +192,16 @@ enum StrengthProgress {
     static func rankedFamilies(_ history: [ExerciseHistory]) -> [RankedFamily] {
         Dictionary(grouping: history, by: \.familyKey).compactMap { key, variants -> RankedFamily? in
             guard let first = variants.first else { return nil }
-            let sessionIDs = variants.reduce(into: Set<UUID>()) { $0.formUnion($1.sessionIDs) }
+            var bySession = [UUID: SessionTotals]()
+            for variant in variants {
+                for point in variant.sessions {
+                    if bySession[point.sessionID] == nil { bySession[point.sessionID] = point }
+                    else { bySession[point.sessionID]?.totals.add(point.totals) }
+                }
+            }
+            let sessions = bySession.values.sorted(by: SessionTotals.chronological)
             return RankedFamily(key: key, name: first.familyName ?? first.name,
-                                sessionCount: sessionIDs.count, lastPerformed: variants.map(\.lastPerformed).max() ?? "",
+                                sessions: sessions, lastPerformed: variants.map(\.lastPerformed).max() ?? "",
                                 region: first.familyRegion, totals: variants.reduce(into: LifetimeTotals()) { $0.add($1.totals) },
                                 variants: variants)
         }.sorted {
@@ -335,6 +363,10 @@ enum StrengthProgress {
         })
     }
 
+    private static let legacyVideoNames = Set([
+        "FocusT25 session (Shaun T), Alpha or Beta cycle", "Any 10-min HIIT video", "Functional stretch flow (saved YouTube favorite)"
+    ].map { $0.lowercased() })
+
     private static let catalogRepUnits = Dictionary(
         ExerciseCatalog.all.map { ($0.movementID, $0.unit) }, uniquingKeysWith: { first, _ in first }
     )
@@ -342,8 +374,11 @@ enum StrengthProgress {
     static func exerciseHistory(
         ownerID: UUID, sessions: [WorkoutSession], logs: [WorkoutLog], exercises: [Exercise] = []
     ) -> [ExerciseHistory] {
-        let units = Dictionary(exercises.filter { $0.userID == ownerID }.map { ($0.id, $0.repUnit) },
-                               uniquingKeysWith: { first, _ in first })
+        let ownedExercises = exercises.filter { $0.userID == ownerID }
+        let units = Dictionary(ownedExercises.map { ($0.id, $0.repUnit) }, uniquingKeysWith: { first, _ in first })
+        let unitsByName = Dictionary(ownedExercises.map {
+            ($0.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), $0.repUnit)
+        }, uniquingKeysWith: { first, next in first == next ? first : "ambiguous" })
 
         let completed = sessions.filter { $0.completed && $0.userID == ownerID }
         let sessionByID = Dictionary(completed.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
@@ -351,8 +386,7 @@ enum StrengthProgress {
             var name: String
             let region: BodyRegion
             let family: FamilyDefinition?
-            var totals = LifetimeTotals()
-            var sessionIDs: Set<UUID> = []
+            var sessions = [UUID: SessionTotals]()
             var lastPerformed = ""
             var loads: [UUID: [WorkoutLog]] = [:]
         }
@@ -377,9 +411,12 @@ enum StrengthProgress {
             let substitute = aliasFamily != nil && movementFamily != nil && aliasFamily?.id != movementFamily?.id
             let explicitLoad = log.weightKG?.isFinite == true && (log.weightKG ?? 0) > 0
             let usesBodyweight = descriptor.kind == .bodyweight || (family?.id == "push_up" && movement == nil)
-            let storedUnit = log.exerciseID.flatMap { units[$0] }
+            let exactName = name.lowercased()
+            let storedUnit = log.exerciseID.flatMap { units[$0] } ?? unitsByName[exactName]
+            // Programme revisions used both checkmarks and minutes for Focus T25 episodes.
+            let episode = exactName.hasPrefix("Focus T25".lowercased() + " · ") || Self.legacyVideoNames.contains(exactName)
             let catalogUnit = movement.flatMap { catalogRepUnits[$0.id] }
-            let measuresReps = descriptor.fields.contains(.reps) && treadmill == nil
+            let measuresReps = !episode && descriptor.fields.contains(.reps) && treadmill == nil
                 && [storedUnit, catalogUnit].compactMap { $0 }.allSatisfy { $0 == "reps" || $0 == "max" }
             // A recorded mass still measures a same-implement set when the log leaves its stance unspecified.
             let comparableMass = !isComposite || ["hip_thrust", "biceps_curl", "calf_raise"].contains(aliasFamily?.id ?? "")
@@ -394,7 +431,14 @@ enum StrengthProgress {
                 facts.distanceMeters = facts.distanceMeters ?? treadmill.metrics.distanceKM * 1_000
                 facts.durationSeconds = facts.durationSeconds ?? treadmill.metrics.durationMinutes * 60
             }
-            guard ExerciseLogging.isValid(facts, descriptor: descriptor) || (hasLoad && log.reps == nil) else { continue }
+            let timed = storedUnit == "seconds" || storedUnit == "minutes"
+                || ((storedUnit == nil || storedUnit == "max") && descriptor.kind == .isometric && catalogUnit == "seconds")
+            // Early players stored the completed quantity in reps, including seconds and checkmarks.
+            let historicalQuantity = episode || storedUnit == "check"
+                || (timed && [.strength, .bodyweight, .isometric].contains(descriptor.kind))
+            let performed = historicalQuantity ? (log.durationSeconds ?? log.reps ?? 0) > 0
+                : ExerciseLogging.isValid(facts, descriptor: descriptor)
+            guard performed || (hasLoad && log.reps == nil) else { continue }
             // Historical aliases sometimes point different implements at the same movement ID.
             let key = movement.flatMap { !isComposite && !substitute && loggedEquipment.isSubset(of: canonicalEquipment) ? "movement:" + $0.id : nil }
                 ?? "name:" + normalized
@@ -403,8 +447,9 @@ enum StrengthProgress {
                 groups[key] = Group(name: name, region: region == .other ? family?.bodyRegion ?? region : region,
                                     family: family)
             }
-            groups[key]?.sessionIDs.insert(session.id)
-            groups[key]?.totals.record(log, measuresReps: measuresReps, measuresLoad: measuresExternalLoad)
+            groups[key]?.sessions[session.id, default: SessionTotals(session)].totals.record(
+                log, measuresReps: measuresReps, measuresLoad: measuresExternalLoad
+            )
             if let current = groups[key], session.date > current.lastPerformed
                 || (session.date == current.lastPerformed && name < current.name) {
                 groups[key]?.lastPerformed = session.date
@@ -416,19 +461,15 @@ enum StrengthProgress {
         }
 
         return groups.map { key, group in
-            let points = group.loads.compactMap { id, rows in
-                sessionByID[id].flatMap { loadPoint(session: $0, logs: rows) }
-            }.sorted { lhs, rhs in
-                if lhs.date != rhs.date { return lhs.date < rhs.date }
-                let left = sessionByID[lhs.sessionID], right = sessionByID[rhs.sessionID]
-                let leftTime = left?.startedAt ?? left?.completedAt ?? ""
-                let rightTime = right?.startedAt ?? right?.completedAt ?? ""
-                if leftTime != rightTime { return leftTime < rightTime }
-                return lhs.sessionID.uuidString < rhs.sessionID.uuidString
+            let sessions = group.sessions.values.sorted(by: SessionTotals.chronological)
+            let points = sessions.compactMap { point -> Point? in
+                guard let rows = group.loads[point.sessionID], let session = sessionByID[point.sessionID] else { return nil }
+                return loadPoint(session: session, logs: rows)
             }
             return ExerciseHistory(key: key, name: group.name, region: group.region,
-                                   sessionIDs: group.sessionIDs, familyKey: group.family.map { "family:" + $0.id } ?? key,
-                                   familyName: group.family?.name, familyRegion: group.family?.bodyRegion ?? group.region, totals: group.totals,
+                                   sessions: sessions, familyKey: group.family.map { "family:" + $0.id } ?? key,
+                                   familyName: group.family?.name, familyRegion: group.family?.bodyRegion ?? group.region,
+                                   totals: sessions.reduce(into: LifetimeTotals()) { $0.add($1.totals) },
                                    lastPerformed: group.lastPerformed, points: points)
         }.sorted {
             if $0.sessionCount != $1.sessionCount { return $0.sessionCount > $1.sessionCount }
@@ -526,6 +567,10 @@ struct WorkoutChartCalendar {
     init?(from start: String, to end: String, intervals: Int = 4) {
         guard let first = APEXDateMath.date(from: start), let last = APEXDateMath.date(from: end),
               first <= last else { return nil }
+        self.init(first: first, last: last, intervals: intervals)
+    }
+
+    init(first: Date, last: Date, intervals: Int = 4) {
         self.first = first
         self.last = last
         let calendar = APEXDateMath.calendar
@@ -541,6 +586,28 @@ struct WorkoutChartCalendar {
     func position(_ date: Date) -> Double {
         let span = last.timeIntervalSince(first)
         return span > 0 ? date.timeIntervalSince(first) / span : 0.5
+    }
+
+    /// Keep separate workouts on a shared date visible within their nearest date ticks.
+    func positions(for dates: [Date]) -> [Double] {
+        var result = dates.map(position)
+        var start = 0
+        while start < dates.count {
+            var end = start + 1
+            while end < dates.count && dates[end] == dates[start] { end += 1 }
+            if end - start > 1 {
+                let center = position(dates[start])
+                let left = start == 0 ? 0 : (position(dates[start - 1]) + center) / 2
+                let right = end == dates.count ? 1 : (center + position(dates[end])) / 2
+                let spread = min(0.08, Double(end - start - 1) * 0.015)
+                let low = max(left, center - spread), high = min(right, center + spread)
+                for i in start..<end {
+                    result[i] = low + (high - low) * Double(i - start) / Double(end - start - 1)
+                }
+            }
+            start = end
+        }
+        return result
     }
 
     func label(_ date: Date, locale: Locale) -> String {

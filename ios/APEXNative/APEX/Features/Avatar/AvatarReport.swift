@@ -45,7 +45,7 @@ struct AvatarReport: Transferable {
             let pages = Pages(context: context, report: self)
             pages.drawScores(scores)
             pages.drawRankings(families)
-            pages.drawCharts(families.flatMap(\.variants).filter { !$0.points.isEmpty }.prefix(5))
+            pages.drawCharts(families)
             if let trainingProfile { pages.drawTrainingProfile(trainingProfile) }
         }
     }
@@ -161,14 +161,93 @@ struct AvatarReport: Transferable {
             }
         }
 
+        func volume(_ kg: Double) -> String {
+            LiftedMassComparison.formattedMass(kg, locale: language.language.locale)
+        }
+
+        func drawLifetimeTotals(_ rows: [StrengthProgress.RankedFamily]) {
+            let totals = rows.reduce(into: StrengthProgress.LifetimeTotals()) { $0.add($1.totals) }
+            label(language.text("All-time training totals"), 38, y, 536, size: 19, weight: .bold)
+            y += 26
+            let dates = rows.flatMap { $0.sessions.map(\.date) }
+            if let first = dates.min(), let last = dates.max() {
+                let range = first == last ? language.dateKey(first) : language.dateKey(first) + " – " + language.dateKey(last)
+                label(range, 38, y, 536, size: 11, color: muted)
+                y += 20
+            }
+            let metrics = [
+                ("Performed sets", String(totals.sets)),
+                ("Recorded reps", totals.recordedReps.map { number(Double($0)) + (totals.missingReps ? "*" : "") } ?? "—"),
+                ("Lifted volume", totals.liftedVolumeKG.map { volume($0) + (totals.missingVolume ? "*" : "") } ?? "—")
+            ]
+            for (index, metric) in metrics.enumerated() {
+                let x = 38 + CGFloat(index) * 182
+                label(language.text(metric.0), x, y, 175, size: 11, color: muted)
+                label(metric.1, x, y + 16, 175, size: 18, weight: .bold)
+            }
+            y += 46
+            if let kg = totals.liftedVolumeKG {
+                drawComparisons(object: LiftedMassComparison.caption(kilograms: kg),
+                                hero: LiftedMassComparison.heroCaption(kilograms: kg))
+            }
+            let note = language.text("Known external load × recorded reps. Body mass, assistance and timed work are excluded from volume. Skipped sets are excluded from all totals.")
+            for part in wrapped(note, width: 536, size: 10) {
+                label(part, 38, y, 536, size: 10, color: muted)
+                y += 14
+            }
+            y += 12
+            line(38, y, 574, y, color: rule)
+            y += 13
+        }
+
+        private func drawComparisons(object: LiftedMassComparison.Comparison?, hero: LiftedMassComparison.Comparison?) {
+            guard object != nil || hero != nil else { return }
+            let image = object?.artworkURL.flatMap { UIImage(contentsOfFile: $0.path) }
+            let textX: CGFloat = image == nil ? 38 : 174
+            let width = 574 - textX
+            let start = y
+            func linked(_ text: String, to source: URL, size: CGFloat, weight: UIFont.Weight, color: UIColor) {
+                let top = y
+                for part in wrapped(text, width: width, size: size, weight: weight) {
+                    label(part, textX, y, width, size: size, weight: weight, color: color)
+                    y += size + 4
+                }
+                context.setURL(source, for: CGRect(x: textX, y: top, width: width, height: y - top))
+            }
+            if let object {
+                linked(object.caption, to: object.source, size: 13, weight: .semibold, color: green)
+                if let fact = object.fact {
+                    y += 3
+                    linked(fact, to: object.factSource ?? object.source, size: 11, weight: .regular, color: muted)
+                }
+            }
+            if let hero {
+                if object != nil { y += 7 }
+                linked(hero.caption, to: hero.source, size: 12, weight: .medium, color: green)
+            }
+            if let image, let object {
+                let side: CGFloat = 121
+                let height = max(side, y - start)
+                let scale = min(side / image.size.width, side / image.size.height)
+                let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+                let frame = CGRect(x: 38 + (side - size.width) / 2, y: start + (height - size.height) / 2,
+                                   width: size.width, height: size.height)
+                image.draw(in: frame)
+                context.setURL(object.source, for: frame)
+                y = start + height
+            }
+            y += 12
+        }
+
         func drawRankings(_ rows: [StrengthProgress.RankedFamily]) {
             let columns: [(title: String, x: CGFloat, width: CGFloat)] = [
                 ("Exercise", 38, 201), ("Sessions", 242, 62), ("Recorded reps", 307, 74),
                 ("Load per rep", 384, 81), ("Lifted volume", 468, 106),
             ]
-            func heading() {
+            func heading(includeTotals: Bool = false) {
                 begin("Most trained exercises", subtitle: language.text("Each completed workout counts once per exercise family."))
-                y = 150
+                y = 154
+                if includeTotals { drawLifetimeTotals(rows) }
                 let explanation = language.text("Volume sums each recorded load × reps. An asterisk marks incomplete records.")
                     + " " + language.text("Load per rep averages only reps with a measured load.")
                 for part in wrapped(explanation, width: 536, size: 10) {
@@ -197,13 +276,9 @@ struct AvatarReport: Transferable {
                 if !variant { line(38, y, 574, y, color: rule) }
                 let reps = totals.recordedReps.map { String($0) + (totals.missingReps ? "*" : "") }
                 let mark = totals.missingVolume ? "*" : ""
-                let volume = totals.liftedVolumeKG.map { kg in
-                    if kg < 1_000 { return number(kg) + " kg" + mark }
-                    let tonnes = (kg / 1_000).formatted(.number.locale(language.language.locale).precision(.fractionLength(0...3)))
-                    return tonnes + " t" + mark
-                }
+                let lifted = totals.liftedVolumeKG.map { volume($0) + mark }
                 let average = totals.averageLoadKG.map { weight($0) + mark }
-                let values = [String(sessions), reps ?? "—", average ?? "—", volume ?? "—"]
+                let values = [String(sessions), reps ?? "—", average ?? "—", lifted ?? "—"]
                 for (index, value) in values.enumerated() {
                     let column = columns[index + 1]
                     label(value, column.x, y + 3, column.width, size: size, weight: fontWeight,
@@ -218,7 +293,7 @@ struct AvatarReport: Transferable {
                 y += variant ? 3 : 6
             }
 
-            heading()
+            heading(includeTotals: true)
             if rows.isEmpty {
                 label(language.text("No exercises recorded yet."), 38, y + 8, 536)
                 y += 34
@@ -234,82 +309,168 @@ struct AvatarReport: Transferable {
             }
         }
 
-        func drawCharts(_ rows: ArraySlice<StrengthProgress.ExerciseHistory>) {
-            let subtitle = language.text("Heaviest recorded working load in each completed session.")
-            if rows.isEmpty {
-                if y + 100 > 730 { begin("Strength progress", subtitle: subtitle) }
+        private enum ChartMetric {
+            case reps, volume, load
+
+            var heading: String {
+                switch self {
+                case .reps: "Reps per session"
+                case .volume: "Recorded volume per session"
+                case .load: "Strength progress"
+                }
+            }
+
+            var subtitle: String {
+                switch self {
+                case .reps: "Each point sums recorded reps across all variations in one completed workout."
+                case .volume: "Split squats and lunges use the load and reps entered for each set once. Left and right sides are not recorded separately."
+                case .load: "Heaviest recorded working load in each completed session."
+                }
+            }
+        }
+
+        private struct ChartPoint {
+            let date: Date
+            let value: Double
+            var reps: Int? = nil
+            var partial = false
+
+            init?(date: String, value: Double?, reps: Int? = nil, partial: Bool = false) {
+                guard let date = APEXDateMath.date(from: date), let value, value.isFinite, value > 0 else { return nil }
+                self.date = date
+                self.value = value
+                self.reps = reps
+                self.partial = partial
+            }
+        }
+
+        func drawCharts(_ families: [StrengthProgress.RankedFamily]) {
+            var drewChart = false
+            for metric in [ChartMetric.reps, .volume, .load] {
+                var firstInSection = true
+                func chart(_ title: String, _ points: [ChartPoint]) {
+                    guard !points.isEmpty else { return }
+                    drawChart(title, points: points, metric: metric, firstInSection: firstInSection)
+                    firstInSection = false
+                    drewChart = true
+                }
+                for family in families {
+                    switch metric {
+                    case .reps:
+                        chart(family.name, family.sessions.compactMap {
+                            ChartPoint(date: $0.date, value: $0.totals.recordedReps.map(Double.init),
+                                       partial: $0.totals.missingReps)
+                        })
+                    case .volume:
+                        if family.key == "family:split_squat" || family.key == "family:lunge" {
+                            chart(family.name, family.sessions.compactMap {
+                                ChartPoint(date: $0.date, value: $0.totals.liftedVolumeKG, partial: $0.totals.missingVolume)
+                            })
+                        }
+                    case .load:
+                        for variant in family.variants {
+                            chart(variant.name, variant.points.compactMap {
+                                ChartPoint(date: $0.date, value: $0.topWeight, reps: $0.topReps)
+                            })
+                        }
+                    }
+                }
+            }
+            if !drewChart {
+                if y + 100 > 730 { begin("Strength progress", subtitle: "") }
                 else {
                     y += 28
                     label(language.text("Strength progress"), 38, y, 536, size: 20, weight: .bold)
                     y += 34
                 }
-                label(language.text("No loaded sessions recorded yet."), 38, y, 536, size: 13, color: muted)
-                return
+                label(language.text("No recorded reps or working loads yet."), 38, y, 536, size: 13, color: muted)
             }
-            for (index, row) in rows.enumerated() {
-                let points = row.points.filter { $0.topWeight.isFinite && $0.topWeight > 0 }
-                guard let first = points.first, let last = points.last,
-                      let highest = points.map(\.topWeight).max() else { continue }
-                let title = wrapped(language.text(row.name), width: 530, size: 19, weight: .bold)
-                let chartHeight = 260 + CGFloat(title.count - 1) * 24
-                if index == 0 || y + chartHeight > 730 { begin("Strength progress", subtitle: subtitle) }
-                for titleLine in title {
-                    if y + 28 > 730 { begin("Strength progress", subtitle: subtitle) }
-                    label(titleLine, 38, y, 536, size: 19, weight: .bold)
-                    y += 24
+        }
+
+        private func drawChart(_ name: String, points: [ChartPoint], metric: ChartMetric, firstInSection: Bool) {
+            guard let first = points.first, let last = points.last,
+                  let peak = points.max(by: { $0.value < $1.value }) else { return }
+            let highest = peak.value
+            let calendar = WorkoutChartCalendar(first: first.date, last: last.date)
+            let title = wrapped(language.text(name), width: 530, size: 19, weight: .bold)
+            func heading() {
+                begin(metric.heading, subtitle: "")
+                y = 128
+                for part in wrapped(language.text(metric.subtitle), width: 536, size: 12) {
+                    label(part, 38, y, 536, size: 12, color: muted)
+                    y += 17
                 }
-                y -= 24
-                if y + 260 > 730 { begin("Strength progress", subtitle: subtitle) }
-                guard let calendar = WorkoutChartCalendar(from: first.date, to: last.date) else { continue }
-                let field = CGRect(x: 38, y: y + 33, width: 536, height: 141)
-                UIColor(red: 0.96, green: 0.95, blue: 0.99, alpha: 1).setFill()
-                UIBezierPath(roundedRect: field, cornerRadius: 12).fill()
-                let plot = CGRect(x: 102, y: field.minY + 15, width: 436, height: 92)
-                for tick in 0...2 {
-                    let fraction = CGFloat(tick) / 2
-                    let tickY = plot.maxY - fraction * plot.height
-                    label(weight(highest * fraction), 40, tickY - 7, 56, size: 10, color: muted, alignment: .right)
-                    line(plot.minX, tickY, plot.maxX, tickY, color: rule)
-                }
-                for tick in calendar.ticks {
-                    let x = plot.minX + calendar.position(tick) * plot.width
-                    line(x, plot.minY, x, plot.maxY, color: rule.withAlphaComponent(0.65))
-                    label(calendar.label(tick, locale: language.language.locale), x - 34,
-                          plot.maxY + 7, 68, size: 9, color: muted, alignment: .center)
-                }
-                let coordinates = points.compactMap { point -> CGPoint? in
-                    guard let date = APEXDateMath.date(from: point.date) else { return nil }
-                    return CGPoint(x: plot.minX + calendar.position(date) * plot.width,
-                                   y: plot.maxY - point.topWeight / highest * plot.height)
-                }
-                drawLoadTrace(coordinates, baseline: plot.maxY)
-                func set(_ point: StrengthProgress.Point) -> String {
-                    weight(point.topWeight) + (point.topReps.map { " × \($0) " + language.text("reps") } ?? "")
-                }
-                let change = last.topWeight - first.topWeight
-                let summary = [(language.text("First"), set(first)), (language.text("Latest"), set(last)),
-                               (language.text("Change"), points.count == 1 ? "—" : (change > 0 ? "+" : "") + weight(change))]
-                for (metric, item) in summary.enumerated() {
-                    let x = 38 + CGFloat(metric) * 182
-                    let tint = metric == 2 ? UIColor(red: 0.97, green: 0.94, blue: 0.77, alpha: 1)
-                                           : UIColor(white: 0.965, alpha: 1)
-                    tint.setFill()
-                    UIBezierPath(roundedRect: CGRect(x: x, y: y + 183, width: 172, height: 47), cornerRadius: 9).fill()
-                    label(item.0, x + 10, y + 186, 153, size: 10, color: muted)
-                    label(item.1, x + 10, y + 200, 153, size: 15, weight: .bold)
-                }
-                if points.count == 1 {
-                    label(language.text("One recorded session"), 38, y + 232, 536, size: 11, color: muted)
-                }
-                if points.count > 1, let peak = points.first(where: { $0.topWeight == highest }),
-                   let date = APEXDateMath.date(from: peak.date) {
-                    let record = [language.text("Best working load"), set(peak),
-                                  date.formatted(Date.FormatStyle(locale: language.language.locale, timeZone: .gmt).year().month(.abbreviated).day())].joined(separator: " · ")
-                    label(record, 38, y + 235, 536, size: 10, color: muted)
-                }
-                line(38, y + 260, 574, y + 260, color: rule)
-                y += 286
+                y = max(170, y + 10)
             }
+            let chartHeight = 260 + CGFloat(title.count - 1) * 24
+            if firstInSection || y + chartHeight > 730 { heading() }
+            for titleLine in title {
+                if y + 28 > 730 { heading() }
+                label(titleLine, 38, y, 536, size: 19, weight: .bold)
+                y += 24
+            }
+            y -= 24
+            if y + 260 > 730 { heading() }
+            func valueLabel(_ value: Double) -> String {
+                switch metric {
+                case .reps: number(value) + " " + language.text("reps")
+                case .volume, .load: weight(value)
+                }
+            }
+            let field = CGRect(x: 38, y: y + 33, width: 536, height: 141)
+            UIColor(red: 0.96, green: 0.95, blue: 0.99, alpha: 1).setFill()
+            UIBezierPath(roundedRect: field, cornerRadius: 12).fill()
+            let plot = CGRect(x: 102, y: field.minY + 15, width: 436, height: 92)
+            let midpoint = metric == .reps ? (highest / 2).rounded(.down) : highest / 2
+            let ticks = midpoint > 0 ? [0, midpoint, highest] : [0, highest]
+            for tick in ticks {
+                let tickY = plot.maxY - CGFloat(tick / highest) * plot.height
+                label(valueLabel(tick), 40, tickY - 7, 56, size: 10, color: muted, alignment: .right)
+                line(plot.minX, tickY, plot.maxX, tickY, color: rule)
+            }
+            for tick in calendar.ticks {
+                let x = plot.minX + calendar.position(tick) * plot.width
+                line(x, plot.minY, x, plot.maxY, color: rule.withAlphaComponent(0.65))
+                label(calendar.label(tick, locale: language.language.locale), x - 34,
+                      plot.maxY + 7, 68, size: 9, color: muted, alignment: .center)
+            }
+            let positions = calendar.positions(for: points.map(\.date))
+            let coordinates = zip(points, positions).map { point, position in
+                CGPoint(x: plot.minX + position * plot.width,
+                        y: plot.maxY - point.value / highest * plot.height)
+            }
+            drawLoadTrace(coordinates, baseline: plot.maxY)
+            func display(_ point: ChartPoint) -> String {
+                valueLabel(point.value) + (point.partial ? "*" : "")
+                    + (point.reps.map { " × \($0) " + language.text("reps") } ?? "")
+            }
+            let change = last.value - first.value
+            let delta = (change > 0 ? "+" : "") + valueLabel(change)
+            func endpoint(_ title: String, _ index: Int) -> String {
+                let date = calendar.label(points[index].date, locale: language.language.locale)
+                return language.text(title) + " · #" + String(index + 1) + " · " + date
+            }
+            let summary = [(endpoint("First", 0), display(first)), (endpoint("Latest", points.count - 1), display(last)),
+                           (language.text("Change"), points.count == 1 || first.partial || last.partial ? "—" : delta)]
+            for (metric, item) in summary.enumerated() {
+                let x = 38 + CGFloat(metric) * 182
+                let tint = metric == 2 ? UIColor(red: 0.97, green: 0.94, blue: 0.77, alpha: 1)
+                                       : UIColor(white: 0.965, alpha: 1)
+                tint.setFill()
+                UIBezierPath(roundedRect: CGRect(x: x, y: y + 183, width: 172, height: 47), cornerRadius: 9).fill()
+                label(item.0, x + 10, y + 186, 153, size: 10, color: muted)
+                label(item.1, x + 10, y + 200, 153, size: 15, weight: .bold)
+            }
+            if points.count == 1 {
+                label(language.text("One recorded session"), 38, y + 232, 536, size: 11, color: muted)
+            }
+            if points.count > 1 {
+                let record = [language.text(metric == .load ? "Best working load" : "Best session"), display(peak),
+                              peak.date.formatted(Date.FormatStyle(locale: language.language.locale, timeZone: .gmt).year().month(.abbreviated).day())].joined(separator: " · ")
+                label(record, 38, y + 235, 536, size: 10, color: muted)
+            }
+            line(38, y + 260, 574, y + 260, color: rule)
+            y += 286
         }
 
         private func drawLoadTrace(_ points: [CGPoint], baseline: CGFloat) {

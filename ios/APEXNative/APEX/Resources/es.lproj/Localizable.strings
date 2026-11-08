@@ -5788,3 +5788,13 @@
 "A pattern needs at least three classified workouts." = "Se necesitan al menos tres entrenamientos clasificados para identificar un patrón.";
 "Workouts per week" = "Entrenamientos por semana";
 "%d reps" = "%d rep.";
+"All-time training totals" = "Totales de entrenamiento";
+"Performed sets" = "Series completadas";
+"Known external load × recorded reps. Body mass, assistance and timed work are excluded from volume. Skipped sets are excluded from all totals." = "Carga externa registrada × repeticiones. El volumen excluye el peso corporal, la asistencia y el trabajo por tiempo. Las series omitidas se excluyen de todos los totales.";
+"Reps per session" = "Repeticiones por sesión";
+"Each point sums recorded reps across all variations in one completed workout." = "Cada punto suma las repeticiones registradas de todas las variantes en una sesión completada.";
+"Recorded volume per session" = "Volumen registrado por sesión";
+"Split squats and lunges use the load and reps entered for each set once. Left and right sides are not recorded separately." = "En las sentadillas divididas y las zancadas, la carga y las repeticiones se cuentan una vez por serie. Ambos lados se registran juntos.";
+"Best session" = "Mejor sesión";
+"No recorded reps or working loads yet." = "Aún no hay repeticiones ni cargas registradas.";
+"Fictional one-lift benchmark · {hero} · {mass}" = "Un levantamiento en la ficción · {hero} · {mass}";

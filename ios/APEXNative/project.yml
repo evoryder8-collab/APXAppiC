@@ -27,7 +27,7 @@ settings:
     IPHONEOS_DEPLOYMENT_TARGET: 17.0
     DEVELOPMENT_TEAM: UG979XDY72
     CODE_SIGN_STYLE: Automatic
-    CURRENT_PROJECT_VERSION: 406
+    CURRENT_PROJECT_VERSION: 407
     MARKETING_VERSION: 1.0.1
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED: YES
@@ -42,6 +42,13 @@ targets:
         excludes:
           - Resources/GuidedArtwork
       - path: ../../shared/exercise-frequency-families.json
+        buildPhase: resources
+      - path: ../../public/award-objects
+        type: folder
+        buildPhase: resources
+      - path: ../../shared/lifted-mass-landmarks.json
+        buildPhase: resources
+      - path: ../../shared/hero-lift-landmarks.json
         buildPhase: resources
       - path: APEX/Resources/GuidedArtwork
         type: folder

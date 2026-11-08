@@ -5769,3 +5769,13 @@
 "A pattern needs at least three classified workouts." = "Pentru a identifica un tipar sunt necesare cel puțin trei antrenamente clasificate.";
 "Workouts per week" = "Antrenamente pe săptămână";
 "%d reps" = "%d repetări";
+"All-time training totals" = "Totaluri de antrenament";
+"Performed sets" = "Seturi efectuate";
+"Known external load × recorded reps. Body mass, assistance and timed work are excluded from volume. Skipped sets are excluded from all totals." = "Greutatea externă înregistrată × repetări. Volumul exclude greutatea corporală, asistența și exercițiile cronometrate. Seturile omise sunt excluse din toate totalurile.";
+"Reps per session" = "Repetări pe sesiune";
+"Each point sums recorded reps across all variations in one completed workout." = "Fiecare punct însumează repetările înregistrate pentru toate variantele într-un antrenament finalizat.";
+"Recorded volume per session" = "Volum înregistrat pe sesiune";
+"Split squats and lunges use the load and reps entered for each set once. Left and right sides are not recorded separately." = "La genuflexiunile în fandare și la fandări, greutatea și repetările se numără o dată pe set. Cele două părți se înregistrează împreună.";
+"Best session" = "Cea mai bună sesiune";
+"No recorded reps or working loads yet." = "Nu există încă repetări sau greutăți de lucru înregistrate.";
+"Fictional one-lift benchmark · {hero} · {mass}" = "O ridicare în ficțiune · {hero} · {mass}";

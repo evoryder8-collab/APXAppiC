@@ -5769,3 +5769,13 @@
 "A pattern needs at least three classified workouts." = "ต้องมีการฝึกที่จำแนกประเภทได้อย่างน้อย 3 เซสชันจึงจะระบุรูปแบบได้";
 "Workouts per week" = "จำนวนครั้งที่ฝึกต่อสัปดาห์";
 "%d reps" = "%d ครั้ง";
+"All-time training totals" = "ยอดรวมการฝึกทั้งหมด";
+"Performed sets" = "เซตที่ทำเสร็จ";
+"Known external load × recorded reps. Body mass, assistance and timed work are excluded from volume. Skipped sets are excluded from all totals." = "ปริมาณน้ำหนักรวมคิดจากน้ำหนักที่บันทึก × จำนวนครั้ง ไม่นับน้ำหนักตัว แรงช่วย หรือท่าที่จับเวลา เซตที่ข้ามไม่นับในยอดรวมใด ๆ";
+"Reps per session" = "จำนวนครั้งต่อการฝึก";
+"Each point sums recorded reps across all variations in one completed workout." = "แต่ละจุดรวมจำนวนครั้งที่บันทึกจากท่าทุกรูปแบบในการฝึกหนึ่งครั้งที่เสร็จแล้ว";
+"Recorded volume per session" = "ปริมาณน้ำหนักรวมต่อการฝึก";
+"Split squats and lunges use the load and reps entered for each set once. Left and right sides are not recorded separately." = "สปลิตสควอตและลันจ์นับน้ำหนักและจำนวนครั้งตามที่บันทึกในแต่ละเซตเพียงครั้งเดียว โดยบันทึกขาซ้ายและขวารวมกัน";
+"Best session" = "การฝึกที่ทำได้สูงสุด";
+"No recorded reps or working loads yet." = "ยังไม่มีการบันทึกจำนวนครั้งหรือน้ำหนักที่ใช้";
+"Fictional one-lift benchmark · {hero} · {mass}" = "เกณฑ์การยกครั้งเดียวของตัวละคร · {hero} · {mass}";

@@ -91,6 +91,36 @@ final class StrengthProgressParityTests: XCTestCase {
         }
     }
 
+    func testLegacyTimedAndChecklistQuantitiesCountOnlyAsPerformedSets() throws {
+        let session = try XCTUnwrap(sessions.first(where: \.completed))
+        func prescription(_ name: String, owner: UUID? = nil, unit: String = "seconds") -> Exercise {
+            Exercise(id: UUID(), userID: owner ?? session.userID, programDayID: session.programDayID,
+                     name: name, sets: 1, repMin: 1, repMax: 30, repUnit: unit, perSide: false,
+                     restSeconds: 30, tempoUp: 1, tempoDown: 1, tempoPause: 0, tempoNote: "", notes: "",
+                     incrementKG: 0, isLite: false, optional: false, sortOrder: 0)
+        }
+        let side = prescription("Side Plank")
+        func row(_ name: String, _ reps: Int?, id: UUID? = nil, seconds: Int? = nil, skipped: Bool = false) -> WorkoutLog {
+            WorkoutLog(id: UUID(), userID: session.userID, sessionID: session.id, exerciseID: id,
+                       exerciseName: name, setNumber: 1, weightKG: 10, reps: reps, rir: nil,
+                       durationSeconds: seconds, skipped: skipped, overrideFlag: false, createdAt: session.date)
+        }
+        let rows = (0..<4).map { _ in row("Dead Hang", 30) } + (0..<2).map { _ in row("Side Plank", 25, id: side.id) } + [
+            row("Cable hold practice", 12, id: UUID()), row("Focus T25 · Stretch", 1),
+            row("FocusT25 session (Shaun T), Alpha or Beta cycle", 25),
+            row("Dead Hang", 999, seconds: 0), row("Dead Hang", nil, seconds: 15), row("Dead Hang", 35, skipped: true),
+            row("Custom set", 8),
+        ]
+        let history = StrengthProgress.exerciseHistory(ownerID: session.userID, sessions: [session], logs: rows,
+            exercises: [side, prescription("Cable hold practice"), prescription("Cable hold practice", owner: UUID(), unit: "reps")])
+        XCTAssertEqual(history.first { $0.name == "Dead Hang" }?.totals.sets, 5)
+        XCTAssertEqual(history.first { $0.name == "Side Plank" }?.totals.sets, 2)
+        let totals = history.reduce(into: StrengthProgress.LifetimeTotals()) { $0.add($1.totals) }
+        XCTAssertEqual(totals.sets, 11)
+        XCTAssertEqual(totals.recordedReps, 8)
+        XCTAssertEqual(totals.liftedVolumeKG, 80)
+    }
+
     func testSeriesMatchesTheWeb() {
         let built = StrengthProgress.buildSeries(sessions: sessions, logs: logs)
         XCTAssertEqual(built.map(\.name), Self.fixture.series.map(\.name), "series order drifted")
@@ -212,11 +242,12 @@ final class StrengthProgressParityTests: XCTestCase {
             set(today, "Pending", nil, .infinity, reps: nil),
         ]
         let history = StrengthProgress.exerciseHistory(ownerID: owner,
-            sessions: [today, unfinished, foreign, old, recent], logs: Array(rows.reversed()))
+            sessions: [today, unfinished, foreign, old, recent], logs: Array(rows.reversed()) + [rows[0]])
         XCTAssertEqual(history.map(\.name), ["Leg press", "Bench press", "Band Abduction", "Cable Crunch", "Dead hang", "Hip Abduction", "Treadmill"])
         let leg = try XCTUnwrap(history.first)
         XCTAssertEqual(leg.region, .lower)
         XCTAssertEqual(leg.sessionCount, 3)
+        XCTAssertEqual(leg.totals.sets, 5)
         XCTAssertEqual(leg.points.map(\.topWeight), [80, 70])
         XCTAssertEqual(leg.points.map(\.topReps), [7, 8])
         XCTAssertEqual(leg.loadGain, -10)
@@ -231,6 +262,12 @@ final class StrengthProgressParityTests: XCTestCase {
         XCTAssertEqual(bench.totals.liftedVolumeKG, 400)
         XCTAssertTrue(bench.totals.missingReps)
         XCTAssertTrue(bench.totals.missingVolume)
+        let totals = StrengthProgress.rankedFamilies(history).reduce(into: StrengthProgress.LifetimeTotals()) { $0.add($1.totals) }
+        XCTAssertEqual(totals.sets, 12)
+        XCTAssertEqual(totals.recordedReps, 73)
+        XCTAssertEqual(totals.liftedVolumeKG, 3_320)
+        XCTAssertTrue(totals.missingReps)
+        XCTAssertTrue(totals.missingVolume)
         XCTAssertNil(history.first { $0.name == "Dead hang" }?.totals.recordedReps)
         XCTAssertNil(history.first { $0.name == "Band Abduction" }?.totals.liftedVolumeKG)
         XCTAssertEqual(bench.loadGain, 10)
@@ -287,6 +324,12 @@ final class StrengthProgressParityTests: XCTestCase {
         let pushUp = try XCTUnwrap(families.first { $0.key == "family:push_up" })
         XCTAssertEqual(pushUp.region, .upper)
         XCTAssertEqual(pushUp.sessionCount, 4)
+        XCTAssertEqual(pushUp.sessions.map { $0.totals.recordedReps }, [16, 8, 8, 8])
+        XCTAssertEqual(pushUp.sessions.map(\.sessionID), Array(sessions.prefix(4)).map(\.id))
+        let axis = try XCTUnwrap(WorkoutChartCalendar(from: sessions[0].date, to: sessions[3].date))
+        let positions = axis.positions(for: Array(repeating: axis.first, count: 4))
+        XCTAssertEqual(positions.sorted(), positions)
+        XCTAssertEqual(Set(positions).count, 4)
         XCTAssertEqual(pushUp.totals.recordedReps, 40)
         XCTAssertEqual(pushUp.totals.liftedVolumeKG, 80)
         XCTAssertEqual(pushUp.totals.averageLoadKG, 10)

@@ -5787,3 +5787,13 @@
 "A pattern needs at least three classified workouts." = "傾向を判定するには、分類できたワークアウトが3回以上必要です。";
 "Workouts per week" = "週平均のワークアウト数";
 "%d reps" = "%d 回";
+"All-time training totals" = "これまでのトレーニング合計";
+"Performed sets" = "完了したセット";
+"Known external load × recorded reps. Body mass, assistance and timed work are excluded from volume. Skipped sets are excluded from all totals." = "記録した外部負荷×反復回数。自重、補助負荷、時間制の運動は総負荷量に含めません。スキップしたセットはすべての合計から除きます。";
+"Reps per session" = "セッションごとの反復回数";
+"Each point sums recorded reps across all variations in one completed workout." = "各点は、完了した1回のトレーニングで記録した全バリエーションの反復回数の合計です。";
+"Recorded volume per session" = "セッションごとの総負荷量";
+"Split squats and lunges use the load and reps entered for each set once. Left and right sides are not recorded separately." = "スプリットスクワットとランジは、各セットに入力した負荷と回数を1回ずつ集計します。左右の脚はまとめて記録されます。";
+"Best session" = "最高のセッション";
+"No recorded reps or working loads yet." = "反復回数やトレーニング重量の記録はまだありません。";
+"Fictional one-lift benchmark · {hero} · {mass}" = "フィクションでの1回の挙上目安 · {hero} · {mass}";

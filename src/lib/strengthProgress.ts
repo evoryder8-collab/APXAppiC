@@ -1,4 +1,4 @@
-import type { AppData, JointCheckin } from './types'
+import type { AppData, JointCheckin, RepUnit } from './types'
 import frequencyFamilies from '../../shared/exercise-frequency-families.json' with { type: 'json' }
 import { MOVEMENTS } from '../data/movements.ts'
 import { catalogExerciseByName } from '../data/exerciseCatalog.ts'
@@ -28,6 +28,7 @@ export interface ExerciseStrengthSeries {
 export type StrengthRegion = 'lower' | 'upper' | 'core' | 'other'
 
 export interface RecordedWork {
+  sets: number
   recordedReps: number | null
   liftedKg: number | null
   loadedReps: number
@@ -36,15 +37,28 @@ export interface RecordedWork {
 }
 
 function emptyWork(): RecordedWork {
-  return { recordedReps: null, liftedKg: null, loadedReps: 0, missingReps: false, missingVolume: false }
+  return { sets: 0, recordedReps: null, liftedKg: null, loadedReps: 0, missingReps: false, missingVolume: false }
 }
 
 function accumulateWork(total: RecordedWork, work: RecordedWork) {
+  total.sets += work.sets
   if (work.recordedReps != null) total.recordedReps = (total.recordedReps ?? 0) + work.recordedReps
   if (work.liftedKg != null) total.liftedKg = (total.liftedKg ?? 0) + work.liftedKg
   total.loadedReps += work.loadedReps
   total.missingReps ||= work.missingReps
   total.missingVolume ||= work.missingVolume
+}
+
+export function totalRecordedWork(rows: ReadonlyArray<{ work: RecordedWork }>): RecordedWork {
+  const total = emptyWork()
+  for (const row of rows) accumulateWork(total, row.work)
+  return total
+}
+
+interface SessionWork {
+  sessionId: string
+  date: string
+  work: RecordedWork
 }
 
 export interface RankedExerciseHistory extends ExerciseStrengthSeries {
@@ -62,6 +76,7 @@ export interface ExerciseFrequencyFamily {
   sessionCount: number
   lastPerformedDate: string
   variants: RankedExerciseHistory[]
+  sessions: SessionWork[]
 }
 
 const familyByMovement = new Map(frequencyFamilies.flatMap(family => family.movementIDs.map(id => [id, family] as const)))
@@ -132,13 +147,14 @@ function historyMovement(name: string, movementId: string | null) {
   const hasRepField = descriptor.fields.includes('reps') && (!movement || movement.repUnit === 'reps')
   const sameExternalLoad = !composite || ['hip_thrust', 'biceps_curl', 'calf_raise'].includes(explicitFamily?.id ?? '')
   const assisted = /\b(?:assisted|counterweight(?:ed)?)\b/i.test(`${name} ${movement?.id.replaceAll('_', ' ') ?? ''}`)
+  const bodyweight = descriptor.kind === 'bodyweight' || (family?.id === 'push_up' && !descriptor.movementId)
+  const measuresExternalWeight = sameExternalLoad && !substitute && !assisted && !bandLabel && !bandEquipment
   return {
-    descriptor, key, family, hasRepField, entityType: movement?.entityType,
-    measuresExternalWeight: sameExternalLoad && !assisted && !bandLabel && !bandEquipment,
+    descriptor, key, family, hasRepField, bodyweight, measuresExternalWeight, entityType: movement?.entityType,
+    catalogUnit: movement?.repUnit,
     region: region === 'lower' || region === 'upper' || region === 'core' || region === 'other'
       ? region : strengthRegion(movement?.primaryMuscles[0]),
-    comparableLoad: descriptor.kind === 'strength' && !composite && !bandEquipment && !bandLabel
-      && !(family?.id === 'push_up' && !descriptor.movementId),
+    comparableLoad: descriptor.kind === 'strength' && !bodyweight && !composite && measuresExternalWeight,
   }
 }
 
@@ -167,8 +183,14 @@ export function* performedWorkoutObservations(data: AppData, range?: { from: str
     .filter((session) => session.user_id === owner && session.completed
       && (!range || (session.date >= range.from && session.date <= range.to)))
     .map((session) => [session.id, session]))
-  const prescribedUnits = new Map(data.exercises.filter(exercise => exercise.user_id === owner)
-    .map(exercise => [exercise.id, exercise.rep_unit]))
+  const ownedExercises = data.exercises.filter(exercise => exercise.user_id === owner)
+  const prescribedUnits = new Map(ownedExercises.map(exercise => [exercise.id, exercise.rep_unit]))
+  const unitsByName = new Map<string, RepUnit | 'ambiguous'>()
+  for (const exercise of ownedExercises) {
+    const key = exercise.name.trim().toLowerCase()
+    const previous = unitsByName.get(key)
+    unitsByName.set(key, previous && previous !== exercise.rep_unit ? 'ambiguous' : exercise.rep_unit)
+  }
   const movements = new Map<string, ReturnType<typeof historyMovement>>()
   const seen = new Set<string>()
   for (const log of data.workout_logs) {
@@ -181,10 +203,22 @@ export function* performedWorkoutObservations(data: AppData, range?: { from: str
     const lookup = JSON.stringify([log.movement_id ?? null, name])
     const movement = movements.get(lookup) ?? historyMovement(name, log.movement_id ?? null)
     movements.set(lookup, movement)
+    const normalized = name.toLowerCase()
+    const unit = prescribedUnits.get(log.exercise_id ?? '') ?? unitsByName.get(normalized)
+    // Programme revisions used both checkmarks and minutes for Focus T25 episodes.
+    const episode = normalized.startsWith('focus t25 · ') || normalized === 'focust25 session (shaun t), alpha or beta cycle'
+      || normalized === 'any 10-min hiit video' || normalized === 'functional stretch flow (saved youtube favorite)'
+    const repBased = !episode && !treadmill && movement.hasRepField && (!unit || unit === 'reps' || unit === 'max')
     const weight = log.weight_kg
-    const loaded = !treadmill && movement.comparableLoad && weight != null && Number.isFinite(weight) && weight > 0
+    const loaded = repBased && movement.comparableLoad && weight != null && Number.isFinite(weight) && weight > 0
     const reps = log.reps != null && Number.isFinite(log.reps) && log.reps > 0 ? log.reps : null
-    const performed = isValidExerciseFacts({
+    const kind = movement.descriptor.kind
+    const timed = unit === 'seconds' || unit === 'minutes'
+      || ((!unit || unit === 'max') && kind === 'isometric' && movement.catalogUnit === 'seconds')
+    // Early players stored the completed quantity in reps, including seconds and checkmarks.
+    const historicalQuantity = episode || unit === 'check' || (timed && (kind === 'strength' || kind === 'bodyweight' || kind === 'isometric'))
+    const quantity = log.duration_seconds ?? reps
+    const performed = historicalQuantity ? quantity != null && Number.isFinite(quantity) && quantity > 0 : isValidExerciseFacts({
       weight, reps, rir: log.rir, contacts: log.contacts, rounds: log.rounds,
       workSeconds: log.work_seconds, recoverySeconds: log.recovery_seconds,
       durationSeconds: log.duration_seconds ?? (treadmill && treadmill.metrics.durationMin * 60),
@@ -193,18 +227,21 @@ export function* performedWorkoutObservations(data: AppData, range?: { from: str
     // Old strength receipts sometimes recorded a working load without reps.
     if (!performed && !(loaded && log.reps == null)) continue
 
-    const unit = log.exercise_id ? prescribedUnits.get(log.exercise_id) : undefined
-    const repBased = !treadmill && movement.hasRepField && (!unit || unit === 'reps' || unit === 'max')
     yield { session, log, movement, name, loadedWeight: loaded ? weight : null, reps, repBased }
   }
 }
 
 export function buildExerciseFamilies(data: AppData): ExerciseFrequencyFamily[] {
   const sessionTimes = new Map<string, string>()
+  function sessionOrder(a: Pick<SessionWork, 'sessionId' | 'date'>, b: typeof a) {
+    return a.date.localeCompare(b.date)
+      || (sessionTimes.get(a.sessionId) ?? '').localeCompare(sessionTimes.get(b.sessionId) ?? '')
+      || a.sessionId.localeCompare(b.sessionId)
+  }
   const groups = new Map<string, {
     family: (typeof frequencyFamilies)[number] | undefined
     history: Omit<RankedExerciseHistory, 'sessionCount' | 'points'>
-    performed: Set<string>
+    performed: Map<string, SessionWork>
     points: Map<string, StrengthPoint>
   }>()
 
@@ -215,10 +252,12 @@ export function buildExerciseFamilies(data: AppData): ExerciseFrequencyFamily[] 
         key: movement.key, exerciseId: log.exercise_id, name, region: movement.region,
         lastPerformedDate: session.date, work: emptyWork(),
       },
-      performed: new Set<string>(), points: new Map<string, StrengthPoint>(),
+      performed: new Map<string, SessionWork>(), points: new Map<string, StrengthPoint>(),
     }
     groups.set(movement.key, group)
-    group.performed.add(session.id)
+    sessionTimes.set(session.id, session.started_at ?? session.completed_at ?? '')
+    const sessionWork = group.performed.get(session.id) ?? { sessionId: session.id, date: session.date, work: emptyWork() }
+    group.performed.set(session.id, sessionWork)
     if (session.date > group.history.lastPerformedDate
       || (session.date === group.history.lastPerformedDate && name.localeCompare(group.history.name, 'en') < 0)) {
       group.history.lastPerformedDate = session.date
@@ -226,18 +265,21 @@ export function buildExerciseFamilies(data: AppData): ExerciseFrequencyFamily[] 
       group.history.exerciseId = log.exercise_id
     }
 
+    const setWork = emptyWork()
+    setWork.sets = 1
     if (repBased) {
       const weight = log.weight_kg
       const measured = movement.measuresExternalWeight && weight != null && Number.isFinite(weight) && weight > 0
-      const missingWeight = (weight == null || !Number.isFinite(weight)) && movement.descriptor.kind !== 'bodyweight'
-      accumulateWork(group.history.work, {
-        recordedReps: reps, liftedKg: measured && reps != null ? weight * reps : null,
-        loadedReps: measured ? reps ?? 0 : 0, missingReps: reps == null,
-        missingVolume: movement.measuresExternalWeight && (missingWeight || (measured && reps == null)),
-      })
+      const missingWeight = (weight == null || !Number.isFinite(weight)) && !movement.bodyweight
+      setWork.recordedReps = reps
+      setWork.liftedKg = measured && reps != null ? weight * reps : null
+      setWork.loadedReps = measured ? reps ?? 0 : 0
+      setWork.missingReps = reps == null
+      setWork.missingVolume = movement.measuresExternalWeight && (missingWeight || (measured && reps == null))
     }
+    accumulateWork(group.history.work, setWork)
+    accumulateWork(sessionWork.work, setWork)
     if (loadedWeight == null) continue
-    sessionTimes.set(session.id, session.started_at ?? session.completed_at ?? '')
     const weight = loadedWeight
     const point = group.points.get(session.id) ?? {
       sessionId: session.id, date: session.date, topWeight: 0, topReps: null,
@@ -253,28 +295,31 @@ export function buildExerciseFamilies(data: AppData): ExerciseFrequencyFamily[] 
     group.points.set(session.id, point)
   }
 
-  const families = new Map<string, { row: ExerciseFrequencyFamily; sessions: Set<string> }>()
+  const families = new Map<string, { row: ExerciseFrequencyFamily; sessions: Map<string, SessionWork> }>()
   for (const { history, performed, points, family } of groups.values()) {
     const variant = {
       ...history, sessionCount: performed.size,
-      points: [...points.values()].sort((a, b) => a.date.localeCompare(b.date)
-        || (sessionTimes.get(a.sessionId) ?? '').localeCompare(sessionTimes.get(b.sessionId) ?? '')
-        || a.sessionId.localeCompare(b.sessionId)),
+      points: [...points.values()].sort(sessionOrder),
     }
     const key = family ? `family:${family.id}` : variant.key
     const entry = families.get(key) ?? {
       row: { key, name: family?.name ?? variant.name, region: variant.region,
-        lastPerformedDate: variant.lastPerformedDate, sessionCount: 0, work: emptyWork(), variants: [] },
-      sessions: new Set<string>(),
+        lastPerformedDate: variant.lastPerformedDate, sessionCount: 0, work: emptyWork(), variants: [], sessions: [] },
+      sessions: new Map<string, SessionWork>(),
     }
-    for (const id of performed) entry.sessions.add(id)
+    for (const [id, observation] of performed) {
+      const previous = entry.sessions.get(id)
+      if (previous) accumulateWork(previous.work, observation.work)
+      else entry.sessions.set(id, observation)
+    }
     entry.row.sessionCount = entry.sessions.size
     accumulateWork(entry.row.work, variant.work)
     entry.row.variants.push(variant)
     if (variant.lastPerformedDate > entry.row.lastPerformedDate) entry.row.lastPerformedDate = variant.lastPerformedDate
     families.set(key, entry)
   }
-  return [...families.values()].map(({ row }) => {
+  return [...families.values()].map(({ row, sessions }) => {
+    row.sessions = [...sessions.values()].sort(sessionOrder)
     row.variants.sort(frequencyOrder)
     return row
   }).sort(frequencyOrder)

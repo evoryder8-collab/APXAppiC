@@ -1,3 +1,4 @@
+import ImageIO
 import PDFKit
 import XCTest
 @testable import APEX
@@ -213,6 +214,94 @@ final class ExportReportTests: XCTestCase {
         }
     }
 
+    func testEachObjectComparisonHasADecodableBundledIllustration() throws {
+        struct ObjectArtwork: Decodable { let artwork: String }
+        let catalog = try XCTUnwrap(Bundle.main.url(forResource: "lifted-mass-landmarks", withExtension: "json"))
+        let objects = try JSONDecoder().decode([ObjectArtwork].self, from: Data(contentsOf: catalog))
+        XCTAssertFalse(objects.isEmpty)
+        XCTAssertEqual(Set(objects.map(\.artwork)).count, objects.count)
+        for object in objects {
+            try autoreleasepool {
+                let url = try XCTUnwrap(Bundle.main.url(forResource: object.artwork, withExtension: nil,
+                                                        subdirectory: "award-objects"), object.artwork)
+                let source = try XCTUnwrap(CGImageSourceCreateWithURL(url as CFURL, nil), object.artwork)
+                let image = try XCTUnwrap(CGImageSourceCreateImageAtIndex(source, 0, nil), object.artwork)
+                XCTAssertGreaterThan(image.width, 1, object.artwork)
+                XCTAssertGreaterThan(image.height, 1, object.artwork)
+            }
+        }
+    }
+
+    @MainActor
+    func testAvatarPDFChartsPushUpFamiliesAndRecordedUnilateralVolume() throws {
+        let second = WorkoutSession(id: UUID(), userID: user, date: "2026-02-09", programDayID: dayID,
+                                    isLite: false, isDeload: false, isEventRecovery: false, completed: true,
+                                    qualityScore: 1, startedAt: nil, completedAt: nil, notes: "")
+        func later(_ name: String, _ movement: String?, _ kg: Double?, _ reps: Int) -> WorkoutLog {
+            WorkoutLog(id: UUID(), userID: user, sessionID: second.id, exerciseID: nil, exerciseName: name,
+                       setNumber: 1, weightKG: kg, reps: reps, rir: nil, movementID: movement,
+                       skipped: false, overrideFlag: false, createdAt: "")
+        }
+        let rows = [
+            log("Strict Push-Up", set: 1, weight: nil, reps: 12, at: ""),
+            log("Diamond or Close-Grip Push-Up", set: 2, weight: nil, reps: 8, at: ""),
+            later("Incline Push-Up", "incline_push_up", nil, 25),
+            log("Bulgarian Split Squat", set: 1, weight: 14, reps: 8, at: ""),
+            later("Bulgarian Split Squat", "bulgarian_split_squat", 18, 10),
+            log("Reverse Lunge", set: 1, weight: 10, reps: 14, at: ""),
+            later("Reverse Lunge", "reverse_lunge", 12, 16),
+        ] + (1...6).map { log("Accessory \($0)", set: 1, weight: Double($0), reps: 4, at: "") }
+        let pdf = AvatarReport(ownerID: user, displayName: "Training example", snapshots: [], partialScores: [:],
+                               sessions: data().workoutSessions + [second], logs: rows + [rows[0]], unit: .kilograms).pdfData()
+        let document = try XCTUnwrap(PDFDocument(data: pdf))
+        let pages = (0..<document.pageCount).compactMap { document.page(at: $0)?.string }
+        let language = LanguageState.shared
+        let repsPages = pages.filter { $0.contains(language.text("Reps per session")) }
+        let pushUpPage = try XCTUnwrap(repsPages.first { $0.contains(language.text("Push-Up")) })
+        XCTAssertTrue(pushUpPage.contains("20 " + language.text("reps")))
+        XCTAssertTrue(pushUpPage.contains("25 " + language.text("reps")))
+        let volumePages = pages.filter { $0.contains(language.text("Recorded volume per session")) }.joined(separator: " ")
+        for kg in [112, 180, 140, 192] { XCTAssertTrue(volumePages.contains("\(kg) kg")) }
+        let loadPages = pages.filter { $0.contains(language.text("Strength progress")) }.joined(separator: " ")
+        for i in 1...6 { XCTAssertTrue(loadPages.contains("Accessory \(i)")) }
+        let summary = try XCTUnwrap(pages.first { $0.contains(language.text("All-time training totals")) })
+        XCTAssertTrue(summary.contains("708 kg"))
+        XCTAssertTrue(summary.split(whereSeparator: { $0.isWhitespace }).contains("13"))
+        XCTAssertTrue(summary.split(whereSeparator: { $0.isWhitespace }).contains("117"))
+        let summaryText = summary.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+        let mass = try XCTUnwrap(LiftedMassComparison.caption(kilograms: 708))
+        XCTAssertTrue(summaryText.contains(mass.caption))
+        XCTAssertNotNil(mass.artworkURL)
+        let summaryIndex = try XCTUnwrap(pages.firstIndex(of: summary))
+        let page = try XCTUnwrap(document.page(at: summaryIndex)?.pageRef)
+        var resources: CGPDFDictionaryRef?, objects: CGPDFDictionaryRef?
+        guard let dictionary = page.dictionary,
+              CGPDFDictionaryGetDictionary(dictionary, "Resources", &resources), let resources,
+              CGPDFDictionaryGetDictionary(resources, "XObject", &objects), let objects else {
+            return XCTFail("The illustrated summary page must contain PDF drawing resources.")
+        }
+        var hasImage = false
+        CGPDFDictionaryApplyBlock(objects, { _, value, _ in
+            var stream: CGPDFStreamRef?, subtype: UnsafePointer<CChar>?
+            if CGPDFObjectGetValue(value, .stream, &stream), let stream,
+               let dictionary = CGPDFStreamGetDictionary(stream),
+               CGPDFDictionaryGetName(dictionary, "Subtype", &subtype),
+               let subtype, String(cString: subtype) == "Image" { hasImage = true }
+            return !hasImage
+        }, nil)
+        XCTAssertTrue(hasImage, "The summary page must embed the selected object illustration.")
+        XCTAssertTrue(summaryText.contains(try XCTUnwrap(mass.fact)))
+        let hero = try XCTUnwrap(LiftedMassComparison.heroCaption(kilograms: 708))
+        XCTAssertTrue(summaryText.contains(hero.caption))
+        let linkURLs = (0..<document.pageCount).compactMap { document.page(at: $0) }.flatMap(\.annotations).compactMap { ($0.action as? PDFActionURL)?.url }
+        XCTAssertTrue(linkURLs.contains(mass.source))
+        XCTAssertTrue(linkURLs.contains(hero.source))
+        let attachment = XCTAttachment(data: pdf, uniformTypeIdentifier: "com.adobe.pdf")
+        attachment.name = "Avatar family progress.pdf"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
     @MainActor
     func testEmptyAvatarPDFReportsMissingEvidence() throws {
         let pdf = AvatarReport(ownerID: user, displayName: "Sample", snapshots: [], partialScores: ["health": 51],
@@ -223,6 +312,6 @@ final class ExportReportTests: XCTestCase {
         XCTAssertTrue(text.contains(LanguageState.shared.text("Building your baseline")))
         XCTAssertTrue(text.contains("51 / 100"))
         XCTAssertTrue(text.contains(LanguageState.shared.text("No exercises recorded yet.")))
-        XCTAssertTrue(text.contains(LanguageState.shared.text("No loaded sessions recorded yet.")))
+        XCTAssertTrue(text.contains(LanguageState.shared.text("No recorded reps or working loads yet.")))
     }
 }

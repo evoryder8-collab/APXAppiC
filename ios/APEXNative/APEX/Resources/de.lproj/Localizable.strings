@@ -5787,3 +5787,13 @@
 "A pattern needs at least three classified workouts." = "Für ein Trainingsmuster sind mindestens drei zugeordnete Einheiten nötig.";
 "Workouts per week" = "Trainings pro Woche";
 "%d reps" = "%d Wdh.";
+"All-time training totals" = "Training insgesamt";
+"Performed sets" = "Absolvierte Sätze";
+"Known external load × recorded reps. Body mass, assistance and timed work are excluded from volume. Skipped sets are excluded from all totals." = "Erfasste Zusatzlast × Wiederholungen. Körpergewicht, Unterstützung und zeitbasierte Übungen zählen nicht zum Volumen. Übersprungene Sätze zählen in keiner Summe.";
+"Reps per session" = "Wiederholungen pro Training";
+"Each point sums recorded reps across all variations in one completed workout." = "Jeder Punkt summiert die erfassten Wiederholungen aller Varianten in einem abgeschlossenen Training.";
+"Recorded volume per session" = "Erfasstes Volumen pro Training";
+"Split squats and lunges use the load and reps entered for each set once. Left and right sides are not recorded separately." = "Bei Split Squats und Ausfallschritten zählen Last und Wiederholungen pro Satz einmal. Linke und rechte Seite werden gemeinsam erfasst.";
+"Best session" = "Bestes Training";
+"No recorded reps or working loads yet." = "Noch keine Wiederholungen oder Trainingslasten erfasst.";
+"Fictional one-lift benchmark · {hero} · {mass}" = "Einzelhub in der Fiktion · {hero} · {mass}";

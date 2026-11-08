@@ -124,6 +124,9 @@
 		6227F8BFC3310BF52BA17F2F /* DaylineSwipeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC1512A57154952F2B5701F /* DaylineSwipeTests.swift */; };
 		14406EBDAB20261108000002 /* GuidedArtwork in Resources */ = {isa = PBXBuildFile; fileRef = 14406EBDAB20261108000001 /* GuidedArtwork */; };
 		14406EBDAB20261108000005 /* exercise-frequency-families.json in Resources */ = {isa = PBXBuildFile; fileRef = 14406EBDAB20261108000006 /* exercise-frequency-families.json */; };
+		14407EBDAB20261108000005 /* lifted-mass-landmarks.json in Resources */ = {isa = PBXBuildFile; fileRef = 14407EBDAB20261108000006 /* lifted-mass-landmarks.json */; };
+		14407EBDAB20261108000011 /* award-objects in Resources */ = {isa = PBXBuildFile; fileRef = 14407EBDAB20261108000012 /* award-objects */; };
+		14407EBDAB20261108000009 /* hero-lift-landmarks.json in Resources */ = {isa = PBXBuildFile; fileRef = 14407EBDAB2026110800000A /* hero-lift-landmarks.json */; };
 		623DEDE52B70C8DFA651E1D4 /* APEXIcon.svg in Resources */ = {isa = PBXBuildFile; fileRef = 30B06C160134CB27687F7B35 /* APEXIcon.svg */; };
 		6250713D3E5FA542A5535F97 /* training-support-parity.json in Resources */ = {isa = PBXBuildFile; fileRef = 297741B62F81B0636B34F35C /* training-support-parity.json */; };
 		65016A753C50D66AE4789CC3 /* OrbitLocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8172120F69D75C87F5025756 /* OrbitLocationManager.swift */; };
@@ -179,6 +182,7 @@
 		8E65B12988DD76BCCDF06E51 /* APEXStableID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2402484CFB9ECDD04C1C9FF5 /* APEXStableID.swift */; };
 		14406EBDAB20261108000007 /* TrainingProfile90.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14406EBDAB20261108000008 /* TrainingProfile90.swift */; };
 		8F8F28A4C1D48840624E3517 /* StrengthProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5190A21466A8A95661FAA6BA /* StrengthProgress.swift */; };
+		14407EBDAB20261108000007 /* LiftedMassComparison.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14407EBDAB20261108000008 /* LiftedMassComparison.swift */; };
 		8FEFDD624A830B3DFE90628D /* FoodLibraryHydrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504380BCFB476ADFD93C2396 /* FoodLibraryHydrationTests.swift */; };
 		9057EF08489372E852896190 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F6BECBAB4CA6357DBA3B0593 /* Localizable.strings */; };
 		93D6192DFFA8B8A5BFB274F1 /* RunDebriefView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E079A75C9AF4BCDAB514617 /* RunDebriefView.swift */; };
@@ -429,6 +433,9 @@
 		2FC9E251EB7BB3E5A44FAC00 /* CoachPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachPlanView.swift; sourceTree = "<group>"; };
 		14406EBDAB20261108000001 /* GuidedArtwork */ = {isa = PBXFileReference; lastKnownFileType = folder; path = GuidedArtwork; sourceTree = "<group>"; };
 		14406EBDAB20261108000006 /* exercise-frequency-families.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/exercise-frequency-families.json"; sourceTree = SOURCE_ROOT; };
+		14407EBDAB20261108000006 /* lifted-mass-landmarks.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/lifted-mass-landmarks.json"; sourceTree = SOURCE_ROOT; };
+		14407EBDAB20261108000012 /* award-objects */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "../../public/award-objects"; sourceTree = SOURCE_ROOT; };
+		14407EBDAB2026110800000A /* hero-lift-landmarks.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/hero-lift-landmarks.json"; sourceTree = SOURCE_ROOT; };
 		30B06C160134CB27687F7B35 /* APEXIcon.svg */ = {isa = PBXFileReference; path = APEXIcon.svg; sourceTree = "<group>"; };
 		30E466A7F4101C8729453FCE /* ProfileAvatarPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileAvatarPicker.swift; sourceTree = "<group>"; };
 		3155391EAD03EBC5E9C93E63 /* AdaptiveMealPlanEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveMealPlanEngine.swift; sourceTree = "<group>"; };
@@ -462,6 +469,7 @@
 		504380BCFB476ADFD93C2396 /* FoodLibraryHydrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLibraryHydrationTests.swift; sourceTree = "<group>"; };
 		14406EBDAB20261108000008 /* TrainingProfile90.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingProfile90.swift; sourceTree = "<group>"; };
 		5190A21466A8A95661FAA6BA /* StrengthProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrengthProgress.swift; sourceTree = "<group>"; };
+		14407EBDAB20261108000008 /* LiftedMassComparison.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiftedMassComparison.swift; sourceTree = "<group>"; };
 		51A13108863A51E2AF4564DA /* ActivityGuideSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityGuideSheet.swift; sourceTree = "<group>"; };
 		5223D35F36742B2C02829F7B /* macro-guidance-parity.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "macro-guidance-parity.json"; sourceTree = "<group>"; };
 		528FC76CC102C422F2ADD630 /* it */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = it; path = it.lproj/LocalizableShort.strings; sourceTree = "<group>"; };
@@ -996,6 +1004,9 @@
 			children = (
 				14406EBDAB20261108000001 /* GuidedArtwork */,
 				14406EBDAB20261108000006 /* exercise-frequency-families.json */,
+				14407EBDAB20261108000006 /* lifted-mass-landmarks.json */,
+				14407EBDAB20261108000012 /* award-objects */,
+				14407EBDAB2026110800000A /* hero-lift-landmarks.json */,
 				30B06C160134CB27687F7B35 /* APEXIcon.svg */,
 				FC1E568F9FFFF6AD4CC7A7DB /* Assets.xcassets */,
 				F78087ACF73AE7CD08DA1931 /* constantine-v85.json */,
@@ -1176,6 +1187,7 @@
 				1ED7DB9E8F45543BD013D100 /* SessionBriefingKnowledge.swift */,
 				14406EBDAB20261108000008 /* TrainingProfile90.swift */,
 				5190A21466A8A95661FAA6BA /* StrengthProgress.swift */,
+				14407EBDAB20261108000008 /* LiftedMassComparison.swift */,
 				5D60D6A952E3D2AEB29D6431 /* SupplementCatalogue.swift */,
 				CA3D7D71971D9F075B4CA57C /* SupplementMutationQueue.swift */,
 				ABFF865FEAA53E90ACEED8B0 /* TrainingCalendarDay.swift */,
@@ -1402,6 +1414,9 @@
 			files = (
 				14406EBDAB20261108000002 /* GuidedArtwork in Resources */,
 				14406EBDAB20261108000005 /* exercise-frequency-families.json in Resources */,
+				14407EBDAB20261108000005 /* lifted-mass-landmarks.json in Resources */,
+				14407EBDAB20261108000011 /* award-objects in Resources */,
+				14407EBDAB20261108000009 /* hero-lift-landmarks.json in Resources */,
 				623DEDE52B70C8DFA651E1D4 /* APEXIcon.svg in Resources */,
 				C30A5C4E317B88881A38DF5F /* Assets.xcassets in Resources */,
 				E4036F21EDE6CE6179EA150B /* InfoPlist.strings in Resources */,
@@ -1626,6 +1641,7 @@
 				4E8109D8E62DD0784BBFDF3A /* SimpleHomeView.swift in Sources */,
 				14406EBDAB20261108000007 /* TrainingProfile90.swift in Sources */,
 				8F8F28A4C1D48840624E3517 /* StrengthProgress.swift in Sources */,
+				14407EBDAB20261108000007 /* LiftedMassComparison.swift in Sources */,
 				4C3430D0B040A751B27CA88D /* SupabaseService.swift in Sources */,
 				2C0C4EFB8089AF18E47CC813 /* SupplementCatalogue.swift in Sources */,
 				8187549599BA32E091859557 /* SupplementMutationQueue.swift in Sources */,
@@ -1975,7 +1991,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 406;
+				CURRENT_PROJECT_VERSION = 407;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -2039,7 +2055,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 406;
+				CURRENT_PROJECT_VERSION = 407;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
