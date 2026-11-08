@@ -205,7 +205,7 @@ export function StrengthProgressPanel() {
             <Metric label={copy.bestLoad} value={`${Math.max(...visible.map((point) => point.topWeight))} kg`} />
             <Metric label={t('First load')} value={`${start.topWeight} kg`} />
             <Metric label={t('Latest load')} value={`${end.topWeight} kg`} />
-            <Metric label={copy.change} value={change == null ? '—' : `${change > 0 ? '+' : ''}${change} kg`} positive={change != null && change > 0} />
+            <Metric label={copy.change} value={change == null ? t('No data') : `${change > 0 ? '+' : ''}${change} kg`} positive={change != null && change > 0} />
             <Metric label={copy.sessions} value={String(visible.length)} />
           </div>
           <div className="mt-3 rounded-[1.75rem] border border-white/85 bg-white/58 px-2 pt-4 pb-1 shadow-[inset_0_1px_0_rgba(255,255,255,.9)]"><StrengthCurve points={visible} /></div>
