@@ -5,7 +5,7 @@ import { useStore } from '../../store/AppStore'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 import { todayIso } from '../../lib/plan'
 import { buildExerciseFamilies } from '../../lib/strengthProgress'
-import { downloadableAvatarReport, reportBodyweight } from '../../lib/avatarReport'
+import { downloadableAvatarReport, reportBodyweight, reportSessionBodyweights } from '../../lib/avatarReport'
 import { avatarReportRange, earliestReportDate, reportPeriods, type ReportPeriod } from '../../lib/avatarReportRange'
 
 export function AvatarReportButton() {
@@ -30,7 +30,7 @@ export function AvatarReportButton() {
     try {
       const html = await downloadableAvatarReport({
         name: profile.display_name, locale: language, today, range, currentBodyweight: range.to === today ? reportBodyweight(data, today) : null,
-        families: buildExerciseFamilies(data, range),
+        sessionBodyweights: reportSessionBodyweights(data, range.to), families: buildExerciseFamilies(data, range),
         training: trainingProfile(data, runs, range.to, range.allTime ? undefined : range.from),
         snapshots: snapshots.filter(s => s.user_id === profile.user_id && s.date >= range.from && s.date <= range.to),
         observed: range.allTime ? avatarDomainScores : {}, translate: t,

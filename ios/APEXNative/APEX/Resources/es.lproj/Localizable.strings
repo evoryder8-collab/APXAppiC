@@ -4127,7 +4127,7 @@
 "Paste selected" = "Pegar seleccionado";
 "Pasting…" = "Pegar...";
 "Pea Protein" = "Proteína de guisantes";
-"Peak" = "Pico";
+"Peak" = "Máximo";
 "Peak week" = "Semana máxima";
 "Pec deck" = "Cubierta de Pec";
 "Perceived effort" = "Esfuerzo percibido";
@@ -5855,3 +5855,6 @@
 "Active plan" = "Plan activo";
 "Date range" = "Intervalo de fechas";
 "Best in range" = "Mejor marca del periodo";
+"External load during single-leg sets" = "Carga externa en series a una pierna";
+"Current bodyweight used as a reference for every set." = "Se usa tu peso corporal actual como referencia en todas las series.";
+"Bodyweight history is incomplete. External load is shown for every set." = "El historial de peso está incompleto. Se muestra el peso externo en todas las series.";

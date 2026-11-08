@@ -41,6 +41,7 @@ struct AvatarReport: Transferable {
     var exercises: [Exercise] = []
     var trainingProfile: TrainingProfile90? = nil
     var currentBodyweightKG: Double? = nil
+    var bodyweightBySession: [UUID: Double] = [:]
     var period: AvatarReportPeriod = .allTime
     var reportDates: ClosedRange<String>? = nil
 
@@ -64,6 +65,7 @@ struct AvatarReport: Transferable {
                        period: AvatarReportPeriod, dates: ClosedRange<String>, today: String) -> Self {
         let sessions = data.workoutSessions.filter { $0.userID == ownerID && $0.completed && dates.contains($0.date) }
         let ids = Set(sessions.map(\.id))
+        let weights = bodyweights(in: data, owner: ownerID, through: dates.upperBound, sessions: sessions)
         let profile = TrainingProfile90.summarize(ownerID: ownerID, data: data,
             from: period == .allTime ? nil : dates.lowerBound, through: dates.upperBound)
         return Self(ownerID: ownerID, displayName: data.profile?.userID == ownerID ? data.profile?.displayName ?? "" : "",
@@ -72,20 +74,54 @@ struct AvatarReport: Transferable {
                     sessions: sessions, logs: data.workoutLogs.filter { $0.userID == ownerID && ids.contains($0.sessionID) },
                     unit: .current(data.settings?.userID == ownerID ? data.settings : nil),
                     exercises: data.exercises.filter { $0.userID == ownerID }, trainingProfile: profile,
-                    currentBodyweightKG: dates.upperBound == today ? currentBodyweight(in: data, owner: ownerID) : nil,
+                    currentBodyweightKG: dates.upperBound == today ? weights.current : nil, bodyweightBySession: weights.bySession,
                     period: period, reportDates: dates)
     }
 
-    static func currentBodyweight(in data: DashboardData, owner: UUID) -> Double? {
-        guard let profile = data.profile, profile.userID == owner, profile.weightKG.isFinite, profile.weightKG > 0 else { return nil }
-        let kg = profile.weightKG
-        // Standard profiles can carry a database default of 70 kg before a weight is entered.
-        if kg != 70 || ProfileIntegrityPolicy.authorizedProtocol(for: profile) != nil { return kg }
-        let today = Date.now.apexDateKey
-        let confirmed = data.healthMetrics.contains { $0.userID == owner && $0.date <= today && $0.weightKG == kg }
-            || data.dailyLogs.contains { $0.userID == owner && $0.date <= today && $0.weightKG == kg }
-            || (data.fitnessEvidence ?? []).contains { $0.userID == owner && $0.metric == .bodyMass && $0.unit == "kg" && $0.value == kg && String($0.measuredAt.prefix(10)) <= today }
-        return confirmed ? kg : nil
+    private static func bodyweights(in data: DashboardData, owner: UUID, through end: String,
+                                    sessions: [WorkoutSession]) -> (bySession: [UUID: Double], current: Double?) {
+        struct Observation {
+            let date: String
+            let kg: Double
+            let priority: Int
+            let time: Date?
+            let tie: String
+        }
+        var observations: [Observation] = []
+        func add(_ date: String, _ kg: Double?, priority: Int, time: Date? = nil, tie: String) {
+            guard let kg, (10...500).contains(kg), date <= end, FBDate.validDate(date) != nil else { return }
+            observations.append(Observation(date: date, kg: kg, priority: priority, time: time, tie: tie))
+        }
+        for row in data.healthMetrics where row.userID == owner {
+            add(row.date, row.weightKG, priority: 2, tie: row.id.uuidString)
+        }
+        for row in data.dailyLogs where row.userID == owner {
+            add(row.date, row.weightKG, priority: 1, tie: row.id.uuidString)
+        }
+        let evidence = (data.fitnessEvidence ?? []).filter { $0.userID == owner && $0.metric == .bodyMass && $0.unit == "kg" }
+        let superseded = Set(evidence.compactMap(\.supersedesID))
+        for row in evidence where !superseded.contains(row.id) {
+            guard let time = ExternalWorkoutImport.parseTimestamp(row.measuredAt) else { continue }
+            add(String(row.measuredAt.prefix(10)), row.value, priority: 0, time: time, tie: row.importedAt + row.id.uuidString)
+        }
+        observations.sort {
+            ($0.date, $0.priority, $0.time ?? .distantPast, $0.tie) < ($1.date, $1.priority, $1.time ?? .distantPast, $1.tie)
+        }
+        var bySession: [UUID: Double] = [:]
+        var dayStart = 0
+        for session in sessions.sorted(by: { $0.date < $1.date }) {
+            while dayStart < observations.count && observations[dayStart].date < session.date { dayStart += 1 }
+            let started = ExternalWorkoutImport.parseTimestamp(session.startedAt)
+            let sameDay = observations[dayStart...].prefix { $0.date == session.date }.last { row in
+                guard let time = row.time, let started else { return true }
+                return time <= started
+            }
+            bySession[session.id] = sameDay?.kg ?? (dayStart > 0 ? observations[dayStart - 1].kg : nil)
+        }
+        guard let profile = data.profile, profile.userID == owner, (10...500).contains(profile.weightKG),
+              profile.weightKG != 70 || ProfileIntegrityPolicy.authorizedProtocol(for: profile) != nil
+                || observations.contains(where: { $0.kg == 70 }) else { return (bySession, nil) }
+        return (bySession, profile.weightKG)
     }
 
     var fileName: String {
@@ -408,12 +444,14 @@ struct AvatarReport: Transferable {
         }
 
         private struct ChartPoint {
+            let sessionID: UUID
             let date: Date
             let value: Double
             let reps: Int?
 
             init?(_ point: StrengthProgress.Point) {
                 guard let date = APEXDateMath.date(from: point.date), point.topWeight.isFinite, point.topWeight > 0 else { return nil }
+                sessionID = point.sessionID
                 self.date = date
                 value = point.topWeight
                 reps = point.topReps
@@ -442,70 +480,93 @@ struct AvatarReport: Transferable {
 
         private struct LegPanel {
             let movement: String
-            let tiles: [(String, String)]
-            let bodyAndLoad: String?
-            let note: String?
+            let basis: String
+            let first: (value: String, date: String)
+            let peak: (value: String, date: String)
+            let latest: (value: String, date: String)
+            let notes: [String]
             let source: URL?
+
+            var height: CGFloat { 163 + CGFloat(notes.count) * 12 }
         }
 
-        private func legPanel(_ variant: StrengthProgress.ExerciseHistory, load: Double) -> LegPanel? {
+        private func legPanel(_ variant: StrengthProgress.ExerciseHistory, points: [ChartPoint]) -> LegPanel? {
             let id = variant.key.hasPrefix("movement:") ? String(variant.key.dropFirst(9)) : ExerciseCatalog.movementID(matchingName: variant.name)
-            guard let id, var support = Self.legGuide[id] else { return nil }
+            guard let id, var support = Self.legGuide[id], let first = points.first, let last = points.last else { return nil }
             let words = Set(variant.name.lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init))
             if !words.isDisjoint(with: ["or", "assisted", "supported", "machine", "smith", "cable", "band"]) { support = .externalOnly }
-            var tiles = [(language.text("Added weight"), weight(load))]
-            var bodyAndLoad: String?
-            var note: String?
+            let known = points.compactMap { report.bodyweightBySession[$0.sessionID] }
+            let reference = known.isEmpty ? report.currentBodyweightKG : nil
+            let estimate = (support == .rearFootElevated || support == .singleSupport)
+                && (known.count == points.count || reference != nil)
+            let factor = support == .rearFootElevated ? 0.8436 : 1
+            func load(_ point: ChartPoint) -> Double {
+                guard estimate, let body = report.bodyweightBySession[point.sessionID] ?? reference else { return point.value }
+                return (body + point.value) * factor
+            }
+            func observation(_ point: ChartPoint) -> (String, String) {
+                let value = load(point)
+                let display = estimate ? "≈ " + number(report.unit.value(fromKilograms: value).rounded()) + " " + report.unit.suffix : weight(value)
+                return (display, point.date.formatted(Date.FormatStyle(locale: language.language.locale, timeZone: .gmt).year().month(.abbreviated).day()))
+            }
+            let peak = points.dropFirst().reduce(first) { best, next in load(next) > load(best) ? next : best }
+            var notes: [String] = []
             var source: URL?
-            if support != .externalOnly, let body = report.currentBodyweightKG, body.isFinite, body > 0 {
-                let combined = body + load
-                bodyAndLoad = weight(body) + " + " + weight(load)
-                tiles.append((language.text("Body + load"), weight(combined)))
-                if support == .sharedSupport {
-                    note = language.text("The share on each foot varies with stance and support.")
+            let basis: String
+            if estimate {
+                basis = support == .rearFootElevated ? "Front foot · estimated" : "Standing foot · estimated"
+                if support == .rearFootElevated {
+                    notes.append("At rest · based on Helme et al.")
+                    source = URL(string: "https://doi.org/10.1519/JSC.0000000000003727")
                 } else {
-                    let split = support == .rearFootElevated
-                    let estimate = report.unit.value(fromKilograms: combined * (split ? 0.8436 : 1)).rounded()
-                    let label = language.text(split ? "Front foot · estimated" : "Standing foot · estimated")
-                    tiles.insert((label, "≈ " + number(estimate) + " " + report.unit.suffix), at: 0)
-                    note = language.text(split ? "At rest · based on Helme et al." : "Assumes one foot on the floor and no hand support.")
-                    if split { source = URL(string: "https://doi.org/10.1519/JSC.0000000000003727") }
+                    notes.append("Assumes one foot on the floor and no hand support.")
+                }
+                if reference != nil { notes.append("Current bodyweight used as a reference for every set.") }
+            } else {
+                basis = "External load during single-leg sets"
+                if support == .sharedSupport { notes.append("The share on each foot varies with stance and support.") }
+                else if support != .externalOnly && !known.isEmpty {
+                    notes.append("Bodyweight history is incomplete. External load is shown for every set.")
                 }
             }
-            return LegPanel(movement: id, tiles: tiles, bodyAndLoad: bodyAndLoad, note: note, source: source)
+            return LegPanel(movement: id, basis: language.text(basis), first: observation(first), peak: observation(peak),
+                            latest: observation(last), notes: notes.flatMap { wrapped(language.text($0), width: 504, size: 9) }, source: source)
         }
 
         private func drawLegPanel(_ panel: LegPanel) {
-            let top = y + 5
-            let frame = CGRect(x: 38, y: top, width: 536, height: 124)
+            let top = y + 8
+            let frame = CGRect(x: 38, y: top, width: 536, height: panel.height)
             UIColor(red: 0.94, green: 0.97, blue: 0.96, alpha: 1).setFill()
-            UIBezierPath(roundedRect: frame, cornerRadius: 14).fill()
-            if let url = Bundle.main.url(forResource: panel.movement, withExtension: "webp", subdirectory: "leg-anatomy"),
-               let illustration = UIImage(contentsOfFile: url.path) {
-                let scale = min(103 / illustration.size.width, 115 / illustration.size.height)
-                let size = CGSize(width: illustration.size.width * scale, height: illustration.size.height * scale)
-                illustration.draw(in: CGRect(x: 92 - size.width / 2, y: frame.midY - size.height / 2, width: size.width, height: size.height))
+            UIBezierPath(roundedRect: frame, cornerRadius: 13).fill()
+            label(language.text("Working leg"), 52, top + 10, 505, size: 16, weight: .bold)
+            label(panel.basis, 52, top + 31, 505, size: 11, weight: .medium, color: muted)
+            let illustration = Bundle.main.url(forResource: panel.movement, withExtension: "webp", subdirectory: "leg-anatomy")
+                .flatMap { UIImage(contentsOfFile: $0.path) }
+            for (index, item) in [("First", panel.first), ("Peak", panel.peak)].enumerated() {
+                let x: CGFloat = index == 0 ? 51 : 312
+                let tile = CGRect(x: x, y: top + 50, width: 248, height: 80)
+                UIColor.white.setFill()
+                UIBezierPath(roundedRect: tile, cornerRadius: 9).fill()
+                var textX = x + 13
+                if let illustration {
+                    let scale = min(66 / illustration.size.width, 71 / illustration.size.height)
+                    let size = CGSize(width: illustration.size.width * scale, height: illustration.size.height * scale)
+                    illustration.draw(in: CGRect(x: x + 42 - size.width / 2, y: tile.midY - size.height / 2,
+                                                 width: size.width, height: size.height))
+                    textX = x + 80
+                }
+                let width = tile.maxX - textX - 7
+                label(language.text(item.0), textX, tile.minY + 8, width, size: 11, weight: .semibold, color: muted)
+                label(item.1.value, textX, tile.minY + 23, width, size: 23, weight: .bold, color: green)
+                label(item.1.date, textX, tile.minY + 55, width, size: 10, color: muted)
             }
-            label(language.text("Working leg"), 152, top + 9, 404, size: 16, weight: .bold)
-            let gap: CGFloat = 6
-            let width = (409 - gap * CGFloat(panel.tiles.count - 1)) / CGFloat(panel.tiles.count)
-            for (index, tile) in panel.tiles.enumerated() {
-                let x = 152 + CGFloat(index) * (width + gap)
-                (index == 0 ? UIColor(red: 0.81, green: 0.94, blue: 0.90, alpha: 1) : UIColor.white).setFill()
-                UIBezierPath(roundedRect: CGRect(x: x, y: top + 37, width: width, height: 61), cornerRadius: 9).fill()
-                for (row, part) in wrapped(tile.0, width: width - 12, size: 9).enumerated() {
-                    label(part, x + 7, top + 41 + CGFloat(row) * 10, width - 12, size: 9, color: muted)
-                }
-                label(tile.1, x + 7, top + 63, width - 12, size: 20, weight: .bold, color: index == 0 ? green : ink)
-                if index == panel.tiles.count - 1, let bodyAndLoad = panel.bodyAndLoad {
-                    label(bodyAndLoad, x + 8, top + 86, width - 14, size: 8, color: muted)
-                }
+            let latest = [language.text("Latest"), panel.latest.value, panel.latest.date].joined(separator: " · ")
+            label(latest, 52, top + 137, 504, size: 12, weight: .semibold)
+            for (i, part) in panel.notes.enumerated() {
+                label(part, 52, top + 157 + CGFloat(i) * 12, 504, size: 9, color: muted)
             }
-            if let note = panel.note {
-                for (index, part) in wrapped(note, width: 409, size: 9).enumerated() {
-                    label(part, 152, top + 102 + CGFloat(index) * 10, 409, size: 9, color: panel.source == nil ? muted : green)
-                }
-                if let source = panel.source { context.setURL(source, for: CGRect(x: 152, y: top + 100, width: 409, height: 23)) }
+            if let source = panel.source {
+                context.setURL(source, for: CGRect(x: 52, y: top + 156, width: 504, height: 12))
             }
             y = frame.maxY + 4
         }
@@ -518,14 +579,14 @@ struct AvatarReport: Transferable {
             let parts = variant.titleParts(language)
             let title = wrapped(parts.main, width: 530, size: 19, weight: .bold)
             let subtitle = parts.variation.map { wrapped($0, width: 530, size: 12) } ?? []
-            let panel = legPanel(variant, load: last.value)
+            let panel = legPanel(variant, points: points)
             let totals = [(language.text("Recorded reps"), recordedReps(variant.totals)),
                           (language.text("Lifted volume"), liftedVolume(variant.totals))]
                 .compactMap { key, value in value.map { key + " " + $0 } }
             let totalLines = totals.isEmpty ? [] : wrapped(language.text(report.period.rawValue) + "   ·   " + totals.joined(separator: "   ·   "),
                                                          width: 536, size: 11, weight: .semibold)
-            let height = 248 + CGFloat(title.count - 1) * 24 + CGFloat(subtitle.count + totalLines.count) * 16
-                + (panel == nil ? 0 : 133)
+            let height = 268 + CGFloat(title.count - 1) * 24 + CGFloat(subtitle.count + totalLines.count) * 16
+                + (panel.map { $0.height + 12 } ?? 0)
             func heading() {
                 begin("Strength progress", subtitle: language.text("Heaviest recorded working load in each completed session."))
             }
@@ -583,8 +644,8 @@ struct AvatarReport: Transferable {
             }
             let record = [language.text("Best working load"), display(peak),
                           peak.date.formatted(Date.FormatStyle(locale: language.language.locale, timeZone: .gmt).year().month(.abbreviated).day())].joined(separator: " · ")
-            label(record, 38, y + 233, 536, size: 10, color: muted)
-            y += 248
+            label(record, 38, y + 242, 536, size: 10, color: muted)
+            y += 268
             for part in totalLines {
                 label(part, 38, y, 536, size: 11, weight: .semibold)
                 y += 16

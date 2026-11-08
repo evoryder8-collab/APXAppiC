@@ -2384,3 +2384,5 @@ Strength charts lead with the exercise family and identify its variation below. 
 The Avatar export offers one, three, or six months, one year, all time, or inclusive custom dates. The report shows its period. Historical exports omit current bodyweight when estimating leg loads. The dashboard, PNG and PDF use the same recorded-volume calculation, including explicit positive added weight on weighted push-up receipts. Nominal band resistance stays outside the mass total.
 
 Simple and Advanced use the active programme on the selected calendar day. An alternative phase remains browsable as a preview. Rest days with no prescribed movement do not launch the workout player.
+
+Build 413 compares the first, peak and latest working-leg loads within the exported period. The peak is chosen from the comparable series, so a lighter latest set does not replace an earlier peak. The estimate uses a bodyweight recorded on or before each session when available. Where a current profile weight supplies the reference for the whole series, the report labels that assumption. For mixed coverage or unknown load sharing, it compares recorded external resistance.

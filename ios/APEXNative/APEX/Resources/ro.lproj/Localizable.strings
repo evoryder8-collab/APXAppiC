@@ -1880,7 +1880,7 @@
 "Path" = "Alee";
 "Pause" = "Pauză";
 "PAUSED" = "ÎN PAUZĂ";
-"Peak" = "Vârf de pregătire";
+"Peak" = "Maxim";
 "Peak week" = "Săptămâna de vârf";
 "Pec deck" = "Aparat pec deck";
 "per side" = "pe fiecare parte";
@@ -5836,3 +5836,6 @@
 "Active plan" = "Plan activ";
 "Date range" = "Interval de date";
 "Best in range" = "Cel mai bun rezultat din interval";
+"External load during single-leg sets" = "Greutate externă în seriile pe un picior";
+"Current bodyweight used as a reference for every set." = "Greutatea corporală actuală este folosită ca referință pentru toate seriile.";
+"Bodyweight history is incomplete. External load is shown for every set." = "Istoricul greutății corporale este incomplet. Se afișează greutatea externă pentru fiecare serie.";

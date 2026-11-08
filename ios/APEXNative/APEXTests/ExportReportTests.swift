@@ -311,8 +311,10 @@ final class ExportReportTests: XCTestCase {
         XCTAssertTrue(charts.contains(language.text("Working leg")))
         XCTAssertTrue(charts.contains(language.text("Front foot · estimated")))
         XCTAssertTrue(charts.contains("≈ 66 kg"))
-        XCTAssertTrue(charts.contains(language.text("Body + load")))
-        XCTAssertTrue(charts.contains("72 kg"))
+        XCTAssertFalse(charts.contains(language.text("Body + load")))
+        XCTAssertFalse(charts.contains(language.text("Added weight")))
+        XCTAssertTrue(charts.contains(language.text("External load during single-leg sets")))
+        XCTAssertTrue(charts.contains(language.text("Current bodyweight used as a reference for every set.")))
         XCTAssertFalse(charts.contains(language.text("Push-Up")))
         XCTAssertFalse(charts.contains(language.text("Dumbbell Curl")))
         for (reps, kg) in [(18, 292), (30, 332)] {
@@ -361,6 +363,71 @@ final class ExportReportTests: XCTestCase {
         attachment.name = "Avatar family progress.pdf"
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+
+    @MainActor
+    func testWorkingLegPDFComparesEveryDatedLoadAndKeepsLatestBelowTheFirstAndPeak() throws {
+        var fixture = data()
+        let language = LanguageState.shared
+        let previous = language.language
+        language.language = .english
+        defer { language.language = previous }
+        let rows = [("2026-02-01", 100.0), ("2026-03-03", 12), ("2026-03-10", 24),
+                    ("2026-03-17", 20), ("2026-03-24", 20), ("2026-03-31", 18), ("2026-04-01", 200)]
+        fixture.workoutSessions = rows.map { date, _ in
+            WorkoutSession(id: UUID(), userID: user, date: date, programDayID: dayID, isLite: false, isDeload: false,
+                           isEventRecovery: false, completed: true, qualityScore: 1, startedAt: date + "T10:00:00Z",
+                           completedAt: nil, notes: "")
+        }
+        fixture.workoutLogs = zip(fixture.workoutSessions, rows).map { session, row in
+            WorkoutLog(id: UUID(), userID: user, sessionID: session.id, exerciseID: nil, exerciseName: "Bulgarian Split Squat",
+                       setNumber: 1, weightKG: row.1, reps: 8, rir: 2, movementID: "bulgarian_split_squat",
+                       skipped: false, overrideFlag: false, createdAt: "")
+        }
+        let weights = [("2026-02-28", 60.0), ("2026-03-10", 45), ("2026-03-16", 70), ("2026-03-31", 55)]
+        fixture.healthMetrics = weights.map { date, kg in
+            HealthMetric(id: UUID(), userID: user, date: date, weightKG: kg)
+        } + [HealthMetric(id: UUID(), userID: UUID(), date: "2026-03-17", weightKG: 150)]
+        let range = "2026-03-01"..."2026-03-31"
+        func report() -> AvatarReport {
+            AvatarReport.scoped(ownerID: user, data: fixture, partialScores: [:], period: .custom, dates: range, today: "2026-04-08")
+        }
+        let pdf = report().pdfData()
+        let document = try XCTUnwrap(PDFDocument(data: pdf))
+        let page = try XCTUnwrap((0..<document.pageCount).compactMap { document.page(at: $0) }.first {
+            $0.string?.contains("Working leg") == true
+        })
+        let text = try XCTUnwrap(page.string)
+        XCTAssertTrue(text.contains("Best working load · 8 reps × 24 kg"))
+        XCTAssertTrue(text.contains("Latest · ≈ 62 kg"))
+        XCTAssertFalse(text.contains("200 kg"))
+        func location(_ label: String, minimumX: CGFloat = 0) throws -> CGRect {
+            let matches = document.findString(label, withOptions: .literal).filter { $0.pages.first == page }
+                .map { $0.bounds(for: page) }.filter { $0.minX >= minimumX }
+            return try XCTUnwrap(matches.first, label)
+        }
+        let first = try location("≈ 61 kg")
+        let peak = try location("≈ 76 kg")
+        let latest = try location("Latest · ≈ 62 kg")
+        XCTAssertLessThan(first.minX, peak.minX)
+        XCTAssertEqual(first.midY, peak.midY, accuracy: 1)
+        XCTAssertLessThan(latest.midY, first.midY)
+        let expectedDate = try XCTUnwrap(APEXDateMath.date(from: "2026-03-17")).formatted(
+            Date.FormatStyle(locale: language.language.locale, timeZone: .gmt).year().month(.abbreviated).day()
+        )
+        let peakDate = try location(expectedDate, minimumX: peak.minX - 1)
+        XCTAssertLessThan(peakDate.maxY, peak.minY)
+        let attachment = XCTAttachment(data: pdf, uniformTypeIdentifier: "com.adobe.pdf")
+        attachment.name = "Working leg first peak latest.pdf"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+
+        // A weight measured midway through this range cannot estimate the earlier sessions.
+        fixture.healthMetrics.removeFirst(2)
+        let partial = try XCTUnwrap(PDFDocument(data: report().pdfData())?.string)
+        XCTAssertTrue(partial.contains("Bodyweight history is incomplete. External load is shown for every set."))
+        XCTAssertTrue(partial.contains("Latest · 18 kg"))
+        XCTAssertFalse(partial.contains("Front foot · estimated"))
     }
 
     func testAvatarReportCalendarRangesRejectInvalidDatesAndClampMonthEnds() {

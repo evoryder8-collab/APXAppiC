@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { avatarReportHTML, downloadableAvatarReport, reportBodyweight } from '../src/lib/avatarReport.ts'
+import { avatarReportHTML, downloadableAvatarReport, reportBodyweight, reportSessionBodyweights } from '../src/lib/avatarReport.ts'
 import { avatarReportRange } from '../src/lib/avatarReportRange.ts'
 import { exerciseChartTitle } from '../src/lib/strengthProgress.ts'
 import { EMPTY_DATA } from '../src/lib/types.ts'
@@ -131,19 +131,19 @@ test('unilateral estimates distinguish recorded load, combined mass and support 
   assert.match(rfess, /<title>#1 · Nov 1, 2026 · 5 reps × 20 kg<\/title>/)
   assert.match(rfess, /<title>#2 · Nov 2, 2026 · 8 reps × 20 kg<\/title>/)
   assert.match(rfess, /Personal best · <strong>8 reps × 20 kg/)
-  assert.match(rfess, /Body \+ load<\/span><strong>90 kg/)
-  assert.match(rfess, /Front foot · estimated<\/span><strong>≈ 76 kg/)
+  assert.match(rfess, /Estimated front-foot support at rest/)
+  assert.match(rfess, /<span>First<\/span><strong>≈ 76 kg/)
+  assert.match(rfess, /Current bodyweight used as a reference for every set/)
   assert.match(rfess, /https:\/\/doi.org\/10.1519\/JSC.0000000000003727/)
   assert.match(make('name:bulgarian split squat','Bulgarian Split Squat'), /Helme/)
-  assert.match(make('movement:single_leg_romanian_deadlift','Single-Leg Romanian Deadlift'), /Standing foot · estimated<\/span><strong>≈ 90 kg/)
-  const shared = make('movement:reverse_lunge','Reverse Lunge')
-  assert.match(shared,/The share on each foot varies/)
-  assert.doesNotMatch(shared,/Helme|Front foot · estimated/)
-  for (const html of [make('movement:smith_split_squat','Smith Split Squat'),
+  assert.match(make('movement:single_leg_romanian_deadlift','Single-Leg Romanian Deadlift'), /Estimated standing-foot support at rest/)
+  for (const html of [make('movement:reverse_lunge','Reverse Lunge'),
+    make('movement:smith_split_squat','Smith Split Squat'),
     make('movement:bulgarian_split_squat','Bulgarian Split Squat (hand-supported)'),
     make('movement:bulgarian_split_squat','Bulgarian Split Squat',null)]) {
-    assert.match(html,/Added weight<\/span><strong>20 kg/)
-    assert.doesNotMatch(html,/Body \+ load|Helme|Standing foot · estimated/)
+    assert.match(html,/External load during single-leg sets/)
+    assert.match(html, /<span>First<\/span><strong>20 kg/)
+    assert.doesNotMatch(html,/Body \+ load|Added weight|Helme|Estimated standing-foot support|≈/)
   }
   assert.doesNotMatch(make('name:custom','Custom split squat variation'), /Working leg/)
 })
@@ -178,9 +178,43 @@ test('download embeds each chart anatomy once per movement fetch and retains the
   const fetchImage = t.mock.method(globalThis,'fetch',async () => new Response(Buffer.from(webp,'base64')))
   const html = await downloadableAvatarReport(options,'/app/')
   assert.deepEqual(fetchImage.mock.calls.map(call=>call.arguments[0]),['/app/leg-anatomy/bulgarian_split_squat.webp'])
-  assert.equal((html.match(/<img alt="" src="data:image\/webp;base64,/g) ?? []).length,2)
+  assert.equal((html.match(/<img alt="" src="data:image\/webp;base64,/g) ?? []).length,4)
   fetchImage.mock.mockImplementation(async () => new Response('missing',{status:404}))
   const offline = await downloadableAvatarReport(options,'/app/')
   assert.doesNotMatch(offline,/<img/)
-  assert.match(offline,/Front foot · estimated/)
+  assert.match(offline,/Estimated front-foot support at rest/)
+})
+
+test('dated leg comparison uses one basis, ranks every unrounded supported mass, and keeps latest below peak', () => {
+  const points = [[16,1],[20,2],[30,3]].map(([weight,i])=>({sessionId:'s'+i,date:'2026-11-0'+i,topWeight:weight,topReps:8}))
+  const variant = { key:'movement:bulgarian_split_squat',name:'Bulgarian Split Squat',points,work:noWork,sessionCount:3 }
+  const options = {...input,currentBodyweight:80,families:[{key:'family:split_squat',name:'Split Squat',work:noWork,sessionCount:3,variants:[variant]}]}
+  const masses = new Map([['s1',70],['s2',80],['s3',60]])
+  const html = avatarReportHTML({...options,sessionBodyweights:masses})
+  assert.match(html,/<span>First<\/span><strong>≈ 73 kg<\/strong><small>Nov 1, 2026/)
+  assert.match(html,/<span>Peak<\/span><strong>≈ 84 kg<\/strong><small>Nov 2, 2026/)
+  assert.match(html,/Latest · ≈ 76 kg<br><small>Nov 3, 2026/)
+  assert.match(html,/Personal best · <strong>8 reps × 30 kg/)
+  assert.doesNotMatch(html,/Current bodyweight used as a reference/)
+  const incomplete = avatarReportHTML({...options,sessionBodyweights:new Map([['s2',100]])})
+  assert.match(incomplete, /External load during single-leg sets/)
+  assert.match(incomplete, /Bodyweight history is incomplete/)
+  assert.doesNotMatch(incomplete,/Helme|≈/)
+  const historical = avatarReportHTML({...options,range:{from:'2026-11-01',to:'2026-11-03',allTime:false}})
+  assert.doesNotMatch(historical,/Current bodyweight used as a reference|≈/)
+})
+
+test('session bodyweights exclude other accounts, superseded data, unsupported values and later weigh-ins', () => {
+  const profile = seedProfile('user')
+  const health = (id,date,kg,owner='user')=>({ id,date,user_id:owner,weight_kg:kg })
+  const ev = (id,date,kg,changes={})=>({id,user_id:'user',metric:'body_mass',unit:'kg',measured_at:date,imported_at:date,value:kg,...changes})
+  const session = (id,date,started)=>({id,date,user_id:'user',completed:true,started_at:started,completed_at:null})
+  const masses=reportSessionBodyweights({...EMPTY_DATA,profile,
+    daily_logs:[health('d1','2026-10-30',68),health('d2','2026-10-31',70)],
+    health_metrics:[health('hk','2026-10-31',72),health('bad','2026-11-01',700),health('other','2026-11-01',99,'else')],
+    fitness_evidence:[ev('old','2026-11-01T10:00:00Z',77),ev('correction','2026-11-01T11:00:00Z',69,{supersedes_id:'old'}),
+      ev('later','2026-11-01T20:00:00Z',74),ev('future','2026-12-01T20:00:00Z',90)],
+    workout_sessions:[session('early','2026-10-29',null),session('am','2026-11-01','2026-11-01T10:30:00Z'),
+      session('pm','2026-11-01','2026-11-01T12:00:00Z'),session('next','2026-11-02',null)]},'2026-11-02')
+  assert.deepEqual([...masses],[['am',72],['pm',69],['next',74]])
 })

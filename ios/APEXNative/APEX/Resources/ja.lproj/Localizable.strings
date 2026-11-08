@@ -4127,7 +4127,7 @@
 "Paste selected" = "選定されたパスティ";
 "Pasting…" = "貼る・・・";
 "Pea Protein" = "ペアタンパク質";
-"Peak" = "峰";
+"Peak" = "最高";
 "Peak week" = "ピークウィーク";
 "Pec deck" = "ペックデッキ";
 "Perceived effort" = "パーシード・エフォート";
@@ -5854,3 +5854,6 @@
 "Active plan" = "現在のプラン";
 "Date range" = "期間";
 "Best in range" = "期間中の最高記録";
+"External load during single-leg sets" = "片脚セットの追加重量";
+"Current bodyweight used as a reference for every set." = "全セットで現在の体重を基準にしています。";
+"Bodyweight history is incomplete. External load is shown for every set." = "体重履歴が不足しているため、全セットで追加重量を表示しています。";

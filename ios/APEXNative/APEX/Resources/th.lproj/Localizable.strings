@@ -1880,7 +1880,7 @@
 "Path" = "ทางเดิน";
 "Pause" = "พัก";
 "PAUSED" = "พักอยู่";
-"Peak" = "ช่วงพีค";
+"Peak" = "สูงสุด";
 "Peak week" = "สัปดาห์พีค";
 "Pec deck" = "เครื่องเพคเดค";
 "per side" = "ต่อข้าง";
@@ -5836,3 +5836,6 @@
 "Active plan" = "แผนที่ใช้งาน";
 "Date range" = "ช่วงวันที่";
 "Best in range" = "ดีที่สุดในช่วงนี้";
+"External load during single-leg sets" = "น้ำหนักเสริมในเซตที่ฝึกทีละขา";
+"Current bodyweight used as a reference for every set." = "ใช้น้ำหนักตัวปัจจุบันเป็นค่าอ้างอิงสำหรับทุกเซต";
+"Bodyweight history is incomplete. External load is shown for every set." = "ข้อมูลน้ำหนักตัวยังไม่ครบ จึงแสดงน้ำหนักเสริมสำหรับทุกเซต";
