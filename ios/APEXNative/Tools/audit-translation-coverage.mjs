@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url'
 const ROOT = fileURLToPath(new URL('../APEX', import.meta.url))
 
 const ALLOWED = new Set([
-  'APEX', 'Orbit', 'Europe/Zurich', 'kcal', 'km', 'kg', 'g', 'ml', 'CHF',
+  'APEX', 'FITR MAX', 'Orbit', 'Europe/Zurich', 'kcal', 'km', 'kg', 'g', 'ml', 'CHF',
   /* Canonical scientific unit; translating it would change its meaning. */
   'mg α-TE',
   'HealthKit', 'Apple', 'Localizable', 'lproj',
@@ -178,12 +178,25 @@ function hasTranslation(language, text) {
   return (language === 'ro' || language === 'th') && typedKeys.has(text)
 }
 
+// These literals are matched or concatenated solely as internal identifiers.
+const internalLiterals = {
+  'BespokeProgrammeUpgrade.swift': ['day: : ', 'exercise: : : '],
+  'MealBlocks.swift': ['post workout', 'after training'],
+  'MealMemory.swift': ['beef steak', 'sirloin steak', 'Rindersteak', 'bistecca di manzo'],
+  'PlayerTimeline.swift': ['Morning circle · ', 'FITR_WARMUP_V1| | '],
+  'WatchSupplementState.swift': ['fitr.watch.supplements.state. .v1', 'fitr.phone.supplements.journal. .v1'],
+  'WorkoutReceipt.swift': ['FITR_WORKOUT_TIMING_V1|'],
+  'SimpleHomeView.swift': ['simple-training-mode- - '],
+}
+
 const prose = new Map()
 for (const file of swiftFiles(ROOT)) {
   if (SKIP.some((part) => file.includes(part))) continue
   const stripped = strip(readFileSync(file, 'utf8'))
   for (const match of stripped.matchAll(/"((?:[^"\\\n]|\\.)*)"/g)) {
-    const text = match[1]
+    if (internalLiterals[file.split('/').at(-1)]?.includes(match[1])) continue
+    // LanguageState.text canonicalizes the display name before the bundle lookup.
+    const text = match[1].replace(/(?<![a-zA-Z0-9_./])(?:APEX|FitDee|FITR-D|FITR-MAX)(?![a-zA-Z0-9_]|[./][A-Za-z0-9_])/g, 'FITR MAX')
     if (!isProse(text)) continue
     if (!prose.has(text)) prose.set(text, file.replace(ROOT, 'APEX'))
   }

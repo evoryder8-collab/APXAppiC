@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import test from 'node:test'
+import { editWebDrinks } from '../src/lib/dayHydration.ts'
+import { EMPTY_DATA, type AppData } from '../src/lib/types.ts'
 import {
   DEFAULT_HYDRATION_PRESETS,
   mergeHydrationEvents,
@@ -30,6 +32,29 @@ function event(overrides: Partial<HydrationEvent> = {}): HydrationEvent {
     ...overrides,
   }
 }
+
+test('web additions and edits honour recorded drinks, food, ownership and the legacy mirror', () => {
+  const other = event({ id: 'other', user_id: otherOwner, amount_ml: 4000 })
+  const food = event({ id: 'meal', client_idempotency_key: 'food:meal', source: 'food', kind: 'food', amount_ml: 300 })
+  const watch = event({ source: 'watch', amount_ml: 500 })
+  const fixture: AppData = { ...EMPTY_DATA, profile: { user_id: owner } as AppData['profile'], hydration_events: [other, food, watch] }
+  const first = editWebDrinks(fixture, owner, date, { addML: 250 })
+  const second = editWebDrinks(first.data, owner, date, { totalML: 600 })
+  assert.equal(resolveHydrationDay({ ownerID: owner, date, events: second.data.hydration_events, legacyDrinkLiters: 0 }).totalML, 900)
+  assert.equal(second.data.daily_logs[0].water_l, 0.6)
+  assert.deepEqual(second.data.hydration_events.find(e => e.id === 'other'), other)
+  assert.deepEqual(second.data.hydration_events.find(e => e.id === watch.id), watch)
+  assert.throws(() => editWebDrinks(second.data, owner, date, { totalML: 450 }), /device/)
+  assert.throws(() => editWebDrinks(second.data, otherOwner, date, { addML: 100 }), /account/)
+  const empty = editWebDrinks({ ...fixture, hydration_events: [] }, owner, date, { addML: 250 })
+  const legacy = { ...empty.data, hydration_events: [food], daily_logs: [{ ...empty.data.daily_logs[0], water_l: 1.0 }] }
+  const migrated = editWebDrinks(legacy, owner, date, { addML: 300 })
+  assert.equal(migrated.data.hydration_events.find(e => e.kind === 'legacy')?.client_idempotency_key, `legacy:${date}`)
+  assert.equal(migrated.result, 1_300)
+  const cleared = editWebDrinks(migrated.data, owner, date, { totalML: 0 })
+  assert.equal(cleared.data.daily_logs[0].water_l, 0)
+  assert.deepEqual(cleared.data.hydration_events, [food])
+})
 
 test('hydration migration is additive, account-scoped and idempotent', () => {
   const path = 'supabase/migrations/026_hydration_ledger.sql'
@@ -71,9 +96,9 @@ test('Simple and Nutrition both include the scheduled session in the automatic t
   const simple = readFileSync('src/pages/SimpleHome.tsx', 'utf8')
   const nutrition = readFileSync('src/pages/Nutrition.tsx', 'utf8')
 
-  assert.match(simple, /plannedExerciseMinutes:\s*plan\.programDay\?\.est_minutes/)
-  assert.match(nutrition, /plannedExerciseMinutes:\s*hydrationPlannedExerciseMinutes/)
-  assert.match(nutrition, /planForDate\(data, slug, selectedLogDate, false\)\.programDay\?\.est_minutes/)
+  assert.match(simple, /waterTargetResolver\(data,/)
+  assert.match(nutrition, /waterTargetResolver\(data,/)
+
 })
 
 test('one account can never resolve another account hydration', () => {

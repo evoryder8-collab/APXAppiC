@@ -25,26 +25,31 @@ final class ManualWorkoutTests: XCTestCase {
         XCTAssertEqual(ManualWorkout.rankExercises(matches, recentIDs: []), matches)
     }
 
-    func testManualLoggerCapturesTheAccountLeaseAndGatesEveryLateCallback() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let source = try String(
-            contentsOf: root.appendingPathComponent("APEX/Features/Training/ManualWorkoutLoggerView.swift")
-        )
-        let compact = source.filter { !$0.isWhitespace }
-
-        XCTAssertTrue(compact.contains(
-            "guardletoperation=session.accountOperationLease()else{return}Task{do{letsaved=tryawaitsession.saveManualWorkout("
-        ))
-        XCTAssertTrue(compact.contains("operation:operation"))
-        XCTAssertTrue(compact.contains(
-            "guardsession.accountOperationIsCurrent(operation)else{return}ifsaved{onSaved()dismiss()}else{problem=language.text(\"Addrepsorcardiotimebeforesaving.\")}"
-        ))
-        XCTAssertTrue(compact.contains("catchisCancellationError{return}"))
-        XCTAssertTrue(compact.contains(
-            "catch{guardsession.accountOperationIsCurrent(operation)else{return}problem=error.localizedDescription}"
-        ))
+    @MainActor
+    func testRetriedQuickLogKeepsOneUnscheduledReceiptAndMatchingSetRows() async throws {
+        let app = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(app.profile?.userID)
+        app.data = APEXDebugFixture.dashboard(userID: owner)
+        let operation = try XCTUnwrap(app.accountOperationLease())
+        let draftID = UUID()
+        let draft = ManualWorkout.ExerciseDraft(name: "Squat", sets: [.init(reps: 8, weightKG: 12.25)])
+        let day = Date().apexDateKey
+        for _ in 0..<2 {
+            let saved = try await app.saveManualWorkout(date: day, title: "Quick", exercises: [draft],
+                                                       draftID: draftID, operation: operation)
+            XCTAssertTrue(saved)
+        }
+        let receipts = app.data.workoutSessions.filter { $0.id == draftID }
+        let row = try XCTUnwrap(receipts.first)
+        XCTAssertEqual(receipts.count, 1)
+        XCTAssertEqual(app.data.workoutLogs.filter { $0.sessionID == draftID }.map(\.id), draft.sets.map(\.id))
+        let parent = try XCTUnwrap(app.data.programDays.first { $0.id == row.programDayID })
+        XCTAssertFalse(parent.isActive)
+        XCTAssertEqual(app.data.programs.first { $0.id == parent.programID }?.slug, "custom")
+        XCTAssertFalse(TrainingInduction.activeProgramDays(in: app.data).contains { $0.id == parent.id })
+        XCTAssertNil(SimpleHomeLogic.completedSessionID(sessions: receipts, ownerID: owner, date: day, programDayID: parent.id))
+        let future = try await app.saveManualWorkout(date: "2999-01-01", title: "Future", exercises: [draft], draftID: UUID(), operation: operation)
+        XCTAssertFalse(future)
     }
 
     func testTitleSurvivesTheRoundTrip() {

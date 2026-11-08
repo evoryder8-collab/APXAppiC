@@ -845,12 +845,13 @@ private struct CustomWorkoutBuilderRequest: Identifiable {
 struct WorkoutSessionModeButtons: View {
     let preferred: WorkoutSessionMode
     let accent: Color
+    var trainToday = false
     let choose: (WorkoutSessionMode) -> Void
     @State private var language = LanguageState.shared
 
     var body: some View {
         VStack(alignment: .leading, spacing: 9) {
-            Text(language.text("HOW WOULD YOU LIKE TO TRAIN?"))
+            Text(trainToday ? "\(language.text("Start")) · \(language.text("Today"))" : language.text("HOW WOULD YOU LIKE TO TRAIN?"))
                 .font(APEXFont.mono(9, weight: .bold))
                 .tracking(1.2)
                 .foregroundStyle(APEXColor.secondaryInk)
@@ -1397,7 +1398,7 @@ struct WorkoutDayView: View {
     /* The planner decides what today actually prescribes: event tapers, the
        championship leg rule, scheduled and marked deloads, recovery micros. */
     private var plan: PlannedDay {
-        TrainingPlanEngine.plan(session.data, slug: slug, date: date, lite: lite)
+        TrainingPlanEngine.plan(session.data, slug: slug, date: date, lite: lite, programDayID: day.id)
     }
 
     private var exercises: [PlannedExercise] {
@@ -1536,17 +1537,29 @@ struct WorkoutDayView: View {
                     }
                 }
 
-                WorkoutSessionModeButtons(
-                    preferred: session.workoutSessionMode(for: day),
-                    accent: accent
-                ) { mode in
-                    session.rememberWorkoutSessionMode(mode)
-                    switch mode {
-                    case .guided: showGuidedPlayer = true
-                    case .tracked: showTrackedWorkout = true
+                if !sessionExercises.isEmpty {
+                    WorkoutSessionModeButtons(
+                        preferred: session.workoutSessionMode(for: day),
+                        accent: accent,
+                        trainToday: date > Date().apexDateKey
+                    ) { mode in
+                        session.rememberWorkoutSessionMode(mode)
+                        switch mode {
+                        case .guided: showGuidedPlayer = true
+                        case .tracked: showTrackedWorkout = true
+                        }
                     }
+                    .accessibilityIdentifier("workout-start-session")
+                } else if PlayerTimeline.WarmupOnly.isWalk(plan.warmup), plan.warmupDuration > 0 {
+                    Button {
+                        showGuidedPlayer = true
+                    } label: {
+                        Label(language.text("Walking"), systemImage: "figure.walk")
+                    }
+                    .buttonStyle(APEXPrimaryButtonStyle(color: accent))
+                    .accessibilityIdentifier("workout-start-walk")
                 }
-                .accessibilityIdentifier("workout-start-session")
+
             }
             .padding(18)
             .padding(.bottom, 24)
@@ -1560,13 +1573,13 @@ struct WorkoutDayView: View {
                 exercises: sessionExercises,
                 accent: accent,
                 lite: lite,
-                date: date,
+                date: min(date, Date().apexDateKey),
                 warmupText: plan.warmup,
                 warmupDuration: plan.warmupDuration
             )
         }
         .fullScreenCover(isPresented: $showTrackedWorkout) {
-            TrackedWorkoutView(day: day, exercises: sessionExercises, accent: accent, lite: lite, date: date)
+            TrackedWorkoutView(day: day, exercises: sessionExercises, accent: accent, lite: lite, date: min(date, Date().apexDateKey))
         }
     }
 
@@ -1853,7 +1866,13 @@ struct WorkoutPlayerView: View {
     /* Counting "total reps" across a session that included a stretch flow, a
        plank and a carry reported a number none of them contributed to. Only
        what was actually counted is summarised. */
+    private var warmupOnly: PlayerTimeline.WarmupOnly? {
+        guard exercises.isEmpty, setInputs.isEmpty else { return nil }
+        return PlayerTimeline.WarmupOnly(total: timerTotal, remaining: timerRemaining, text: warmupText)
+    }
+
     private var completionSummary: String {
+        if let warmupOnly { return "\(language.text(warmupOnly.title)) · \(clock(warmupOnly.seconds))" }
         let recorded = setInputs.filter { !$0.skipped && ExerciseLogging.isValid($0) }
         let reps = recorded.compactMap(\.reps).reduce(0, +)
         if reps > 0 {
@@ -1906,7 +1925,7 @@ struct WorkoutPlayerView: View {
             }
         }
         .overlay(alignment: .bottomTrailing) {
-            if phase != .complete && completedSession == nil {
+            if !exercises.isEmpty && phase != .complete && completedSession == nil {
                 Button {
                     openAlreadyFinished()
                 } label: {
@@ -1930,12 +1949,13 @@ struct WorkoutPlayerView: View {
         .onReceive(timer) { _ in tick() }
         .onAppear {
             initializePlayer()
-            if !watchWorkoutRequested,
+            if !exercises.isEmpty, phase != .complete, !watchWorkoutRequested,
                let operation = session.accountOperationLease() {
                 let launchID = UUID()
                 watchWorkoutRequested = true
                 watchWorkoutOperation = operation
                 watchWorkoutLaunchID = launchID
+                persistDraft()
                 watchWorkoutStartTask = Task {
                     await session.startWatchWorkout(
                         day: day,
@@ -1949,17 +1969,16 @@ struct WorkoutPlayerView: View {
         .onDisappear {
             persistDraft()
             cancelAnnouncement()
-            watchWorkoutStartTask?.cancel()
-            watchWorkoutStartTask = nil
-            if let operation = watchWorkoutOperation,
-               let launchID = watchWorkoutLaunchID {
-                session.stopWatchWorkout(launchID: launchID, operation: operation)
-            }
-            watchWorkoutOperation = nil
-            watchWorkoutLaunchID = nil
+            stopWatchSession()
         }
         .onChange(of: scenePhase) { _, next in
             handleScenePhase(next)
+        }
+        .onChange(of: phase) { _, next in
+            if next == .complete {
+                stopWatchSession()
+                persistDraft()
+            }
         }
         .onChange(of: setInputs) { _, _ in persistDraft() }
         .onChange(of: paused) { _, next in
@@ -1981,7 +2000,7 @@ struct WorkoutPlayerView: View {
             }
             Button(language.text("Keep training"), role: .cancel) {}
         } message: {
-            Text(language.text("Sets completed in this unfinished session have not been saved."))
+            Text(language.text("Your progress is saved on this device."))
         }
         .sheet(isPresented: $showAlreadyFinished, onDismiss: restorePauseAfterAlreadyFinished) {
             alreadyFinishedSheet
@@ -1991,7 +2010,7 @@ struct WorkoutPlayerView: View {
         .alert(language.text("Workout"), isPresented: $completionError) {
             Button(language.text("OK"), role: .cancel) {}
         } message: {
-            Text(language.text("Sets completed in this unfinished session have not been saved."))
+            Text(language.text("Could not save workout. Your progress is saved on this device. Try again."))
         }
         /* The receipt is the task now, not a glance, so it takes the screen
            and closing it closes the finished session with it. */
@@ -2728,14 +2747,22 @@ struct WorkoutPlayerView: View {
                 Image(systemName: "checkmark.seal.fill")
                     .font(.system(size: 58))
                     .foregroundStyle(accent)
-                Text(language.text("Session complete"))
+                Text(language.text(exercises.isEmpty ? (warmupOnly?.title ?? "Rest") : "Session complete"))
                     .font(APEXFont.display(31))
-                Text(completionSummary)
-                    .font(APEXFont.body(13, weight: .semibold))
-                    .foregroundStyle(APEXColor.secondaryInk)
+                if !exercises.isEmpty || warmupOnly != nil {
+                    Text(completionSummary)
+                        .font(APEXFont.body(13, weight: .semibold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                }
                 completionReview
                 Button {
-                    finishWorkout()
+                    if exercises.isEmpty && setInputs.isEmpty && warmupOnly == nil {
+                        clearDraft()
+                        stopWatchSession()
+                        dismiss()
+                    } else {
+                        finishWorkout()
+                    }
                 } label: {
                     if isSaving {
                         HStack {
@@ -2743,7 +2770,7 @@ struct WorkoutPlayerView: View {
                             Text(language.text("Saving…"))
                         }
                     } else {
-                        Label(language.text("Save workout"), systemImage: "checkmark")
+                        Label(language.text(exercises.isEmpty && setInputs.isEmpty && warmupOnly == nil ? "Done" : "Save workout"), systemImage: "checkmark")
                     }
                 }
                 .buttonStyle(APEXPrimaryButtonStyle(color: accent))
@@ -2880,6 +2907,17 @@ struct WorkoutPlayerView: View {
         }
     }
 
+    private func stopWatchSession() {
+        watchWorkoutStartTask?.cancel()
+        watchWorkoutStartTask = nil
+        if let operation = watchWorkoutOperation,
+           let launchID = watchWorkoutLaunchID {
+            session.stopWatchWorkout(launchID: launchID, operation: operation)
+        }
+        watchWorkoutOperation = nil
+        watchWorkoutLaunchID = nil
+    }
+
     private func initializePlayer() {
         guard !didInitialize else { return }
         didInitialize = true
@@ -2914,10 +2952,12 @@ struct WorkoutPlayerView: View {
     @discardableResult
     private func restore(_ draft: PlayerTimeline.SessionDraft, now: Date) -> Bool {
         guard let restoredPhase = WorkoutPlayerPhase(rawValue: draft.phase),
-              exercises.indices.contains(draft.currentIndex),
-              draft.currentSet >= 1,
-              draft.currentSet <= max(1, exercises[draft.currentIndex].sets) else {
+              PlayerTimeline.WarmupOnly.canRestore(phase: draft.phase, index: draft.currentIndex, set: draft.currentSet, exercises: exercises) else {
             return false
+        }
+        if let oldLaunchID = draft.watchLaunchID, let operation = session.accountOperationLease() {
+            // The interrupted player alone owns this Watch handoff. Ignore independently started workouts.
+            session.stopWatchWorkout(launchID: oldLaunchID, operation: operation)
         }
         phase = restoredPhase
         currentIndex = draft.currentIndex
@@ -2932,19 +2972,10 @@ struct WorkoutPlayerView: View {
         performedFinish = ExternalWorkoutImport.parseTimestamp(draft.performedFinish)
         repElapsed = max(0, draft.repElapsed.isFinite ? draft.repElapsed : 0)
         announcedRep = max(0, draft.announcedRep)
-        setExecution = draft.setExecution ?? GuidedSetExecution(perSide: usesSides(exercises[draft.currentIndex]))
+        setExecution = draft.setExecution ?? GuidedSetExecution(perSide: current.map(usesSides) ?? false)
 
-        let reconciled = PlayerTimeline.reconcileCountdown(
-            block: reconciliationBlock,
-            remaining: timerRemaining,
-            paused: paused,
-            persistedAt: draft.persistedAt,
-            now: now
-        )
-        timerRemaining = reconciled.remaining
-        paused = reconciled.paused
+        reconcileTimers(persistedAt: draft.persistedAt, now: now)
         lastDraftSave = now
-        resolveExpiredCountdown()
         return true
     }
 
@@ -2971,7 +3002,8 @@ struct WorkoutPlayerView: View {
                 announcedRep: announcedRep,
                 persistedAt: persistedAt.ISO8601Format(),
                 setExecution: setExecution,
-                performedFinish: performedFinish?.ISO8601Format()
+                performedFinish: performedFinish?.ISO8601Format(),
+                watchLaunchID: watchWorkoutLaunchID
             )
         )
         lastDraftSave = .now
@@ -2998,17 +3030,8 @@ struct WorkoutPlayerView: View {
         let now = Date()
         if next == .active {
             if let suspendedAt {
-                let reconciled = PlayerTimeline.reconcileCountdown(
-                    block: reconciliationBlock,
-                    remaining: timerRemaining,
-                    paused: paused,
-                    persistedAt: suspendedAt.ISO8601Format(),
-                    now: now
-                )
-                timerRemaining = reconciled.remaining
-                paused = reconciled.paused
+                reconcileTimers(persistedAt: suspendedAt.ISO8601Format(), now: now)
                 self.suspendedAt = nil
-                resolveExpiredCountdown()
             }
             lastClockTick = now
             persistDraft()
@@ -3019,6 +3042,21 @@ struct WorkoutPlayerView: View {
         cancelAnnouncement()
         if phase == .active { paused = true }
         persistDraft(persistedAt: suspendedAt ?? now)
+    }
+
+    private func reconcileTimers(persistedAt: String, now: Date) {
+        let priorRemaining = timerRemaining
+        let reconciled = PlayerTimeline.reconcileCountdown(
+            block: reconciliationBlock, remaining: priorRemaining,
+            paused: paused, persistedAt: persistedAt, now: now
+        )
+        timerRemaining = reconciled.remaining
+        paused = reconciled.paused
+        if phase == .warmup, exercises.isEmpty, !paused, timerRemaining == 0,
+           let resumedFrom = ExternalWorkoutImport.parseTimestamp(persistedAt) {
+            performedFinish = min(now, resumedFrom.addingTimeInterval(TimeInterval(priorRemaining)))
+        }
+        resolveExpiredCountdown()
     }
 
     private func resolveExpiredCountdown() {
@@ -3129,6 +3167,8 @@ struct WorkoutPlayerView: View {
     private func beginActiveSet(continuingRightSide: Bool = false) {
         guard let exercise = current else {
             phase = .complete
+            if warmupOnly != nil, performedFinish == nil { performedFinish = .now }
+            persistDraft()
             return
         }
         cancelAnnouncement()
@@ -3250,7 +3290,7 @@ struct WorkoutPlayerView: View {
     }
 
     private var canSaveWorkout: Bool {
-        !setInputs.isEmpty && PlayerTimeline.completionReviewInputs(
+        warmupOnly != nil || !setInputs.isEmpty && PlayerTimeline.completionReviewInputs(
             exercises: exercises, recorded: setInputs
         ).isEmpty
     }
@@ -3327,12 +3367,14 @@ struct WorkoutPlayerView: View {
                     startedAt: startedAt,
                     finishedAt: performedFinish,
                     qualityScore: PlayerTimeline.completionQuality(exercises: exercises, recorded: setInputs),
+                    warmupOnly: warmupOnly,
                     completionDate: date,
                     operation: operation
                 )
                 guard session.accountOperationIsCurrent(operation) else { return }
                 if let finished {
                     clearDraft()
+                    stopWatchSession()
                     completedSession = FinishedSession(id: finished)
                 } else {
                     completionError = true

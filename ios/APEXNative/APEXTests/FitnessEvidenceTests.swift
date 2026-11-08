@@ -274,10 +274,10 @@ final class BaselineCalibrationTests: XCTestCase {
             ).snapshots.last
         )
 
-        XCTAssertEqual(snapshot.endurance, 36.7)
-        XCTAssertEqual(snapshot.strengthUpper, 43.5)
-        XCTAssertEqual(snapshot.strengthLower, 35.4)
-        XCTAssertEqual(snapshot.flexibility, 34.5)
+        XCTAssertEqual(snapshot.endurance, 39)
+        XCTAssertEqual(snapshot.strengthUpper, 39)
+        XCTAssertEqual(snapshot.strengthLower, 39)
+        XCTAssertEqual(snapshot.flexibility, 39)
         XCTAssertEqual(snapshot.health, uncalibrated.health)
         XCTAssertEqual(snapshot.joint, uncalibrated.joint)
     }

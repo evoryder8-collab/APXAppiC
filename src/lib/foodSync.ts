@@ -38,6 +38,8 @@ export interface StructuredMealRequest {
   client_idempotency_key: string
   logged_as: LoggedMealKind
   replace_meal_id?: string
+  expected_meal_version?: string
+  expected_entry_ids?: string[]
 }
 
 export interface StructuredFoodEntryRequest {
@@ -100,7 +102,7 @@ export interface MealPresetRPCPayload {
 }
 
 interface LegacyLoggedMealSyncPayload {
-  meal: LoggedMeal & { replace_meal_id?: string | null }
+  meal: LoggedMeal & { replace_meal_id?: string | null, expected_meal_version?: string, expected_entry_ids?: string[] }
   entries: LoggedFoodEntry[]
 }
 
@@ -147,6 +149,8 @@ export function canonicalStructuredMealRPCPayload(
     client_idempotency_key: canonicalMealKey(sourceMeal.client_idempotency_key, sourceMeal.meal_slot),
     logged_as: canonicalMealLogKind(sourceMeal.logged_as),
     ...(present(sourceMeal.replace_meal_id) ? { replace_meal_id: sourceMeal.replace_meal_id } : {}),
+    ...(present(sourceMeal.expected_meal_version) ? { expected_meal_version: sourceMeal.expected_meal_version } : {}),
+    ...(Array.isArray(sourceMeal.expected_entry_ids) ? { expected_entry_ids: sourceMeal.expected_entry_ids } : {}),
   }
   const entries = sourceEntries.map((source): StructuredFoodEntryRequest => ({
     id: source.id,

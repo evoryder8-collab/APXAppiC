@@ -14,15 +14,15 @@ const nativeComposer = readFileSync(
 )
 const webFoodStore = readFileSync(new URL('../src/store/FoodStore.tsx', import.meta.url), 'utf8')
 
-test('Transition and Main phase receipts are scoped to today instead of all-time HealthKit history', () => {
-  assert.match(webTraining, /<CompletedWorkoutHistoryCards date=\{today\}/)
+test('Transition and Main phase receipts are scoped to the browsed calendar day on both clients', () => {
+  assert.match(webTraining, /<CompletedWorkoutHistoryCards date=\{receiptDate\}/)
   assert.doesNotMatch(webTraining, /<CompletedWorkoutHistoryCards date=\{undefined\}/)
-  assert.match(nativeTraining, /CompletedWorkoutHistoryCards\(date: Date\(\)\.apexDateKey/)
+  assert.match(nativeTraining, /CompletedWorkoutHistoryCards\(date: session\.browsingDate\.apexDateKey/)
   assert.doesNotMatch(nativeTraining, /CompletedWorkoutHistoryCards\(date: nil/)
 })
 
 test('empty existing meals stay committable and native removal requires confirmation', () => {
-  assert.match(webComposer, /if \(replaceMealId && items\.length === 0\)[\s\S]*?await store\.deleteMeal\(replaceMealId\)[\s\S]*?onClose\(\)/)
+  assert.match(webComposer, /if \(replaceMealId && items\.length === 0\)[\s\S]*?await store\.deleteMeal\(replaceMealId, editSnapshot\?\.version\)[\s\S]*?onClose\(\)/)
   assert.match(webComposer, /items\.length > 0 \|\| Boolean\(replaceMealId\)/)
   assert.match(nativeComposer, /if commitIntent == \.confirmRemoval \{\s*showMealRemovalConfirmation = true\s*return\s*\}/)
   assert.match(nativeComposer, /\.confirmationDialog\(\s*language\.text\("Remove this saved meal\?"\),[\s\S]*?Button\(language\.shortText\("Remove meal"\), role: \.destructive\)[\s\S]*?Task \{ await removeExistingMeal\(operation: operation\) \}/)

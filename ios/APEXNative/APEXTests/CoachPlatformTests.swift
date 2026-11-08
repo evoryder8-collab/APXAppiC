@@ -140,7 +140,7 @@ final class CoachPlatformTests: XCTestCase {
         XCTAssertTrue(try source("APEX/Features/Portal/PortalShellView.swift")
             .contains("session.portalDestinationIsAllowed(destination)"))
         XCTAssertTrue(try source("APEX/Features/Portal/SimpleHomeView.swift")
-            .contains("coachManaged: session.coachContext.capabilities.sponsoredClient"))
+            .contains("coachManaged: session.coachContext.activelyCoached"))
         let settings = try source("APEX/Features/Settings/SettingsView.swift")
         XCTAssertTrue(settings.contains("session.coachClientPolicy.canUseOrbit"))
         XCTAssertTrue(settings.contains("session.coachClientPolicy.canCreateCustomWorkouts"))

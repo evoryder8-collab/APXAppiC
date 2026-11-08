@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
 import { existsSync, readFileSync } from 'node:fs'
 import { spawnSync } from 'node:child_process'
@@ -149,7 +150,7 @@ test('canonical fixture parsing preserves trace, not-measured, missing, and basi
 
   const result = spawnSync(
     'python3',
-    [parserPath.pathname, 'parse-fixture', '--input', fixturePath.pathname],
+    [fileURLToPath(parserPath), 'parse-fixture', '--input', fileURLToPath(fixturePath)],
     { encoding: 'utf8' },
   )
   assert.equal(result.status, 0, result.stderr)
@@ -211,7 +212,7 @@ test('every approved source has a deterministic parser adapter', () => {
         .map((source) => source.parser),
     ),
   ].sort()
-  const result = spawnSync('python3', [parserPath.pathname, 'list-parsers', '--json'], {
+  const result = spawnSync('python3', [fileURLToPath(parserPath), 'list-parsers', '--json'], {
     encoding: 'utf8',
   })
 
@@ -253,7 +254,7 @@ print(json.dumps([canonical_nutrient_code(*case) for case in cases]))
     ['Carbohydrate, available', 'Carbohydrate, available', 'g'],
     ['SFA', 'SFA', 'g'],
   ]
-  const result = spawnSync('python3', ['-c', script, adaptersPath.pathname, JSON.stringify(cases)], {
+  const result = spawnSync('python3', ['-c', script, fileURLToPath(adaptersPath), JSON.stringify(cases)], {
     encoding: 'utf8',
   })
 
@@ -289,7 +290,7 @@ print(json.dumps([
     resolved_source_record_id('9621', 'Wheat bran', ciqual_seen),
 ]))
 `
-  const result = spawnSync('python3', ['-c', script, adaptersPath.pathname], {
+  const result = spawnSync('python3', ['-c', script, fileURLToPath(adaptersPath)], {
     encoding: 'utf8',
   })
 
@@ -314,7 +315,7 @@ print(json.dumps([parse_wingstop_nutrition_line(line) for line in lines]))
 `
   const result = spawnSync(
     'python3',
-    ['-c', script, adaptersPath.pathname, wingstopFixturePath.pathname],
+    ['-c', script, fileURLToPath(adaptersPath), fileURLToPath(wingstopFixturePath)],
     { encoding: 'utf8' },
   )
 

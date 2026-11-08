@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { computeEngine } from '../src/lib/rpg.ts'
+import { computeEngine, observedDomainScores, publishableSnapshots } from '../src/lib/rpg.ts'
 import { EMPTY_DATA, type AppData, type WorkoutLog, type WorkoutSession } from '../src/lib/types.ts'
 
 const owner = '77777777-aaaa-4bbb-8ccc-777777777777'
@@ -52,10 +52,10 @@ function latest(data: AppData, throughDate = date) {
 test('Quick Log attributes saved squat, push-up, mobility and cardio to their own domains', () => {
   const before = latest(baseline)
   const cases: Array<[Partial<WorkoutLog>, keyof typeof before, number]> = [
-    [{}, 'strength_lower', 44],
-    [{ movement_id: 'push_up', weight_kg: 0 }, 'strength_upper', 60.9],
-    [{ movement_id: 'cat_cow', reps: null, duration_seconds: 120 }, 'flexibility', 41.8],
-    [{ movement_id: 'run_outdoor', reps: null, duration_seconds: 1800, distance_meters: 5000 }, 'endurance', 46.9],
+    [{}, 'strength_lower', 51.4],
+    [{ movement_id: 'push_up', weight_kg: 0 }, 'strength_upper', 51.1],
+    [{ movement_id: 'cat_cow', reps: null, duration_seconds: 120 }, 'flexibility', 51.5],
+    [{ movement_id: 'run_outdoor', reps: null, duration_seconds: 1800, distance_meters: 5000 }, 'endurance', 51.8],
   ]
   for (const [facts, domain, expected] of cases) {
     const result = latest(custom([log(facts)]))
@@ -166,4 +166,46 @@ test('unfinished or skipped overrides and heavier sets do not alter the fitness 
     latest({ ...unmapped, workout_logs: [...planned.workout_logs, unmappedLog] }),
     latest({ ...unmapped, workout_logs: [...planned.workout_logs, { ...unmappedLog, weight_kg: 60 }] }),
   )
+})
+
+test('standard accounts with no evidence publish neither a score nor a downward trend', () => {
+  const empty = computeEngine(baseline, '2026-12-01')
+  assert.deepEqual(observedDomainScores(empty), {})
+  assert.deepEqual(publishableSnapshots(empty), [])
+  assert.equal(empty.snapshots[0].overall, empty.snapshots.at(-1)?.overall)
+  const lowerOnly = computeEngine(custom(), '2026-12-01')
+  assert.deepEqual(observedDomainScores(lowerOnly), { strength_lower: 51.4 })
+  assert.deepEqual(publishableSnapshots(lowerOnly), [])
+  assert.equal(lowerOnly.snapshots.at(-1)?.strength_lower, latest(custom()).strength_lower)
+})
+
+test('hydration credits the account/day total including food water and never counts the same food twice', () => {
+  const fixture = custom()
+  fixture.program_days[0] = { ...fixture.program_days[0], day_type: 't25' }
+  fixture.daily_logs = [{ id: 'daily', user_id: owner, date, water_l: 1.7 } as AppData['daily_logs'][number]]
+  const preferences = { user_id: owner, target_mode: 'custom', target_ml: 2000 } as AppData['hydration_preferences']
+  fixture.hydration_preferences = preferences
+  const events = (foodML: number) => computeEngine(fixture, date, { foodWaterML: { [date]: foodML } }).synergies.map(e => e.kind)
+  assert.ok(events(300).includes('hydration_endurance'))
+  fixture.hydration_events = [{ user_id: owner, local_date: date, kind: 'food', amount_ml: 300,
+    client_idempotency_key: 'meal-water', updated_at: date, occurred_at: date } as AppData['hydration_events'][number]]
+  fixture.hydration_preferences = { ...preferences!, target_ml: 2250 }
+  assert.ok(!events(300).includes('hydration_endurance'))
+  fixture.hydration_preferences = { ...preferences!, target_ml: 3500 }
+  fixture.daily_logs[0].water_l = 2.5
+  assert.ok(!events(0).includes('hydration_endurance'))
+})
+
+test('breakfast and a partial diary cannot be judged as a full-day calorie deficit', () => {
+  const fixture = custom()
+  fixture.daily_logs = [{ id: 'daily', user_id: owner, date, water_l: 0, kcal: 400, protein_g: 12 } as AppData['daily_logs'][number]]
+  const deficits = (through: string) => computeEngine(fixture, through).synergies.filter(e => e.kind === 'deficit_strength')
+  assert.equal(deficits(date).length, 0)
+  assert.equal(deficits('2026-11-03').length, 0)
+  fixture.settings = { user_id: owner, addons: { meal_rhythm_history: { [date]: {
+    date, expected_meals: 3, logged_meals: 3, completion_score: 100, timing_score: 100,
+    rhythm_score: 100, finalized:true, verdict:'complete_on_time', meal_times:['08:00','13:00','19:00'],
+  } } } } as AppData['settings']
+  assert.equal(deficits(date).length, 0)
+  assert.equal(deficits('2026-11-03').length, 1)
 })

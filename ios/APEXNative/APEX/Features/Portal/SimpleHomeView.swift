@@ -100,13 +100,10 @@ struct SimpleHomeView: View {
         max(Double(hydrationResolution.foodML) / 1_000, session.foodHydrationLiters(on: selectedDate))
     }
     private var waterTargetL: Double {
-        Double(session.hydrationTargetResolution(
-            on: selectedDate,
-            plannedExerciseMinutes: todayProgramDay?.estimatedMinutes
-        ).targetML) / 1_000
+        Double(session.hydrationTargetResolution(on: selectedDate).targetML) / 1_000
     }
     private var waterL: Double { min(6, drinkWaterL + foodWaterL) }
-    private var waterDone: Bool { waterL >= waterTargetL * 0.9 }
+    private var waterDone: Bool { waterL >= waterTargetL }
 
     private var supplementGroups: [SimpleSupplementGroup] {
         let grouped = Dictionary(grouping: session.activeSupplements, by: \.groupLabel)
@@ -134,7 +131,7 @@ struct SimpleHomeView: View {
             persona: profile?.persona,
             mainIsUsable: TrainingInduction.hasUsablePrescription(in: session.data, slug: "main"),
             transitionIsUsable: TrainingInduction.hasUsablePrescription(in: session.data, slug: "transition"),
-            coachManaged: session.coachContext.capabilities.sponsoredClient
+            coachManaged: session.coachContext.activelyCoached
                 && !session.coachClientPolicy.canCreateCustomWorkouts,
             coachIsUsable: session.coachClientPolicy.canFollowCoachPlan
                 && TrainingInduction.hasUsablePrescription(in: session.data, slug: "coach"),
@@ -153,7 +150,7 @@ struct SimpleHomeView: View {
         }
         return guidedProgramSlug == "main" ? .mainPhase : .transition
     }
-    private var hasUsableTrainingPlan: Bool {
+    private var hasUsablePrimaryTrainingPlan: Bool {
         guard TrainingInduction.hasUsablePrescription(in: session.data, slug: guidedProgramSlug) else {
             return false
         }
@@ -167,21 +164,23 @@ struct SimpleHomeView: View {
             date: today
         )
     }
+    private var hasUsableTrainingPlan: Bool {
+        hasUsablePrimaryTrainingPlan || (session.coachClientPolicy.canCreateCustomWorkouts
+            && TrainingInduction.hasUsablePrescription(in: session.data, slug: "custom"))
+    }
+    private func dailyPlans(lite: Bool) -> [PlannedDay] {
+        SimpleHomeLogic.workoutPlans(in: session.data, primarySlug: hasUsablePrimaryTrainingPlan ? guidedProgramSlug : nil,
+                                     includeCustom: session.coachClientPolicy.canCreateCustomWorkouts, date: today, lite: lite)
+    }
     private var workoutPlans: [PlannedDay] {
-        guard hasUsableTrainingPlan else { return [] }
-        return TrainingPlanEngine.programDays(
-            session.data,
-            slug: guidedProgramSlug,
-            date: today,
-            lite: workoutIsLite
-        )
+        dailyPlans(lite: workoutIsLite)
     }
     private var todayProgramDays: [ProgramDay] {
         workoutPlans.compactMap(\.programDay)
     }
     private var dailyTrainingSessions: [SimpleHomeLogic.DailyGuidedSession] {
         guard hasUsableTrainingPlan, let ownerID = session.data.profile?.userID else { return [] }
-        let plans = TrainingPlanEngine.programDays(session.data, slug: guidedProgramSlug, date: today, lite: false)
+        let plans = dailyPlans(lite: false)
         var resumableModes: [UUID: Bool] = [:]
         for plan in plans {
             guard let day = plan.programDay else { continue }
@@ -205,7 +204,8 @@ struct SimpleHomeView: View {
     }
     private var workoutDone: Bool {
         guard hasUsableTrainingPlan else { return false }
-        return dailyTrainingSessions.allSatisfy { $0.completedSessionID != nil }
+        let sessions = dailyTrainingSessions
+        return !sessions.isEmpty && sessions.allSatisfy { $0.completedSessionID != nil }
     }
     private var completedWorkoutSessionID: UUID? {
         guard let todayProgramDay, let ownerID = session.data.profile?.userID else { return nil }
@@ -217,21 +217,17 @@ struct SimpleHomeView: View {
         )
     }
     private var workoutPlan: PlannedDay {
-        TrainingPlanEngine.plan(
-            session.data,
-            slug: guidedProgramSlug,
-            date: today,
-            lite: workoutIsLite,
-            programDayID: todayProgramDay?.id
-        )
+        workoutPlans.first { $0.programDay?.id == todayProgramDay?.id } ?? PlannedDay(programDay: nil)
     }
     private var workoutExercises: [Exercise] {
         guard let todayProgramDay else { return [] }
         return workoutExercises(for: todayProgramDay.id, lite: workoutIsLite)
     }
     private func workoutExercises(for dayID: UUID, lite: Bool) -> [Exercise] {
-        guard let ownerID = session.data.profile?.userID else { return [] }
-        let plan = TrainingPlanEngine.plan(session.data, slug: guidedProgramSlug, date: today,
+        guard let ownerID = session.data.profile?.userID,
+              let day = session.data.programDays.first(where: { $0.id == dayID && $0.userID == ownerID }),
+              let slug = session.data.programs.first(where: { $0.id == day.programID && $0.userID == ownerID })?.slug else { return [] }
+        let plan = TrainingPlanEngine.plan(session.data, slug: slug, date: today,
                                           lite: lite, programDayID: dayID)
         return SimpleHomeLogic.sessionExercises(plan: plan, ownerID: ownerID, programDayID: dayID)
     }
@@ -354,7 +350,7 @@ struct SimpleHomeView: View {
             )
             .padding(.horizontal, 18)
 
-            if session.coachContext.capabilities.sponsoredClient {
+            if session.coachContext.activelyCoached {
                 Button {
                     session.openPortalDestination(.coachPlan)
                 } label: {
@@ -513,20 +509,25 @@ struct SimpleHomeView: View {
         .task { await session.refreshNudges() }
         .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(isPresented: $showWorkout) {
-            if SimpleHomeLogic.canPresentGuidedWorkout(
-                slug: guidedProgramSlug,
+            if let todayProgramDay,
+               let slug = session.data.programs.first(where: { $0.id == todayProgramDay.programID && $0.userID == todayProgramDay.userID })?.slug,
+               SimpleHomeLogic.canPresentGuidedWorkout(
+                slug: slug,
                 policy: session.coachClientPolicy,
                 capabilities: session.coachContext.capabilities
-            ), let todayProgramDay {
-                WorkoutPlayerView(
-                    day: todayProgramDay,
-                    exercises: workoutExercises,
-                    accent: APEXColor.teal,
-                    lite: workoutIsLite,
-                    date: today,
-                    warmupText: workoutPlan.warmup,
-                    warmupDuration: workoutPlan.warmupDuration
-                )
+            ) {
+                let performedDay = min(today, Date().apexDateKey)
+                if slug == "custom", todayProgramDay.sessionMode == WorkoutSessionMode.tracked.rawValue,
+                   dailyTrainingSessions.first(where: { $0.id == todayProgramDay.id })?.resumeLite == nil {
+                    TrackedWorkoutView(day: todayProgramDay, exercises: workoutExercises, accent: APEXColor.teal,
+                                       lite: workoutIsLite, date: performedDay)
+                } else {
+                    WorkoutPlayerView(
+                        day: todayProgramDay, exercises: workoutExercises, accent: APEXColor.teal,
+                        lite: workoutIsLite, date: performedDay,
+                        warmupText: workoutPlan.warmup, warmupDuration: workoutPlan.warmupDuration
+                    )
+                }
             }
         }
         .apexPopover(isPresented: $showTargetEditor) {
@@ -694,6 +695,7 @@ struct SimpleHomeView: View {
                     item: item,
                     fullExercises: workoutExercises(for: item.id, lite: false),
                     lightExercises: workoutExercises(for: item.id, lite: true),
+                    trainToday: today > Date().apexDateKey,
                     fixedLite: item.resumeLite ?? session.data.workoutSessions.first {
                         $0.id == item.completedSessionID && $0.userID == session.data.profile?.userID
                     }?.isLite
@@ -748,7 +750,7 @@ struct SimpleHomeView: View {
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
-                    Button(language.text("Start")) {
+                    Button(today > Date().apexDateKey ? "\(language.text("Start")) · \(language.text("Today"))" : language.text("Start")) {
                         selectedProgramDayID = day.id
                         workoutIsLite = false
                         showWorkout = true
@@ -792,11 +794,11 @@ struct SimpleHomeView: View {
     }
 
     private var latestSnapshot: RPGSnapshot? {
-        session.data.snapshots.max { $0.date < $1.date }
+        session.data.snapshots.filter { $0.date <= today }.max { $0.date < $1.date }
     }
 
     private var avatarSubtitle: String {
-        let sorted = session.data.snapshots.sorted { $0.date > $1.date }
+        let sorted = session.data.snapshots.filter { $0.date <= today }.sorted { $0.date > $1.date }
         guard let current = sorted.first else { return language.text("Complete your first logs to give the Avatar reliable signals.") }
         let previous = sorted.dropFirst().first(where: { $0.date <= fourteenDaysAgo }) ?? sorted.last ?? current
         let delta = current.overall - previous.overall
@@ -804,7 +806,7 @@ struct SimpleHomeView: View {
     }
 
     private var fourteenDaysAgo: String {
-        Calendar.current.date(byAdding: .day, value: -14, to: .now)?.apexDateKey ?? today
+        FBDate.addDays(today, -14)
     }
 
     private var orbitSubtitle: String {
@@ -3367,6 +3369,7 @@ private struct DailyTrainingSessionPreviewCard: View {
     let item: SimpleHomeLogic.DailyGuidedSession
     let fullExercises: [Exercise]
     let lightExercises: [Exercise]
+    let trainToday: Bool
     let fixedLite: Bool?
     let onOpen: (Bool) -> Void
     @State private var language = LanguageState.shared
@@ -3377,6 +3380,10 @@ private struct DailyTrainingSessionPreviewCard: View {
     private var exercises: [Exercise] { lite ? lightExercises : fullExercises }
     private var visibleExercises: [Exercise] { expanded ? exercises : Array(exercises.prefix(3)) }
     private var completed: Bool { item.completedSessionID != nil }
+    private var actionTitle: String {
+        if trainToday && !completed { return "\(language.text("Start")) · \(language.text("Today"))" }
+        return language.text(item.statusLabel)
+    }
     private var accent: Color { completed ? APEXColor.green : APEXColor.violet }
     private var identifier: String { item.id.uuidString.lowercased() }
 
@@ -3474,7 +3481,7 @@ private struct DailyTrainingSessionPreviewCard: View {
 
             Button { onOpen(lite) } label: {
                 HStack(spacing: 8) {
-                    Text(language.text(item.statusLabel))
+                    Text(actionTitle)
                         .font(APEXFont.body(14, weight: .bold))
                         .fixedSize(horizontal: false, vertical: true)
                     Image(systemName: completed ? "checkmark" : "arrow.right")
@@ -3487,7 +3494,7 @@ private struct DailyTrainingSessionPreviewCard: View {
                 .background(completed ? accent.opacity(0.10) : accent, in: RoundedRectangle(cornerRadius: 14))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel("\(language.text(completed ? "View workout stats" : item.statusLabel)): \(language.text(item.day.name))")
+            .accessibilityLabel("\(completed ? language.text("View workout stats") : actionTitle): \(language.text(item.day.name))")
             .accessibilityIdentifier("simple-training-start-\(identifier)")
         }
         .padding(16)

@@ -1,3 +1,4 @@
+import { warmupReceipt } from '../../lib/workoutTimingMetadata'
 import { useEffect, useMemo, useState } from 'react'
 import { ACCENTS, type Accent } from '../../lib/theme'
 import type { IntroLanguage } from '../../lib/introLanguage'
@@ -90,6 +91,7 @@ export function WorkoutStatsSheet({ open, onClose, sessionId, accent }: { open: 
   const t = (value: string): string => translateInterfaceText(value, language)
   const ownerID = data.profile?.user_id ?? data.settings?.user_id
   const receipt = data.workout_sessions.find((session) => session.id === sessionId && session.user_id === ownerID && session.completed)
+  const warmup = receipt && warmupReceipt(receipt.notes)
   const sourceLogs = useMemo(
     () => receipt ? workoutLogsInPerformedOrder(data, receipt.id).filter((log) => log.user_id === ownerID) : [],
     [data.exercises, data.workout_logs, data.workout_sessions, receipt, ownerID],
@@ -130,7 +132,8 @@ export function WorkoutStatsSheet({ open, onClose, sessionId, accent }: { open: 
     <Sheet open={open} onClose={onClose} wide>
       <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-[9px] font-black tracking-[0.18em] uppercase" style={{ color: accent.deep }}>{copy.eyebrow}</p><h2 className="mt-1 font-display text-2xl font-black text-ink">{copy.title}</h2><p className="mt-1 max-w-xl text-xs leading-relaxed font-medium text-ink-soft">{copy.subtitle}</p></div><button type="button" onClick={onClose} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-ink/6 text-lg font-black text-ink-soft" aria-label={copy.close}>×</button></div>
 
-      <div className="mt-4 grid grid-cols-3 gap-2"><Metric label={copy.volume} value={`${Math.round(volume).toLocaleString()} kg`} /><Metric label={copy.sets} value={String(workingSets)} /><Metric label={copy.movements} value={String(groups.length)} /></div>
+      {warmup ? <div className="mt-4"><Metric label={t(warmup.title)} value={`${Math.floor(warmup.seconds / 60)}:${String(warmup.seconds % 60).padStart(2, '0')}`} /></div>
+        : <div className="mt-4 grid grid-cols-3 gap-2"><Metric label={copy.volume} value={`${Math.round(volume).toLocaleString()} kg`} /><Metric label={copy.sets} value={String(workingSets)} /><Metric label={copy.movements} value={String(groups.length)} /></div>}
 
       {open && receipt && <WorkoutReceiptTiming key={`${receipt.user_id}:${receipt.id}`} session={receipt} />}
 

@@ -12,6 +12,29 @@ enum ManualWorkout {
     static let prefix = "APEX_MANUAL_V1"
     private static let automaticTitle = "__APEX_AUTOMATIC_TITLE__"
 
+    static func receiptParents(in data: DashboardData, ownerID: UUID) -> (program: Program, day: ProgramDay) {
+        let program = data.programs.first { $0.userID == ownerID && $0.slug == "custom" } ?? Program(
+            id: APEXStableID.scopedUUID(namespace: "custom-workout-program", date: "custom", userID: ownerID),
+            userID: ownerID, slug: "custom", name: "Custom workouts", description: "Your searchable exercise studio, saved privately."
+        )
+        let dayID = APEXStableID.scopedUUID(namespace: "quick-log-day", date: program.id.uuidString.lowercased(), userID: ownerID)
+        // The receipt table requires a day FK, even for an unscheduled workout.
+        let day = ProgramDay(id: dayID, userID: ownerID, programID: program.id, weekday: 1,
+                             name: "Quick Log", dayType: "custom", estimatedMinutes: 0,
+                             warmupNote: "", sortOrder: 0, isActive: false)
+        return (program, day)
+    }
+
+    /// Earlier clients created an active empty template to hold each weekday's receipts.
+    /// A user-authored template with exercises or non-manual history remains a prescription.
+    static func isLegacyReceiptContainer(_ day: ProgramDay, in data: DashboardData) -> Bool {
+        guard day.name == "Manual workout", day.dayType == "custom", day.scheduledDate == nil,
+              data.programs.contains(where: { $0.id == day.programID && $0.userID == day.userID && $0.slug == "custom" }),
+              !data.exercises.contains(where: { $0.programDayID == day.id && $0.userID == day.userID }) else { return false }
+        let linked = data.workoutSessions.filter { $0.programDayID == day.id && $0.userID == day.userID }
+        return !linked.isEmpty && linked.allSatisfy { title(fromNotes: $0.notes) != nil }
+    }
+
     static func recentExercisesKey(ownerID: UUID) -> String {
         "fitr.quick-log.recents.v1.\(ownerID.uuidString.lowercased())"
     }
@@ -220,7 +243,7 @@ enum ManualWorkout {
             if let treadmill = draft.treadmill {
                 output.append(
                     WorkoutLog(
-                        id: UUID(), userID: userID, sessionID: sessionID,
+                        id: draft.id, userID: userID, sessionID: sessionID,
                         exerciseID: nil,
                         exerciseName: draft.name,
                         setNumber: 1, weightKG: nil, reps: nil, rir: nil,
@@ -241,7 +264,7 @@ enum ManualWorkout {
                 )
                 output.append(
                     WorkoutLog(
-                        id: UUID(), userID: userID, sessionID: sessionID,
+                        id: set.id, userID: userID, sessionID: sessionID,
                         exerciseID: nil, exerciseName: draft.name,
                         setNumber: setIndex + 1,
                         weightKG: input.weightKG,

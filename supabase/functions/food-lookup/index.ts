@@ -165,7 +165,7 @@ Deno.serve(async (request) => {
         signal: AbortSignal.timeout(8000),
       })
       if (!response.ok) return json(origin, {
-        state: 'results', query: rawQuery, results: [],
+        state: 'results', source: 'provider_unavailable', query: rawQuery, results: [],
         message: 'The public provider is temporarily unavailable; APEX Food Memory remains available.',
       })
       const payload = await response.json() as { products?: Array<Record<string, unknown>> }
@@ -178,7 +178,7 @@ Deno.serve(async (request) => {
       return json(origin, { state: 'results', query: rawQuery, results })
     } catch {
       return json(origin, {
-        state: 'results', query: rawQuery, results: [],
+        state: 'results', source: 'provider_unavailable', query: rawQuery, results: [],
         message: 'The public provider is temporarily unavailable; APEX Food Memory remains available.',
       })
     }

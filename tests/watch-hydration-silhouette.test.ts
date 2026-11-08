@@ -133,10 +133,10 @@ test('Watch hydration keeps its title and settings in the native top bar', () =>
 
   assert.match(app, /NavigationStack/)
   assert.match(view, /ToolbarItem\(placement: \.topBarTrailing\)/)
-  assert.match(view, /Label\("FITR MAX", systemImage: "drop.fill"\)/)
+  assert.match(view, /Label\("FITR MAX Watch", systemImage: "drop.fill"\)/)
   assert.match(view, /\.accessibilityLabel\("Hydration settings"\)/)
   assert.match(view, /\.scrollBounceBehavior\(\.basedOnSize\)/)
-  assert.doesNotMatch(view, /\.navigationTitle\("FITR MAX"\)/)
+  assert.doesNotMatch(view, /\.navigationTitle\("FITR MAX(?: Watch)?"\)/)
 })
 
 test('Watch hydration exposes configurable low-power presentation settings', () => {

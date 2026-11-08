@@ -10,6 +10,7 @@ struct AccessRecoveryView: View {
     @State private var entitlements = EntitlementStore.shared
     @State private var statusMessage: String?
     @State private var checking = false
+    @State private var showsPreviousPlan = false
     @State private var showingCoachInvitation = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -44,7 +45,18 @@ struct AccessRecoveryView: View {
                     .foregroundStyle(secondaryInk)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
+                if session.coachClientPolicy.coachPlanReadOnly, session.coachContext.currentPlan != nil {
+                    Button(language.text("Previous coach plan")) { showsPreviousPlan = true }
+                        .sheet(isPresented: $showsPreviousPlan) {
+                            NavigationStack {
+                                CoachPlanView().toolbar {
+                                    Button(language.text("Close")) { showsPreviousPlan = false }
+                                }
+                            }
+                        }
+                }
                 if session.isDeveloperSandbox { DeveloperSandboxNotice() }
+                else if session.isAuthenticated { DeleteAccountButton() }
             }
             .padding(20)
         }

@@ -549,7 +549,7 @@ test('emptying an existing meal changes the action to an owner/date-bound confir
   assert.match(composer, /Delete saved meal\?/)
   assert.match(composer, /Removing every food will delete this meal from this day\./)
   assert.match(composer, /t\('Delete meal'\)/)
-  assert.match(composer, /await store\.deleteMeal\(replaceMealId\)/)
+  assert.match(composer, /await store\.deleteMeal\(replaceMealId, editSnapshot\?\.version\)/)
 })
 
 test('new Task 5 actions have authored Romanian and Thai copy', async () => {

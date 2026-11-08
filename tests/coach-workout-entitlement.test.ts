@@ -31,7 +31,7 @@ test('the coach workout page applies the custom-workout policy to every inline c
     /const canCreateCustomWorkouts = clientPolicyForAccount\(appAccess, coachContext\)\.can_create_custom_workouts/,
   )
   assert.match(source, /\{canCreateCustomWorkouts && \(\s*<TodayManualWorkoutCard/)
-  assert.match(source, /\{canCreateCustomWorkouts && \(\s*<div className="relative overflow-hidden[\s\S]*?APEX WORKOUT STUDIO/)
+  assert.match(source, /\{canCreateCustomWorkouts && \(\s*<div className="relative overflow-hidden[\s\S]*?FITR MAX WORKOUT STUDIO/)
   assert.match(source, /\{canCreateCustomWorkouts && \(\s*<Suspense fallback=\{null\}>\s*<CustomWorkoutBuilder/)
   assert.match(source, /\{canCreateCustomWorkouts && \(\s*<ManualWorkoutLogger/)
   assert.equal(

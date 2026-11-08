@@ -16,11 +16,16 @@ test('meal snapshots can detach optional catalogue links without changing nutrit
     meal: {
       id: 'meal-1',
       source_preset_id: 'preset-1',
+      replace_meal_id: 'saved-meal',
+      expected_meal_version: 'operation-1',
+      expected_entry_ids: ['saved-entry'],
       source_planned_meal_id: 'planned-1',
     },
     entries: [{ id: 'entry-1', food_id: 'client-food', kcal: 321, quantity: 175, unit: 'g' }],
   }
   const detached = detachedLoggedMealPayload(payload as never)
+  assert.equal(detached.p_meal.expected_meal_version, 'operation-1')
+  assert.deepEqual(detached.p_meal.expected_entry_ids, ['saved-entry'])
   assert.equal(detached.p_meal.source_preset_id, undefined)
   assert.equal(detached.p_meal.source_planned_meal_id, undefined)
   assert.equal(detached.p_entries[0].food_id, undefined)

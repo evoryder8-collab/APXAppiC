@@ -1,4 +1,4 @@
-import { estimateWaterContent } from '../lib/hydration.ts'
+import { estimateWaterContent, portionWater } from '../lib/hydration.ts'
 import {
   createContext,
   useCallback,
@@ -50,6 +50,7 @@ import {
   deletePresetLocally,
   loadVisibleFoods,
   privateDeleteForUser,
+  privateGet,
   privateGetAllForUser,
   privatePut,
   replaceFoodUserCacheAtomically,
@@ -79,6 +80,7 @@ interface LogMealInput {
   sourcePresetId?: string | null
   sourcePlannedMealId?: string | null
   replaceMealId?: string | null
+  editSnapshot?: { version: string, entryIds: string[] }
   loggedAs?: LoggedMeal['logged_as']
   idempotencyKey?: string
 }
@@ -120,7 +122,7 @@ interface FoodStoreValue {
   setPreference: (foodId: string, patch: Partial<FoodPreference>) => Promise<void>
   logMeal: (input: LogMealInput) => Promise<LoggedMeal>
   setMealFinishedAt: (mealId: string, finishedAt: string) => Promise<LoggedMeal>
-  deleteMeal: (mealId: string) => Promise<void>
+  deleteMeal: (mealId: string, expectedVersion?: string) => Promise<void>
   savePreset: (input: SavePresetInput) => Promise<MealPreset>
   deletePreset: (presetId: string) => Promise<void>
   mealsForDate: (date: string) => LoggedMeal[]
@@ -251,7 +253,7 @@ async function fetchAllOwnedFoodRows(
 }
 
 export function FoodStoreProvider({ children }: { children: ReactNode }) {
-  const { data, upsert, setSettings } = useStore()
+  const { data, upsert, setSettings, setScoringFoodWater, toast } = useStore()
   const userId = data.profile?.user_id ?? null
   const userIdRef = useRef(userId)
   userIdRef.current = userId
@@ -267,6 +269,19 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
   const [meals, setMeals] = useState<LoggedMeal[]>([])
   const mealsRef = useRef<LoggedMeal[]>([])
   const [entries, setEntries] = useState<LoggedFoodEntry[]>([])
+  const scoringOwner = data.profile?.user_id
+  useEffect(() => {
+    if (!scoringOwner) return
+    const dates = new Map(meals.filter(m => m.user_id === scoringOwner).map(m => [m.id, m.local_date]))
+    const byDay: Record<string, number> = {}
+    for (const entry of entries) {
+      const day = dates.get(entry.meal_id)
+      if (!day || entry.user_id !== scoringOwner) continue
+      const ml = entry.water_ml ?? portionWater(entry.snapshot_water_ml_100, entry.equivalent_amount)
+      if (ml != null && ml > 0) byDay[day] = (byDay[day] ?? 0) + ml
+    }
+    setScoringFoodWater({ ownerID: scoringOwner, byDay })
+  }, [scoringOwner, meals, entries, setScoringFoodWater])
   const flushingUsers = useRef(new Set<string>())
   const requestedFlushUsers = useRef(new Set<string>())
   const hydrationGeneration = useRef(0)
@@ -334,7 +349,7 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       setEntries(localEntries)
       const pending = await privateGetAllForUser<PrivateOutboxOp>('private_outbox', expectedUserId)
       if (!current()) return
-      setQueued(pending.some((operation) => operation.domain === 'food'))
+      setQueued(pending.some((operation) => operation.domain === 'food' && operation.operation !== 'meal_conflict'))
 
       if (supabase) {
         const { data: { session: hydrationSession }, error: sessionError } = await supabase.auth.getSession()
@@ -569,7 +584,10 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       return 'sent'
     }
     if (op.operation === 'delete_meal') {
-      const { error } = await client.rpc('delete_structured_meal', { p_meal_id: op.entity_id })
+      const version = (op.payload as { expected_meal_version?: string } | null)?.expected_meal_version
+      const { error } = version
+        ? await client.rpc('delete_structured_meal_checked', { p_meal_id: op.entity_id, p_expected_meal_version: version })
+        : await client.rpc('delete_structured_meal', { p_meal_id: op.entity_id })
       if (error) throw error
       return 'sent'
     }
@@ -602,7 +620,7 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       const syncClient = createSessionBoundSupabase(syncSession.access_token)
       if (!syncClient) return
       const operations = (await privateGetAllForUser<PrivateOutboxOp>('private_outbox', syncUserId))
-        .filter((operation) => operation.domain === 'food')
+        .filter((operation) => operation.domain === 'food' && operation.operation !== 'meal_conflict')
         .sort((a, b) => {
           const byTime = a.created_at.localeCompare(b.created_at)
           if (byTime) return byTime
@@ -627,6 +645,14 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
           }
           await privateDeleteForUser('private_outbox', operation.id, syncUserId)
         } catch (error) {
+          if ((operation.operation === 'log_meal' || operation.operation === 'delete_meal') && error && typeof error === 'object' && 'code' in error && error.code === 'PT409') {
+            await privatePut('private_outbox', { ...operation, operation: 'meal_conflict', last_error: 'The saved meal changed. Reopen it to make this edit.' })
+            if (foodMutationBelongsToActiveUser(syncUserId, userIdRef.current)) {
+              toast('This meal changed on another device. Your saved ingredients were kept. Reopen the meal to apply your edit.', 'error')
+              setHydrationRetry(revision => revision + 1)
+            }
+            continue
+          }
           await privatePut('private_outbox', {
             ...operation,
             attempts: operation.attempts + 1,
@@ -638,14 +664,14 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
         }
       }
       const remaining = await privateGetAllForUser<PrivateOutboxOp>('private_outbox', syncUserId)
-      if (userIdRef.current === syncUserId) setQueued(remaining.some((operation) => operation.domain === 'food'))
+      if (userIdRef.current === syncUserId) setQueued(remaining.some((operation) => operation.domain === 'food' && operation.operation !== 'meal_conflict'))
     } catch (error) {
       console.warn('Food sync will retry from its private queue', error)
     } finally {
       flushingUsers.current.delete(syncUserId)
       if (requestedFlushUsers.current.delete(syncUserId) && navigator.onLine) void flush()
     }
-  }, [sendOutbox, userId])
+  }, [sendOutbox, toast, userId])
 
   useEffect(() => {
     const onOnline = () => void flush()
@@ -792,7 +818,17 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
     const snapshots = input.items.flatMap((item) => snapshotEntry(item, userId, id, now) ?? [])
     if (snapshots.length !== input.items.length) throw new Error('Every item needs complete nutrition and a reliable portion unit')
     const preferenceUpdates = foodPreferenceUsageUpdates(preferencesRef.current, input.items, userId, input.slot, now)
-    const payloadMeal = { ...meal, replace_meal_id: input.replaceMealId ?? null }
+    const previous = input.replaceMealId ? mealsRef.current.find(row => row.id === input.replaceMealId && row.user_id === userId) : undefined
+    const base = input.editSnapshot ?? (previous && {
+      version: previous.client_idempotency_key,
+      entryIds: entries.filter(entry => entry.meal_id === previous.id && entry.user_id === userId).map(entry => entry.id),
+    })
+    if (input.replaceMealId && (!previous || !base || !base.entryIds.length || base.version !== previous.client_idempotency_key)) {
+      throw new Error('This meal changed. Refresh and reopen it before saving.')
+    }
+    const payloadMeal = { ...meal, replace_meal_id: input.replaceMealId ?? null,
+      ...(base && { expected_meal_version: base.version, expected_entry_ids: base.entryIds }),
+    }
     const preferenceOperations = isLocalMode
       ? []
       : preferenceUpdates.map((preference) => outbox(userId, 'save_usage_preference', preference.id, preference))
@@ -825,9 +861,15 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
     const nextPreferences = [...preferencesRef.current.filter((value) => !updatedFoodIds.has(value.food_id)), ...preferenceUpdates]
     preferencesRef.current = nextPreferences
     setPreferences(nextPreferences)
-    if (!isLocalMode && navigator.onLine) await flush()
+    if (!isLocalMode && navigator.onLine) {
+      await flush()
+      const retained = operation && await privateGet<PrivateOutboxOp>('private_outbox', operation.id)
+      if (retained?.user_id === userId && retained.operation === 'meal_conflict') {
+        throw new Error('This meal changed on another device. Reopen it to apply your edit.')
+      }
+    }
     return meal
-  }, [applyDayAggregate, flush, userId])
+  }, [applyDayAggregate, entries, flush, userId])
 
   /**
    * Logged meals are immutable server snapshots, so editing the finish time
@@ -864,7 +906,10 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
         created_at: now,
       }))
     if (snapshots.length === 0) throw new Error('The meal snapshot is incomplete. Open the meal and save it again.')
-    const payloadMeal = { ...meal, replace_meal_id: previous.id }
+    const payloadMeal = { ...meal, replace_meal_id: previous.id,
+      expected_meal_version: previous.client_idempotency_key,
+      expected_entry_ids: entries.filter(entry => entry.meal_id === previous.id && entry.user_id === userId).map(entry => entry.id),
+    }
     const operation = outbox(userId, 'log_meal', id, { meal: payloadMeal, entries: snapshots })
     await saveMealAtomically(meal, snapshots, [], isLocalMode ? null : operation, previous.id)
 
@@ -880,16 +925,23 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       ...current.filter((entry) => entry.meal_id !== previous.id),
     ])
     applyDayAggregate(previous.local_date, nextMeals)
-    if (!isLocalMode && navigator.onLine) await flush()
+    if (!isLocalMode && navigator.onLine) {
+      await flush()
+      const retained = operation && await privateGet<PrivateOutboxOp>('private_outbox', operation.id)
+      if (retained?.user_id === userId && retained.operation === 'meal_conflict') {
+        throw new Error('This meal changed on another device. Reopen it to apply your edit.')
+      }
+    }
     return meal
   }, [applyDayAggregate, entries, flush, userId])
 
-  const deleteMeal = useCallback(async (mealId: string) => {
+  const deleteMeal = useCallback(async (mealId: string, expectedVersion?: string) => {
     if (!userId || !foodMutationBelongsToActiveUser(userId, userIdRef.current)) return
     const removed = mealsRef.current.find((meal) => meal.id === mealId)
     if (!removed) return
     mutationRevision.current += 1
-    const operation = outbox(userId, 'delete_meal', mealId, null)
+    if (expectedVersion && expectedVersion !== removed.client_idempotency_key) throw new Error('This meal changed. Reopen it before removing it.')
+    const operation = outbox(userId, 'delete_meal', mealId, { expected_meal_version: removed.client_idempotency_key })
     await deleteMealLocally(mealId, isLocalMode ? null : operation)
     if (!foodMutationBelongsToActiveUser(userId, userIdRef.current)) return
     if (!isLocalMode) setQueued(true)

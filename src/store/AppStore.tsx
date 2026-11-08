@@ -39,7 +39,7 @@ import type { NormalizedFitnessEvidence } from '../lib/fitnessEvidence'
 import type { HydrationPreferences } from '../lib/hydrationLedger'
 import { inferredHydrationTargetMode } from '../lib/hydration'
 import { EMPTY_DATA } from '../lib/types'
-import { computeEngine, type SynergyEvent } from '../lib/rpg'
+import { computeEngine, publishableSnapshots, observedDomainScores, type StatBlock, type SynergyEvent } from '../lib/rpg'
 import { eventContextFor } from '../lib/plan'
 import { activityLogId, dailyLogId, rpgSnapshotId } from '../lib/ids'
 import {
@@ -113,6 +113,7 @@ import {
   failedAccountAccess,
   fetchMyAppAccess,
   loadCachedAccountAccess,
+  clientPolicyForAccount,
   localAccountAccess,
   pendingAccountAccess,
   saveCachedAccountAccess,
@@ -172,6 +173,9 @@ interface StoreValue {
   authed: boolean
   syncStatus: SyncStatus
   snapshots: RpgSnapshot[]
+  avatarDomainScores: Partial<StatBlock>
+  avatarHydrationDays: Record<string, boolean>
+  setScoringFoodWater: (water: { ownerID: string; byDay: Record<string, number> }) => void
   synergies: SynergyEvent[]
   signIn: (email: string, password: string) => Promise<{ error: string | null; persona: PersonaSlug | null }>
   signOut: () => Promise<void>
@@ -443,6 +447,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(() =>
     isLocalMode ? normalizeAppData(loadCache(LOCAL_USER) ?? EMPTY_DATA) : EMPTY_DATA,
   )
+  const [scoringFoodWater, setScoringFoodWater] = useState<{ ownerID: string; byDay: Record<string, number> } | null>(null)
   const [ready, setReady] = useState(isLocalMode)
   const [session, setSession] = useState<Session | null>(null)
   const [appAccess, setAppAccess] = useState<AccountAccessResolution>(() =>
@@ -1476,30 +1481,46 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }, [flush, refreshAppAccess, refreshCoachContext])
 
   /* ---------- RPG engine: recompute on load + when history changes ---------- */
+  const scoreClock = zonedClock(new Date(), timeZoneFromSettings(data.settings))
+  const scoreHour = Number(scoreClock.time.slice(0, 2))
+  const scorePolicy = clientPolicyForAccount(appAccess, coachContext)
+  const preferCoach = scorePolicy.can_follow_coach_plan
+  const includeCustom = scorePolicy.can_create_custom_workouts
   const engine = useMemo(
-    () => computeEngine(data, zonedClock(new Date(), timeZoneFromSettings(data.settings)).date),
+    () => computeEngine(data, scoreClock.date, {
+      localHour: scoreHour, preferCoach, includeCustom,
+      foodWaterML: scoringFoodWater?.ownerID === data.profile?.user_id ? scoringFoodWater?.byDay : undefined,
+    }),
+    // Snapshot persistence below must not feed the score calculation back into itself.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data.profile, data.workout_sessions, data.workout_logs, data.daily_logs, data.program_days, data.exercises, data.health_metrics, data.fitness_evidence, data.imported_activities, data.settings],
+    [data.profile, data.workout_sessions, data.workout_logs, data.daily_logs, data.programs, data.program_days, data.exercises, data.health_metrics, data.fitness_evidence, data.imported_activities, data.settings, data.activity_logs, data.hydration_events, data.hydration_preferences, scoringFoodWater, scoreClock.date, scoreHour, preferCoach, includeCustom],
   )
-  const snapshots = engine.snapshots
+  const snapshots = useMemo(() => publishableSnapshots(engine), [engine])
+  const avatarDomainScores = useMemo(() => observedDomainScores(engine), [engine])
+  const lastAvatarPublication = useRef('')
   useEffect(() => {
-    if (snapshots.length === 0) return
     const cur = dataRef.current
-    const latest = snapshots[snapshots.length - 1]
-    const prev = cur.rpg_snapshots[cur.rpg_snapshots.length - 1]
-    if (!prev || (['date', 'user_id', 'overall', 'health', 'joint', 'flexibility', 'endurance', 'strength', 'strength_upper', 'strength_lower'] as const).some(key => prev[key] !== latest[key])) {
+    const latest = snapshots.at(-1)
+    const previous = cur.rpg_snapshots.at(-1)
+    if ((latest == null) !== (previous == null) || latest && previous
+      && (cur.rpg_snapshots.length !== snapshots.length || (['date', 'user_id', 'overall', 'health', 'joint',
+        'flexibility', 'endurance', 'strength', 'strength_upper', 'strength_lower'] as const).some(key => previous[key] !== latest[key]))) {
       persist({ ...cur, rpg_snapshots: snapshots })
-      /* Persist only the newest snapshot remotely; history replays deterministically.
-         Deterministic id per date makes the upsert idempotent. */
-      if (supabase && session) {
-        enqueue({
-          table: 'rpg_snapshots',
-          type: 'upsert',
-          payload: { ...latest, id: rpgSnapshotId(latest.date, session.user.id) },
-        })
-      }
     }
-  }, [snapshots, persist, enqueue, session])
+    const raw = engine.snapshots.at(-1)
+    if (!supabase || !session || !raw || raw.user_id !== session.user.id) {
+      lastAvatarPublication.current = ''
+      return
+    }
+    const verified = latest ? { date: latest.date, overall: latest.overall, health: latest.health,
+      joint: latest.joint, flexibility: latest.flexibility, endurance: latest.endurance, strength: latest.strength,
+      strength_upper: latest.strength_upper, strength_lower: latest.strength_lower } : null
+    const payload = { ...raw, id: rpgSnapshotId(raw.date, raw.user_id), verified_avatar: verified }
+    const signature = JSON.stringify(payload)
+    if (lastAvatarPublication.current === signature) return
+    enqueue({ table: 'rpg_snapshots', type: 'upsert', payload })
+    lastAvatarPublication.current = signature
+  }, [snapshots, engine.snapshots, persist, enqueue, session])
 
   useEffect(() => {
     const profile = data.profile
@@ -1580,6 +1601,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     authed: isLocalMode || !!session,
     syncStatus,
     snapshots,
+    avatarDomainScores,
+    setScoringFoodWater,
+    avatarHydrationDays: engine.hydrationDays,
     synergies: engine.synergies,
     signIn,
     signOut,
@@ -1603,6 +1627,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     appAccess,
     data,
     engine.synergies,
+    engine.hydrationDays,
+    avatarDomainScores,
     ready,
     remove,
     recordFitnessEvidence,

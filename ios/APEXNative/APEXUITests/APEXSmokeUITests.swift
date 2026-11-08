@@ -703,8 +703,7 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Daily targets"], in: app))
         XCTAssertTrue(scrollUpUntilVisible(app.buttons["section-toggle-activities"], in: app))
         XCTAssertTrue(collapseSection("activities", in: app))
-        XCTAssertTrue(expandSection("supplements", in: app))
-        XCTAssertTrue(scrollUntilVisible(app.staticTexts["Supplement stack"], in: app))
+        XCTAssertTrue(scrollUntilVisible(app.buttons["supplement-edit-defaults"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Daily log"], in: app))
         tapBack(in: app)
 
@@ -734,16 +733,12 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(scrollUntilVisible(app.buttons["portal.avatar"], in: app))
         app.buttons["portal.avatar"].tap()
         XCTAssertTrue(app.staticTexts["Avatar"].waitForExistence(timeout: 3))
-        XCTAssertTrue(scrollUntilVisible(app.staticTexts["FITR MAX BODY INDEX"], in: app))
-        XCTAssertTrue(scrollUntilVisible(app.staticTexts["Your performance body"], in: app))
-        capture("avatar-body-index")
-        XCTAssertTrue(scrollUntilVisible(app.staticTexts["Upper Body Strength"].firstMatch, in: app))
-        XCTAssertTrue(scrollUntilVisible(app.staticTexts["Lower Body Strength"].firstMatch, in: app))
-        XCTAssertTrue(scrollUntilVisible(app.staticTexts["What your body needs"], in: app))
+        // The uncalibrated fixture has no evidence for every domain.
+        let baseline = app.staticTexts["Building your baseline"].firstMatch
+        XCTAssertTrue(scrollUntilVisible(baseline, in: app))
+        XCTAssertFalse(app.staticTexts["FITR MAX BODY INDEX"].exists)
+        capture("avatar-building-baseline")
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["How are your joints this week?"], in: app))
-        XCTAssertTrue(scrollUntilVisible(app.staticTexts["FITR MAX ASSESSMENT"], in: app))
-        capture("avatar-joint-check-in")
-        XCTAssertTrue(scrollUntilVisible(app.staticTexts["Cardio & recovery evidence"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["How regularly you eat"], in: app))
     }
 
@@ -1210,7 +1205,7 @@ final class APEXSmokeUITests: XCTestCase {
         let compactItemWater = app.descendants(matching: .any).matching(
             NSPredicate(
                 format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
-                "meal-item-card-", "millilitres water"
+                "meal-item-water-", "millilitres water"
             )
         ).firstMatch
         /* Overlapping Dayline cards used to hand the tap to a neighbouring
@@ -1227,7 +1222,7 @@ final class APEXSmokeUITests: XCTestCase {
         let compactDelete = app.buttons.matching(
             NSPredicate(
                 format: "identifier BEGINSWITH %@ AND label BEGINSWITH %@",
-                "meal-item-card-", "Remove "
+                "meal-item-delete-", "Remove "
             )
         ).firstMatch
         XCTAssertTrue(scrollUntilVisible(compactDelete, in: app))
@@ -1250,14 +1245,14 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any).matching(
             NSPredicate(
                 format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
-                "meal-item-card-", "millilitres water"
+                "meal-item-water-", "millilitres water"
             )
         ).firstMatch.exists)
         app.swipeUp()
         let expandedDelete = app.buttons.matching(
             NSPredicate(
                 format: "identifier BEGINSWITH %@ AND label BEGINSWITH %@",
-                "meal-item-card-", "Remove "
+                "meal-item-delete-", "Remove "
             )
         ).firstMatch
         XCTAssertTrue(scrollUntilVisible(expandedDelete, in: app))
@@ -1269,14 +1264,7 @@ final class APEXSmokeUITests: XCTestCase {
         capture("meal-composer-expanded")
 
         app.buttons["Select"].tap()
-        let firstFoodName = app.staticTexts["Swiss rolled oats"]
-        XCTAssertTrue(firstFoodName.waitForExistence(timeout: 2))
-        let firstFood = app.buttons.matching(
-            NSPredicate(
-                format: "identifier == %@ AND label == %@",
-                firstFoodName.identifier, "circle"
-            )
-        ).firstMatch
+        let firstFood = app.buttons["meal-item-select-Swiss rolled oats"]
         XCTAssertTrue(firstFood.waitForExistence(timeout: 2))
         firstFood.tap()
         XCTAssertTrue(app.buttons["Create preset"].isEnabled)
@@ -1649,6 +1637,28 @@ final class APEXSmokeUITests: XCTestCase {
         )
         capture("unilateral-full-rest-after-both-sides")
         // Leave the isolated session unfinished; this check must not save a workout.
+    }
+
+    func testRecoveredWarmupWalkSavesObservedMinutesWithoutSets() {
+        let app = configuredApp()
+        app.launchArguments.append("-fitr-ui-test-warmup-walk")
+        app.launch()
+        XCTAssertTrue(expandFitnessPlan(in: app))
+        app.buttons["portal.transition"].tap()
+        let day = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "training-day-")).firstMatch
+        XCTAssertTrue(scrollUntilVisible(day, in: app))
+        day.tap()
+        let walk = app.buttons["workout-start-walk"]
+        XCTAssertTrue(scrollUntilVisible(walk, in: app))
+        tapClearOfDock(walk)
+        XCTAssertTrue(app.descendants(matching: .any)["workout-phase-complete"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Walking · 02:00"].exists)
+        let save = app.buttons["workout-save"]
+        XCTAssertTrue(scrollUntilVisible(save, in: app))
+        tapClearOfDock(save)
+        XCTAssertTrue(app.buttons["workout-receipt-done"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.descendants(matching: .any)["workout-warmup-duration"].exists)
+        XCTAssertFalse(app.alerts.firstMatch.exists)
     }
 
     func testCompletedDraftRepairsMissingSetSurvivesSaveFailureAndShowsReceipt() {

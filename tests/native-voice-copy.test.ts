@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { interfaceLocales, productInterfaceCopy } from '../shared/productInterfaceCopy.ts'
 
 import {
   authoredVoiceLocales,
@@ -27,6 +28,21 @@ function stringsTable(locale: string) {
   }
   return rows
 }
+
+test('native product messages match the shared authored copy in every offered language', () => {
+  assert.deepEqual(interfaceLocales, offeredLocales)
+  const keys = productInterfaceCopy.map(row => row[0])
+  assert.equal(new Set(keys).size, keys.length)
+  for (const [index, locale] of interfaceLocales.entries()) {
+    if (locale === 'en') continue
+    const table = stringsTable(locale)
+    for (const row of productInterfaceCopy) {
+      assert.equal(row.length, interfaceLocales.length)
+      assert.ok(row[index].trim(), `${locale} is missing ${row[0]}`)
+      assert.equal(table.get(row[0]), row[index], `${locale} copy drifted for ${row[0]}`)
+    }
+  }
+})
 
 test('authored voice copy covers every offered language from meaning and screen context', () => {
   assert.deepEqual(authoredVoiceLocales, offeredLocales)

@@ -51,8 +51,12 @@ export interface CoachClientPolicy {
   can_view_visual_progress: boolean
 }
 
+export function hasActiveCoaching(relationship?: Pick<CoachClientPolicyInput, 'relationship_status' | 'seat_state'> | null): boolean {
+  return relationship?.relationship_status === 'active' && relationship.seat_state === 'active'
+}
+
 export function coachClientPolicy(input: CoachClientPolicyInput): CoachClientPolicy {
-  const activeSponsorship = input.relationship_status === 'active' && input.seat_state === 'active'
+  const activeSponsorship = hasActiveCoaching(input)
   const grace = input.relationship_status === 'grace' || input.seat_state === 'grace'
   const relationshipExists = activeSponsorship || grace
   return {

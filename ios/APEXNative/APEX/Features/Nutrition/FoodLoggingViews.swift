@@ -124,7 +124,7 @@ struct FoodSearchSheet: View {
                 userID: userID
             )
         }
-        return ranked(MealMemory.searchFoods(
+        return visible(MealMemory.searchFoods(
             query: query,
             foods: localFoods,
             preferences: session.data.foodPreferences,
@@ -168,7 +168,7 @@ struct FoodSearchSheet: View {
                                             .foregroundStyle(APEXColor.ink)
                                         HStack(spacing: 6) {
                                             if let brand = food.brand, !brand.isEmpty { Text(brand) }
-                                            Text(language.format("%d kcal / 100", Int((food.kcal100 ?? 0).rounded())))
+                                            Text(language.format("%d kcal / 100", Int(exactly: (food.kcal100 ?? 0).rounded()) ?? 0))
                                         }
                                         .font(APEXFont.body(11, weight: .medium))
                                         .foregroundStyle(APEXColor.secondaryInk)
@@ -317,11 +317,16 @@ struct FoodSearchSheet: View {
         operation: AccountOperationLease
     ) async {
         do {
-            let results = try await session.searchFoods(query: query, operation: operation)
+            var onlineAvailable = true
+            let results = try await session.searchFoods(query: query, operation: operation) { onlineAvailable = $0 }
             guard session.accountOperationIsCurrent(operation),
                   searchGate.canPublish(request, taskIsCancelled: Task.isCancelled) else { return }
             remoteResults = results
-            if remoteResults.isEmpty { message = "No reliable nutrition match was returned." }
+            if !onlineAvailable {
+                message = "Online search is unavailable. Your saved Food Memory remains usable."
+            } else {
+                message = results.isEmpty ? "No reliable nutrition match was returned." : nil
+            }
             isSearching = false
             searchTask = nil
         } catch is CancellationError {
@@ -388,15 +393,10 @@ struct FoodPortionSheet: View {
         )
     }
 
-    private var equivalentAmount: Double {
-        switch unit {
-        case "serving": amount * (food.servingGramsOrML ?? 0)
-        case "piece": amount * (food.pieceGramsOrML ?? 0)
-        default: amount
-        }
+    private var portion: FoodPortionResult? {
+        guard let unit = FoodUnitKind(rawValue: unit) else { return nil }
+        return FoodPortionMath.portion(food, quantity: amount, unit: unit)
     }
-
-    private var nutrients: FoodNutrients { food.nutrients(forEquivalentAmount: equivalentAmount) }
 
     var body: some View {
         NavigationStack {
@@ -412,10 +412,10 @@ struct FoodPortionSheet: View {
                                     .foregroundStyle(APEXColor.secondaryInk)
                             }
                             HStack(spacing: 14) {
-                                nutritionMetric("KCAL", nutrients.kcal)
-                                nutritionMetric("PROTEIN", nutrients.proteinG)
-                                nutritionMetric("CARBS", nutrients.carbsG)
-                                nutritionMetric("FAT", nutrients.fatG)
+                                nutritionMetric("KCAL", portion?.kcal)
+                                nutritionMetric("PROTEIN", portion?.proteinG)
+                                nutritionMetric("CARBS", portion?.carbsG)
+                                nutritionMetric("FAT", portion?.fatG)
                             }
                             .padding(.top, 8)
                         }
@@ -458,7 +458,7 @@ struct FoodPortionSheet: View {
                         else { Label(language.text("Log food"), systemImage: "checkmark.circle.fill") }
                     }
                     .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.amber))
-                    .disabled(isSaving || equivalentAmount <= 0)
+                    .disabled(isSaving || portion == nil)
                 }
                 .padding(18)
             }
@@ -491,10 +491,10 @@ struct FoodPortionSheet: View {
 
     private var step: Double { unit == "g" || unit == "ml" ? 10 : 1 }
 
-    private func nutritionMetric(_ title: String, _ value: Double) -> some View {
+    private func nutritionMetric(_ title: String, _ value: Double?) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(language.text(title)).font(APEXFont.mono(8)).foregroundStyle(APEXColor.secondaryInk)
-            Text("\(Int(value.rounded()))").font(APEXFont.display(16))
+            Text(value.map { FoodQuantity.formatAmount($0.rounded()) } ?? "—").font(APEXFont.display(16))
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -507,6 +507,7 @@ struct FoodPortionSheet: View {
                 isSaving = false
             }
         }
+        guard portion != nil else { errorMessage = "Enter a valid amount for this food."; return }
         if let onAdd {
             guard session.accountOperationIsCurrent(operation) else { return }
             onAdd(food, amount, unit)

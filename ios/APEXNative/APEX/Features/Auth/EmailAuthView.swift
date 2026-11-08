@@ -11,6 +11,8 @@ struct EmailAuthView: View {
     @State private var email = ""
     @State private var password = ""
     @State private var isSignUp: Bool
+    @State private var recoveryStatus: String?
+    @State private var sendingRecovery = false
     @FocusState private var focus: Field?
 
     init(signUp: Bool) {
@@ -114,6 +116,20 @@ struct EmailAuthView: View {
                     }
                 }
 
+                if !isSignUp {
+                    Button(language.text("Forgot password?")) {
+                        focus = nil
+                        sendingRecovery = true
+                        Task {
+                            defer { sendingRecovery = false }
+                            do {
+                                try await session.requestPasswordReset(email.trimmingCharacters(in: .whitespacesAndNewlines))
+                                recoveryStatus = "If an account uses this email, open the reset link on this iPhone."
+                            } catch { recoveryStatus = error.localizedDescription }
+                        }
+                    }.disabled(sendingRecovery || !email.contains("@"))
+                    if let recoveryStatus { Text(language.text(recoveryStatus)).font(.footnote) }
+                }
                 Button {
                     clearConfirmationNotice()
                     withAnimation(.snappy) { isSignUp.toggle() }
@@ -173,5 +189,28 @@ struct EmailAuthView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 14)
         .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 15))
+    }
+}
+
+struct PasswordResetCompletionView: View {
+    @Environment(AppSession.self) private var session
+    @State private var password = ""
+    @State private var busy = false
+    @State private var language = LanguageState.shared
+    var body: some View {
+        VStack(spacing: 18) {
+            Text(language.text("Choose a new password")).font(.title)
+            SecureField(language.text("New password"), text: $password)
+                .textContentType(.newPassword).textFieldStyle(.roundedBorder)
+            Button(language.text("Save password")) {
+                busy = true
+                Task {
+                    defer { busy = false }
+                    do { try await session.finishPasswordReset(password) }
+                    catch { session.alertMessage = error.localizedDescription }
+                }
+            }.buttonStyle(APEXPrimaryButtonStyle()).disabled(password.count < 6 || busy)
+            Button(language.text("Cancel")) { Task { await session.signOut() } }.disabled(busy)
+        }.padding(24)
     }
 }

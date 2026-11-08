@@ -58,6 +58,38 @@ struct SponsoredSimpleWorkoutTests {
 }
 
 final class SimpleHomeLogicTests: XCTestCase {
+    @MainActor
+    func testScheduleCombinesCustomPrescriptionsWithoutIncludingOneOffReceipts() throws {
+        let owner = UUID(), date = Date().apexDateKey
+        var data = APEXDebugFixture.dashboard(userID: owner)
+        let custom = try XCTUnwrap(data.programs.first { $0.userID == owner && $0.slug == "custom" })
+        func day(_ name: String) -> ProgramDay {
+            ProgramDay(id: UUID(), userID: owner, programID: custom.id,
+                       weekday: APEXDateMath.isoWeekday(date), name: name, dayType: "custom",
+                       estimatedMinutes: 45, warmupNote: "", sortOrder: 1)
+        }
+        let scheduled = day("My circuit"), legacy = day("Manual workout")
+        data.programDays += [scheduled, legacy]
+        data.exercises.append(Exercise(id: UUID(), userID: owner, programDayID: scheduled.id,
+            name: "Squat", sets: 3, repMin: 8, repMax: 12, repUnit: "reps", perSide: false,
+            restSeconds: 60, tempoUp: 1, tempoDown: 2, tempoPause: 0, tempoNote: "", notes: "",
+            incrementKG: 0, isLite: false, optional: false, sortOrder: 1))
+        let manual = WorkoutSession(id: UUID(), userID: owner, date: date, programDayID: legacy.id,
+            isLite: false, isDeload: false, isEventRecovery: false, completed: true, qualityScore: 1,
+            startedAt: nil, completedAt: nil, notes: ManualWorkout.notes(title: "Unscheduled"))
+        data.workoutSessions.append(manual)
+        let primary = try XCTUnwrap(data.programDays.first { $0.name == "Upper strength" })
+        func ids(primary: String?, includeCustom: Bool) -> [UUID] {
+            SimpleHomeLogic.workoutPlans(in: data, primarySlug: primary, includeCustom: includeCustom,
+                date: date, lite: false).compactMap { $0.programDay?.id }
+        }
+        XCTAssertEqual(ids(primary: "main", includeCustom: true), [primary.id, scheduled.id])
+        XCTAssertEqual(ids(primary: "main", includeCustom: false), [primary.id])
+        XCTAssertEqual(ids(primary: nil, includeCustom: true), [scheduled.id])
+        XCTAssertEqual(TrainingInduction.visibleProgramDays(in: data, slug: "custom").map(\.id), [scheduled.id])
+        XCTAssertEqual(WorkoutReceipt.history(sessions: [manual], days: data.programDays, date: date, ownerID: owner).first?.session.id, manual.id)
+    }
+
     func testPreviewAndPlayerUseAdjustedPrescriptionForAnyAccountAndRejectAnotherDay() {
         let owner = UUID(), dayID = UUID()
         let day = ProgramDay(id: dayID, userID: owner, programID: UUID(), weekday: 2,

@@ -107,12 +107,12 @@ private struct DeveloperSandboxChrome: UIViewRepresentable {
         HStack(spacing: 12) {
             Label(LanguageState.shared.shortText(role.titleKey), systemImage: "testtube.2")
                 .font(.caption.weight(.semibold))
-                .lineLimit(1).minimumScaleFactor(0.7)
+                .lineLimit(2).fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 4)
             Button(action: exit) {
                 Label(LanguageState.shared.shortText("My account"), systemImage: "arrow.uturn.backward")
                     .font(.caption.weight(.bold))
-                    .lineLimit(1).minimumScaleFactor(0.7)
+                    .lineLimit(2).fixedSize(horizontal: false, vertical: true)
                     .padding(.vertical, 12)
             }
             .accessibilityIdentifier("developer-sandbox-return")

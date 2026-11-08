@@ -135,7 +135,7 @@ enum WorkoutReceipt {
                 let quickTitle = ManualWorkout.title(fromNotes: item.notes)
                 return HistoryItem(
                     session: item,
-                    title: quickTitle ?? dayNames[item.programDayID] ?? "Completed workout",
+                    title: quickTitle ?? PlayerTimeline.WarmupOnly(notes: item.notes)?.title ?? dayNames[item.programDayID] ?? "Completed workout",
                     isQuickLog: quickTitle != nil,
                     linkedWearable: nil
                 )
@@ -272,6 +272,10 @@ enum WorkoutReceipt {
 
 extension WorkoutReceipt {
     static let timingMetadataPrefix = "FITR_WORKOUT_TIMING_V1|"
+
+    static func canComplete(on day: String, today: String = Date().apexDateKey) -> Bool {
+        validDateKey(day) && day <= today
+    }
 
     static func validDateKey(_ value: String) -> Bool {
         let formatter = DateFormatter()

@@ -481,6 +481,10 @@ final class ExerciseLoggingTests: XCTestCase {
         XCTAssertEqual(NumericFactDraft.resolve("", integer: false, allowsNegative: false), .clear)
         XCTAssertEqual(NumericFactDraft.resolve("-", integer: false, allowsNegative: true), .incomplete)
         XCTAssertEqual(NumericFactDraft.resolve("-5", integer: false, allowsNegative: false), .incomplete)
+        XCTAssertEqual(NumericFactDraft.display(12.25), "12.25")
+        XCTAssertEqual(NumericFactDraft.display(-1.125), "-1.125")
+        XCTAssertEqual(NumericFactDraft.resolve("1e20", integer: true, allowsNegative: false), .incomplete)
+        XCTAssertEqual(NumericFactDraft.resolve("inf", integer: false, allowsNegative: false), .incomplete)
     }
 
     private func log(

@@ -1,3 +1,4 @@
+import { performedWorkoutDay } from '../lib/workoutTimingMetadata'
 /*
  * Guided Workout Player, the friction killer. Runs the whole session as a
  * timeline: warmup, set, rest, log, done. Rep cadence with voice + ticks,
@@ -39,7 +40,7 @@ import { ExerciseFactFields } from '../components/workout/ExerciseFactFields'
 import { catalogExerciseByName, displayExerciseName } from '../data/exerciseCatalog'
 import { isConditioningFocusT25, isFocusT25Name } from '../lib/focusT25'
 import { exerciseExecutionCue } from '../lib/exerciseGuidance'
-import { timeZoneFromSettings } from '../lib/mealTiming'
+import { timeZoneFromSettings, zonedClock } from '../lib/mealTiming'
 import { useFoodStore } from '../store/FoodStore'
 import {
   ATHLETE_SUPPORT_PROTOCOLS,
@@ -75,6 +76,7 @@ interface PlayerState {
   startedAt: string
   completedAt?: string | null
   completionTimeUnknown?: boolean
+  warmupSeconds?: number
 }
 
 type ExternalCompletionRequest =
@@ -83,7 +85,7 @@ type ExternalCompletionRequest =
 
 type Action =
   | { type: 'tick'; dt: number }
-  | { type: 'jump'; idx: number }
+  | { type: 'jump'; idx: number; warmupSeconds?: number }
   | { type: 'pause'; paused: boolean }
   | { type: 'extend'; seconds: number }
   | { type: 'endSet'; key: string; reps: number }
@@ -98,7 +100,7 @@ function reducer(state: PlayerState, action: Action): PlayerState {
     case 'tick':
       return state.paused ? state : { ...state, elapsed: state.elapsed + action.dt }
     case 'jump':
-      return { ...state, idx: action.idx, elapsed: 0, paused: false, completedAt: null, completionTimeUnknown: false }
+      return { ...state, idx: action.idx, elapsed: 0, paused: false, completedAt: null, completionTimeUnknown: false, warmupSeconds: action.warmupSeconds ?? state.warmupSeconds }
     case 'recordCompletion':
       return { ...state, completedAt: action.completedAt, completionTimeUnknown: false }
     case 'pause':
@@ -165,13 +167,15 @@ function reducer(state: PlayerState, action: Action): PlayerState {
 }
 
 export function Player() {
-  const { slug = 'transition', date = '' } = useParams<{ slug: ProgramSlug; date: string }>()
+  const { slug = 'transition', date: prescriptionDate = '' } = useParams<{ slug: ProgramSlug; date: string }>()
   const [params] = useSearchParams()
   const lite = params.get('lite') === '1'
   const programDayId = params.get('day') ?? undefined
   const navigate = useNavigate()
   const { data, upsert, toast } = useStore()
   const ownerId = data.profile?.user_id ?? data.settings?.user_id
+  const playerTimeZone = timeZoneFromSettings(data.settings)
+  const date = performedWorkoutDay(prescriptionDate, zonedClock(new Date(), playerTimeZone).date)
   const { language } = useLanguage()
   const voiceText = useCallback((value: string) => {
     const exercise = catalogExerciseByName(value)
@@ -179,12 +183,12 @@ export function Player() {
   }, [language])
 
   const accent: Accent = slug === 'main' || slug === 'custom' ? ACCENTS.violet : ACCENTS.teal
-  const plan = useMemo(() => planForDate(data, slug as ProgramSlug, date, lite, programDayId), [data, slug, date, lite, programDayId])
+  const plan = useMemo(() => planForDate(data, slug as ProgramSlug, prescriptionDate, lite, programDayId), [data, slug, prescriptionDate, lite, programDayId])
   const blocks = useMemo(() => buildTimeline(plan), [plan])
   const draftIdentity = useMemo(() => ({
-    ownerId: ownerId ?? '', slug, date, lite, programDayId: plan.programDay?.id ?? programDayId,
+    ownerId: ownerId ?? '', slug, date: prescriptionDate, lite, programDayId: plan.programDay?.id ?? programDayId,
     exerciseIds: plan.exercises.map((exercise) => exercise.id),
-  }), [ownerId, slug, date, lite, programDayId, plan])
+  }), [ownerId, slug, prescriptionDate, lite, programDayId, plan])
   const persistKey = guidedPlayerDraftKey(draftIdentity)
 
   const [state, dispatch] = useReducer(reducer, null, (): PlayerState => {
@@ -210,6 +214,7 @@ export function Player() {
           paused: reconciled.paused,
           elapsed: reconciled.elapsed,
           results: restoredResults,
+          warmupSeconds: Number.isSafeInteger(saved.warmupSeconds) && (saved.warmupSeconds ?? 0) > 0 ? saved.warmupSeconds : undefined,
           countedReps: saved.countedReps ?? {},
           startedAt: saved.startedAt ?? new Date().toISOString(),
           completedAt,
@@ -248,7 +253,6 @@ export function Player() {
     () => ownerId ? wearableCandidatesForDay(data.imported_activities, ownerId, date) : [],
     [data.imported_activities, date, ownerId],
   )
-  const playerTimeZone = timeZoneFromSettings(data.settings)
 
   /* announced rep tracker to fire voice/tick exactly once per rep */
   const lastRep = useRef(0)
@@ -261,7 +265,9 @@ export function Player() {
 
   const advance = useCallback(() => {
     lastRep.current = 0
-    dispatch({ type: 'jump', idx: Math.min(state.idx + 1, blocks.length - 1) })
+    const { block: current, state: active } = runtimeRef.current
+    const warmupSeconds = current?.kind === 'warmup' ? Math.max(0, Math.floor(Math.min(current.duration, active.elapsed))) : undefined
+    dispatch({ type: 'jump', idx: Math.min(state.idx + 1, blocks.length - 1), warmupSeconds })
   }, [state.idx, blocks.length])
 
   /*
@@ -483,6 +489,8 @@ export function Player() {
   }
 
   /* -------- finish -------- */
+  const walkOnly = !plan.exercises.length && plan.warmupDuration > 0 && /\bwalk(?:ing)?\b/i.test(plan.warmup)
+  const [confirmWalk, setConfirmWalk] = useState(false)
   const finished = block?.kind === 'done'
   useEffect(() => {
     if (finished && !state.completedAt && !state.completionTimeUnknown) dispatch({ type: 'recordCompletion', completedAt: new Date().toISOString() })
@@ -493,6 +501,7 @@ export function Player() {
 
   useEffect(() => {
     if (!finished || (!state.completedAt && !state.completionTimeUnknown) || savedRef.current || !plan.programDay || !ownerId) return
+    if (!plan.exercises.length && !(walkOnly && confirmWalk && (state.warmupSeconds ?? 0) > 0)) return
     savedRef.current = true
 
     const planned = plannedSetCount(plan)
@@ -519,11 +528,11 @@ export function Player() {
       programDayId: plan.programDay.id,
       isLite: lite,
       isDeload: plan.isDeload,
-      isEventRecovery: plan.isRecoveryMicro,
+      isEventRecovery: plan.isRecoveryMicro || walkOnly,
       qualityScore: quality,
       startedAt: state.startedAt,
       completedAt,
-      notes: externallyCompleted
+      notes: walkOnly ? `FITR_WARMUP_V1|walk|${state.warmupSeconds}` : externallyCompleted
         ? 'Completed externally from the FITR MAX guided player'
         : 'Completed in FITR MAX web',
       exercises: exercisesToPersist.map(({ exercise: e, exIdx, result: r }) => {
@@ -590,7 +599,7 @@ export function Player() {
         ? 'mobility'
         : 'apex-strength'
     const activityCatalog = activityCatalogMap(data.activity_types)
-    const activityType = activityCatalog.get(activityTypeId)
+    const activityType = walkOnly ? undefined : activityCatalog.get(activityTypeId)
     if (!externallyCompleted && completedAt && activityType && data.profile) {
       const durations = plannedWorkoutDurationBreakdown(plan, plan.programDay.est_minutes, lite)
       const activityBlock = {
@@ -641,7 +650,7 @@ export function Player() {
     setSummary({ quality, streak: currentStreak({ ...data }, date) + 1, deltas, sessionId, completedAt })
     toast('Session saved', 'ok')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [finished, state.completedAt, state.completionTimeUnknown])
+  }, [finished, state.completedAt, state.completionTimeUnknown, confirmWalk])
 
   const openAlreadyFinished = (): void => {
     pausedBeforeAlreadyFinished.current = state.paused
@@ -663,6 +672,21 @@ export function Player() {
     dispatch({ type: 'jump', idx: Math.max(0, blocks.length - 1) })
   }
 
+  if (plan.programDay && walkOnly) {
+    const seconds = finished ? state.warmupSeconds ?? 0 : Math.min(plan.warmupDuration, Math.max(0, Math.floor(state.elapsed)))
+    return <div className="mx-auto max-w-md p-6 text-center">
+      <p className="text-sm text-ink-soft">{voiceText(plan.programDay.name)}</p>
+      <h1 className="mt-2 font-display text-2xl font-bold">{voiceText('Walking')}</h1>
+      <p className="my-6 font-mono text-4xl">{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, '0')}</p>
+      {finished ? <GradientButton accent={accent} onClick={() => {
+        if (summary || !seconds) { localStorage.removeItem(persistKey); navigate(-1) }
+        else setConfirmWalk(true)
+      }}>{voiceText(summary || !seconds ? 'Done' : 'Save workout')}</GradientButton> : <div className="flex justify-center gap-2">
+        <GhostButton onClick={() => dispatch({ type: 'pause', paused: !state.paused })}>{voiceText(state.paused ? 'Resume' : 'Pause')}</GhostButton>
+        <GradientButton accent={accent} onClick={advance}>{voiceText('Finish')}</GradientButton>
+      </div>}
+    </div>
+  }
   if (!plan.programDay || blocks.length <= 2) {
     return (
       <div className="mx-auto w-full max-w-md pt-10 text-center">

@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
@@ -610,9 +611,9 @@ test('a profileless installed plan remains followable without weight-derived act
 
   const player = readFileSync(join(process.cwd(), 'src/pages/Player.tsx'), 'utf8')
   assert.match(player, /const ownerId = data\.profile\?\.user_id \?\? data\.settings\?\.user_id/)
-  assert.match(player, /if \(!finished \|\| savedRef\.current \|\| !plan\.programDay \|\| !ownerId\) return/)
+  assert.match(player, /if \(!finished \|\| \(!state\.completedAt && !state\.completionTimeUnknown\) \|\| savedRef\.current \|\| !plan\.programDay \|\| !ownerId\) return/)
   assert.match(player, /userId: ownerId/)
-  assert.match(player, /if \(!externallyCompleted && activityType && data\.profile\)/)
+  assert.match(player, /if \(!externallyCompleted && completedAt && activityType && data\.profile\)/)
 
   for (const relativePath of ['src/components/DaySheet.tsx', 'src/pages/WorkoutSection.tsx']) {
     const source = readFileSync(join(process.cwd(), relativePath), 'utf8')
@@ -694,7 +695,7 @@ function filesBelow(directory: string): string[] {
 }
 
 test('website source contains no em dash characters or entities', () => {
-  for (const path of filesBelow(new URL('../src', import.meta.url).pathname)) {
+  for (const path of filesBelow(fileURLToPath(new URL('../src', import.meta.url)))) {
     const source = readFileSync(path, 'utf8')
     assert.equal(source.includes('—'), false, `em dash in ${path}`)
     assert.equal(/&mdash;|&#8212;/.test(source), false, `em dash entity in ${path}`)

@@ -861,10 +861,12 @@ struct Food: Codable, Identifiable, Hashable, Sendable {
     var servingGramsOrML: Double?
     var pieceGramsOrML: Double?
     var confidence: String
+    var searchAliases: [String]? = nil
     var nutrientEvidence: [NutrientEvidenceObservation]? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, name, brand, barcode, source, confidence
+        case searchAliases = "search_aliases"
         case nutrientEvidence = "nutrient_evidence"
         case ownerUserID = "owner_user_id"
         case namesI18n = "names_i18n"
@@ -912,6 +914,21 @@ struct Food: Codable, Identifiable, Hashable, Sendable {
             fatG: (fat100 ?? 0) * scale
         )
     }
+}
+
+enum FoodQuantity {
+    // Daily totals are PostgreSQL integers; validate before any integer rendering or storage.
+    static func isRepresentableTotal(_ value: Double) -> Bool {
+        value.isFinite && value >= 0 && value <= Double(Int32.max)
+    }
+
+    static func isUsableAmount(_ value: Double) -> Bool { value > 0 && isRepresentableTotal(value) }
+
+    static func formatAmount(_ value: Double) -> String {
+        guard isRepresentableTotal(value) else { return "—" }
+        return value == value.rounded() ? String(format: "%.0f", value) : String(format: "%.1f", value)
+    }
+
 }
 
 struct FoodNutrients: Codable, Hashable, Sendable {
@@ -1103,6 +1120,11 @@ struct FoodLookupEnvelope: Codable, Sendable {
     let message: String?
 }
 
+struct MealEditSnapshot: Decodable, Sendable {
+    let version: String
+    let entries: [LoggedFoodEntry]
+}
+
 struct StructuredMealRequest: Codable, Sendable {
     let id: UUID
     let localDate: String
@@ -1114,6 +1136,8 @@ struct StructuredMealRequest: Codable, Sendable {
     let clientIdempotencyKey: String
     let loggedAs: String
     let replaceMealID: UUID?
+    var expectedMealVersion: String? = nil
+    var expectedEntryIDs: [UUID]? = nil
 
     func encode(to encoder: Encoder) throws {
         var values = encoder.container(keyedBy: CodingKeys.self)
@@ -1127,6 +1151,8 @@ struct StructuredMealRequest: Codable, Sendable {
         try values.encode(MealBlocks.storageKey(clientIdempotencyKey, kind: mealSlot), forKey: .clientIdempotencyKey)
         try values.encode(loggedAs, forKey: .loggedAs)
         try values.encodeIfPresent(replaceMealID, forKey: .replaceMealID)
+        try values.encodeIfPresent(expectedMealVersion, forKey: .expectedMealVersion)
+        try values.encodeIfPresent(expectedEntryIDs, forKey: .expectedEntryIDs)
     }
 
     enum CodingKeys: String, CodingKey {
@@ -1140,6 +1166,8 @@ struct StructuredMealRequest: Codable, Sendable {
         case clientIdempotencyKey = "client_idempotency_key"
         case loggedAs = "logged_as"
         case replaceMealID = "replace_meal_id"
+        case expectedMealVersion = "expected_meal_version"
+        case expectedEntryIDs = "expected_entry_ids"
     }
 }
 
@@ -1240,7 +1268,16 @@ struct MealComposerItem: Identifiable, Hashable, Sendable {
     var adjustmentRole: String = "none"
     var personalLabel: String = ""
 
+    var isLoggablePortion: Bool {
+        let scale = equivalentAmount / 100
+        return FoodQuantity.isUsableAmount(quantity) && FoodQuantity.isUsableAmount(equivalentAmount)
+            && [kcal100, protein100, carbs100, fat100, waterML100 ?? 0].allSatisfy {
+                $0.isFinite && $0 >= 0 && FoodQuantity.isRepresentableTotal($0 * scale)
+            }
+    }
+
     var nutrients: FoodNutrients {
+        guard isLoggablePortion else { return FoodNutrients(kcal: 0, proteinG: 0, carbsG: 0, fatG: 0) }
         let scale = max(0, equivalentAmount) / 100
         return FoodNutrients(
             kcal: kcal100 * scale,
@@ -1251,7 +1288,7 @@ struct MealComposerItem: Identifiable, Hashable, Sendable {
     }
 
     var waterML: Double {
-        max(0, waterML100 ?? 0) * max(0, equivalentAmount) / 100
+        isLoggablePortion ? max(0, waterML100 ?? 0) * (equivalentAmount / 100) : 0
     }
 
     func resolvedFood(in catalogue: [Food]) -> Food? {
@@ -1360,6 +1397,8 @@ struct MealComposerDraft: Identifiable, Hashable, Sendable {
     var loggedAs: String
     var items: [MealComposerItem]
     var saveOperationID: UUID = UUID()
+    var expectedMealVersion: String?
+    var expectedEntryIDs: [UUID]?
 
     /// Stable for retries of one save attempt, but renewed whenever the meal
     /// composer is opened again so a later edit is not mistaken for a replay.
@@ -1998,6 +2037,7 @@ struct DashboardData: Codable, Sendable {
     var mealPresetItems: [MealPresetItem] = []
     var loggedMeals: [LoggedMeal] = []
     var loggedFoodEntries: [LoggedFoodEntry] = []
+    var hasCompleteMealHistory: Bool?
     var snapshots: [RPGSnapshot] = []
     var healthMetrics: [HealthMetric] = []
     // Optional keeps dashboards cached before the evidence ledger decodable.

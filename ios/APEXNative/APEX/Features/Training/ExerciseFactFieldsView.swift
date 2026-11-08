@@ -169,10 +169,16 @@ enum NumericFactDraft {
     ) -> Resolution {
         if text.isEmpty { return .clear }
         guard let parsed = Double(text.replacingOccurrences(of: ",", with: ".")),
-              allowsNegative || parsed >= 0 else {
+              parsed.isFinite, allowsNegative || parsed >= 0,
+              !integer || Int(exactly: parsed.rounded()) != nil else {
             return .incomplete
         }
         return .value(integer ? parsed.rounded() : parsed)
+    }
+
+    static func display(_ number: Double?) -> String {
+        guard let number, number.isFinite else { return "" }
+        return Int(exactly: number).map { String($0) } ?? String(number)
     }
 }
 
@@ -185,6 +191,7 @@ private struct NumericFactField: View {
 
     @State private var text = ""
     @State private var pendingCommit: Task<Void, Never>?
+    @State private var edited = false
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -194,7 +201,11 @@ private struct NumericFactField: View {
                 .foregroundStyle(APEXColor.secondaryInk)
                 .lineLimit(2)
                 .fixedSize(horizontal: false, vertical: true)
-            TextField("0", text: $text)
+            TextField("0", text: Binding(get: { text }, set: { next in
+                text = next
+                edited = true
+                queueCommit(next)
+            }))
                 .accessibilityIdentifier(identifier)
                 .keyboardType(allowsNegative ? .numbersAndPunctuation : .decimalPad)
                 .focused($focused)
@@ -203,23 +214,21 @@ private struct NumericFactField: View {
                 .padding(.horizontal, 7)
                 .frame(height: 36)
                 .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 10))
-                .onChange(of: text) { _, next in
-                    queueCommit(next)
-                }
         }
-        .onAppear { text = display(value) }
+        .onAppear { text = NumericFactDraft.display(value) }
         .onChange(of: value) { _, next in
-            if !focused { text = display(next) }
+            if !focused { text = NumericFactDraft.display(next) }
         }
         .onChange(of: focused) { _, next in
-            if !next {
+            if !next, edited {
                 pendingCommit?.cancel()
                 commit(text)
+                edited = false
             }
         }
         .onDisappear {
             pendingCommit?.cancel()
-            if focused { commit(text) }
+            if focused, edited { commit(text) }
         }
     }
 
@@ -239,16 +248,12 @@ private struct NumericFactField: View {
             allowsNegative: allowsNegative
         ) {
         case .clear:
-            value = nil
+            if value != nil { value = nil }
         case let .value(parsed):
-            value = parsed
+            if value != parsed { value = parsed }
         case .incomplete:
             break
         }
     }
 
-    private func display(_ number: Double?) -> String {
-        guard let number else { return "" }
-        return number == number.rounded() ? String(Int(number)) : String(format: "%.1f", number)
-    }
 }

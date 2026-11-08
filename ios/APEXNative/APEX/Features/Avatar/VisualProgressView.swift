@@ -73,7 +73,7 @@ struct VisualProgressView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
                 if let selectedImage {
-                    ProgressImageCard(image: selectedImage, title: "New capture", includeStats: includeStats, snapshot: session.data.snapshots.first)
+                    ProgressImageCard(image: selectedImage, title: "New capture", includeStats: includeStats, snapshot: session.data.snapshots.max { $0.date < $1.date })
                     GlassCard(radius: 29, padding: 19) {
                         VStack(alignment: .leading, spacing: 14) {
                             Picker("Pose", selection: $pose) {
@@ -459,10 +459,10 @@ private struct ProgressImageCard: View {
                 Text(language.text(title).uppercased(with: language.language.locale))
                     .font(APEXFont.mono(11))
                     .tracking(1.5)
-                if includeStats {
-                    compactBar("OVERALL", snapshot?.overall ?? 0, APEXColor.violet)
-                    compactBar("HEALTH", snapshot?.health ?? 0, APEXColor.green)
-                    compactBar("JOINTS", snapshot?.joint ?? 0, APEXColor.amber)
+                if includeStats, let snapshot {
+                    compactBar("OVERALL", snapshot.overall, APEXColor.violet)
+                    compactBar("HEALTH", snapshot.health, APEXColor.green)
+                    compactBar("JOINTS", snapshot.joint, APEXColor.amber)
                 }
             }
             .foregroundStyle(.white)
@@ -587,11 +587,11 @@ private struct RemoteProgressImageCard: View {
                 Text(language.dateKey(photo.localDate))
                     .font(APEXFont.mono(compact ? 7 : 9))
                     .opacity(0.82)
-                if includeStats {
-                    miniBar("FITNESS", snapshot?.overall ?? 0, APEXColor.violet)
-                    miniBar("HEALTH", snapshot?.health ?? 0, APEXColor.green)
-                    miniBar("JOINTS", snapshot?.joint ?? 0, APEXColor.amber)
-                    miniBar("ENDURANCE", snapshot?.endurance ?? 0, APEXColor.cyan)
+                if includeStats, let snapshot {
+                    miniBar("FITNESS", snapshot.overall, APEXColor.violet)
+                    miniBar("HEALTH", snapshot.health, APEXColor.green)
+                    miniBar("JOINTS", snapshot.joint, APEXColor.amber)
+                    miniBar("ENDURANCE", snapshot.endurance, APEXColor.cyan)
                 }
             }
             .foregroundStyle(.white)

@@ -13,7 +13,7 @@ function hash32(value: string, seed: number): number {
   return hash >>> 0
 }
 
-function scopedUuid(namespace: string, date: string, userId: string): string {
+export function scopedUuid(namespace: string, date: string, userId: string): string {
   const input = `${namespace}:${userId}:${date}`
   const raw = [
     hash32(input, 0x811c9dc5),

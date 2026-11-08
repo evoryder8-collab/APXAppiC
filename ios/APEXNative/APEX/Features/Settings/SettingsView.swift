@@ -60,6 +60,9 @@ struct SettingsView: View {
                         membershipCard
                         healthCard
                     }
+                if session.coachClientPolicy.coachPlanReadOnly, session.coachContext.currentPlan != nil {
+                    Button(language.text("Previous coach plan")) { session.openPortalDestination(.coachPlan) }
+                }
                 legalCard
                     if !session.isDeveloperSandbox { accountCard }
             }
@@ -659,11 +662,12 @@ struct SettingsView: View {
             VStack(alignment: .leading, spacing: 14) {
                 Text(language.text("Account")).font(APEXFont.display(22))
                 Text(profile?.displayName ?? "FITR MAX").font(APEXFont.body(15, weight: .bold))
-                Text(language.text("Your records remain private under Supabase row-level security and are shared only between your authenticated FITR MAX clients."))
+                Text(language.text("Manage sign-in and your personal records."))
                     .font(APEXFont.body(12, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
                 Button(role: .destructive) { showLogout = true } label: {
                     Label(language.text("Log out"), systemImage: "rectangle.portrait.and.arrow.right").frame(maxWidth: .infinity)
                 }.buttonStyle(.borderedProminent).tint(APEXColor.danger)
+                DeleteAccountButton()
             }
         }
     }
@@ -953,5 +957,33 @@ private struct NativeMealBlock: Hashable {
     }
     var json: JSONValue {
         .object(["id": .string(id), "kind": .string(id), "time": .string(time), "enabled": .bool(enabled)])
+    }
+}
+
+struct DeleteAccountButton: View {
+    @Environment(AppSession.self) private var session
+    @State private var language = LanguageState.shared
+    @State private var confirming = false
+    @State private var deleting = false
+    @State private var owner: AccountOperationLease?
+    var body: some View {
+        Button(language.text("Delete account"), role: .destructive) {
+            owner = session.accountOperationLease()
+            confirming = owner != nil
+        }
+        .disabled(deleting)
+        .confirmationDialog(language.text("Permanently delete your account, photos and logged history?"),
+                            isPresented: $confirming, titleVisibility: .visible) {
+            Button(language.text("Permanently delete my account"), role: .destructive) {
+                guard let owner, session.accountOperationIsCurrent(owner) else { return }
+                deleting = true
+                Task {
+                    defer { deleting = false }
+                    do { try await session.deleteMyAccount(operation: owner) }
+                    catch { if session.accountOperationIsCurrent(owner) { session.alertMessage = error.localizedDescription } }
+                }
+            }
+            Button(language.text("Cancel"), role: .cancel) {}
+        }
     }
 }

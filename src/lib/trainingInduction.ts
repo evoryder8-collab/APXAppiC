@@ -1,3 +1,4 @@
+import { prescriptionDays } from './manualWorkout.ts'
 import type { PersonaSlug } from './persona'
 import type { IntroLanguage } from './introLanguage'
 import type {
@@ -915,7 +916,7 @@ export function activeTrainingProgramDays(data: AppData): ProgramDay[] {
   const archived = archivedTrainingDayIds(data.settings?.addons)
   const pending = pendingTrainingDayIds(data.settings?.addons)
   const protectedIds = protectedOriginalDayIds(data, userId)
-  return data.program_days.filter((day) =>
+  return prescriptionDays(data).filter((day) =>
     day.user_id === userId
       && day.is_active !== false
       && (!archived.has(day.id) || protectedIds.has(day.id))

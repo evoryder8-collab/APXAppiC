@@ -1,0 +1,31 @@
+name: Verify iPhone journeys
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'ios/**'
+      - 'supabase/migrations/**'
+      - '.github/workflows/native-verification.yml'
+permissions:
+  contents: read
+jobs:
+  simulator:
+    runs-on: macos-26
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure isolated simulator tests
+        run: |
+          cp ios/APEXNative/Config/Secrets.example.xcconfig ios/APEXNative/Config/Secrets.xcconfig
+          id=$(xcrun simctl list devices available -j | jq -r '[.devices | to_entries[] | select(.key | contains(".iOS-")) | .value[] | select(.name | startswith("iPhone"))][0].udid')
+          test -n "$id" && test "$id" != null
+          echo "SIM_ID=$id" >> "$GITHUB_ENV"
+      - name: Verify core behavior and repaired screens
+        run: |
+          xcodebuild test -scheme APEX -project ios/APEXNative/APEXNative.xcodeproj -destination "id=$SIM_ID" -parallel-testing-enabled NO \
+            -only-testing:APEXTests/WorkoutReceiptTests -only-testing:APEXTests/FitnessBrainParityTests \
+            -only-testing:APEXTests/FoodPortionParityTests -only-testing:APEXTests/MealMemoryParityTests \
+            -only-testing:APEXUITests/APEXSmokeUITests/testRecoveredWarmupWalkSavesObservedMinutesWithoutSets \
+            -only-testing:APEXUITests/APEXSmokeUITests/testFivePortalNavigationAndCoreScreens \
+            -only-testing:APEXUITests/APEXSmokeUITests/testMealComposerPreservesFoodMemoryAndPresetWorkflow \
+            -only-testing:APEXUITests/APEXSmokeUITests/testCompletedDraftRepairsMissingSetSurvivesSaveFailureAndShowsReceipt

@@ -12,6 +12,7 @@
 import { writeFileSync, mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { waterTargetResolver } from '../../../src/lib/dayHydration.ts'
 import { computeEngine } from '../../../src/lib/rpg.ts'
 import { computeTargets } from '../../../src/lib/nutrition.ts'
 import { buildSeedData } from '../../../src/data/seed.ts'
@@ -293,6 +294,8 @@ const out = {
         workout_sessions: sc.data.workout_sessions,
         workout_logs: sc.data.workout_logs,
         daily_logs: sc.data.daily_logs,
+        hydration_targets: Object.fromEntries(sc.data.daily_logs.filter(d => d.water_l > 0)
+          .map(d => [d.date, waterTargetResolver(sc.data)(d.date, sc.throughDate, 0).targetML])),
         health_metrics: sc.data.health_metrics,
         imported_activities: sc.data.imported_activities,
       },

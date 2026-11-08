@@ -80,9 +80,15 @@ struct WorkoutReceiptSheet: View {
                         .foregroundStyle(APEXColor.green)
                         .accessibilityIdentifier("workout-timing-saved")
                 }
-                metrics
-                if !insights.isEmpty { signal }
-                breakdown
+                if let receipt = ownedReceipt, let warmup = PlayerTimeline.WarmupOnly(notes: receipt.notes) {
+                    Label("\(language.text(warmup.title)) · \(String(format: "%d:%02d", warmup.seconds / 60, warmup.seconds % 60))", systemImage: "timer")
+                        .font(APEXFont.display(24))
+                        .accessibilityIdentifier("workout-warmup-duration")
+                } else {
+                    metrics
+                    if !insights.isEmpty { signal }
+                    breakdown
+                }
                 Button(action: onClose) {
                     Text(language.text("Done"))
                         .font(APEXFont.body(15, weight: .bold))

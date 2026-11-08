@@ -14,7 +14,12 @@ struct CoachPlanView: View {
                 if let sponsorship = session.coachContext.sponsorship {
                     planHeader(sponsorship)
                     planCard
-                    privacyCard(sponsorship)
+                    if session.coachClientPolicy.coachPlanReadOnly {
+                        Label(language.text("Sharing has ended. Your last plan remains available."), systemImage: "lock.fill")
+                            .font(.subheadline)
+                    } else {
+                        privacyCard(sponsorship)
+                    }
                 } else {
                     CoachInvitationAcceptanceCard()
                 }
@@ -137,7 +142,7 @@ struct CoachPlanView: View {
                         .font(APEXFont.body(11, weight: .bold))
                     }
 
-                    if plan.activatedAt != nil {
+                    if plan.activatedAt != nil && session.coachClientPolicy.canFollowCoachPlan {
                         Button {
                             session.navigationPath.append(.coachWorkouts)
                         } label: {

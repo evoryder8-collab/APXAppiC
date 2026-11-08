@@ -347,6 +347,7 @@ public enum FitnessBrainEngine {
             }
         }
 
+        for date in input.hydrationByDay.keys { _ = day(date) }
         for d in input.dailyLogs {
             let a = day(d.date)
             a.waterL = d.waterL
@@ -394,7 +395,16 @@ public enum FitnessBrainEngine {
 
         var snapshots: [FBSnapshot] = []
         var synergies: [FBSynergyEvent] = []
-        var s = baseline(for: profile.persona)
+        let authored = profile.authorizedProtocol != nil
+        // A neutral numeric starting point is internal arithmetic. No standard domain
+        // or historical composite is published until that domain actually has evidence.
+        var s = authored ? baseline(for: profile.persona) : StatBlock(
+            health: 50, joint: 50, flexibility: 50, endurance: 50, strengthUpper: 50, strengthLower: 50)
+        var firstObserved = authored ? Dictionary(uniqueKeysWithValues:
+            ["health", "joint", "flexibility", "endurance", "upper", "lower"].map { ($0, start) }) : [:]
+        func observe(_ key: String, _ date: String) {
+            if firstObserved[key] == nil { firstObserved[key] = date }
+        }
         var lastLegsOffset = -99
 
         let calibrationTimeline = capacityCalibrationTimeline(
@@ -403,7 +413,10 @@ public enum FitnessBrainEngine {
             baselineDate: start,
             throughDate: throughDate
         )
-        applyCapacityCalibration(calibrationTimeline.beforeBaseline, to: &s)
+        let preCalibration = applyCapacityCalibration(calibrationTimeline.beforeBaseline, to: &s)
+        for (metric, key) in [(FBCapacityCalibrationMetric.cardiorespiratory, "endurance"),
+                              (.upperStrength, "upper"), (.lowerStrength, "lower"), (.flexibility, "flexibility")]
+            where preCalibration.contains(metric) { observe(key, start) }
 
         /* Pre-baseline wearable history informs the starting point */
         let preVo2 = input.healthMetrics
@@ -411,6 +424,7 @@ public enum FitnessBrainEngine {
             .sorted { $0.date < $1.date }
             .last
         if let vo2 = preVo2?.vo2max {
+            observe("endurance", start)
             let anchor = vo2ToStat(vo2)
             s.endurance += (anchor - s.endurance) * 0.5
             synergies.append(FBSynergyEvent(
@@ -421,7 +435,7 @@ public enum FitnessBrainEngine {
         var preStrength = 0, preEndurance = 0, preMobility = 0
         for imp in input.importedActivities where imp.date >= preWindowStart && imp.date < start {
             switch imp.kind {
-            case .strength: preStrength += 1
+            case .strength: if authored { preStrength += 1 }
             case .endurance: preEndurance += 1
             case .mobility: preMobility += 1
             }
@@ -434,6 +448,9 @@ public enum FitnessBrainEngine {
                 date: start, kind: .importFeed,
                 label: "Baseline credit: \(preStrength + preEndurance + preMobility) Apple Health workouts in the 60 days before APEX"))
         }
+        if authored && preStrength > 0 { observe("upper", start) }
+        if preEndurance > 0 { observe("endurance", start) }
+        if preMobility > 0 { observe("flexibility", start) }
         s = StatBlock(
             health: clamp(s.health), joint: clamp(s.joint), flexibility: clamp(s.flexibility),
             endurance: clamp(s.endurance), strengthUpper: clamp(s.strengthUpper),
@@ -444,7 +461,7 @@ public enum FitnessBrainEngine {
             let a = activity[date]
             let streakMult = 1 + Double(min(a?.streak ?? 0, 30)) * 0.005
 
-            if i > 0 {
+            if authored && i > 0 {
                 s.endurance -= ageDragPerDay
                 s.flexibility -= ageDragPerDay
                 s.strengthUpper -= ageDragPerDay
@@ -466,9 +483,13 @@ public enum FitnessBrainEngine {
                 let proteinHit = targets.isPublishable
                     && (a.protein ?? -1) >= targets.proteinG * 0.95
                 let deepDeficit = targets.isPublishable
+                    && date < throughDate
+                    && (a.mealRhythmVerdict == .completeOnTime || a.mealRhythmVerdict == .completeIrregular)
                     && a.kcal != nil
                     && a.kcal! < targets.kcal * 0.85
-                let hydrated = (a.waterL ?? -1) >= 2.5
+                let hydration = input.hydrationByDay[date]
+                let totalML = hydration.map { Double($0.totalML) } ?? (a.waterL ?? 0) * 1_000
+                let hydrated = totalML >= Double(hydration?.targetML ?? HydrationTargetPolicy.resolve(sex: profile.sex, weightKG: profile.weightKG).targetML)
                 let hasStrengthSession = a.types.contains {
                     !$0.recovery && (upperTypes.contains($0.type) || lowerTypes.contains($0.type))
                 }
@@ -485,7 +506,7 @@ public enum FitnessBrainEngine {
                         date: date, kind: .deficitStrength,
                         label: "Deep calorie deficit under a strength session. XP tempered -15%, recovery costs energy"))
                 }
-                if hasStrengthSession, let completion = a.mealCompletionScore, completion < 60 {
+                if authored, hasStrengthSession, let completion = a.mealCompletionScore, completion < 60 {
                     strengthMult *= 0.94
                     synergies.append(FBSynergyEvent(
                         date: date, kind: .mealRhythm,
@@ -529,7 +550,7 @@ public enum FitnessBrainEngine {
                         fedFlexibility = true
                         fedJoint = true
                     } else if lowerTypes.contains(t.type) {
-                        let boost = s.strengthLower < s.strengthUpper - convergenceGap ? legXPBoost : 1
+                        let boost = authored && s.strengthLower < s.strengthUpper - convergenceGap ? legXPBoost : 1
                         s.strengthLower += 2.6 * boost * strengthMult * q * headroom(s.strengthLower)
                         fedLower = true
                         lastLegsOffset = i
@@ -548,7 +569,7 @@ public enum FitnessBrainEngine {
                         date: date, kind: .importFeed,
                         label: "Wearable cardio (\(Int(a.importEnduranceMin)) min) fed Endurance"))
                 }
-                if a.importStrengthMin >= 8 && !fedUpper {
+                if authored && a.importStrengthMin >= 8 && !fedUpper {
                     let scale = min(1.3, a.importStrengthMin / 35)
                     s.strengthUpper += 2.0 * importCredit * scale * headroom(s.strengthUpper)
                     fedUpper = true
@@ -565,7 +586,7 @@ public enum FitnessBrainEngine {
                 }
 
                 s.strengthUpper += Double(a.overloadUpper) * 0.7 * headroom(s.strengthUpper)
-                s.strengthLower += Double(a.overloadLower) * 0.7 * legXPBoost * headroom(s.strengthLower)
+                s.strengthLower += Double(a.overloadLower) * 0.7 * (authored ? legXPBoost : 1) * headroom(s.strengthLower)
                 s.joint -= Double(min(a.overrides, 2)) * 1.5
 
                 var healthFed = false
@@ -608,19 +629,19 @@ public enum FitnessBrainEngine {
                         synergies.append(FBSynergyEvent(
                             date: date, kind: .mealRhythm,
                             label: "All planned meals were logged, but their timing rhythm was \(Int(rhythmScore))/100"))
-                    case .missedMeals:
+                    case .missedMeals where authored:
                         s.health -= 0.35
                         healthFed = true
                         synergies.append(FBSynergyEvent(
                             date: date, kind: .mealRhythm,
                             label: "The closed day recorded \(Int(a.mealCompletionScore ?? 0))% of configured meals. A later correction will replay this verdict"))
-                    case .noMeals:
+                    case .noMeals where authored:
                         s.health -= 0.55
                         healthFed = true
                         synergies.append(FBSynergyEvent(
                             date: date, kind: .mealRhythm,
                             label: "The day closed with no configured meal recorded. This can still be corrected from the calendar"))
-                    case .open:
+                    case .noMeals, .missedMeals, .open:
                         break
                     }
                 }
@@ -636,7 +657,12 @@ public enum FitnessBrainEngine {
                 }
             }
 
-            if i > 0 {
+            for (key, observed) in [("health", fedHealth), ("joint", fedJoint),
+                                    ("flexibility", fedFlexibility), ("endurance", fedEndurance),
+                                    ("upper", fedUpper), ("lower", fedLower)] where observed {
+                observe(key, date)
+            }
+            if authored && i > 0 {
                 if !fedEndurance { s.endurance = decay(s.endurance, floor: floors.endurance, halfLife: halfLife.endurance) }
                 if !fedFlexibility { s.flexibility = decay(s.flexibility, floor: floors.flexibility, halfLife: halfLife.flexibility) }
                 if !fedUpper { s.strengthUpper = decay(s.strengthUpper, floor: floors.strengthUpper, halfLife: halfLife.strengthUpper) }
@@ -661,6 +687,6 @@ public enum FitnessBrainEngine {
                 strengthUpper: round1(s.strengthUpper),
                 strengthLower: round1(s.strengthLower)))
         }
-        return FBEngineResult(snapshots: snapshots, synergies: synergies)
+        return FBEngineResult(snapshots: snapshots, synergies: synergies, firstObserved: firstObserved)
     }
 }

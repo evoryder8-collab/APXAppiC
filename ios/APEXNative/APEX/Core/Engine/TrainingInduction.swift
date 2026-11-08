@@ -44,7 +44,7 @@ enum TrainingInduction {
         return supportedPlanWeeks.first(where: { Double($0) == rawValue }) ?? 12
     }
 
-    struct BodyBaseline: Equatable, Sendable {
+    struct BodyBaseline: Codable, Equatable, Sendable {
         let sex: String
         let weightKG: Double
         let heightCM: Double
@@ -61,7 +61,7 @@ enum TrainingInduction {
         }
     }
 
-    struct DataConsent: Equatable, Sendable {
+    struct DataConsent: Codable, Equatable, Sendable {
         let termsVersion: String
         let privacyVersion: String
         let acceptedAt: String
@@ -73,7 +73,7 @@ enum TrainingInduction {
         }
     }
 
-    struct Input: Equatable, Sendable {
+    struct Input: Codable, Equatable, Sendable {
         var startDate: String
         var inactivity: String = "under_three_months"
         var venue: String = "home"
@@ -726,6 +726,7 @@ enum TrainingInduction {
                 && $0.isActive
                 && !archived.contains($0.id)
                 && !pending.contains($0.id)
+                && !ManualWorkout.isLegacyReceiptContainer($0, in: data)
         }
     }
 
@@ -925,7 +926,7 @@ enum TrainingInduction {
 
     static func hasUsablePrescription(in data: DashboardData, slug: String) -> Bool {
         guard let rows = scopedPhaseRows(in: data, slug: slug) else { return false }
-        if data.settings?.addons["training_induction"]?.objectValue != nil {
+        if (slug == "main" || slug == "transition"), data.settings?.addons["training_induction"]?.objectValue != nil {
             return generatedPlanIsComplete(in: data, slug: slug)
         }
         return !rows.dayIDs.intersection(rows.fullExerciseDayIDs).isEmpty

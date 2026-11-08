@@ -26,6 +26,11 @@ enum SyncFailurePolicy {
         isNetworkFailure: Bool
     ) -> SyncFailureDisposition {
         if isNetworkFailure { return .transient }
+        if let code = databaseCode?.uppercased(), ["42703", "PGRST204"].contains(code),
+           databaseMessage?.localizedCaseInsensitiveContains("verified_avatar") == true {
+            // An app update may arrive before the new score column reaches the API schema cache.
+            return .transient
+        }
 
         if let statusCode {
             if statusCode == 401 { return .authenticationRequired }
@@ -53,7 +58,7 @@ enum SyncFailurePolicy {
                 || ["57P01", "57P02", "57P03"].contains(databaseCode) {
                 return .transient
             }
-            if databaseCode.hasPrefix("22")
+            if databaseCode == "PT409" || databaseCode.hasPrefix("22")
                 || databaseCode.hasPrefix("23")
                 || databaseCode.hasPrefix("42")
                 || databaseCode.hasPrefix("PGRST") {
@@ -78,7 +83,7 @@ enum SyncFailurePolicy {
         }
         if let serviceError = error as? APEXServiceError {
             switch serviceError {
-            case .invalidOfflineOperation, .incompleteFood, .personaMismatch, .configurationMissing:
+            case .invalidOfflineOperation, .incompleteFood, .staleMeal, .personaMismatch, .configurationMissing:
                 return .permanent
             }
         }
@@ -561,6 +566,19 @@ actor OfflineStore {
         try saveOperations(operations, for: userID)
     }
 
+    func enqueueAvatarPublication(_ publication: AvatarScorePublication, for ownerID: UUID) throws {
+        guard publication.row.userID == ownerID else { throw APEXServiceError.invalidOfflineOperation }
+        let operation = try OfflineOperation.upsert(publication, table: "rpg_snapshots", onConflict: nil)
+        var pending = try pendingOperations(for: ownerID)
+        pending.removeAll { item in
+            guard item.kind == .upsert, item.table == operation.table, let payload = item.payload,
+                  let previous = try? JSONDecoder.apex.decode(RPGSnapshot.self, from: payload) else { return false }
+            return previous.userID == ownerID && previous.date == publication.row.date
+        }
+        pending.append(operation)
+        try saveOperations(pending, for: ownerID)
+    }
+
     func enqueueLatestFitnessBrainShadowObservation(
         _ operation: OfflineOperation,
         for userID: UUID
@@ -745,6 +763,11 @@ actor OfflineStore {
             to: failedOutboxURL(for: userID),
             options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
         )
+    }
+
+    func eraseAccount(_ owner: UUID) throws {
+        let url = userDirectory(for: owner)
+        if fileManager.fileExists(atPath: url.path) { try fileManager.removeItem(at: url) }
     }
 
     private func prepareDirectory(for userID: UUID) throws {

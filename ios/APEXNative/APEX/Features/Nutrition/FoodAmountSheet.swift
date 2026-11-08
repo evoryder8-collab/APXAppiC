@@ -37,8 +37,8 @@ enum FoodPortionMath {
     static func availableUnits(_ food: Food) -> [FoodUnitKind] {
         let basis: FoodUnitKind = food.nutritionBasis == "per_100ml" ? .millilitres : .grams
         var units: [FoodUnitKind] = [basis]
-        if let serving = food.servingGramsOrML, serving > 0 { units.append(.serving) }
-        if let piece = food.pieceGramsOrML, piece > 0 { units.append(.piece) }
+        if let serving = food.servingGramsOrML, FoodQuantity.isUsableAmount(serving) { units.append(.serving) }
+        if let piece = food.pieceGramsOrML, FoodQuantity.isUsableAmount(piece) { units.append(.piece) }
         return units
     }
 
@@ -47,13 +47,13 @@ enum FoodPortionMath {
         [food.kcal100, food.protein100, food.carbs100, food.fat100]
             .allSatisfy { value in
                 guard let value else { return false }
-                return value.isFinite && value >= 0
+                return FoodQuantity.isRepresentableTotal(value)
             }
     }
 
     /* Parity: equivalentAmount */
     static func equivalentAmount(_ food: Food, quantity: Double, unit: FoodUnitKind) -> Double? {
-        guard quantity.isFinite, quantity > 0 else { return nil }
+        guard FoodQuantity.isUsableAmount(quantity) else { return nil }
         switch unit {
         case .grams:
             return food.nutritionBasis == "per_100g" ? quantity : nil
@@ -61,10 +61,10 @@ enum FoodPortionMath {
             return food.nutritionBasis == "per_100ml" ? quantity : nil
         case .serving:
             guard let serving = food.servingGramsOrML else { return nil }
-            return quantity * serving
+            return FoodQuantity.isUsableAmount(quantity * serving) ? quantity * serving : nil
         case .piece:
             guard let piece = food.pieceGramsOrML else { return nil }
-            return quantity * piece
+            return FoodQuantity.isUsableAmount(quantity * piece) ? quantity * piece : nil
         }
     }
 
@@ -73,6 +73,8 @@ enum FoodPortionMath {
         guard isComplete(food),
               let equivalent = equivalentAmount(food, quantity: quantity, unit: unit) else { return nil }
         let factor = equivalent / 100
+        guard [food.kcal100, food.protein100, food.carbs100, food.fat100, food.waterML100]
+            .compactMap({ $0 }).allSatisfy({ FoodQuantity.isRepresentableTotal($0 * factor) }) else { return nil }
         func round1(_ v: Double) -> Double { ((v * 10).rounded(.toNearestOrAwayFromZero)) / 10 }
         return FoodPortionResult(
             equivalentAmount: ((equivalent * 100).rounded(.toNearestOrAwayFromZero)) / 100,
@@ -95,11 +97,11 @@ enum FoodPortionMath {
         remembered: MealMemory.Selection? = nil
     ) -> (quantity: Double, unit: FoodUnitKind) {
         let units = availableUnits(food)
-        if let remembered, remembered.quantity > 0,
+        if let remembered, FoodQuantity.isUsableAmount(remembered.quantity),
            let unit = FoodUnitKind(rawValue: remembered.unit), units.contains(unit) {
             return (remembered.quantity, unit)
         }
-        if let amount = preference?.usualAmount, amount > 0,
+        if let amount = preference?.usualAmount, FoodQuantity.isUsableAmount(amount),
            let rawUnit = preference?.usualUnit,
            let unit = FoodUnitKind(rawValue: rawUnit), units.contains(unit) {
             return (amount, unit)
@@ -124,7 +126,7 @@ enum FoodPortionMath {
         let equivalent: Double? = unit == .serving
             ? food.servingGramsOrML
             : unit == .piece ? food.pieceGramsOrML : nil
-        guard let equivalent, equivalent > 0 else { return localizedName }
+        guard let equivalent, FoodQuantity.isUsableAmount(equivalent) else { return localizedName }
         let amount = equivalent.rounded() == equivalent
             ? String(Int(equivalent))
             : String(format: "%.1f", equivalent)
@@ -420,6 +422,10 @@ struct FoodAmountSheet: View {
             .accessibilityElement(children: .combine)
             .accessibilityIdentifier("food-amount-preview-metrics")
 
+            if portion == nil && !quantityText.isEmpty {
+                Text(language.text("Enter a valid amount for this food."))
+                    .font(APEXFont.body(12, weight: .semibold))
+            }
             Text(language.text(FoodPortionMath.provenanceLabel(food)))
                 .font(APEXFont.body(11, weight: .medium))
                 .foregroundStyle(APEXColor.secondaryInk)
@@ -514,9 +520,7 @@ struct FoodAmountSheet: View {
     }
 
     private func formatted(_ value: Double) -> String {
-        value == value.rounded()
-            ? String(Int(value))
-            : String(format: "%.1f", value)
+        FoodQuantity.formatAmount(value)
     }
 }
 

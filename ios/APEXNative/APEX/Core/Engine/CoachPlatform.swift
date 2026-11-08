@@ -84,8 +84,7 @@ struct CoachClientPolicy: Equatable, Sendable {
         case .coachWorkspace:
             return accountCapabilities.coachWorkspace
         case .coachPlan:
-            return accountCapabilities.sponsoredClient
-                && (canUseSponsoredApp || coachPlanReadOnly)
+            return (accountCapabilities.sponsoredClient && canUseSponsoredApp) || coachPlanReadOnly
         case .coachWorkouts:
             return accountCapabilities.sponsoredClient && canFollowCoachPlan
         }
@@ -220,6 +219,32 @@ struct CoachPlanValidationIssue: Equatable, Sendable {
 
     let code: Code
     let path: String
+
+    var messageKey: String {
+        switch code {
+        case .tooLong: "Shorten the plan text."
+        case .titleRequired: "Add a plan title."
+        case .objectiveRequired: "Add a plan objective."
+        case .reviewDate: "Choose a valid review date."
+        case .checklist: "Complete the review checklist."
+        case .sessionsRequired: "Add at least one session."
+        case .sessionCount: "Use up to seven sessions."
+        case .duplicateID: "Remove the duplicate entry."
+        case .weekday: "Choose a weekday."
+        case .sessionName: "Add a session name."
+        case .estimatedMinutes: "Choose a session length from 5 to 360 minutes."
+        case .exerciseCount: "Use 1 to 30 exercises per session."
+        case .movement: "Choose a movement from the library."
+        case .exerciseName: "Add an exercise name."
+        case .sets: "Use 1 to 12 sets."
+        case .target: "Choose a target between 1 and 600."
+        case .targetOrder: "Keep the minimum target below or equal to the maximum."
+        case .unit: "Choose a supported exercise unit."
+        case .rest: "Use a rest time from 0 to 600 seconds."
+        case .tempo: "Use tempo values between 0 and 30 seconds."
+        case .group: "Check the exercise grouping."
+        }
+    }
 }
 
 enum CoachPlanValidator {
@@ -410,6 +435,10 @@ struct CoachAccountContext: Codable, Hashable, Sendable {
     enum CodingKeys: String, CodingKey {
         case coach, sponsorship, capabilities
         case currentPlan = "current_plan"
+    }
+
+    var activelyCoached: Bool {
+        capabilities.sponsoredClient && sponsorship?.relationshipStatus == .active && sponsorship?.seatState == .active
     }
 
     static let empty = CoachAccountContext(

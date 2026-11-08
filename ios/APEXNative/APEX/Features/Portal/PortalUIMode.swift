@@ -82,6 +82,13 @@ enum SimpleHomeLogic {
         }
     }
 
+    static func workoutPlans(in data: DashboardData, primarySlug: String?, includeCustom: Bool, date: String, lite: Bool) -> [PlannedDay] {
+        let slugs = [primarySlug, includeCustom ? "custom" : nil].compactMap { $0 }
+        let plans = slugs.flatMap { TrainingPlanEngine.programDays(data, slug: $0, date: date, lite: lite) }
+        let trainable = plans.filter { !$0.exercises.isEmpty }
+        return trainable.isEmpty ? plans : trainable
+    }
+
     /// Plans must already be resolved through the active programme and calendar.
     static func dailyGuidedSessions(
         plans: [PlannedDay], sessions: [WorkoutSession], ownerID: UUID?, date: String,
@@ -251,6 +258,7 @@ enum SimpleHomeLogic {
                     && $0.userID == ownerID
                     && $0.date == date
                     && $0.programDayID == programDayID
+                    && ManualWorkout.title(fromNotes: $0.notes) == nil
             }
             .max { left, right in
                 let leftTime = left.completedAt ?? left.startedAt ?? ""

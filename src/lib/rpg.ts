@@ -24,6 +24,9 @@ import type {
   RecoveryDataSource,
   RpgSnapshot,
 } from './types'
+import { bespokeProtocolFor } from './profilePolicy.ts'
+import { waterTargetResolver } from './dayHydration.ts'
+import { resolveHydrationDay } from './hydrationLedger.ts'
 import { computeTargets, nutritionPlanContext } from './nutrition.ts'
 import { isConditioningFocusT25 } from './focusT25.ts'
 import { normalizeMealRhythmHistory, type MealRhythmVerdict } from './mealRhythm.ts'
@@ -67,7 +70,10 @@ const MATTHEW_BASELINE: StatBlock = {
 }
 
 export function baselineForProfile(profile: Profile | null): StatBlock {
-  if (profile?.persona === 'june') return { ...JUNE_BASELINE }
+  if (!profile || !bespokeProtocolFor(profile)) return {
+    health: 50, joint: 50, flexibility: 50, endurance: 50, strength_upper: 50, strength_lower: 50,
+  }
+  if (profile.persona === 'june') return { ...JUNE_BASELINE }
   if (profile?.persona === 'matthew') return { ...MATTHEW_BASELINE }
   return { ...BASELINE }
 }
@@ -117,6 +123,8 @@ export interface SynergyEvent {
 }
 
 export interface EngineResult {
+  firstObserved: Partial<Record<keyof StatBlock, string>>
+  hydrationDays: Record<string, boolean>
   snapshots: RpgSnapshot[]
   synergies: SynergyEvent[]
 }
@@ -297,9 +305,11 @@ function hasScorableNutritionTargets(targets: ReturnType<typeof computeTargets>)
     && targets.protein_g > 0
 }
 
-export function computeEngine(data: AppData, throughDate: string): EngineResult {
+export function computeEngine(data: AppData, throughDate: string,
+  context: { foodWaterML?: Readonly<Record<string, number>>; localHour?: number; preferCoach?: boolean; includeCustom?: boolean } = {},
+): EngineResult {
   const profile = data.profile
-  if (!profile) return { snapshots: [], synergies: [] }
+  if (!profile) return { snapshots: [], synergies: [], firstObserved: {}, hydrationDays: {} }
   const ownerID = profile.user_id
   const programDays = data.program_days.filter((row) => row.user_id === ownerID)
   const exercises = data.exercises.filter((row) => row.user_id === ownerID)
@@ -315,7 +325,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
     new Date(throughDate + 'T12:00:00'),
     new Date(start + 'T12:00:00'),
   )
-  if (total < 0) return { snapshots: [], synergies: [] }
+  if (total < 0) return { snapshots: [], synergies: [], firstObserved: {}, hydrationDays: {} }
 
   const dayTypeById = new Map(programDays.map((d) => [d.id, d.day_type]))
   const targets = computeTargets(profile, nutritionPlanContext(data.settings?.addons.training_induction ?? data.settings?.addons.training_induction_baseline))
@@ -438,6 +448,16 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
     a.kcal = d.kcal
     a.protein = d.protein_g
   }
+  const waterGoal = waterTargetResolver(data, context.preferCoach, context.includeCustom)
+  const waterLedger = new Map<string, typeof data.hydration_events>()
+  for (const event of data.hydration_events ?? []) {
+    if (event.user_id !== ownerID || event.amount_ml <= 0) continue
+    const events = waterLedger.get(event.local_date) ?? []
+    events.push(event)
+    waterLedger.set(event.local_date, events)
+    getDay(event.local_date)
+  }
+  for (const date of Object.keys(context.foodWaterML ?? {})) getDay(date)
   for (const imp of importedActivities) {
     const a = getDay(imp.date)
     if (imp.kind === 'strength') a.importStrengthMin += imp.duration_min
@@ -474,10 +494,19 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
 
   const snapshots: RpgSnapshot[] = []
   const synergies: SynergyEvent[] = []
+  const authored = bespokeProtocolFor(profile) != null
   let s: StatBlock = baselineForProfile(profile)
+  const firstObserved: EngineResult['firstObserved'] = {}
+  const hydrationDays: Record<string, boolean> = {}
+  function observe(key: keyof StatBlock, day: string) { firstObserved[key] ??= day }
+  if (authored) for (const key of Object.keys(s) as (keyof StatBlock)[]) observe(key, start)
   let lastLegsOffset = -99 // day index of the last completed leg session
   const calibrationTimeline = capacityCalibrationTimeline(data, start, throughDate)
-  applyCapacityCalibration(s, calibrationTimeline.beforeBaseline)
+  const atBaseline = applyCapacityCalibration(s, calibrationTimeline.beforeBaseline)
+  for (const [metric, key] of Object.entries({cardiorespiratory: 'endurance', upper_strength: 'strength_upper',
+    lower_strength: 'strength_lower', flexibility: 'flexibility'})) {
+    if (atBaseline.has(metric as CapacityCalibrationMetric)) observe(key as keyof StatBlock, start)
+  }
 
   /* --- pre-baseline Apple Health history informs the starting point. The 6b
      calibration stays the anchor; measured reality corrects it, and history
@@ -487,6 +516,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
     .sort((a, b) => a.date.localeCompare(b.date))
     .pop()
   if (preVo2?.vo2max != null) {
+    observe('endurance', start)
     const anchor = vo2ToStat(preVo2.vo2max)
     s.endurance += (anchor - s.endurance) * 0.5
     synergies.push({
@@ -498,8 +528,11 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
   const preWindowStart = addDaysIso(start, -60)
   const preCounts = { strength: 0, endurance: 0, mobility: 0 }
   for (const imp of importedActivities) {
-    if (imp.date >= preWindowStart && imp.date < start) preCounts[imp.kind] += 1
+    if (imp.date >= preWindowStart && imp.date < start && (authored || imp.kind !== 'strength')) preCounts[imp.kind] += 1
   }
+  if (preCounts.strength > 0) observe('strength_upper', start)
+  if (preCounts.endurance > 0) observe('endurance', start)
+  if (preCounts.mobility > 0) observe('flexibility', start)
   if (preCounts.strength + preCounts.endurance + preCounts.mobility > 0) {
     s.strength_upper += Math.min(6, preCounts.strength * 0.5)
     s.endurance += Math.min(6, preCounts.endurance * 0.5)
@@ -521,7 +554,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
     const streakMult = 1 + Math.min(a?.streak ?? 0, 30) * 0.005
 
     {
-      if (i > 0) {
+      if (authored && i > 0) {
         /* Age drag on the physical stats, every single day */
         s.endurance -= AGE_DRAG_PER_DAY
         s.flexibility -= AGE_DRAG_PER_DAY
@@ -550,10 +583,15 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
           && Number.isFinite(a.protein)
           && a.protein >= targets.protein_g * 0.95
         const deepDeficit = canScoreNutrition
+          && date < throughDate
+          && (a.mealRhythmVerdict === 'complete_on_time' || a.mealRhythmVerdict === 'complete_irregular')
           && a.kcal != null
           && Number.isFinite(a.kcal)
           && a.kcal < targets.kcal * 0.85
-        const hydrated = a.waterL != null && a.waterL >= 2.5
+        const ledger = resolveHydrationDay({ ownerID, date, events: waterLedger.get(date) ?? [], legacyDrinkLiters: a.waterL ?? 0 })
+        const totalML = ledger.drinkML + Math.max(ledger.foodML, context.foodWaterML?.[date] ?? 0)
+        const hydrated = totalML > 0 && totalML >= waterGoal(date, throughDate, context.localHour ?? 0).targetML
+        if (totalML > 0) hydrationDays[date] = hydrated
         const hasStrengthSession = a.types.some(
           (t) => !t.recovery && (UPPER_TYPES.includes(t.type) || LOWER_TYPES.includes(t.type)),
         )
@@ -566,7 +604,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
           strengthMult *= 0.85
           synergies.push({ date, kind: 'deficit_strength', label: 'Deep calorie deficit under a strength session. XP tempered -15%, recovery costs energy' })
         }
-        if (hasStrengthSession && a.mealCompletionScore != null && a.mealCompletionScore < 60) {
+        if (authored && hasStrengthSession && a.mealCompletionScore != null && a.mealCompletionScore < 60) {
           strengthMult *= 0.94
           synergies.push({
             date,
@@ -606,7 +644,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
             fed.flexibility = true
             fed.joint = true
           } else if (LOWER_TYPES.includes(t.type)) {
-            const boost = s.strength_lower < s.strength_upper - CONVERGENCE_GAP ? LEG_XP_BOOST : 1
+            const boost = authored && s.strength_lower < s.strength_upper - CONVERGENCE_GAP ? LEG_XP_BOOST : 1
             s.strength_lower += 2.6 * boost * strengthMult * q * headroom(s.strength_lower)
             fed.lower = true
             lastLegsOffset = i
@@ -623,7 +661,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
           fed.endurance = true
           synergies.push({ date, kind: 'import_feed', label: `Wearable cardio (${a.importEnduranceMin} min) fed Endurance` })
         }
-        if (a.importStrengthMin >= 8 && !fed.upper) {
+        if (authored && a.importStrengthMin >= 8 && !fed.upper) {
           const scale = Math.min(1.3, a.importStrengthMin / 35)
           s.strength_upper += 2.0 * IMPORT_CREDIT * scale * headroom(s.strength_upper)
           fed.upper = true
@@ -636,7 +674,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
         }
 
         s.strength_upper += a.overloadUpper * 0.7 * headroom(s.strength_upper)
-        s.strength_lower += a.overloadLower * 0.7 * LEG_XP_BOOST * headroom(s.strength_lower)
+        s.strength_lower += a.overloadLower * 0.7 * (authored ? LEG_XP_BOOST : 1) * headroom(s.strength_lower)
         s.joint -= Math.min(a.overrides, 2) * 1.5
 
         /* Health feeds on behavior: hydration and the calorie/protein window */
@@ -697,7 +735,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
               kind: 'meal_rhythm',
               label: `All planned meals were logged, but their timing rhythm was ${a.mealRhythmScore}/100`,
             })
-          } else if (a.mealRhythmVerdict === 'missed_meals') {
+          } else if (authored && a.mealRhythmVerdict === 'missed_meals') {
             s.health -= 0.35
             healthFed = true
             synergies.push({
@@ -705,7 +743,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
               kind: 'meal_rhythm',
               label: `The closed day recorded ${a.mealCompletionScore ?? 0}% of configured meals. A later correction will replay this verdict`,
             })
-          } else if (a.mealRhythmVerdict === 'no_meals') {
+          } else if (authored && a.mealRhythmVerdict === 'no_meals') {
             s.health -= 0.55
             healthFed = true
             synergies.push({
@@ -726,7 +764,13 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
         }
       }
 
-      if (i > 0) {
+      if (fed.health) observe('health', date)
+      if (fed.joint) observe('joint', date)
+      if (fed.endurance) observe('endurance', date)
+      if (fed.flexibility) observe('flexibility', date)
+      if (fed.upper) observe('strength_upper', date)
+      if (fed.lower) observe('strength_lower', date)
+      if (authored && i > 0) {
         if (!fed.endurance) s.endurance = decay(s.endurance, FLOORS.endurance, HALF_LIFE.endurance)
         if (!fed.flexibility) s.flexibility = decay(s.flexibility, FLOORS.flexibility, HALF_LIFE.flexibility)
         if (!fed.upper) s.strength_upper = decay(s.strength_upper, FLOORS.strength_upper, HALF_LIFE.strength_upper)
@@ -759,7 +803,19 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
       strength_lower: round1(s.strength_lower),
     })
   }
-  return { snapshots, synergies }
+  return { snapshots, synergies, firstObserved, hydrationDays }
+}
+
+/** A numeric snapshot on the wire requires evidence for each component. */
+export function publishableSnapshots(result: EngineResult): RpgSnapshot[] {
+  const first = Object.values(result.firstObserved).sort()
+  return first.length === 6 ? result.snapshots.filter(row => row.date >= first[5]) : []
+}
+
+export function observedDomainScores(result: EngineResult): Partial<StatBlock> {
+  const latest = result.snapshots.at(-1)
+  if (!latest) return {}
+  return Object.fromEntries(Object.keys(result.firstObserved).map(key => [key, latest[key as keyof StatBlock]]))
 }
 
 /* Back-compat wrapper */
@@ -927,7 +983,7 @@ export function whatYourBodyNeeds(data: AppData, snapshots: RpgSnapshot[]): Stat
       stat: 'Health',
       statKey: 'health',
       headline: `Health slipping, ${Math.abs(healthTrend).toFixed(1)} points in 2 weeks`,
-      detail: 'Hydration at 2.5-3 L and calories within 10% of goal with protein hit are what feed this stat.',
+      detail: 'Meeting your water goal and recording enough calories and protein feed this stat.',
       prescription: 'Tonight: log the day and drink up. 20 seconds.',
       dayType: null,
       severity: Math.abs(healthTrend),
@@ -979,7 +1035,7 @@ const LOW_STAT_ACTION: Record<AssessmentStat, string> = {
   strength: 'Protect the next two strength sessions and progress only when the logged reps and RIR support it.',
 }
 
-export function assessBodyState(data: AppData, snapshots: RpgSnapshot[]): BodyAssessment | null {
+export function assessBodyState(data: AppData, snapshots: RpgSnapshot[], hydrationDays: Readonly<Record<string, boolean>> = {}): BodyAssessment | null {
   const profile = data.profile
   const ownedSnapshots = profile
     ? snapshots.filter((row) => row.user_id === profile.user_id)
@@ -1056,10 +1112,9 @@ export function assessBodyState(data: AppData, snapshots: RpgSnapshot[]): BodyAs
   const proteinHitRate = !canScoreNutrition || loggedProteinDays.length === 0
     ? null
     : loggedProteinDays.filter((log) => (log.protein_g ?? 0) >= targets.protein_g * 0.95).length / loggedProteinDays.length
-  const hydratedDays = recentLogs.filter((log) => log.water_l > 0)
-  const hydrationHitRate = hydratedDays.length === 0
-    ? null
-    : hydratedDays.filter((log) => log.water_l >= targets.water_l * 0.9).length / hydratedDays.length
+  const hydratedDays = Object.entries(hydrationDays).filter(([date]) => date >= recentStart && date <= now.date)
+  const hydrationHitRate = hydratedDays.length
+    ? hydratedDays.filter(([, reached]) => reached).length / hydratedDays.length : null
   if (proteinHitRate != null && proteinHitRate >= 0.7) strengths.push(`Protein was on target on ${Math.round(proteinHitRate * 100)}% of logged days.`)
   if (hydrationHitRate != null && hydrationHitRate >= 0.7) strengths.push(`Hydration was on target on ${Math.round(hydrationHitRate * 100)}% of logged days.`)
   if (strengths.length < 2) {
@@ -1081,7 +1136,7 @@ export function assessBodyState(data: AppData, snapshots: RpgSnapshot[]): BodyAs
   if (recentLogs.length < 5) {
     priorities.push('Log at least five of the next seven days; more intake and hydration evidence will make this assessment materially sharper.')
   } else if (hydrationHitRate != null && hydrationHitRate < 0.6) {
-    priorities.push(`Hydration reached target on only ${Math.round(hydrationHitRate * 100)}% of logged days. Build a repeatable 2.5–3 L rhythm.`)
+    priorities.push(`Hydration reached target on only ${Math.round(hydrationHitRate * 100)}% of logged days. Check the water goal shown for each day.`)
   } else if (proteinHitRate != null && proteinHitRate < 0.6) {
     priorities.push(`Protein reached target on only ${Math.round(proteinHitRate * 100)}% of logged days. Distribute it across the target-aligned meals.`)
   }

@@ -71,7 +71,9 @@ test('native guided and tracked completion retain the selected date at every cal
   for (const call of calls) assert.match(call[1], /completionDate: date/)
   for (const file of ['TrainingProgramView.swift', 'WorkoutDaySheet.swift']) {
     const text = readFileSync(new URL(`../ios/APEXNative/APEX/Features/Training/${file}`, import.meta.url), 'utf8')
-    for (const call of text.matchAll(/TrackedWorkoutView\(([^\n]*)\)/g)) assert.match(call[1], /date: date/)
+    for (const call of text.matchAll(/TrackedWorkoutView\(([^\n]*)\)/g)) {
+      assert.match(call[1], /date: min\(date, Date\(\)\.apexDateKey\)/)
+    }
   }
 })
 
@@ -415,9 +417,9 @@ test('completed workout history is date-owned on Simple Mode and phase pages', (
   assert.match(simple, /simple-summary-actions[\s\S]*CompletedWorkoutHistoryCards/)
   assert.match(phase, /CompletedWorkoutHistoryCards/)
   assert.match(simple, /CompletedWorkoutHistoryCards date=\{selectedDate\} accent=\{ACCENTS\.teal\}/)
-  assert.match(phase, /CompletedWorkoutHistoryCards date=\{today\} accent=\{accent\} includeQuickLogs=\{false\}/)
+  assert.match(phase, /CompletedWorkoutHistoryCards date=\{receiptDate\} accent=\{accent\} includeQuickLogs=\{false\}/)
   assert.doesNotMatch(simple, /CompletedWorkoutHistoryCards date=\{selectedDate\}[^>]*limit=/)
-  assert.doesNotMatch(phase, /CompletedWorkoutHistoryCards date=\{today\}[^>]*limit=/)
+  assert.doesNotMatch(phase, /CompletedWorkoutHistoryCards date=\{receiptDate\}[^>]*limit=/)
   assert.match(nativeSimple, /CompletedWorkoutHistoryCards\(date: selectedDate\.apexDateKey, accent: APEXColor\.teal\)/)
   assert.match(nativePhase, /CompletedWorkoutHistoryCards\(date: session\.browsingDate\.apexDateKey, accent: accent\)/)
   assert.doesNotMatch(nativeSimple, /CompletedWorkoutHistoryCards\(date: selectedDate\.apexDateKey,[^\n]*limit:/)

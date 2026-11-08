@@ -109,8 +109,8 @@ test('completed workout time is editable from both Dayline surfaces', () => {
   const nutrition = readFileSync(new URL('../src/components/food/ActualFoodTracker.tsx', import.meta.url), 'utf8')
   assert.match(dayline, /onWorkoutCompletedAt\?: \(sessionId: string, completedAt: string\)/)
   assert.match(dayline, /daylineDateTimeToIso\(date, visibleTime, timeZone\)/)
-  assert.match(simpleHome, /onWorkoutCompletedAt=\{\(sessionId, completedAt\) =>/)
-  assert.match(nutrition, /onWorkoutCompletedAt=\{\(sessionId, completedAt\) =>/)
+  assert.match(simpleHome, /onWorkoutCompletedAt=\{(?:async )?\(sessionId, completedAt\) =>/)
+  assert.match(nutrition, /onWorkoutCompletedAt=\{(?:async )?\(sessionId, completedAt\) =>/)
 })
 
 test('the dayline spans 03:00 through the next quiet hours and preserves night context', () => {
@@ -399,4 +399,25 @@ test('recovery timing settings discard malformed records and cap persisted histo
       updated_at: '2026-07-25T17:15:00.000Z',
     },
   })
+})
+
+test('snack and after-training meals are separate timing series, and midnight is circular', () => {
+  const items = [
+    meal({ meal_slot:'snack', local_date:'2026-07-25', logged_at:'2026-07-25T15:00:00Z', client_idempotency_key:'a|apex-meal-block=snack' }),
+    meal({ meal_slot:'snack', local_date:'2026-07-26', logged_at:'2026-07-26T21:00:00Z', client_idempotency_key:'b|apex-meal-block=post_workout' }),
+  ]
+  const analysis = (meals: typeof items) => analyzeMealTiming({ meals, entries:[], sessions:[], timeZone:'UTC' })
+  assert.equal(analysis(items).typicalVariationMinutes, null)
+  assert.equal(analysis([...items, meal({ meal_slot:'snack', local_date:'2026-07-27', logged_at:'2026-07-27T15:00:00Z', client_idempotency_key:'c|apex-meal-block=snack' })]).typicalVariationMinutes, 0)
+  assert.equal(analysis([
+    meal({ meal_slot:'snack', local_date:'2026-07-25', logged_at:'2026-07-25T23:55:00Z' }),
+    meal({ meal_slot:'snack', local_date:'2026-07-26', logged_at:'2026-07-27T00:05:00Z' }),
+  ]).typicalVariationMinutes, 5)
+})
+
+test('a tracked workout completed on a different day from its assignment appears only on its recorded day', () => {
+  const work = session({ date: '2026-11-01', started_at: '2026-11-02T17:00:00Z', completed_at: '2026-11-02T18:38:00Z' })
+  const event = timedWorkout(work, 'Europe/Zurich')
+  assert.equal(event?.localDate, '2026-11-02')
+  assert.equal(event?.completedTime, '19:38')
 })

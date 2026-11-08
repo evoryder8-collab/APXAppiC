@@ -1,4 +1,7 @@
-import { estimateWaterContent, hydrationBreakdown, inferredHydrationTargetMode, portionWater, resolveHydrationTarget } from '../lib/hydration.ts'
+import { manualWorkoutTitle } from '../lib/manualWorkout.ts'
+import { editWebDrinks, waterTargetResolver } from '../lib/dayHydration'
+import { resolveHydrationDay } from '../lib/hydrationLedger'
+import { estimateWaterContent, hydrationBreakdown, portionWater } from '../lib/hydration.ts'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import {
@@ -19,7 +22,7 @@ import { useStore } from '../store/AppStore'
 import { useFoodStore } from '../store/FoodStore'
 import { ACCENTS } from '../lib/theme'
 import { ACTIVITY_MULTIPLIERS, activityLevelLabel, buildTargetMealPlan, computeTargets, goalPresetsForPlan, nutritionPlanContext, type TargetMeal } from '../lib/nutrition'
-import { planForDate, programDaysForDate } from '../lib/plan'
+import { planForDate, simpleWorkoutPlans, workoutPlanSlug, workoutPlanRoute } from '../lib/plan'
 import { dailyGuidedSessions, guidedPlayerDraftKey, guidedPlayerDraftMatches } from '../lib/dailyGuidedSessions'
 import { dailyLogId } from '../lib/ids'
 import type { ActivityLevel, DailyLog, ProgramSlug, Supplement } from '../lib/types'
@@ -60,6 +63,7 @@ import { SupplementStackEditor } from '../components/supplements/SupplementStack
 import { CompletedWorkoutHistoryCards } from '../components/workout/CompletedWorkoutHistoryCards'
 import { WorkoutInsightsCard } from '../components/workout/WorkoutInsightsCard'
 import { accountAccessHasSponsoredAccess, clientPolicyForAccount } from '../lib/coachAccess'
+import { hasActiveCoaching } from '../lib/coachPlatform'
 import { coachText } from '../lib/coachCopy'
 
 const emerald = ACCENTS.emerald
@@ -138,7 +142,7 @@ export function SimpleHome() {
   const canCreateManualWorkouts = coachPolicy.can_create_custom_workouts
   const sponsoredAccess = accountAccessHasSponsoredAccess(appAccess)
   const sponsoredOnlyAccess = sponsoredAccess && !canCreateManualWorkouts
-  const showCoachPlan = sponsoredAccess || coachPolicy.coach_plan_read_only
+  const showCoachPlan = coachContext.capabilities.sponsored_client && hasActiveCoaching(coachContext.sponsorship)
   const [simpleBlockOrder, setSimpleBlockOrder] = useState<SimpleBlockId[]>(() => normalizedSimpleBlockOrder(settings?.addons.simple_block_order))
   const simpleBlockOrderRef = useRef(simpleBlockOrder)
   const mealTimeZone = timeZoneFromSettings(settings)
@@ -332,12 +336,12 @@ export function SimpleHome() {
         : fallbackGuidedProgramSlug
   const guidedScheduleRoute = guidedProgramSlug === 'coach' ? '/coach-workouts' : guidedProgramSlug === 'main' ? '/main-phase' : '/transition'
   const plans = useMemo(
-    () => programDaysForDate(data, guidedProgramSlug, selectedDate, false),
-    [data, guidedProgramSlug, selectedDate],
+    () => simpleWorkoutPlans(data, guidedProgramSlug, selectedDate, false, canCreateManualWorkouts),
+    [data, guidedProgramSlug, selectedDate, canCreateManualWorkouts],
   )
   const lightPlans = useMemo(
-    () => programDaysForDate(data, guidedProgramSlug, selectedDate, true),
-    [data, guidedProgramSlug, selectedDate],
+    () => simpleWorkoutPlans(data, guidedProgramSlug, selectedDate, true, canCreateManualWorkouts),
+    [data, guidedProgramSlug, selectedDate, canCreateManualWorkouts],
   )
   const plan = plans[0] ?? planForDate(data, guidedProgramSlug, selectedDate, false)
   const completedWorkoutSessions = useMemo(() => data.workout_sessions
@@ -353,7 +357,7 @@ export function SimpleHome() {
       for (const lite of [false, true]) {
         const candidate = lite ? lightPlans.find((item) => item.programDay?.id === programDayId) : fullPlan
         if (!candidate) continue
-        const identity = { ownerId, slug: guidedProgramSlug, date: selectedDate, lite, programDayId,
+        const identity = { ownerId, slug: workoutPlanSlug(data, fullPlan, guidedProgramSlug), date: selectedDate, lite, programDayId,
           exerciseIds: candidate.exercises.map((exercise) => exercise.id) }
         try {
           const draft = JSON.parse(localStorage.getItem(guidedPlayerDraftKey(identity)) ?? 'null')
@@ -366,9 +370,9 @@ export function SimpleHome() {
       }
     }
     return dailyGuidedSessions(plans, data.workout_sessions, ownerId, selectedDate, resumableModes)
-  }, [plans, lightPlans, data.workout_sessions, profile?.user_id, selectedDate, guidedProgramSlug])
+  }, [plans, lightPlans, data, profile?.user_id, selectedDate, guidedProgramSlug])
   const completedProgramDayIds = useMemo(
-    () => new Set(completedWorkoutSessions.map((session) => session.program_day_id).filter(Boolean)),
+    () => new Set(completedWorkoutSessions.filter((row) => manualWorkoutTitle(row.notes) == null).map((session) => session.program_day_id).filter(Boolean)),
     [completedWorkoutSessions],
   )
   const incompleteGuidedPlans = plans.filter((candidate) =>
@@ -377,8 +381,10 @@ export function SimpleHome() {
   const workoutDone = dailyTrainingSessions.length > 0
     ? dailyTrainingSessions.every((item) => item.completedSessionID != null)
     : completedWorkoutSessions.length > 0
-  const dailyLog = data.daily_logs.find((log) => log.date === selectedDate)
-  const water = dailyLog?.water_l ?? 0
+  const dailyLog = data.daily_logs.find((log) => log.date === selectedDate && log.user_id === profile?.user_id)
+  const ledger = useMemo(() => resolveHydrationDay({ ownerID: profile?.user_id ?? '', date: selectedDate,
+    events: data.hydration_events, legacyDrinkLiters: dailyLog?.water_l ?? 0 }),
+  [profile?.user_id, selectedDate, data.hydration_events, dailyLog?.water_l])
   /* Water eaten rather than drunk stays separately attributable. The new
      target is explicitly total water, so progress may use the sum without
      ever relabelling food water as a drink. */
@@ -391,35 +397,10 @@ export function SimpleHome() {
       return total + Math.max(0, measured ?? 0)
     }, 0)
   }, [dateFoodMeals, foodStore.entries])
-  const hydration = hydrationBreakdown(water, foodWaterMl)
-  const hydrationTarget = useMemo(() => resolveHydrationTarget({
-    sex: profile?.sex ?? 'male',
-    weightKg: profile?.weight_kg ?? 87,
-    mode: inferredHydrationTargetMode(data.hydration_preferences?.target_mode, data.hydration_preferences?.target_ml),
-    customTargetML: data.hydration_preferences?.target_ml,
-    plannedExerciseMinutes: plan.programDay?.est_minutes,
-    recordedExerciseMinutes: selectedWearableActivity?.exercise_minutes
-      ?? selectedActivityLogs.reduce((sum, log) => sum + Math.max(0, log.duration_min ?? 0), 0),
-    activeCalories: burnedKcal,
-    steps: selectedWearableActivity?.steps,
-    dateRelation: selectedDate < today ? 'past' : selectedDate > today ? 'future' : 'today',
-    localHour: selectedDate === today
-      ? Math.floor(clockToMinute(zonedClock(new Date(), mealTimeZone).time) / 60)
-      : selectedDate < today ? 23 : 0,
-  }), [
-    burnedKcal,
-    data.hydration_preferences?.target_ml,
-    data.hydration_preferences?.target_mode,
-    mealTimeZone,
-    plan.programDay?.est_minutes,
-    profile?.sex,
-    profile?.weight_kg,
-    selectedActivityLogs,
-    selectedDate,
-    selectedWearableActivity?.exercise_minutes,
-    selectedWearableActivity?.steps,
-    today,
-  ])
+  const hydration = hydrationBreakdown(ledger.drinkML / 1_000, Math.max(ledger.foodML, foodWaterMl))
+  const waterGoal = useMemo(() => waterTargetResolver(data, coachPolicy.can_follow_coach_plan || sponsoredOnlyAccess, canCreateManualWorkouts),
+    [data, coachPolicy.can_follow_coach_plan, sponsoredOnlyAccess, canCreateManualWorkouts])
+  const hydrationTarget = waterGoal(selectedDate, today, Math.floor(clockToMinute(zonedClock(new Date(), mealTimeZone).time) / 60))
   const waterTargetL = hydrationTarget.targetML / 1_000
   const waterDone = simpleWaterTargetComplete(hydration.totalL, waterTargetL)
 
@@ -608,7 +589,7 @@ export function SimpleHome() {
       .filter((entry) => entry.meal_id === loggedMeal.id)
       .sort((left, right) => left.sort_order - right.sort_order)
       .map(async (entry, index) => ({
-        id: crypto.randomUUID(), food: await snapshotFood(entry), quantity: entry.quantity, unit: entry.unit,
+        id: entry.id, food: await snapshotFood(entry), quantity: entry.quantity, unit: entry.unit,
         sort_order: index, optional: false, locked: true, adjustable: false,
         minimum_amount: null, maximum_amount: null, step_amount: entry.unit === 'piece' ? 1 : 5,
         adjustment_role: 'none' as const,
@@ -775,10 +756,6 @@ export function SimpleHome() {
 
   const patchDailyLog = (patch: Partial<DailyLog>): void => patchDailyLogForDate(selectedDate, patch)
 
-  const setWaterAmount = (value: number): void => {
-    patchDailyLog({ water_l: Math.min(6, Math.max(0, Number(value.toFixed(2)))) })
-  }
-
   const commitMorningWeight = (): void => {
     const normalized = weightDraft.trim().replace(',', '.')
     if (!normalized) {
@@ -798,7 +775,7 @@ export function SimpleHome() {
     toast(t('Morning weight saved'), 'ok')
   }
 
-  const addWater = (): void => setWaterAmount(water + 0.25)
+  const addWater = (): void => { void addQuickWater(0.25) }
   const openNewManualWorkout = (): void => {
     setEditingManualSessionId(null)
     setEditingManualExerciseId(null)
@@ -819,8 +796,14 @@ export function SimpleHome() {
     navigate(`/nutrition?section=${section}&date=${selectedDate}&return=simple`)
   }
 
-  const addQuickWater = (litres: number): void => {
-    setWaterAmount(water + litres)
+  const addQuickWater = async (litres: number): Promise<void> => {
+    if (!profile) return
+    try {
+      await commitOwnerBoundMutation(profile.user_id, current => editWebDrinks(current, profile.user_id, selectedDate, { addML: litres * 1_000 }))
+    } catch (error) {
+      toast(t(error instanceof Error ? error.message : 'Could not save water.'), 'error')
+      return
+    }
     setQuickPanel(null)
     setCustomWaterOpen(false)
     setCustomWaterDraft('')
@@ -984,7 +967,7 @@ export function SimpleHome() {
     ...(showGuidedPlan && incompleteGuidedPlans.length > 0 ? [{
       time: minuteOf(trainingTime), eyebrow: 'Today’s movement', title: incompleteGuidedPlans[0].programDay?.name ?? 'Training',
       meta: t(`~${incompleteGuidedPlans[0].programDay?.est_minutes ?? 15} min · ${incompleteGuidedPlans[0].exercises.length} exercises`), action: 'Start session',
-      run: () => navigate(`/player/${guidedProgramSlug}/${selectedDate}?day=${encodeURIComponent(incompleteGuidedPlans[0].programDay?.id ?? '')}`), accent: ACCENTS.teal,
+      run: () => navigate(workoutPlanRoute(data, incompleteGuidedPlans[0], guidedProgramSlug, selectedDate)), accent: ACCENTS.teal,
     }] : []),
     ...(showHydrationReminder && !waterDone ? [{
       time: 21 * 60, eyebrow: 'Hydration', title: t(`${hydration.totalL.toFixed(2)} of ${waterTargetL.toFixed(2)} L`),
@@ -997,8 +980,8 @@ export function SimpleHome() {
     run: () => navigate('/avatar'), accent: ACCENTS.emerald,
   }
 
-  const current = snapshots.at(-1)
-  const previous = snapshots[Math.max(0, snapshots.length - 15)] ?? current
+  const current = snapshots.filter(row => row.date <= selectedDate).at(-1)
+  const previous = snapshots.filter(row => row.date <= format(addDays(selectedDateObject, -14), 'yyyy-MM-dd')).at(-1)
   const momentum = current && previous ? current.overall - previous.overall : 0
   const orbitSession = orbit.state.sessions.find((session) => session.date === selectedDate && session.status === 'planned')
   const dateLocale = language === 'ro' ? 'ro-RO' : language === 'th' ? 'th-TH' : 'en-GB'
@@ -1053,14 +1036,14 @@ export function SimpleHome() {
       {dailyTrainingSessions.map((item) => {
         const day = item.plan.programDay!
         return (
-          <DailyTrainingSessionPreview key={`${profile?.user_id}:${selectedDate}:${day.id}`} session={item}
+          <DailyTrainingSessionPreview key={`${profile?.user_id}:${selectedDate}:${day.id}`} session={item} trainToday={selectedDate > today}
             lightPlan={lightPlans.find((candidate) => candidate.programDay?.id === day.id)}
             completedLite={completedWorkoutSessions.find((session) => session.id === item.completedSessionID)?.is_lite}
             translate={t} exerciseName={localizedExerciseName}
             onOpen={(lite) => {
               setQuickPanel(null)
               if (item.completedSessionID) setWorkoutStatsSessionId(item.completedSessionID)
-              else navigate(`/player/${guidedProgramSlug}/${selectedDate}?day=${encodeURIComponent(day.id)}${lite ? '&lite=1' : ''}`)
+              else navigate(workoutPlanRoute(data, item.plan, guidedProgramSlug, selectedDate, lite))
             }}
           />
         )
@@ -1290,7 +1273,7 @@ export function SimpleHome() {
                         <div className="min-w-0"><p className="break-words font-display text-base font-bold text-ink">{t(guidedPlan.programDay?.name ?? 'Guided workout')}</p>{(settings.addons.interface_mode ?? 'clean') === 'detailed' && <p className="text-[11px] font-medium text-ink-soft">{t(`~${guidedPlan.programDay?.est_minutes ?? 15} min · ${guidedPlan.exercises.length} exercises`)}</p>}</div>
                         {index === 0 && <button type="button" onClick={() => setSettings({ addons: { ...settings.addons, simple_show_guided_plan: false } })} aria-label={t('Hide guided plan')} className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/75 font-black text-ink-faint">×</button>}
                       </div>
-                      <div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => navigate(`/player/${guidedProgramSlug}/${selectedDate}?lite=1&day=${encodeURIComponent(guidedPlan.programDay?.id ?? '')}`)} className="rounded-xl bg-white/70 px-3 py-2 text-[10px] font-bold text-ink-soft">{t('Quick')}</button><GradientButton accent={ACCENTS.teal} onClick={() => navigate(`/player/${guidedProgramSlug}/${selectedDate}?day=${encodeURIComponent(guidedPlan.programDay?.id ?? '')}`)}>{t('Start')}</GradientButton></div>
+                      <div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => navigate(workoutPlanRoute(data, guidedPlan, guidedProgramSlug, selectedDate, true))} className="rounded-xl bg-white/70 px-3 py-2 text-[10px] font-bold text-ink-soft">{t('Quick')}</button><GradientButton accent={ACCENTS.teal} onClick={() => navigate(workoutPlanRoute(data, guidedPlan, guidedProgramSlug, selectedDate))}>{t('Start')}{selectedDate > today ? ' · ' + t('Today') : ''}</GradientButton></div>
                     </GlassCard>
                   ))}
                 </div>
@@ -1304,7 +1287,7 @@ export function SimpleHome() {
             ) : blockId === 'body-index' ? (
               !adhdMode && showBodyIndexShortcut ? <Link to="/avatar" className="block">
                 <GlassCard accent={emerald} className="p-4">
-                  <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl text-white" style={{ background: emerald.gradient }}><AvatarIcon className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="font-display text-base font-bold text-ink">Your body index</p><p className="text-[11px] font-medium text-ink-soft">{t(`${momentum >= 0 ? '+' : ''}${momentum.toFixed(1)} over 14 days · tap for the full story`)}</p></div><span className="font-mono text-2xl font-bold text-emerald">{current?.overall.toFixed(0) ?? 'N/A'}</span></div>
+                  <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl text-white" style={{ background: emerald.gradient }}><AvatarIcon className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="font-display text-base font-bold text-ink">Your body index</p><p className="text-[11px] font-medium text-ink-soft">{(current && previous ? t(`${momentum >= 0 ? '+' : ''}${momentum.toFixed(1)} over 14 days · tap for the full story`) : t('Building your baseline'))}</p></div><span className="font-mono text-2xl font-bold text-emerald">{current?.overall.toFixed(0) ?? 'N/A'}</span></div>
                 </GlassCard>
               </Link> : null
             ) : null}

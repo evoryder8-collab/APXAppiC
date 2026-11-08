@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 /*
  * Fails if user-facing prose is written as a bare literal.
  *
@@ -21,7 +22,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
-const ROOT = new URL('../APEX', import.meta.url).pathname
+const ROOT = fileURLToPath(new URL('../APEX', import.meta.url))
 
 /* Brand names, units and machine identifiers read the same in every language. */
 const ALLOWED = new Set([

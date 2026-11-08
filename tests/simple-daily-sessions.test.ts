@@ -73,3 +73,22 @@ test('session previews describe the actual adjusted prescription, including ever
   const translated = dailySessionModel.guidedSessionPreview(reduced, (key) => key === 'reps' ? 'repetări' : key)
   assert.equal(translated.exercises[0].prescription, '2 × 6–15 repetări')
 })
+
+test('added tracked custom work has its own launch route and unrelated Quick Logs never complete it', async () => {
+  const { simpleWorkoutPlans, workoutPlanRoute } = await import('../src/lib/plan.ts')
+  const { manualWorkoutNotes, prescriptionDays } = await import('../src/lib/manualWorkout.ts')
+  const parent = { id: 'custom-program', user_id: owner, slug: 'custom' as const, name: 'Custom', description: '' }
+  const day = { ...plans[0].programDay!, id: 'added-day', program_id: parent.id, day_type: 'custom' as const,
+    name: 'Additional work', session_mode: 'tracked' as const }
+  const legacy = { ...day, id: 'old-quick-placeholder', name: 'Manual workout' }
+  const custom = { ...data, programs: [...data.programs.filter((p) => p.slug !== 'custom'), parent],
+    program_days: [...data.program_days, day, legacy],
+    exercises: [...data.exercises, { ...plans[0].exercises[0], id: 'added-exercise', program_day_id: day.id }],
+    workout_sessions: [receipt(day.id, { notes: manualWorkoutNotes('Quick work') }), receipt(legacy.id, { notes: manualWorkoutNotes('Old Quick Log') })] }
+  const combined = simpleWorkoutPlans(custom, 'main', date, false, true)
+  assert.deepEqual(combined.map((plan) => plan.programDay?.id), [...plans.map((plan) => plan.programDay!.id), day.id])
+  assert.equal(workoutPlanRoute(custom, combined.at(-1)!, 'main', date), `/log/custom/${date}?day=${day.id}`)
+  assert.equal(dailyGuidedSessions(combined, custom.workout_sessions, owner, date).at(-1)?.status, 'Start')
+  assert.ok(!prescriptionDays(custom).some((row) => row.id === legacy.id))
+  assert.equal(simpleWorkoutPlans(custom, 'main', date, false, false).length, plans.length)
+})

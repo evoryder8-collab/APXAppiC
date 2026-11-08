@@ -28,6 +28,7 @@ private struct Input: Decodable, Sendable {
     let workout_sessions: [FBWorkoutSession]
     let workout_logs: [FBWorkoutLog]
     let daily_logs: [FBDailyLog]
+    let hydration_targets: [String: Int]?
     let health_metrics: [FBHealthMetric]
     let imported_activities: [FBImportedActivity]
 }
@@ -47,6 +48,39 @@ private struct Expected: Decodable, Sendable {
 }
 
 final class FitnessBrainParityTests: XCTestCase {
+    func testCoachPublicationKeepsUnknownAndObservedScoresDistinct() throws {
+        let snapshot = FBSnapshot(date: "2026-11-01", overall: 51, health: 52, joint: 53, flexibility: 54,
+                                  endurance: 55, strength: 56, strengthUpper: 57, strengthLower: 58)
+        let row = try XCTUnwrap(FitnessBrainService.appSnapshots([snapshot], userID: UUID()).first)
+        func payload(_ score: FBSnapshot?) throws -> [String: Any] {
+            let bytes = try JSONEncoder().encode(AvatarScorePublication(row: row, verified: score))
+            return try XCTUnwrap(JSONSerialization.jsonObject(with: bytes) as? [String: Any])
+        }
+        let pending = try payload(nil)
+        XCTAssertTrue(pending["verified_avatar"] is NSNull)
+        XCTAssertEqual(pending["overall"] as? Int, 51)
+        let published = try XCTUnwrap(try payload(snapshot)["verified_avatar"] as? [String: Any])
+        XCTAssertEqual(Set(published.keys), ["date", "overall", "health", "joint", "flexibility", "endurance", "strength", "strength_upper", "strength_lower"])
+        XCTAssertEqual(published["strength_lower"] as? Int, 58)
+    }
+
+    func testAvatarOutboxKeepsOnlyLatestCoverageForOwnerAndDay() async throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent("avatar-\(UUID())", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = OfflineStore(rootURL: directory)
+        let owner = UUID()
+        let score = FBSnapshot(date: "2026-11-01", overall: 51, health: 52, joint: 53, flexibility: 54,
+                               endurance: 55, strength: 56, strengthUpper: 57, strengthLower: 58)
+        let row = try XCTUnwrap(FitnessBrainService.appSnapshots([score], userID: owner).first)
+        try await store.enqueueAvatarPublication(.init(row: row, verified: score), for: owner)
+        try await store.enqueueAvatarPublication(.init(row: row, verified: nil), for: owner)
+        let pending = try await store.pendingOperations(for: owner)
+        XCTAssertEqual(pending.count, 1)
+        let payload = try XCTUnwrap(pending.first?.payload)
+        let encoded = try XCTUnwrap(JSONSerialization.jsonObject(with: payload) as? [String: Any])
+        XCTAssertTrue(encoded["verified_avatar"] is NSNull)
+    }
+
     private func performedWorkoutInput() -> FBEngineInput {
         let profile = FBProfile(
             userID: "77777777-aaaa-4bbb-8ccc-777777777777", persona: .constantine,
@@ -71,15 +105,50 @@ final class FitnessBrainParityTests: XCTestCase {
         return log
     }
 
+    func testStandardScoresStayPendingUntilEveryDomainHasEvidence() throws {
+        var input = performedWorkoutInput()
+        input.workoutSessions = []
+        let empty = FitnessBrainEngine.compute(input, throughDate: "2026-12-01")
+        XCTAssertTrue(empty.domainScores.isEmpty)
+        XCTAssertTrue(empty.publishableSnapshots.isEmpty)
+        XCTAssertEqual(empty.snapshots.first?.overall, empty.snapshots.last?.overall)
+        input = performedWorkoutInput()
+        input.workoutLogs = [performedLog("barbell_back_squat")]
+        let lower = FitnessBrainEngine.compute(input, throughDate: "2026-12-01")
+        XCTAssertEqual(lower.domainScores, ["lower": 51.4])
+        XCTAssertTrue(lower.publishableSnapshots.isEmpty)
+    }
+
+    func testPartialIntakeAndPersonalWaterGoalsDetermineWhichSynergiesAppear() {
+        var input = performedWorkoutInput()
+        let day = "2026-11-02"
+        input.dailyLogs = [FBDailyLog(date: day, kcal: 400, proteinG: 12, waterL: 1.7)]
+        input.programDays[0].dayType = .t25
+        func events(_ through: String) -> [FBSynergyKind] {
+            FitnessBrainEngine.compute(input, throughDate: through).synergies.map(\.kind)
+        }
+        input.hydrationByDay[day] = (2_000, 2_000)
+        XCTAssertTrue(events(day).contains(.hydrationEndurance))
+        input.hydrationByDay[day] = (2_500, 3_500)
+        XCTAssertFalse(events(day).contains(.hydrationEndurance))
+        input.programDays[0].dayType = .legsA
+        XCTAssertFalse(events(day).contains(.deficitStrength))
+        XCTAssertFalse(events("2026-11-03").contains(.deficitStrength))
+        input.mealRhythmHistory[day] = FBMealRhythmDayRaw(finalized: true, expectedMeals: 3,
+            loggedMeals: 3, completionScore: 100, rhythmScore: 100, verdict: "complete_on_time")
+        XCTAssertFalse(events(day).contains(.deficitStrength))
+        XCTAssertTrue(events("2026-11-03").contains(.deficitStrength))
+    }
+
     func testPerformedQuickLogsMatchWebNumericDomainCredit() throws {
         // Same inputs and exact expected values as rpg-performed-workout.test.ts.
         let empty = performedWorkoutInput()
         let before = try XCTUnwrap(FitnessBrainEngine.compute(empty, throughDate: "2026-11-02").snapshots.last)
         let cases: [(FBWorkoutLog, KeyPath<FBSnapshot, Double>, Double)] = [
-            (performedLog("barbell_back_squat"), \.strengthLower, 44),
-            (performedLog("push_up"), \.strengthUpper, 60.9),
-            (performedLog("cat_cow", reps: nil, duration: 120), \.flexibility, 41.8),
-            (performedLog("run_outdoor", reps: nil, duration: 1800, distance: 5000), \.endurance, 46.9),
+            (performedLog("barbell_back_squat"), \.strengthLower, 51.4),
+            (performedLog("push_up"), \.strengthUpper, 51.1),
+            (performedLog("cat_cow", reps: nil, duration: 120), \.flexibility, 51.5),
+            (performedLog("run_outdoor", reps: nil, duration: 1800, distance: 5000), \.endurance, 51.8),
         ]
         for (log, domain, expected) in cases {
             var input = empty
@@ -184,7 +253,7 @@ final class FitnessBrainParityTests: XCTestCase {
         log.weightKG = nil
         input.workoutLogs = [log]
         let custom = FitnessBrainEngine.compute(input, throughDate: "2026-11-02").snapshots
-        XCTAssertEqual(try XCTUnwrap(custom.last).flexibility, 41.8)
+        XCTAssertEqual(try XCTUnwrap(custom.last).flexibility, 51.5)
         input.programDays[0].dayType = .mobility
         XCTAssertEqual(FitnessBrainEngine.compute(input, throughDate: "2026-11-02").snapshots, custom)
         XCTAssertNil(input.workoutLogs[0].reps)
@@ -201,7 +270,7 @@ final class FitnessBrainParityTests: XCTestCase {
     }()
 
     private func engineInput(_ input: Input) -> FBEngineInput {
-        FBEngineInput(
+        var engine = FBEngineInput(
             profile: input.profile,
             programDays: input.program_days,
             exercises: input.exercises,
@@ -213,6 +282,12 @@ final class FitnessBrainParityTests: XCTestCase {
             recoveryHistory: input.settings_addons?.recovery_history ?? [],
             mealRhythmHistory: input.settings_addons?.meal_rhythm_history ?? [:]
         )
+        for log in input.daily_logs {
+            if let target = input.hydration_targets?[log.date] {
+                engine.hydrationByDay[log.date] = (Int((log.waterL * 1000).rounded()), target)
+            }
+        }
+        return engine
     }
 
     private func assertSnapshot(

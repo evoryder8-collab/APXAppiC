@@ -196,22 +196,21 @@ public enum FitnessBrainTargets {
     }
 
     private static func authorizedPersonalPersona(_ profile: FBProfile) -> FBPersona? {
-        guard let userID = UUID(uuidString: profile.userID),
-              let persona = Persona(rawValue: profile.persona.rawValue),
-              let kind = profile.profileKind.flatMap(ProfileIntegrityPolicy.Kind.init(rawValue:)),
-              let protocolID = profile.bespokeProtocolID.flatMap(ProfileIntegrityPolicy.ProtocolID.init(rawValue:)),
-              let authorized = ProfileIntegrityPolicy.authorizedProtocol(
-                userID: userID,
-                persona: persona,
-                kind: kind,
-                protocolID: protocolID
-              )
-        else { return nil }
+        guard let authorized = profile.authorizedProtocol else { return nil }
         switch authorized {
         case .constantineV85: return .constantine
         case .juneV84: return .june
         case .matthewV1, .iulianV2: return nil
         }
+    }
+}
+
+extension FBProfile {
+    var authorizedProtocol: ProfileIntegrityPolicy.ProtocolID? {
+        guard let id = UUID(uuidString: userID), let identity = Persona(rawValue: persona.rawValue) else { return nil }
+        return ProfileIntegrityPolicy.authorizedProtocol(userID: id, persona: identity,
+            kind: profileKind.flatMap(ProfileIntegrityPolicy.Kind.init(rawValue:)),
+            protocolID: bespokeProtocolID.flatMap(ProfileIntegrityPolicy.ProtocolID.init(rawValue:)))
     }
 }
 

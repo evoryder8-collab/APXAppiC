@@ -173,7 +173,7 @@ test('Settings gives the name its own non-hyphenating row on native and web', ()
   const native = readFileSync(new URL('../ios/APEXNative/APEX/Features/Settings/SettingsView.swift', import.meta.url), 'utf8')
   const web = readFileSync(new URL('../src/pages/Settings.tsx', import.meta.url), 'utf8')
 
-  assert.match(native, /Text\(profile\?\.displayName \?\? "APEX"\)[\s\S]*\.lineLimit\(1\)[\s\S]*\.allowsTightening\(true\)/)
+  assert.match(native, /Text\(profile\?\.displayName \?\? "FITR MAX"\)[\s\S]*\.lineLimit\(1\)[\s\S]*\.allowsTightening\(true\)/)
   assert.doesNotMatch(native, /minimumScaleFactor/)
   assert.match(web, /whitespace-nowrap/)
   assert.match(web, /\[hyphens:none\]/)

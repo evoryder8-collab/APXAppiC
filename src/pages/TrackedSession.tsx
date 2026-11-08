@@ -1,9 +1,11 @@
+import { performedWorkoutDay } from '../lib/workoutTimingMetadata'
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { GlassCard, GradientButton, GhostButton, BackLink } from '../components/ui'
 import { ACCENTS } from '../lib/theme'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { useStore } from '../store/AppStore'
+import { timeZoneFromSettings, zonedClock } from '../lib/mealTiming'
 import { planForDate } from '../lib/plan'
 import { recommendLoad } from '../lib/progression'
 import { buildSessionRecords, sessionQuality, type ExerciseEntry, type SetEntry } from '../lib/workoutSession'
@@ -132,7 +134,7 @@ export function TrackedSession() {
     return sum + entry.sets.filter((set) => hasLoggedFact(set, descriptor)).length
   }, 0)
   const setsPlanned = list.reduce((sum, e) => sum + e.plannedSets, 0)
-  const canFinish = list.every((entry) => {
+  const canFinish = list.length > 0 && list.every((entry) => {
     if (entry.skipped) return true
     const descriptor = descriptorForExercise({ name: entry.name, movement_id: entry.movementId })
     return entry.sets.length === entry.plannedSets
@@ -144,7 +146,7 @@ export function TrackedSession() {
     const { session, logs } = buildSessionRecords({
       sessionId: crypto.randomUUID(),
       userId: ownerId,
-      date: date ?? '',
+      date: performedWorkoutDay(date ?? '', zonedClock(new Date(), timeZoneFromSettings(data.settings)).date),
       programDayId: plan.programDay.id,
       isLite: lite,
       isDeload: plan.isDeload,

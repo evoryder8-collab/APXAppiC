@@ -21,9 +21,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 25
           cache: npm
       - run: npm ci
+      - run: npm ci --prefix ios/APEXNative
+      - name: Verify food, training and account contracts
+        run: |
+          export PATH="$(pg_config --bindir):$PATH"
+          npm test
       - name: Verify exercise log schema and work groups
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}

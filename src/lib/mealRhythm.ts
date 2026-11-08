@@ -235,9 +235,9 @@ export function mealRhythmRefreshDates(input: {
   return dates
 }
 
-export function averageClosedMealRhythm(history: unknown, fromDate: string): number | null {
+export function averageClosedMealRhythm(history: unknown, fromDate: string, throughDate?: string): number | null {
   const days = Object.values(normalizeMealRhythmHistory(history))
-    .filter((day) => day.finalized && day.date >= fromDate)
+    .filter((day) => day.finalized && day.date >= fromDate && (!throughDate || day.date <= throughDate))
   if (!days.length) return null
   return round(days.reduce((sum, day) => sum + day.rhythm_score, 0) / days.length)
 }

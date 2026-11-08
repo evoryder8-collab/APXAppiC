@@ -201,6 +201,15 @@ final class SyncRepairTests: XCTestCase {
         )
     }
 
+    func testAvatarPublicationWaitsForCoverageColumnDuringRollout() {
+        for code in ["PGRST204", "42703"] {
+            XCTAssertEqual(SyncFailurePolicy.classify(statusCode: 400, databaseCode: code,
+                databaseMessage: "Column verified_avatar not found", isNetworkFailure: false), .transient)
+            XCTAssertEqual(SyncFailurePolicy.classify(statusCode: 400, databaseCode: code,
+                databaseMessage: "Column invalid_field not found", isNetworkFailure: false), .permanent)
+        }
+    }
+
     func testAnonymousRLSFailureRequiresRefreshWithoutReclassifyingRealPermissionDenial() {
         XCTAssertEqual(
             SyncFailurePolicy.classify(

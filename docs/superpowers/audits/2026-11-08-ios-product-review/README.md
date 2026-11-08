@@ -17,3 +17,5 @@ FITR MAX has several issues worth fixing before expanding paid or coach access. 
 [Workout, nutrition, scoring and usability evidence](product.md) · [Verification and release checks](verification.md)
 
 The smallest useful repairs follow the records that each screen edits. A performed workout needs one identity even when the user taps twice. A retrieved meal must be complete before an edit can replace it. A score needs an observation date, the goal for that date, and an explicit state for insufficient evidence. These are more valuable changes than reorganising the app’s large session controller by file size alone.
+
+The subsequent [repair record](../../../REPAIR-NOTES.md#2026-11-08--audit-repairs-and-build-404) covers these findings and the timed warm-up save failure reported after the audit.

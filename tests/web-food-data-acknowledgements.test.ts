@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
@@ -10,7 +11,7 @@ const root = new URL('../src/', import.meta.url)
 const source = (path: string): string => readFileSync(new URL(path, root), 'utf8')
 
 const citation = 'Marija Langwagen, Jette Jakobsen and Anders Poulsen: The Danish Food Composition Database, version 6.1, May 2026, National Food Institute, Technical University of Denmark.'
-const adaptation = 'APEX extracted, normalized and mapped selected source records to reviewed APEX food entries. These changes are by APEX; DTU does not endorse APEX.'
+const adaptation = 'FITR MAX extracted, normalized and mapped selected source records to reviewed FITR MAX food entries. These changes are by FITR MAX; DTU does not endorse FITR MAX.'
 
 function sourcesBelow(path: string): string[] {
   return readdirSync(path).flatMap((name) => {
@@ -42,12 +43,12 @@ test('food-data acknowledgement copy is authored in every offered web language',
   const expected: Record<string, { ro: string; th: string }> = {
     'Legal & data': { ro: 'Juridic și date', th: 'กฎหมายและข้อมูล' },
     'Food data acknowledgements': { ro: 'Mențiuni privind datele alimentare', th: 'คำขอบคุณและแหล่งที่มาของข้อมูลอาหาร' },
-    'See where APEX food data comes from and how it is adapted.': { ro: 'Vezi de unde provin datele alimentare APEX și cum sunt adaptate.', th: 'ดูว่าข้อมูลอาหารของ APEX มาจากที่ใดและได้รับการปรับใช้อย่างไร' },
-    'APEX uses adapted data from:': { ro: 'APEX folosește date adaptate din:', th: 'APEX ใช้ข้อมูลที่ปรับมาจาก:' },
+    'See where FITR MAX food data comes from and how it is adapted.': { ro: 'Vezi de unde provin datele alimentare FITR MAX și cum sunt adaptate.', th: 'ดูว่าข้อมูลอาหารของ FITR MAX มาจากที่ใดและได้รับการปรับใช้อย่างไร' },
+    'FITR MAX uses adapted data from:': { ro: 'FITR MAX folosește date adaptate din:', th: 'FITR MAX ใช้ข้อมูลที่ปรับมาจาก:' },
     [citation]: { ro: citation, th: citation },
     [adaptation]: {
-      ro: 'APEX a extras, normalizat și mapat anumite înregistrări-sursă în fișe alimentare APEX verificate. Aceste modificări aparțin APEX; DTU nu susține APEX.',
-      th: 'APEX คัดแยก ปรับรูปแบบ และเชื่อมโยงระเบียนต้นทางบางรายการเข้ากับรายการอาหาร APEX ที่ผ่านการตรวจทาน การเปลี่ยนแปลงเหล่านี้เป็นของ APEX และ DTU ไม่ได้รับรอง APEX',
+      ro: 'FITR MAX a extras, normalizat și mapat anumite înregistrări-sursă în fișe alimentare FITR MAX verificate. Aceste modificări aparțin FITR MAX; DTU nu susține FITR MAX.',
+      th: 'FITR MAX คัดแยก ปรับรูปแบบ และเชื่อมโยงระเบียนต้นทางบางรายการเข้ากับรายการอาหาร FITR MAX ที่ผ่านการตรวจทาน การเปลี่ยนแปลงเหล่านี้เป็นของ FITR MAX และ DTU ไม่ได้รับรอง FITR MAX',
     },
     'Dataset DOI': { ro: 'DOI-ul setului de date', th: 'DOI ของชุดข้อมูล' },
     'DTU disclaimer': { ro: 'Declinarea răspunderii DTU', th: 'ข้อจำกัดความรับผิดชอบของ DTU' },
@@ -61,7 +62,7 @@ test('food-data acknowledgement copy is authored in every offered web language',
 test('centralized food-data legal links stay out of nutrient rows and sheets', () => {
   const nutrientSources = [
     source('pages/Nutrition.tsx'),
-    ...sourcesBelow(new URL('../src/components/food/', import.meta.url).pathname),
+    ...sourcesBelow(fileURLToPath(new URL('../src/components/food/', import.meta.url))),
   ].join('\n')
 
   assert.doesNotMatch(nutrientSources, /doi\.org\/10\.11583\/DTU\.32312844/)

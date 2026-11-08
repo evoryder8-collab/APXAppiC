@@ -6,6 +6,7 @@ enum AppRoute: Equatable {
     case welcome
     case emailAuth(signUp: Bool)
     /// A brand-new account answers these before anything is generated for it.
+    case resetPassword
     case induction
     case consent
     case persona

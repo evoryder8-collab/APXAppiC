@@ -197,7 +197,7 @@ struct APEXPrimaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(APEXFont.body(17, weight: .bold))
-            .foregroundStyle(.white)
+            .foregroundStyle(color == APEXColor.amber || color == APEXColor.teal || color == APEXColor.green || color == APEXColor.cyan ? APEXColor.ink : .white)
             .frame(maxWidth: .infinity)
             .frame(height: 58)
             .background(color.gradient, in: RoundedRectangle(cornerRadius: 19, style: .continuous))

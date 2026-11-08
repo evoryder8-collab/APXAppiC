@@ -1,4 +1,7 @@
-import { estimateWaterContent, inferredHydrationTargetMode, resolveHydrationTarget } from '../lib/hydration.ts'
+import { editWebDrinks, waterTargetResolver } from '../lib/dayHydration'
+import { resolveHydrationDay } from '../lib/hydrationLedger'
+import { clientPolicyForAccount } from '../lib/coachAccess'
+import { estimateWaterContent } from '../lib/hydration.ts'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
@@ -13,7 +16,7 @@ import {
 } from '../components/ui'
 import { activityLevelLabel, computeTargets, buildTargetMealPlan, ACTIVITY_MULTIPLIERS, goalPresetForPlan, goalPresetsForPlan, nutritionPlanContext, type TargetMeal } from '../lib/nutrition'
 import { dailyLogId } from '../lib/ids'
-import type { ActivityLevel, DailyLog, ProgramSlug } from '../lib/types'
+import type { ActivityLevel, DailyLog } from '../lib/types'
 import { ensurePermission } from '../lib/notify'
 import { NutritionLogCalendar } from '../components/NutritionLogCalendar'
 import { TodaysActivities } from '../components/TodaysActivities'
@@ -48,14 +51,12 @@ import {
 } from '../lib/food'
 import { normalizeDailyLogIntegers } from '../lib/sync'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
-import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, simpleDaySwipeOffset, simpleGuidedProgramSlug } from '../lib/simpleMode'
+import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, simpleDaySwipeOffset } from '../lib/simpleMode'
 import { mealBlockIdempotencyKey, mealSlotForBlock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
 import { loggedMealEditorState } from '../lib/mealExperience'
 import { personalTargetFor, recommendActivityMode } from '../lib/personalProtocol'
 import { clockToMinute, timeZoneFromSettings, zonedClock, zonedDateTimeToIso } from '../lib/mealTiming'
 import { loadActiveDate, rememberActiveDate } from '../lib/activeDate'
-import { planForDate } from '../lib/plan'
-import { activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
 import { NutritionGoalPresetPicker } from '../components/nutrition/NutritionGoalPresetPicker'
 import { NutritionTargetStatus } from '../components/nutrition/NutritionTargetStatus'
 import { publishableNutritionPrescription } from '../lib/nutritionTargetPresentation'
@@ -204,7 +205,7 @@ function NutrientPatternsBoard({
 }
 
 export function Nutrition() {
-  const { data, upsert, remove, setProfile, setSettings, toast } = useStore()
+  const { data, appAccess, coachContext, upsert, remove, setProfile, setSettings, toast, commitOwnerBoundMutation } = useStore()
   const { language } = useLanguage()
   const tx = (value: string): string => translateInterfaceText(value, language)
   const foodStore = useFoodStore()
@@ -282,51 +283,10 @@ export function Nutrition() {
   const preciseMode = quickTargets?.isPublishable === true
     && activityEstimate?.hasMeaningfulActivity === true
     && !usesWholeDayProtocol
-  const hydrationPlannedExerciseMinutes = useMemo(() => {
-    const activeDays = activeTrainingProgramDays(data)
-    const hasPrescription = (slug: ProgramSlug): boolean => {
-      const programIDs = new Set(data.programs.filter((candidate) => candidate.slug === slug).map((candidate) => candidate.id))
-      const dayIDs = new Set(activeDays.filter((day) => programIDs.has(day.program_id)).map((day) => day.id))
-      return data.exercises.some((exercise) => dayIDs.has(exercise.program_day_id) && !exercise.is_lite)
-    }
-    const mainIsUsable = hasPrescription('main')
-    const transitionIsUsable = hasPrescription('transition')
-    const induction = data.settings?.addons.training_induction
-    const fallback = simpleGuidedProgramSlug(profile?.persona, mainIsUsable, transitionIsUsable)
-    const slug: ProgramSlug = induction && isInsideInductionWindow(induction, 'transition', selectedLogDate) && transitionIsUsable
-      ? 'transition'
-      : induction && isInsideInductionWindow(induction, 'main', selectedLogDate) && mainIsUsable
-        ? 'main'
-        : fallback
-    return planForDate(data, slug, selectedLogDate, false).programDay?.est_minutes ?? null
-  }, [data, profile?.persona, selectedLogDate])
-  const hydrationTarget = useMemo(() => profile ? resolveHydrationTarget({
-    sex: profile.sex,
-    weightKg: profile.weight_kg,
-    mode: inferredHydrationTargetMode(data.hydration_preferences?.target_mode, data.hydration_preferences?.target_ml),
-    customTargetML: data.hydration_preferences?.target_ml,
-    plannedExerciseMinutes: hydrationPlannedExerciseMinutes,
-    recordedExerciseMinutes: selectedWearableActivity?.exercise_minutes
-      ?? selectedActivityLogs.reduce((sum, log) => sum + Math.max(0, log.duration_min ?? 0), 0),
-    activeCalories: burnedKcal,
-    steps: selectedWearableActivity?.steps,
-    dateRelation: selectedLogDate < today ? 'past' : selectedLogDate > today ? 'future' : 'today',
-    localHour: selectedLogDate === today
-      ? Math.floor(clockToMinute(zonedClock(new Date(), mealTimeZone).time) / 60)
-      : selectedLogDate < today ? 23 : 0,
-  }) : null, [
-    burnedKcal,
-    data.hydration_preferences?.target_ml,
-    data.hydration_preferences?.target_mode,
-    hydrationPlannedExerciseMinutes,
-    mealTimeZone,
-    profile,
-    selectedActivityLogs,
-    selectedLogDate,
-    selectedWearableActivity?.exercise_minutes,
-    selectedWearableActivity?.steps,
-    today,
-  ])
+  const coachPolicy = clientPolicyForAccount(appAccess, coachContext)
+  const waterGoal = useMemo(() => waterTargetResolver(data, coachPolicy.can_follow_coach_plan,
+    coachPolicy.can_create_custom_workouts), [data, coachPolicy.can_follow_coach_plan, coachPolicy.can_create_custom_workouts])
+  const hydrationTarget = profile ? waterGoal(selectedLogDate, today, Math.floor(clockToMinute(zonedClock(new Date(), mealTimeZone).time) / 60)) : null
   const targets = useMemo(() => {
     const resolved = resolveActivityAdjustedTargets(quickTargets, activityEstimate, usesWholeDayProtocol)
     return resolved && hydrationTarget ? { ...resolved, water_l: hydrationTarget.targetML / 1_000 } : resolved
@@ -350,19 +310,22 @@ export function Nutrition() {
   const [selectingCopyMeals, setSelectingCopyMeals] = useState(false)
   const [selectedCopyMealIds, setSelectedCopyMealIds] = useState<Set<string>>(new Set())
   const [calendarBusy, setCalendarBusy] = useState(false)
-  const storedSelectedLog = data.daily_logs.find((d) => d.date === selectedLogDate)
+  const storedSelectedLog = data.daily_logs.find((d) => d.date === selectedLogDate && d.user_id === profile?.user_id)
   const selectedLog: DailyLog = {
     ...emptyDailyLog(selectedLogDate, profile?.user_id ?? 'local'),
     ...storedSelectedLog,
   }
+  const drinkL = useMemo(() => resolveHydrationDay({ ownerID: profile?.user_id ?? '', date: selectedLogDate,
+    events: data.hydration_events, legacyDrinkLiters: selectedLog.water_l }).drinkML / 1_000,
+  [profile?.user_id, selectedLogDate, data.hydration_events, selectedLog.water_l])
 
   const patchLog = (patch: Partial<DailyLog>): void => {
     upsert('daily_logs', { ...selectedLog, ...patch })
   }
 
   useEffect(() => {
-    setWaterDraft(String(selectedLog.water_l ?? 0))
-  }, [selectedLog.water_l, selectedLogDate])
+    setWaterDraft(String(drinkL))
+  }, [drinkL, selectedLogDate])
 
   useEffect(() => {
     rememberActiveDate(profile?.user_id, selectedLogDate)
@@ -384,16 +347,22 @@ export function Nutrition() {
     })
   }, [requestedSection])
 
-  const setWater = (value: number): void => {
-    const next = Math.min(6, Math.max(0, Math.round(value * 100) / 100))
-    setWaterDraft(String(next))
-    patchLog({ water_l: next })
+  const setWater = async (value: number): Promise<void> => {
+    if (!profile) return
+    try {
+      const total = await commitOwnerBoundMutation(profile.user_id, current => editWebDrinks(current, profile.user_id,
+        selectedLogDate, { totalML: Math.round(value * 1_000) }))
+      setWaterDraft(String(total / 1_000))
+    } catch (error) {
+      setWaterDraft(String(drinkL))
+      toast(tx(error instanceof Error ? error.message : 'Could not save water.'), 'error')
+    }
   }
 
   const commitWaterDraft = (): void => {
     const parsed = Number(waterDraft.replace(',', '.'))
     if (!Number.isFinite(parsed)) {
-      setWaterDraft(String(selectedLog.water_l ?? 0))
+      setWaterDraft(String(drinkL))
       return
     }
     setWater(parsed)
@@ -526,7 +495,7 @@ export function Nutrition() {
       .filter((entry) => entry.meal_id === loggedMeal.id)
       .sort((left, right) => left.sort_order - right.sort_order)
       .map(async (entry, index) => ({
-        id: crypto.randomUUID(),
+        id: entry.id,
         food: await snapshotFood(entry),
         quantity: entry.quantity,
         unit: entry.unit,
@@ -1294,9 +1263,9 @@ export function Nutrition() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div><p className="text-sm font-bold text-ink">{tx('Water')}</p><p className="text-[10px] font-medium text-ink-faint">{tx('Editable here or from the workout calendar.')}{hydrationTarget ? ` · ${hydrationTarget.mode === 'automatic' ? tx('Automatic target') : tx('Custom target')} ${(hydrationTarget.targetML / 1_000).toFixed(2)} L` : ''}</p></div>
                 <div className="flex items-center gap-2" aria-label={tx('Water in litres')}>
-                  <button type="button" onClick={() => setWater(selectedLog.water_l - 0.25)} className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 font-mono text-lg font-bold text-white shadow-[0_10px_24px_-12px_rgba(14,165,233,.8)]" aria-label={tx('Decrease water')}>−</button>
+                  <button type="button" onClick={() => setWater(drinkL - 0.25)} className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 font-mono text-lg font-bold text-white shadow-[0_10px_24px_-12px_rgba(14,165,233,.8)]" aria-label={tx('Decrease water')}>−</button>
                   <label className="glass flex min-w-[7.25rem] items-center justify-center rounded-xl px-2 py-2"><input type="text" inputMode="decimal" value={waterDraft} onChange={(event) => { if (/^\d*(?:[.,]\d{0,2})?$/.test(event.target.value)) setWaterDraft(event.target.value) }} onBlur={commitWaterDraft} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} className="w-[4.4rem] bg-transparent text-right font-mono text-xl font-bold text-sky-900 outline-none" aria-label={tx('Exact water in litres')} /><span className="ml-1 text-xs font-bold text-sky-700">L</span></label>
-                  <button type="button" onClick={() => setWater(selectedLog.water_l + 0.25)} className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 font-mono text-lg font-bold text-white shadow-[0_10px_24px_-12px_rgba(14,165,233,.8)]" aria-label={tx('Increase water')}>+</button>
+                  <button type="button" onClick={() => setWater(drinkL + 0.25)} className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 font-mono text-lg font-bold text-white shadow-[0_10px_24px_-12px_rgba(14,165,233,.8)]" aria-label={tx('Increase water')}>+</button>
                 </div>
               </div>
               <label className="flex flex-wrap items-center justify-between gap-3"><span><span className="block text-sm font-bold text-ink">{tx('Morning weight')}</span><span className="block text-[10px] font-medium text-ink-faint">{tx('Optional · feeds the 7-day calibration EMA')}</span></span><span className="glass flex items-center rounded-xl px-3 py-2"><input type="number" inputMode="decimal" min="25" max="300" step="0.1" value={selectedLog.weight_kg ?? ''} placeholder={String(profile.weight_kg)} onChange={(event) => patchLog({ weight_kg: event.target.value === '' ? null : Number(event.target.value) })} className="w-16 bg-transparent text-right font-mono text-base font-bold text-ink outline-none" aria-label={tx('Morning weight in kilograms')} /><span className="ml-1 text-xs font-semibold text-ink-soft">kg</span></span></label>

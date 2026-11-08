@@ -11,7 +11,7 @@ final class MealTimingEngineTests: XCTestCase {
 
     private func meal(
         id: UUID = UUID(),
-        slot: String = "lunch",
+        slot: String = "lunch", marker: String? = nil,
         date: String = "2026-01-05",
         at: String,
         kcal: Double = 500,
@@ -20,7 +20,7 @@ final class MealTimingEngineTests: XCTestCase {
         LoggedMeal(
             id: id, userID: user, localDate: date, mealSlot: slot, displayName: slot.capitalized,
             sourcePresetID: nil, sourcePlannedMealID: nil, loggedAt: at,
-            clientIdempotencyKey: id.uuidString, loggedAs: "manual",
+            clientIdempotencyKey: id.uuidString + (marker.map { "|apex-meal-block=" + $0 } ?? ""), loggedAs: "manual",
             totalKcal: kcal, totalProteinG: 30, totalCarbsG: 50, totalFatG: fat
         )
     }
@@ -280,6 +280,22 @@ final class MealTimingEngineTests: XCTestCase {
         )
         XCTAssertEqual(relations.first?.source, "missing")
         XCTAssertNil(relations.first?.gapMinutes)
+    }
+
+    func testMealTimingSeparatesSnackFromRecoveryAndClosesItsDateWindow() throws {
+        let cutoff = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-01-07T22:00:00Z"))
+        var data = APEXDebugFixture.dashboard(userID: user)
+        data.settings?.addons["time_zone"] = .string("UTC")
+        let early = meal(slot: "snack", marker: "snack", date: "2026-01-05", at: "2026-01-05T15:00:00Z")
+        let late = meal(slot: "snack", marker: "post_workout", date: "2026-01-06", at: "2026-01-06T21:00:00Z")
+        data.loggedMeals = [early, late, meal(slot: "snack", date: "2026-01-08", at: "2026-01-08T15:00:00Z")]
+        let partial = MetabolicRhythm(data: data, days: 3, now: cutoff)
+        XCTAssertEqual(partial.mealCount, 2)
+        XCTAssertNil(partial.score)
+        data.loggedMeals.append(meal(slot: "snack", date: "2026-01-07", at: "2026-01-07T15:00:00Z"))
+        let complete = MetabolicRhythm(data: data, days: 3, now: cutoff)
+        XCTAssertEqual(complete.mealCount, 3)
+        XCTAssertEqual(complete.timingVariation ?? -1, 0, accuracy: 0.01)
     }
 
     func testRhythmRewardsEatingAtTheSameTime() {

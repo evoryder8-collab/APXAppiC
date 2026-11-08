@@ -10,6 +10,45 @@ import HealthKit
 
 final class WorkoutReceiptTests: XCTestCase {
     @MainActor
+    func testWarmupWalkReceiptSurvivesRetryAndKeepsOnlyObservedFacts() async throws {
+        let app = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(app.profile?.userID)
+        var data = APEXDebugFixture.dashboard(userID: owner)
+        let day = ProgramDay(id: UUID(), userID: owner, programID: try XCTUnwrap(data.programs.first?.id),
+            weekday: 7, name: "Rest · Full recovery", dayType: "mobility", estimatedMinutes: 0,
+            warmupNote: "Full rest. A gentle walk is optional.", sortOrder: 1)
+        data.programDays.append(day)
+        data.activityTypes.append(timingTestActivityType())
+        data.workoutSessions = []
+        data.workoutLogs = []
+        data.activityLogs = []
+        app.data = data
+        let operation = try XCTUnwrap(app.accountOperationLease())
+        let start = try XCTUnwrap(ISO8601DateFormatter().date(from: "2020-11-01T10:00:00Z"))
+        XCTAssertNil(PlayerTimeline.WarmupOnly(total: 180, remaining: 180, text: day.warmupNote))
+        let walk = try XCTUnwrap(PlayerTimeline.WarmupOnly(total: 180, remaining: 60, text: day.warmupNote))
+        XCTAssertTrue(walk.walking)
+        XCTAssertTrue(PlayerTimeline.WarmupOnly.canRestore(phase: "complete", index: 0, set: 1, exercises: []))
+        let unsaved = try await app.completeWorkout(day: day, setInputs: [], lite: false, startedAt: start,
+                                                     finishedAt: nil, completionDate: "2020-11-01", operation: operation)
+        XCTAssertNil(unsaved)
+        for _ in 0..<2 {
+            _ = try await app.completeWorkout(day: day, setInputs: [], lite: false, startedAt: start, finishedAt: nil,
+                                              warmupOnly: walk, completionDate: "2020-11-01", operation: operation)
+        }
+        let receipt = try XCTUnwrap(app.data.workoutSessions.first)
+        XCTAssertEqual(app.data.workoutSessions.count, 1)
+        XCTAssertEqual(receipt.date, "2020-11-01")
+        XCTAssertTrue(receipt.isEventRecovery)
+        XCTAssertNil(receipt.completedAt)
+        XCTAssertEqual(PlayerTimeline.WarmupOnly(notes: receipt.notes), walk)
+        XCTAssertTrue(app.data.workoutLogs.isEmpty)
+        XCTAssertTrue(app.data.activityLogs.isEmpty)
+        XCTAssertEqual(WorkoutInsights.summarize(ownerID: owner, from: receipt.date, to: receipt.date, sessions: [receipt],
+                                                  logs: [], importedActivities: []).durationMinutes, 2)
+    }
+
+    @MainActor
     func testReceiptEditsDurablyQueueParentBeforeSetsForStandardAndInvitedAccounts() async throws {
         for role in [DeveloperSandboxRole.coach, .invitedClient] {
             let root = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -22,13 +61,18 @@ final class WorkoutReceiptTests: XCTestCase {
             let exercise = try XCTUnwrap(data.exercises.first)
             let receipt = workout(userID: owner, dayID: exercise.programDayID, completedAt: "2026-08-26T09:00:00Z")
             let row = WorkoutLog(id: UUID(), userID: owner, sessionID: receipt.id, exerciseID: exercise.id,
-                exerciseName: exercise.name, setNumber: 1, weightKG: 20, reps: 10, rir: 2,
+                exerciseName: exercise.name, setNumber: 1, weightKG: 20.125, reps: 10, rir: 2,
                 skipped: false, overrideFlag: false, createdAt: "2026-08-26T09:00:00Z")
             data.workoutSessions = [receipt]
             data.workoutLogs = [row]
             app.data = data
             let operation = try XCTUnwrap(app.accountOperationLease())
             var draft = WorkoutReceipt.editInput(row)
+            let unchanged = try await app.updateWorkoutLog(id: row.id, draft: draft, operation: operation)
+            let initialQueue = try await store.pendingOperations(for: owner)
+            XCTAssertTrue(unchanged)
+            XCTAssertTrue(initialQueue.isEmpty)
+            XCTAssertEqual(app.data.workoutLogs.first?.weightKG, 20.125)
             draft.reps = 12
             let saved = try await app.updateWorkoutLog(id: row.id, draft: draft, operation: operation)
             XCTAssertTrue(saved)

@@ -62,14 +62,20 @@ struct AvatarView: View {
                 if session.coachClientPolicy.canViewVisualProgress {
                     visualProgressLink
                 }
-                bodyIndexCard
-                radarCard
+                if snapshot != nil {
+                    bodyIndexCard
+                    radarCard
+                }
                 calibrationControl
-                statsCard
-                needsCard
+                if snapshot != nil {
+                    statsCard
+                    needsCard
+                } else {
+                    baselineProgressCard
+                }
                 StrengthHistoryCard(sessions: session.data.workoutSessions, logs: session.data.workoutLogs, days: trendDays)
                 jointCheckCard
-                assessmentCard
+                if snapshot != nil { assessmentCard }
                 engineCard
                 healthEvidenceCard
                 metabolicRhythmCard
@@ -142,6 +148,27 @@ struct AvatarView: View {
             .overlay(RoundedRectangle(cornerRadius: 29, style: .continuous).stroke(.white.opacity(0.9)))
         }
         .buttonStyle(.plain)
+    }
+
+    private var baselineProgressCard: some View {
+        GlassCard(radius: 32, padding: 20) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(language.text("Building your baseline")).font(APEXFont.display(24))
+                ForEach(bodySignals) { stat in
+                    HStack {
+                        Text(language.text(stat.name))
+                        Spacer()
+                        if let value = session.avatarDomainScores[stat.key] {
+                            Text(value.formatted(.number.precision(.fractionLength(0))))
+                                .monospacedDigit()
+                        } else {
+                            Text("—").accessibilityLabel(language.text("Building your baseline"))
+                        }
+                    }
+                    .accessibilityElement(children: .combine)
+                }
+            }
+        }
     }
 
     private var bodyIndexCard: some View {
@@ -283,7 +310,7 @@ struct AvatarView: View {
                 Text(language.text("Logging on more days raises it. Eating at wildly different times lowers it. Change your timezone in Settings if the hours look wrong."))
                     .font(APEXFont.body(10, weight: .medium)).foregroundStyle(.white.opacity(0.55))
             } else {
-                Label(language.text("Log three meals and this starts working."), systemImage: "waveform.path.ecg")
+                Label(language.text("Log the same meal on two different days to compare timing."), systemImage: "waveform.path.ecg")
                     .font(APEXFont.body(13, weight: .semibold)).foregroundStyle(.white.opacity(0.72)).padding(.vertical, 22)
             }
         }
@@ -726,43 +753,31 @@ private struct AvatarEvidence: Identifiable {
     let color: Color
 }
 
-private struct MetabolicRhythm {
+struct MetabolicRhythm {
     let mealCount: Int
     let daysWithMeals: Int
     let timingVariation: Double?
     let score: Double?
 
-    init(data: DashboardData, days: Int) {
-        let cutoff = Calendar.current.date(byAdding: .day, value: -days, to: .now) ?? .distantPast
-        let configuredTimeZone = data.settings?.addons["time_zone"]?.stringValue.flatMap(TimeZone.init(identifier:)) ?? .current
-        var calendar = Calendar.current
-        calendar.timeZone = configuredTimeZone
-        let meals = data.loggedMeals.filter {
-            guard let date = ISO8601DateFormatter.apexDateOnly.date(from: $0.localDate) else { return false }
-            return date >= cutoff
+    init(data: DashboardData, days: Int, now: Date = .now) {
+        let zone = data.settings?.addons["time_zone"]?.stringValue.flatMap(TimeZone.init(identifier:)) ?? .current
+        let today = MealTimingEngine.daylineDateKey(for: now, timeZone: zone.identifier)
+        let first = FBDate.addDays(today, -(max(1, days) - 1))
+        let owner = data.profile?.userID
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let whole = ISO8601DateFormatter()
+        let meals = data.loggedMeals.filter { meal in
+            guard meal.userID == owner, (first...today).contains(meal.localDate),
+                  let at = fractional.date(from: meal.loggedAt) ?? whole.date(from: meal.loggedAt),
+                  at <= now else { return false }
+            return MealTimingEngine.daylineDateKey(for: at, timeZone: zone.identifier) == meal.localDate
         }
         mealCount = meals.count
         daysWithMeals = Set(meals.map(\.localDate)).count
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        let timestamped = meals.compactMap { meal -> (String, Double)? in
-            guard let date = fractional.date(from: meal.loggedAt) ?? ISO8601DateFormatter().date(from: meal.loggedAt) else { return nil }
-            let parts = calendar.dateComponents([.hour, .minute], from: date)
-            return (meal.mealSlot.lowercased(), Double((parts.hour ?? 0) * 60 + (parts.minute ?? 0)))
-        }
-        let grouped = Dictionary(grouping: timestamped, by: \.0).values.map { $0.map(\.1) }.filter { $0.count >= 2 }
-        let deviations = grouped.flatMap { values -> [Double] in
-            let angles = values.map { 2 * Double.pi * $0 / 1_440 }
-            let meanAngle = atan2(angles.map(sin).reduce(0, +), angles.map(cos).reduce(0, +))
-            let meanMinute = ((meanAngle < 0 ? meanAngle + 2 * Double.pi : meanAngle) / (2 * Double.pi)) * 1_440
-            return values.map { minute in
-                let direct = abs(minute - meanMinute)
-                return min(direct, 1_440 - direct)
-            }
-        }
-        if mealCount >= 3, !deviations.isEmpty {
-            timingVariation = deviations.reduce(0, +) / Double(deviations.count)
-            let coverage = min(1, Double(daysWithMeals) / Double(min(days, 14)))
+        if let variation = MealTimingEngine.typicalTimingVariation(meals, timeZone: zone.identifier) {
+            timingVariation = variation
+            let coverage = min(1, Double(daysWithMeals) / Double(max(1, days)))
             let consistency = max(0, 1 - (timingVariation ?? 180) / 240)
             score = min(100, max(0, coverage * 70 + consistency * 30))
         } else {

@@ -21,8 +21,7 @@ test('launcher uses the seven-preset product contract and does not introduce tra
   assert.match(workoutDomain, /QUICK_WORKOUT_PRESET_LIMIT = 7/)
   assert.match(workoutDomain, /\.slice\(0, QUICK_WORKOUT_PRESET_LIMIT\)/)
   assert.doesNotMatch(launcher, /localStorage|sessionStorage|indexedDB/)
-  assert.match(logger, /upsert\('workout_sessions', session\)/)
-  assert.match(logger, /bulkUpsert\('workout_logs', reconciled\.logs\)/)
+  assert.match(logger, /await commitOwnerBoundMutation\(ownerId, \(current\) => stageManualWorkoutSave\(current, input\)\)/)
 })
 
 test('whole-workout removal is confirmed and queues child deletes before session deletes', () => {

@@ -74,6 +74,37 @@ enum PlayerTimeline {
         return nil
     }
 
+    struct WarmupOnly: Equatable, Sendable {
+        let seconds: Int
+        let walking: Bool
+        var title: String { walking ? "Walking" : "Warm-up" }
+        var notes: String { "FITR_WARMUP_V1|\(walking ? "walk" : "warmup")|\(seconds)" }
+
+        init?(total: Int, remaining: Int, text: String) {
+            guard total > 0, remaining >= 0, remaining < total,
+                  !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
+            seconds = total - remaining
+            walking = Self.isWalk(text)
+        }
+
+        init?(notes: String) {
+            let fields = notes.prefix(while: { $0 != "\n" }).split(separator: "|")
+            guard fields.count == 3, fields[0] == "FITR_WARMUP_V1",
+                  ["walk", "warmup"].contains(fields[1]), let value = Int(fields[2]), value > 0 else { return nil }
+            seconds = value
+            walking = fields[1] == "walk"
+        }
+
+        static func isWalk(_ text: String) -> Bool {
+            text.range(of: #"\bwalk(?:ing)?\b"#, options: [.regularExpression, .caseInsensitive]) != nil
+        }
+
+        static func canRestore(phase: String, index: Int, set: Int, exercises: [Exercise]) -> Bool {
+            if exercises.isEmpty { return phase == "warmup" || phase == "complete" }
+            return exercises.indices.contains(index) && (1...max(1, exercises[index].sets)).contains(set)
+        }
+    }
+
     struct WorkPosition: Hashable, Sendable {
         let exerciseIndex: Int
         let setNumber: Int
@@ -498,6 +529,7 @@ enum PlayerTimeline {
         // The end of performed work, not a later receipt-save time. Old
         // drafts intentionally leave this unknown rather than guessing.
         var performedFinish: String? = nil
+        var watchLaunchID: UUID? = nil
     }
 
     enum DraftStore {

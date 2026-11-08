@@ -306,6 +306,10 @@ export function MealComposer({
       ? targetTime ?? currentClock.time
       : currentClock.time
   const [items, setItems] = useState<ComposerFoodItem[]>(initialItems)
+  const [editSnapshot] = useState(() => replacedMeal ? {
+    version: replacedMeal.client_idempotency_key,
+    entryIds: initialItems.map(item => item.id),
+  } : undefined)
   const yesterdayItems = useMemo(() => yesterdayMealItems(mealDate, slot, activeOwnerId, store.meals, store.entries), [mealDate, slot, activeOwnerId, store.meals, store.entries])
   const [name, setName] = useState(title ?? slotLabel)
   const [finishedTime, setFinishedTime] = useState(defaultFinishedTime)
@@ -913,6 +917,10 @@ export function MealComposer({
       setConfirmEmptyMealDeletion(false)
       return
     }
+    if (replaceMealId && (!editSnapshot || !editSnapshot.entryIds.length || editSnapshot.version !== replacedMeal?.client_idempotency_key)) {
+      setMessage(t('This meal changed. Refresh and reopen it before saving.'))
+      return
+    }
     if (replaceMealId && items.length === 0) {
       if (!confirmEmptyMealDeletion) {
         setConfirmEmptyMealDeletion(true)
@@ -920,7 +928,7 @@ export function MealComposer({
       }
       setSaving(true)
       try {
-        await store.deleteMeal(replaceMealId)
+        await store.deleteMeal(replaceMealId, editSnapshot?.version)
         setConfirmEmptyMealDeletion(false)
         onLogged?.()
         onClose()
@@ -947,7 +955,7 @@ export function MealComposer({
         finishedAt: zonedDateTimeToIso(mealDate, finishedTime, timeZone),
         sourcePresetId,
         sourcePlannedMealId: plannedMealId,
-        replaceMealId, loggedAs: planning ? 'planned' : plannedMealId ? (initialItems.length ? 'changed' : 'planned') : 'custom',
+        replaceMealId, editSnapshot, loggedAs: planning ? 'planned' : plannedMealId ? (initialItems.length ? 'changed' : 'planned') : 'custom',
         idempotencyKey: mealBlockIdempotencyKey(crypto.randomUUID(), assignedBlock),
       })
       onLogged?.()

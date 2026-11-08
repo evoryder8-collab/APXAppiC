@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { parse as parseJavaScript } from '@babel/parser'
 import { nativeContentRows } from './native-content-translations.mjs'
 import { nativeTrainingRows } from './native-training-translations.mjs'
@@ -8,10 +8,11 @@ import { nativeRuntimeGeneralRows } from './native-runtime-general-translations.
 import { nativeRuntimeOrbitRows } from './native-runtime-orbit-translations.mjs'
 import { nativeRuntimeMarathonRows } from './native-runtime-marathon-translations.mjs'
 import { authoredVoiceRows } from './native-voice-copy.mjs'
+import { applyProductInterfaceCopy } from './apply-product-interface-copy.mjs'
 
 const toolsDirectory = path.dirname(fileURLToPath(import.meta.url))
 const repository = path.resolve(toolsDirectory, '../../..')
-const nativeResources = path.join(repository, 'ios/APEXNative/APEX/Resources')
+const nativeResources = process.env.FITR_LOCALIZATION_OUTPUT_DIR || path.join(repository, 'ios/APEXNative/APEX/Resources')
 
 function parse(file) {
   const body = fs.readFileSync(file, 'utf8')
@@ -415,14 +416,40 @@ function escapeStrings(value) {
   return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"').replaceAll('\n', '\\n').replaceAll('\r', '\\r')
 }
 
+// The checked-in tables also contain reviewed native-only and historical copy.
+// Preserve native-only sections and import shared web copy for keys the app uses.
+const branded = value => value.replace(/(?<![A-Za-z0-9_./])(?:APEX|FitDee|FITR-D|FITR-MAX)(?![A-Za-z0-9_]|[./][A-Za-z0-9_])/g, 'FITR MAX')
+const reviewed = new Set(authoredVoiceRows.map(row => row.key))
+const nativeKeys = new Set()
+for (const language of ['de', 'de-CH', 'it', 'es', 'pt', 'ja']) {
+  const table = fs.readFileSync(path.join(nativeResources, `${language}.lproj/Localizable.strings`), 'utf8')
+  for (const [, key] of table.matchAll(/^"((?:[^"\\]|\\.)*)" = /gm)) nativeKeys.add(key)
+}
 for (const language of ['ro', 'th']) {
   const directory = path.join(nativeResources, `${language}.lproj`)
   fs.mkdirSync(directory, { recursive: true })
-  const lines = [...translations.entries()]
-    .sort(([left], [right]) => left.localeCompare(right, 'en'))
-    .map(([english, values]) => `"${escapeStrings(english)}" = "${escapeStrings(values[language])}";`)
-  fs.writeFileSync(path.join(directory, 'Localizable.strings'), `/* Generated from the production web translation corpus. */\n${lines.join('\n')}\n`)
+  const filename = path.join(directory, 'Localizable.strings')
+  const original = fs.existsSync(filename) ? fs.readFileSync(filename, 'utf8') : '/* Generated from the production web translation corpus. */\n'
+  const lines = original.trimEnd().split('\n')
+  const positions = new Map(lines.flatMap((line, index) => {
+    const pair = line.match(/^"((?:[^"\\]|\\.)*)" = /)
+    return pair ? [[pair[1], index]] : []
+  }))
+  for (const [english, values] of translations) {
+    const key = escapeStrings(branded(english))
+    const position = positions.get(key)
+    const line = `"${key}" = "${escapeStrings(branded(values[language]))}";`
+    if (position === undefined) {
+      if (!nativeKeys.has(key) && !reviewed.has(english)) continue
+      positions.set(key, lines.length)
+      lines.push(line)
+    } else if (reviewed.has(english)) {
+      lines[position] = line
+    }
+  }
+  fs.writeFileSync(filename, lines.join('\n') + '\n')
 }
+applyProductInterfaceCopy(pathToFileURL(nativeResources + path.sep))
 
 const info = {
   NSCameraUsageDescription: {
@@ -457,8 +484,8 @@ const info = {
 
 for (const language of ['ro', 'th']) {
   const directory = path.join(nativeResources, `${language}.lproj`)
-  const lines = Object.entries(info).map(([key, values]) => `"${key}" = "${escapeStrings(values[language])}";`)
+  const lines = Object.entries(info).map(([key, values]) => `"${key}" = "${escapeStrings(branded(values[language]))}";`)
   fs.writeFileSync(path.join(directory, 'InfoPlist.strings'), `${lines.join('\n')}\n`)
 }
 
-console.log(`Generated ${translations.size} native translations for Romanian and Thai.`)
+console.log('Updated Romanian and Thai native translations and synchronized shared interface copy.')

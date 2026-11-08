@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useEffect, useRef, useState } from 'react'
 import { AccentChip, GlassCard, GradientButton, SectionHeader, Stepper, Toggle } from '../components/ui'
 import { ACCENTS } from '../lib/theme'
@@ -1066,6 +1067,9 @@ export function Settings() {
             <GradientButton accent={violet} onClick={() => void switchPerson()}>
               Switch person
             </GradientButton>
+            {!isLocalMode && coachContext.sponsorship?.relationship_status === 'grace' && coachContext.current_plan && (
+              <Link to="/coach-plan">{t('Previous coach plan')}</Link>
+            )}
             {!isLocalMode && (
               <GradientButton accent={violet} onClick={() => void signOut()}>
                 Sign out

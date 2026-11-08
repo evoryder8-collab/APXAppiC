@@ -171,7 +171,7 @@ enum CustomWorkoutLifecycle {
             data.programs.first { $0.id == edited.programID && $0.userID == ownerID }
         } ?? data.programs.first { $0.userID == ownerID && $0.slug == "custom" }
             ?? Program(
-                id: UUID(),
+                id: APEXStableID.scopedUUID(namespace: "custom-workout-program", date: "custom", userID: ownerID),
                 userID: ownerID,
                 slug: "custom",
                 name: "Custom workouts",
@@ -183,6 +183,7 @@ enum CustomWorkoutLifecycle {
                 && $0.isActive
                 && $0.weekday == request.weekday
                 && $0.id != request.editingDayID
+                && !ManualWorkout.isLegacyReceiptContainer($0, in: data)
         }
         let conflictIDs = Set(conflicts.map(\.id))
         if !conflictIDs.isEmpty,

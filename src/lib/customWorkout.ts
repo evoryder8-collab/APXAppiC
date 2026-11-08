@@ -1,3 +1,4 @@
+import { prescriptionDays } from './manualWorkout.ts'
 import { EXERCISE_CATALOG, catalogExerciseByName } from '../data/exerciseCatalog.ts'
 import type { AppData, Exercise, Program, ProgramDay, SessionMode } from './types.ts'
 import type { OwnerBoundMutationWrite } from './ownerBoundMutation.ts'
@@ -83,7 +84,7 @@ export function stageCustomWorkoutSave(current: AppData, input: {
 }): { data: AppData; writes: OwnerBoundMutationWrite[]; result: void } {
   const ownerID = input.program.user_id
   const program = current.programs.find((row) => row.user_id === ownerID && row.slug === 'custom') ?? input.program
-  const activeDays = activeCustomWorkoutDays(current.program_days, ownerID, program.id)
+  const activeDays = activeCustomWorkoutDays(prescriptionDays(current), ownerID, program.id)
   if (input.editingDayID && !activeDays.some((row) => row.id === input.editingDayID)) {
     throw new Error('This workout is no longer available.')
   }
@@ -93,7 +94,7 @@ export function stageCustomWorkoutSave(current: AppData, input: {
     || (input.editingDayID !== null && input.day.id !== input.editingDayID)
     || input.exercises.some((row) => row.user_id !== ownerID || row.program_day_id !== input.day.id)
   ) throw new Error('Invalid custom workout owner or prescription.')
-  const replacement = customWorkoutReplacementDecision(current.program_days, {
+  const replacement = customWorkoutReplacementDecision(prescriptionDays(current), {
     ownerID, programID: program.id, weekday: input.day.weekday,
     editingDayID: input.editingDayID,
     confirmedReplacementDayIDs: input.confirmedReplacementDayIDs,
@@ -102,7 +103,7 @@ export function stageCustomWorkoutSave(current: AppData, input: {
     throw new CustomWorkoutReplacementRequiredError(replacement.replacingDayIDs)
   }
   const savedDay = { ...input.day, program_id: program.id, is_active: true }
-  const days = [...customWorkoutArchiveRows(current.program_days, {
+  const days = [...customWorkoutArchiveRows(prescriptionDays(current), {
     ownerID, programID: program.id, dayIDs: replacement.replacingDayIDs,
   }), savedDay]
   const dayByID = new Map(days.map((row) => [row.id, row]))
@@ -130,7 +131,7 @@ export function stageCustomWorkoutArchive(current: AppData, input: {
   if (!current.programs.some((row) => row.id === input.programID && row.user_id === input.ownerID && row.slug === 'custom')) {
     throw new Error('This workout is no longer available.')
   }
-  const archivedDay = customWorkoutArchiveRows(current.program_days, {
+  const archivedDay = customWorkoutArchiveRows(prescriptionDays(current), {
     ...input, dayIDs: [input.dayID],
   })[0]
   if (!archivedDay) throw new Error('This workout is no longer available.')

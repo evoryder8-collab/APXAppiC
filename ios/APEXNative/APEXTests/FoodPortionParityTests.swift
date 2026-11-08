@@ -77,6 +77,31 @@ final class FoodPortionParityTests: XCTestCase {
     }
 
     /* The screenshot case: 20 g of 364 kcal/100 g whey = 73 kcal, P 17.2 */
+    func testExtremeAndNonFiniteInputCannotBeLoggedOrTrapThePreview() {
+        for amount in [1e20, .infinity, .nan, -1, 0] {
+            XCTAssertNil(FoodPortionMath.portion(food(), quantity: amount, unit: .grams))
+        }
+        XCTAssertNil(FoodPortionMath.portion(food(serving: 1e300), quantity: 10, unit: .serving))
+        XCTAssertNil(FoodPortionMath.portion(food(kcal: 1e250), quantity: 100, unit: .grams))
+        XCTAssertEqual(FoodQuantity.formatAmount(1e20), "—")
+        XCTAssertEqual(FoodPortionMath.portion(food(), quantity: 20, unit: .grams)?.kcal, 73)
+    }
+
+    func testBrandAndAliasSearchWithAPlainSteakAheadOfSauce() throws {
+        var royal = food(kcal: 250, protein: 18, carbs: 21, fat: 12)
+        royal.name = "Cheeseburger Royal"
+        royal.brand = "McDonald’s"
+        royal.searchAliases = ["Quarter Pounder"]
+        var steak = food(kcal: 155, protein: 22, carbs: 0)
+        steak.name = "Beef sirloin steak"
+        var sauce = food(kcal: 55, protein: 1, carbs: 9)
+        sauce.name = "Steak sauce"
+        let foods = [sauce, steak, royal]
+        XCTAssertEqual(MealMemory.searchFoods(query: "McDonald's Cheeseburger Royal", foods: foods, preferences: []).map(\.id), [royal.id])
+        XCTAssertEqual(MealMemory.searchFoods(query: "McDonald's Quarter Pounder", foods: foods, preferences: []).map(\.id), [royal.id])
+        XCTAssertEqual(MealMemory.searchFoods(query: "steak", foods: foods, preferences: []).first?.id, steak.id)
+    }
+
     func testMatchesWebComposerScreenshotNumbers() throws {
         let portion = try XCTUnwrap(
             FoodPortionMath.portion(food(), quantity: 20, unit: .grams))

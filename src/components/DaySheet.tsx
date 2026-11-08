@@ -1,3 +1,4 @@
+import { manualWorkoutTitle } from '../lib/manualWorkout.ts'
 /* Day planner sheet: plan preview, Full/Lite toggle, deload, water, START. */
 import { lazy, Suspense, useMemo, useState } from 'react'
 import { format } from 'date-fns'
@@ -40,10 +41,10 @@ function completedSessionFor(
   const dayIds = new Set(data.program_days.filter((d) => d.program_id === program?.id).map((d) => d.id))
   return (
     data.workout_sessions.find(
-      (s) => s.date === dateIso && s.completed && (
+      (s) => s.user_id === data.profile?.user_id && s.date === dateIso && s.completed && manualWorkoutTitle(s.notes) == null && (
         programDayId
-          ? s.program_day_id === programDayId || s.is_event_recovery
-          : dayIds.has(s.program_day_id) || s.is_event_recovery
+          ? s.program_day_id === programDayId
+          : dayIds.has(s.program_day_id)
       ),
     ) ?? null
   )
@@ -303,7 +304,13 @@ export function DaySheet({ open, onClose, dateIso, slug, accent, initialLite = f
         </button>
       </div>
 
-      {!done && plan.exercises.length > 0 && isPastOrToday && (() => {
+      {!done && !plan.exercises.length && plan.programDay && plan.warmupDuration > 0 && /\bwalk(?:ing)?\b/i.test(plan.warmup) && (
+        <button type="button" className="mt-4 w-full rounded-xl bg-teal-600 px-4 py-3 font-bold text-white"
+          onClick={() => { onClose(); navigate(`/player/${slug}/${dateIso}?day=${encodeURIComponent(plan.programDay!.id)}${lite ? '&lite=1' : ''}`) }}>
+          {t('Walking')}{!isPastOrToday ? ' · ' + t('Today') : ''}
+        </button>
+      )}
+      {!done && plan.exercises.length > 0 && (() => {
         /* Both ways of training the same session, shown as what they are.
          * Neither is a fallback hidden under the other, and neither is picked
          * for the user by anything they answered in a questionnaire. The one
@@ -341,7 +348,7 @@ export function DaySheet({ open, onClose, dateIso, slug, accent, initialLite = f
                       : 'border-white/15 bg-white/35'
                   }`}
                 >
-                  <span className="block text-sm font-black tracking-wide text-ink">{label}</span>
+                  <span className="block text-sm font-black tracking-wide text-ink">{t(label)}{!isPastOrToday ? ` · ${t('Today')}` : ''}</span>
                   <span className="mt-0.5 block text-[10px] font-semibold text-ink-soft">{hint}</span>
                   {active && (
                     <span className="mt-1.5 block text-[9px] font-black uppercase tracking-[0.14em] text-ink-soft/70">

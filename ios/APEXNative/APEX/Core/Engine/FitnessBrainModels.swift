@@ -394,6 +394,8 @@ public struct FBEngineInput: Sendable {
     public var healthMetrics: [FBHealthMetric]
     public var importedActivities: [FBImportedActivity]
     public var capacityCalibrationEvidence: [FBCapacityCalibrationEvidence]
+    /// Authoritative total-water progress (drink and food) and the goal for each logged day.
+    public var hydrationByDay: [String: (totalML: Int, targetML: Int)] = [:]
     public var recoveryHistory: [FBRecoveryCheckin]
     /* keys are yyyy-MM-dd dates; order preserved from storage where relevant */
     public var mealRhythmHistory: [String: FBMealRhythmDayRaw]
@@ -489,8 +491,24 @@ public struct FBSynergyEvent: Codable, Sendable, Equatable {
 public struct FBEngineResult: Sendable {
     public var snapshots: [FBSnapshot]
     public var synergies: [FBSynergyEvent]
+    public var firstObserved: [String: String]
 
-    public init(snapshots: [FBSnapshot], synergies: [FBSynergyEvent]) {
+    /// Stored legacy snapshots require every value. Publish only days on which all six
+    /// component domains have evidence; individual estimates can be shown sooner.
+    public var publishableSnapshots: [FBSnapshot] {
+        guard firstObserved.count == 6, let firstOverall = firstObserved.values.max() else { return [] }
+        return snapshots.filter { $0.date >= firstOverall }
+    }
+
+    public var domainScores: [String: Double] {
+        guard let s = snapshots.last else { return [:] }
+        let values = ["health": s.health, "joint": s.joint, "flexibility": s.flexibility,
+                      "endurance": s.endurance, "upper": s.strengthUpper, "lower": s.strengthLower]
+        return values.filter { firstObserved[$0.key] != nil }
+    }
+
+    public init(snapshots: [FBSnapshot], synergies: [FBSynergyEvent], firstObserved: [String: String] = [:]) {
+        self.firstObserved = firstObserved
         self.snapshots = snapshots
         self.synergies = synergies
     }

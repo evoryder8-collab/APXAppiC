@@ -1,3 +1,4 @@
+import { manualWorkoutTitle } from './manualWorkout.ts'
 import type { PlannedDay } from './plan.ts'
 import type { WorkoutSession } from './types.ts'
 
@@ -39,7 +40,7 @@ export function dailyGuidedSessions(
       || !plan.exercises.some((exercise) => exercise.user_id === ownerID && exercise.program_day_id === day.id)) return []
     seen.add(day.id)
     const completed = sessions.filter((session) => session.user_id === ownerID && session.date === date
-      && session.program_day_id === day.id && session.completed)
+      && session.program_day_id === day.id && session.completed && manualWorkoutTitle(session.notes) == null)
       .sort((left, right) => (right.completed_at ?? right.started_at ?? '').localeCompare(left.completed_at ?? left.started_at ?? '')
         || right.id.localeCompare(left.id))[0]
     const resumeLite = completed ? undefined : resumableModes.get(day.id)

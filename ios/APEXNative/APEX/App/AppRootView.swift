@@ -19,6 +19,8 @@ struct AppRootView: View {
             case .emailAuth(let signUp):
                 EmailAuthView(signUp: signUp)
                     .transition(.move(edge: .trailing).combined(with: .opacity))
+            case .resetPassword:
+                PasswordResetCompletionView()
             case .induction:
                 accessProtected { InductionView() }
                     .transition(.move(edge: .trailing).combined(with: .opacity))

@@ -1,3 +1,5 @@
+import { scopedUuid } from '../lib/ids.ts'
+import { prescriptionDays } from '../lib/manualWorkout.ts'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { getISODay } from 'date-fns'
 import type { IntroLanguage } from '../lib/introLanguage'
@@ -125,7 +127,7 @@ export function CustomWorkoutBuilder({
       : null
     if (!profile || !program) return []
     const conflicts = new Set(replacementDayIds)
-    return activeCustomWorkoutDays(data.program_days, profile.user_id, program.id)
+    return activeCustomWorkoutDays(prescriptionDays(data), profile.user_id, program.id)
       .filter((day) => conflicts.has(day.id))
       .sort((left, right) => left.id.localeCompare(right.id))
   }, [data.profile, data.program_days, data.programs, replacementDayIds])
@@ -178,7 +180,7 @@ export function CustomWorkoutBuilder({
       ? data.programs.find((program) => program.slug === 'custom' && program.user_id === profile.user_id)
       : null
     const editingDay = customProgram && profile
-      ? activeCustomWorkoutDays(data.program_days, profile.user_id, customProgram.id)
+      ? activeCustomWorkoutDays(prescriptionDays(data), profile.user_id, customProgram.id)
           .find((day) => day.id === editingDayId)
       : null
     if (!editingDay) {
@@ -214,13 +216,13 @@ export function CustomWorkoutBuilder({
 
     const existingProgram = data.programs.find((program) => program.slug === 'custom' && program.user_id === profile.user_id)
     const program: Program = existingProgram ?? {
-      id: crypto.randomUUID(),
+      id: scopedUuid('custom-workout-program', 'custom', profile.user_id.toLowerCase()),
       user_id: profile.user_id,
       slug: 'custom',
       name: 'Custom workouts',
       description: 'Your searchable exercise studio, saved privately.',
     }
-    const activeDays = activeCustomWorkoutDays(data.program_days, profile.user_id, program.id)
+    const activeDays = activeCustomWorkoutDays(prescriptionDays(data), profile.user_id, program.id)
     const editingDay = editingDayId
       ? activeDays.find((day) => day.id === editingDayId)
       : null
@@ -228,7 +230,7 @@ export function CustomWorkoutBuilder({
       setMessage(t('This workout is no longer available.'))
       return
     }
-    const replacement = customWorkoutReplacementDecision(data.program_days, {
+    const replacement = customWorkoutReplacementDecision(prescriptionDays(data), {
       ownerID: profile.user_id,
       programID: program.id,
       weekday,

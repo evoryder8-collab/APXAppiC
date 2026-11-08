@@ -79,12 +79,21 @@ enum MealTimingEngine {
     /// Quick Log stores the save time even when logging an earlier workout.
     /// Such a receipt remains on its assigned date in Finished Workouts, but
     /// its save timestamp cannot supply a finish or recovery window.
-    private static func recordedWorkoutFinish(_ session: WorkoutSession, timeZone: String) -> Date? {
-        guard session.completed, let date = instant(session.completedAt) else { return nil }
-        let anchor = instant(session.startedAt) ?? date
-        guard localDateKey(anchor, timeZone: timeZone) == session.date
-                || daylineDateKey(for: date, timeZone: timeZone) == session.date else { return nil }
-        return date
+    private static func recordedWorkoutFinish(_ session: WorkoutSession, timeZone: String) -> (date: Date, day: String)? {
+        guard session.completed, let finish = instant(session.completedAt) else { return nil }
+        let day = daylineDateKey(for: finish, timeZone: timeZone)
+        if let start = instant(session.startedAt), start < finish,
+           ManualWorkout.title(fromNotes: session.notes) == nil {
+            return (finish, day)
+        }
+        if let start = instant(session.startedAt), start < finish,
+           localDateKey(start, timeZone: timeZone) == session.date,
+           localDateKey(finish, timeZone: timeZone) == APEXDateMath.adding(days: 1, to: session.date) {
+            return (finish, session.date)
+        }
+        // Backfilled Quick Logs may carry the save timestamp in both fields.
+        guard day == session.date || localDateKey(finish, timeZone: timeZone) == session.date else { return nil }
+        return (finish, session.date)
     }
 
     /// A completed session is a factual Dayline event only when its recorded
@@ -94,9 +103,8 @@ enum MealTimingEngine {
         localDate: String,
         timeZone: String
     ) -> DaylineWorkoutTiming? {
-        guard session.date == localDate,
-              let date = recordedWorkoutFinish(session, timeZone: timeZone) else { return nil }
-        let minute = minuteOfDay(date, timeZone: timeZone)
+        guard let finish = recordedWorkoutFinish(session, timeZone: timeZone), finish.day == localDate else { return nil }
+        let minute = minuteOfDay(finish.date, timeZone: timeZone)
         return DaylineWorkoutTiming(
             sessionID: session.id,
             minute: minute,
@@ -324,11 +332,25 @@ enum MealTimingEngine {
         return minuteOfDay(date, timeZone: timeZone)
     }
 
-    private static func standardDeviation(_ values: [Int]) -> Double? {
-        guard values.count >= 2 else { return nil }
-        let mean = Double(values.reduce(0, +)) / Double(values.count)
-        let variance = values.reduce(0.0) { $0 + pow(Double($1) - mean, 2) } / Double(values.count)
-        return sqrt(variance)
+    /// Compare the same meal moment on different days, including near midnight.
+    static func typicalTimingVariation(_ meals: [LoggedMeal], timeZone: String) -> Double? {
+        let groups = Dictionary(grouping: meals) { MealMemory.markedBlock($0) ?? MealBlocks.kind(for: $0) }
+        let variations = groups.values.compactMap { group -> Double? in
+            let observations = group.compactMap { meal -> (String, Double)? in
+                guard let minute = minuteOfDay(meal.loggedAt, timeZone: timeZone) else { return nil }
+                return (meal.localDate, Double(minute))
+            }
+            guard Set(observations.map(\.0)).count >= 2 else { return nil }
+            let angles = observations.map { $0.1 * 2 * Double.pi / 1_440 }
+            let mean = atan2(angles.map(sin).reduce(0, +), angles.map(cos).reduce(0, +))
+            let meanMinute = (mean < 0 ? mean + 2 * Double.pi : mean) * 1_440 / (2 * Double.pi)
+            let squared = observations.map { item in
+                let distance = abs(item.1 - meanMinute)
+                return pow(min(distance, 1_440 - distance), 2)
+            }
+            return sqrt(squared.reduce(0, +) / Double(squared.count))
+        }
+        return variations.isEmpty ? nil : variations.reduce(0, +) / Double(variations.count)
     }
 
     static func postWorkoutNutrition(
@@ -342,13 +364,13 @@ enum MealTimingEngine {
 
         return completed.compactMap { session -> PostWorkoutTiming? in
             guard let completedAt = session.completedAt,
-                  let finished = recordedWorkoutFinish(session, timeZone: timeZone) else { return nil }
+                  let finish = recordedWorkoutFinish(session, timeZone: timeZone) else { return nil }
             /* The next meal finished within six hours belongs to this session. */
             let following = meals
-                .filter { $0.localDate == session.date }
+                .filter { $0.localDate == finish.day }
                 .compactMap { meal -> (LoggedMeal, Date)? in
                     guard let at = instant(meal.loggedAt) else { return nil }
-                    let gap = at.timeIntervalSince(finished)
+                    let gap = at.timeIntervalSince(finish.date)
                     guard gap >= 0, gap <= 6 * 60 * 60 else { return nil }
                     return (meal, at)
                 }
@@ -357,14 +379,14 @@ enum MealTimingEngine {
 
             guard let (meal, at) = following else {
                 return PostWorkoutTiming(
-                    sessionID: session.id, date: session.date, completedAt: completedAt,
+                    sessionID: session.id, date: finish.day, completedAt: completedAt,
                     mealID: nil, mealName: nil, mealFinishedAt: nil,
                     gapMinutes: nil, timingScore: nil, source: "missing"
                 )
             }
-            let gapMinutes = max(0, Int((at.timeIntervalSince(finished) / 60).rounded()))
+            let gapMinutes = max(0, Int((at.timeIntervalSince(finish.date) / 60).rounded()))
             return PostWorkoutTiming(
-                sessionID: session.id, date: session.date, completedAt: completedAt,
+                sessionID: session.id, date: finish.day, completedAt: completedAt,
                 mealID: meal.id, mealName: meal.displayName, mealFinishedAt: meal.loggedAt,
                 gapMinutes: gapMinutes, timingScore: recoveryTimingScore(gapMinutes: gapMinutes),
                 source: "recorded_finish"
@@ -383,11 +405,7 @@ enum MealTimingEngine {
         /* A meal counts as recorded when its finish landed on its own day. */
         let recorded = meals.filter { meal in
             guard let at = instant(meal.loggedAt) else { return false }
-            var calendar = Calendar(identifier: .gregorian)
-            calendar.timeZone = TimeZone(identifier: timeZone) ?? .current
-            let parts = calendar.dateComponents([.year, .month, .day], from: at)
-            let key = String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
-            return key == meal.localDate
+            return daylineDateKey(for: at, timeZone: timeZone) == meal.localDate
         }
         analysis.recordedMeals = recorded.count
         analysis.estimatedMeals = meals.count - recorded.count
@@ -432,14 +450,8 @@ enum MealTimingEngine {
 
         /* How much a slot moves around from day to day, averaged over the
            slots that have enough history to say anything. */
-        let variations = ["breakfast", "lunch", "dinner", "snack"].compactMap { slot -> Double? in
-            let minutes = recorded
-                .filter { $0.mealSlot == slot }
-                .compactMap { minuteOfDay($0.loggedAt, timeZone: timeZone) }
-            return standardDeviation(minutes)
-        }
-        if !variations.isEmpty {
-            let typical = Int((variations.reduce(0, +) / Double(variations.count)).rounded())
+        if let variation = typicalTimingVariation(recorded, timeZone: timeZone) {
+            let typical = Int(variation.rounded())
             analysis.typicalVariationMinutes = typical
             analysis.rhythmScore = Int(max(0, min(100, (100 - Double(typical) * 0.9).rounded())))
         }

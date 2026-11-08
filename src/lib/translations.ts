@@ -1,3 +1,4 @@
+import { interfaceLocales, productInterfaceCopy } from '../../shared/productInterfaceCopy.ts'
 import type { IntroLanguage } from './introLanguage'
 
 type Translation = Record<Exclude<IntroLanguage, 'en'>, string>
@@ -126,6 +127,13 @@ const rows: Array<[string, string, string]> = [
   ['drinks', 'băuturi', 'เครื่องดื่ม'],
   ['from food', 'din alimente', 'จากอาหาร'],
   ['Water added', 'Apa a fost adăugată', 'เพิ่มน้ำแล้ว'],
+  ['Could not save water.', 'Nu s-a putut salva cantitatea de apă.', 'บันทึกปริมาณน้ำไม่สำเร็จ'],
+  ['Enter a valid water amount.', 'Introdu o cantitate validă de apă.', 'กรุณาระบุปริมาณน้ำให้ถูกต้อง'],
+  ['Enter a smaller drink amount.', 'Introdu o cantitate mai mică.', 'กรุณาลดปริมาณเครื่องดื่มต่อครั้ง'],
+  ['Edit device-recorded drinks on the device that logged them.', 'Modifică băuturile pe dispozitivul care le-a înregistrat.', 'แก้ไขเครื่องดื่มบนอุปกรณ์ที่ใช้บันทึก'],
+  ['Building your baseline', 'Îți stabilim nivelul de bază', 'กำลังสร้างค่าพื้นฐานของคุณ'],
+  ['No data', 'Date insuficiente', 'ยังไม่มีข้อมูล'],
+  ['Joint Health Balance', 'Starea articulațiilor', 'ภาวะข้อต่อ'],
   ['Enter ml or litres', 'Introdu ml sau litri', 'กรอกเป็น ml หรือลิตร'],
   ['Enter ml or litres.', 'Introdu ml sau litri.', 'กรอกเป็น ml หรือลิตร'],
   ['e.g. 750 ml or 0.75 L', 'ex. 750 ml sau 0,75 L', 'เช่น 750 ml หรือ 0.75 L'],
@@ -2125,9 +2133,14 @@ const RECOVERY_PLANNER_TRANSLATIONS: Array<[string, string, string]> = [
   ['Controlled, comfortable movement', 'Mișcare controlată și confortabilă', 'การเคลื่อนไหวที่ควบคุมได้และสบาย'],
 ]
 
-export const UI_TRANSLATIONS: Record<string, Translation> = Object.fromEntries(
-  [...rows, ...BASELINE_CALIBRATION_TRANSLATIONS, ...NUTRIENT_EVIDENCE_TRANSLATIONS, ...RECOVERY_PLANNER_TRANSLATIONS].map(([english, romanian, thai]) => [
-    english,
-    { ro: romanian, th: thai },
-  ]),
-)
+const romanian = interfaceLocales.indexOf('ro')
+const thai = interfaceLocales.indexOf('th')
+const sharedWebCopy = productInterfaceCopy.map(row => [row[0], row[romanian], row[thai]] as const)
+
+export const UI_TRANSLATIONS: Record<string, Translation> = Object.fromEntries([
+  ...rows,
+  ...BASELINE_CALIBRATION_TRANSLATIONS,
+  ...NUTRIENT_EVIDENCE_TRANSLATIONS,
+  ...RECOVERY_PLANNER_TRANSLATIONS,
+  ...sharedWebCopy,
+].map(([english, ro, th]) => [english, { ro, th }]))

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import { format, getISODay, parseISO } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { Reorder, motion, useDragControls } from 'framer-motion'
 import {
   EXERCISE_CATALOG,
@@ -9,7 +9,7 @@ import {
   searchExerciseCatalog,
   type ExerciseCatalogItem,
 } from '../../data/exerciseCatalog'
-import { descriptorForExercise, normalizeExerciseFacts } from '../../lib/exerciseLogging'
+import { descriptorForExercise } from '../../lib/exerciseLogging'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 import {
   manualExerciseTimelineForDate,
@@ -17,42 +17,28 @@ import {
   manualWorkoutDeletionPlan,
   manualWorkoutEditorDraft,
   manualWorkoutHasAutomaticTitle,
-  manualWorkoutNotes,
   manualWorkoutTitle,
   rankManualWorkoutPresets,
   rankQuickLogExercises,
   rememberQuickLogExercise,
   loadQuickLogRecents,
   saveQuickLogRecents,
-  reconcileManualWorkoutLogs,
   resequenceManualWorkoutLogs,
   type ManualExerciseDraft,
   type ManualExerciseTimelineEntry,
   type ManualSetDraft,
 } from '../../lib/manualWorkout'
 import { ACCENTS, type Accent } from '../../lib/theme'
-import type { Program, ProgramDay, WorkoutLog, WorkoutSession } from '../../lib/types'
-import { hasLoggedFact, type SetEntry } from '../../lib/workoutSession'
+import type { SetEntry } from '../../lib/workoutSession'
+import { stageManualWorkoutSave } from '../../lib/manualWorkoutSave'
+import { timeZoneFromSettings, zonedClock } from '../../lib/mealTiming'
+import { performedWorkoutDay } from '../../lib/workoutTimingMetadata'
 import { useStore } from '../../store/AppStore'
 import { GhostButton, GradientButton, Sheet } from '../ui'
 import { ExerciseFactFields } from './ExerciseFactFields'
 
 function uid(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`
-}
-
-function entryFromDraft(set: ManualSetDraft): SetEntry {
-  return {
-    weight: set.weightKg,
-    reps: set.reps,
-    rir: set.rir ?? null,
-    durationSeconds: set.durationSeconds,
-    distanceMeters: set.distanceMeters,
-    contacts: set.contacts,
-    rounds: set.rounds,
-    workSeconds: set.workSeconds,
-    recoverySeconds: set.recoverySeconds,
-  }
 }
 
 function starterSets(item: ExerciseCatalogItem): ManualSetDraft[] {
@@ -124,7 +110,7 @@ export function ManualWorkoutLogger({
   initialPresetSignature?: string | null
   accent?: Accent
 }) {
-  const { data, upsert, bulkUpsert, remove, toast } = useStore()
+  const { data, commitOwnerBoundMutation, toast } = useStore()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const searchRef = useRef<HTMLInputElement>(null)
@@ -133,11 +119,18 @@ export function ManualWorkoutLogger({
   const [query, setQuery] = useState('')
   const [exercises, setExercises] = useState<ManualExerciseDraft[]>([])
   const ownerId = data.profile?.user_id
+  const today = zonedClock(new Date(), timeZoneFromSettings(data.settings)).date
+  const draftReceiptID = useRef<string | null>(null)
+  const savingRef = useRef(false)
+  const activeOwner = useRef(ownerId)
+  activeOwner.current = ownerId
+  const [isSaving, setIsSaving] = useState(false)
+  const [performedDate, setPerformedDate] = useState(date)
   const [recentChoices, setRecentChoices] = useState<string[]>([])
   useEffect(() => { setRecentChoices(loadQuickLogRecents(ownerId)) }, [ownerId, open])
   const [focusedExercise, setFocusedExercise] = useState<string | null>(null)
   const loadedEditorRef = useRef<string | undefined>(undefined)
-  const presets = useMemo(() => rankManualWorkoutPresets(data, date), [data, date])
+  const presets = useMemo(() => performedDate ? rankManualWorkoutPresets(data, performedDate) : [], [data, performedDate])
   const editorDraft = useMemo(() => editSessionId ? manualWorkoutEditorDraft(data, editSessionId) : null, [data, editSessionId])
   const initialPreset = useMemo(
     () => initialPresetSignature ? presets.find((preset) => preset.signature === initialPresetSignature) ?? null : null,
@@ -167,9 +160,13 @@ export function ManualWorkoutLogger({
       loadedEditorRef.current = undefined
       return
     }
-    const loadKey = editSessionId ? `edit:${editSessionId}` : `preset:${initialPresetSignature ?? 'blank'}`
+    const loadKey = [ownerId, date, editSessionId, initialPresetSignature].join('|')
     if (loadedEditorRef.current === loadKey) return
     loadedEditorRef.current = loadKey
+    draftReceiptID.current = editSessionId ?? crypto.randomUUID()
+    savingRef.current = false
+    setIsSaving(false)
+    setPerformedDate(editorDraft?.session.date ?? performedWorkoutDay(date, today))
     setQuery('')
     setTitle(editorDraft?.title ?? (initialPreset && !initialPreset.automaticTitle ? initialPreset.title : ''))
     setExercises(editorDraft
@@ -177,7 +174,7 @@ export function ManualWorkoutLogger({
       : initialPreset
         ? clonePreset(initialPreset.exercises)
         : [])
-  }, [editSessionId, editorDraft, initialPreset, initialPresetSignature, open])
+  }, [date, editSessionId, editorDraft, initialPreset, initialPresetSignature, open, ownerId, today])
 
   useEffect(() => {
     if (!open || !editSessionId || !focusExerciseId) {
@@ -220,105 +217,24 @@ export function ManualWorkoutLogger({
     setExercises([])
   }
 
-  const save = (): void => {
-    const profile = data.profile
-    if (!profile || exercises.length === 0) {
-      toast(t('Add at least one exercise.'))
-      return
+  const save = async (): Promise<void> => {
+    const sessionID = draftReceiptID.current
+    if (!ownerId || !sessionID || savingRef.current) return
+    savingRef.current = true
+    setIsSaving(true)
+    const input = { ownerID: ownerId, sessionID, editing: Boolean(editSessionId), date: performedDate, title, exercises, now: new Date() }
+    try {
+      await commitOwnerBoundMutation(ownerId, (current) => stageManualWorkoutSave(current, input))
+      if (activeOwner.current !== ownerId || draftReceiptID.current !== sessionID) return
+      toast(t(editSessionId ? 'Workout updated' : 'Workout saved for reuse'), 'ok')
+      reset()
+      onClose()
+      onSaved?.()
+    } catch (error) {
+      if (activeOwner.current === ownerId && draftReceiptID.current === sessionID) toast(t(error instanceof Error ? error.message : 'Could not save workout.'), 'error')
+    } finally {
+      if (draftReceiptID.current === sessionID) { savingRef.current = false; setIsSaving(false) }
     }
-    const valid = exercises.length > 0 && exercises.every((exercise) => {
-      const descriptor = descriptorForExercise({ name: exercise.canonicalName, movement_id: exercise.movementId })
-      return descriptor.supported && exercise.sets.length > 0
-        && exercise.sets.every((set) => hasLoggedFact(entryFromDraft(set), descriptor))
-    })
-    if (!valid) {
-      toast(t('Complete each set or remove it before saving.'))
-      return
-    }
-    const usable = exercises
-
-    const existingProgram = data.programs.find((program) => program.slug === 'custom')
-    const program: Program = existingProgram ?? {
-      id: crypto.randomUUID(),
-      user_id: profile.user_id,
-      slug: 'custom',
-      name: 'Custom workouts',
-      description: 'Your searchable exercise studio, saved privately.',
-    }
-    const weekday = getISODay(parseISO(date))
-    const existingDay = data.program_days.find((day) => day.program_id === program.id && day.weekday === weekday)
-    const day: ProgramDay = existingDay ?? {
-      id: crypto.randomUUID(),
-      user_id: profile.user_id,
-      program_id: program.id,
-      weekday,
-      name: 'Manual workout',
-      day_type: 'custom',
-      est_minutes: 45,
-      warmup_note: 'Five minutes of pain-free joint preparation',
-      sort_order: weekday,
-    }
-    const now = new Date().toISOString()
-    const existingSession = editSessionId ? data.workout_sessions.find((candidate) => candidate.id === editSessionId && candidate.user_id === profile.user_id) : null
-    if (editSessionId && !existingSession) {
-      toast(t('This workout could not be reopened.'))
-      return
-    }
-    const session: WorkoutSession = {
-      id: existingSession?.id ?? crypto.randomUUID(),
-      user_id: profile.user_id,
-      date,
-      program_day_id: existingSession?.program_day_id ?? day.id,
-      is_lite: existingSession?.is_lite ?? false,
-      is_deload: existingSession?.is_deload ?? false,
-      is_event_recovery: existingSession?.is_event_recovery ?? false,
-      completed: true,
-      quality_score: 1,
-      started_at: existingSession ? existingSession.started_at : null,
-      completed_at: existingSession ? existingSession.completed_at : now,
-      notes: manualWorkoutNotes(title, existingSession?.notes),
-    }
-    const existingLogs = existingSession
-      ? data.workout_logs.filter((candidate) => candidate.session_id === existingSession.id && candidate.user_id === profile.user_id)
-      : []
-    /* Chronology is the durable occurrence identity. Give every visible
-       exercise its own minute even when a movement appears twice, so a later
-       finisher never collapses into the earlier occurrence after reload. */
-    const existingTimes = existingLogs
-      .map((log) => Date.parse(log.created_at))
-      .filter(Number.isFinite)
-    const newExerciseBaseTime = existingTimes.length > 0 ? Math.min(...existingTimes) : Date.now()
-    const proposedLogs = usable.flatMap<WorkoutLog>((exercise, exerciseIndex) => {
-      const exerciseTime = newExerciseBaseTime + exerciseIndex * 60_000
-      const descriptor = descriptorForExercise({ name: exercise.canonicalName, movement_id: exercise.movementId })
-      return exercise.sets.map((set, setIndex) => {
-        const facts = normalizeExerciseFacts(entryFromDraft(set), descriptor, false)
-        return {
-          id: crypto.randomUUID(), user_id: profile.user_id, session_id: session.id, exercise_id: null,
-          exercise_name: exercise.canonicalName, set_no: setIndex + 1,
-          weight_kg: facts.weight, reps: facts.reps, rir: facts.rir,
-          movement_id: exercise.movementId ?? descriptor.movementId,
-          duration_seconds: facts.durationSeconds, distance_meters: facts.distanceMeters,
-          contacts: facts.contacts, rounds: facts.rounds, work_seconds: facts.workSeconds,
-          recovery_seconds: facts.recoverySeconds,
-          skipped: false, override_flag: false,
-          created_at: new Date(exerciseTime + setIndex * 100).toISOString(),
-        }
-      })
-    })
-
-    const reconciled = reconcileManualWorkoutLogs(existingLogs, proposedLogs)
-    if (!existingSession && !existingProgram) upsert('programs', program)
-    if (!existingSession && !existingDay) upsert('program_days', day)
-    /* Parents and replacements reach Supabase before stale rows are removed.
-       Stable ids make retries idempotent and avoid an empty-workout window. */
-    upsert('workout_sessions', session)
-    bulkUpsert('workout_logs', reconciled.logs)
-    for (const staleId of reconciled.staleIds) remove('workout_logs', staleId)
-    toast(t(existingSession ? 'Workout updated' : 'Workout saved for reuse'), 'ok')
-    reset()
-    onClose()
-    onSaved?.()
   }
 
   const inputClass = 'w-full rounded-2xl border border-white/90 bg-white/80 px-4 py-3 text-sm font-bold text-ink outline-none placeholder:text-ink-faint focus:border-cyan-300 focus:ring-4 focus:ring-cyan-200/25'
@@ -334,6 +250,11 @@ export function ManualWorkoutLogger({
         </div>
       </div>
 
+      <label className="mt-4 flex items-center justify-between gap-3 text-sm font-bold">
+        {t('Workout date')}
+        <input type="date" value={performedDate} max={today} disabled={isSaving || !!editSessionId}
+          onChange={(event) => setPerformedDate(event.target.value)} className="rounded-xl bg-white/80 px-3 py-2" />
+      </label>
       {exercises.length === 0 && presets.length > 0 && (
         <div className="mt-4">
           <div className="flex items-end justify-between gap-2"><div><p className="font-display text-base font-bold text-ink">{t('Ready when you are')}</p><p className="text-[10px] font-semibold text-ink-faint">{t('Ranked from your weekday rhythm and previous workout')}</p></div><span className="font-mono text-[9px] font-black text-cyan-700">{t('SMART PRESETS')}</span></div>
@@ -392,7 +313,7 @@ export function ManualWorkoutLogger({
 
       <div className="mt-5 grid grid-cols-[auto_minmax(0,1fr)] gap-2">
         <GhostButton onClick={reset}>{t('Clear')}</GhostButton>
-        <GradientButton accent={accent} className="py-4" onClick={save}>{t(editSessionId ? 'Update workout' : 'Save workout')}</GradientButton>
+        <GradientButton accent={accent} className="py-4" onClick={() => void save()} disabled={isSaving}>{t(editSessionId ? 'Update workout' : 'Save workout')}</GradientButton>
       </div>
     </Sheet>
   )

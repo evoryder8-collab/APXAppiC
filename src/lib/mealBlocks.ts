@@ -197,7 +197,9 @@ function plannedKind(meal: Pick<Meal, 'name' | 'time'>): MealBlockKind {
   return 'dinner'
 }
 
-function loggedKind(meal: LoggedMeal): MealBlockKind {
+export function loggedKind(meal: LoggedMeal): MealBlockKind {
+  const marked = mealBlockIdFromIdempotencyKey(meal.client_idempotency_key ?? '')
+  if (marked) return marked
   const name = meal.display_name.toLocaleLowerCase()
   if (/post[ -]?workout|after training|recovery|după antrenament|หลังฝึก/.test(name)) return 'post_workout'
   return meal.meal_slot

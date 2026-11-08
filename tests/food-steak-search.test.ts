@@ -33,3 +33,14 @@ test('a small steak typo still finds beef, while a specific fish query stays spe
   assert.ok(fish.length > 0)
   assert.ok(fish.every(food => !food.provider_product_id?.includes(':beef-sirloin-')))
 })
+
+test('plain steak favours meat over steak flavourings, fries and pudding', () => {
+  const candidates = [
+    { name: 'Steak sauce', protein_100: 2, carbs_100: 20 },
+    { name: 'Steak fries', protein_100: 2, carbs_100: 20 },
+    { name: 'Steak and kidney pudding', protein_100: 14, carbs_100: 18 },
+    { name: 'Beef, sirloin steak', protein_100: 23, carbs_100: 0 },
+  ]
+  assert.equal(rankFoodLookupResults('steak', candidates)[0].name, candidates[3].name)
+  assert.equal(rankFoodLookupResults('steak sauce', candidates)[0].name, candidates[0].name)
+})

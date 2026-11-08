@@ -65,7 +65,8 @@ struct WorkoutDaySheet: View {
     private var recordedSession: WorkoutSession? {
         guard let dayID = plan.programDay?.id else { return nil }
         return session.data.workoutSessions
-            .filter { $0.date == date && $0.completed && $0.programDayID == dayID }
+            .filter { $0.date == date && $0.completed && $0.programDayID == dayID
+                && ManualWorkout.title(fromNotes: $0.notes) == nil }
             .sorted { ($0.completedAt ?? $0.startedAt ?? "") > ($1.completedAt ?? $1.startedAt ?? "") }
             .first
     }
@@ -168,11 +169,12 @@ struct WorkoutDaySheet: View {
 
                     dayControls
 
-                    if recordedSession == nil, !plan.exercises.isEmpty, isPastOrToday,
+                    if recordedSession == nil, !plan.exercises.isEmpty,
                        let day = plan.programDay {
                         WorkoutSessionModeButtons(
                             preferred: session.workoutSessionMode(for: day),
-                            accent: accent
+                            accent: accent,
+                            trainToday: !isPastOrToday
                         ) { mode in
                             session.rememberWorkoutSessionMode(mode)
                             switch mode {
@@ -181,6 +183,14 @@ struct WorkoutDaySheet: View {
                             }
                         }
                         .accessibilityIdentifier("day-sheet-start")
+                    } else if recordedSession == nil, plan.programDay != nil, plan.warmupDuration > 0,
+                              PlayerTimeline.WarmupOnly.isWalk(plan.warmup) {
+                        Button {
+                            showGuidedPlayer = true
+                        } label: {
+                            Label(language.text("Walking"), systemImage: "figure.walk")
+                        }
+                        .buttonStyle(APEXPrimaryButtonStyle(color: accent))
                     }
                 }
                 .padding(18)
@@ -201,7 +211,7 @@ struct WorkoutDaySheet: View {
                         exercises: sessionExercises,
                         accent: accent,
                         lite: lite,
-                        date: date,
+                        date: min(date, Date().apexDateKey),
                         warmupText: plan.warmup,
                         warmupDuration: plan.warmupDuration
                     )
@@ -209,7 +219,7 @@ struct WorkoutDaySheet: View {
             }
             .fullScreenCover(isPresented: $showTrackedWorkout) {
                 if let day = plan.programDay {
-                    TrackedWorkoutView(day: day, exercises: sessionExercises, accent: accent, lite: lite, date: date)
+                    TrackedWorkoutView(day: day, exercises: sessionExercises, accent: accent, lite: lite, date: min(date, Date().apexDateKey))
                 }
             }
         }

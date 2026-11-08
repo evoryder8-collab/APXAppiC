@@ -5,13 +5,14 @@ import type { PlannedDay } from '../../lib/plan'
 interface Props {
   session: DailyGuidedSession
   lightPlan?: PlannedDay
+  trainToday?: boolean
   completedLite?: boolean
   translate: (text: string) => string
   exerciseName: (name: string) => string
   onOpen: (lite: boolean) => void
 }
 
-export function DailyTrainingSessionPreview({ session, lightPlan, completedLite, translate: t, exerciseName, onOpen }: Props) {
+export function DailyTrainingSessionPreview({ session, lightPlan, completedLite, trainToday, translate: t, exerciseName, onOpen }: Props) {
   const [expanded, setExpanded] = useState(false)
   const [selectedLite, setSelectedLite] = useState(false)
   const listID = useId()
@@ -20,6 +21,7 @@ export function DailyTrainingSessionPreview({ session, lightPlan, completedLite,
   const preview = guidedSessionPreview(lite && lightPlan ? lightPlan : session.plan, t)
   const title = t(session.plan.programDay!.name)
   const completed = session.status === 'Completed'
+  const actionLabel = t(session.status) + (!completed && trainToday ? ' · ' + t('Today') : '')
   const shownExercises = expanded ? preview.exercises : preview.exercises.slice(0, 3)
 
   return (
@@ -67,9 +69,9 @@ export function DailyTrainingSessionPreview({ session, lightPlan, completedLite,
         </button>
       )}
       <button type="button" onClick={() => onOpen(lite)}
-        aria-label={`${t(completed ? 'View workout stats' : session.status)}: ${title}`}
+        aria-label={`${completed ? t('View workout stats') : actionLabel}: ${title}`}
         className={`mt-3 min-h-11 w-full rounded-xl px-3 py-2.5 text-xs font-bold leading-snug ${completed ? 'bg-emerald-50 text-emerald-800' : 'bg-violet-600 text-white shadow-sm'}`}>
-        {t(session.status)} <span aria-hidden="true">{completed ? '✓' : '→'}</span>
+        {actionLabel} <span aria-hidden="true">{completed ? '✓' : '→'}</span>
       </button>
     </section>
   )

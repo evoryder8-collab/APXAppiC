@@ -480,6 +480,27 @@ export function programDaysForDate(
     .map((day) => planForDate(data, slug, date, lite, day.id))
 }
 
+/** An added custom workout shares the calendar with the active coached or individual programme. */
+export function simpleWorkoutPlans(data: AppData, primary: ProgramSlug, date: string, lite: boolean, includeCustom: boolean): PlannedDay[] {
+  const primaryPlans = programDaysForDate(data, primary, date, lite)
+  if (!includeCustom || primary === 'custom') return primaryPlans
+  const custom = programDaysForDate(data, 'custom', date, lite).filter((plan) => plan.exercises.length > 0)
+  return custom.length ? [...primaryPlans.filter((plan) => plan.exercises.length > 0), ...custom] : primaryPlans
+}
+
+export function workoutPlanSlug(data: AppData, plan: PlannedDay, fallback: ProgramSlug): ProgramSlug {
+  return data.programs.find((row) => row.id === plan.programDay?.program_id && row.user_id === plan.programDay?.user_id)?.slug ?? fallback
+}
+
+export function workoutPlanRoute(data: AppData, plan: PlannedDay, primary: ProgramSlug, date: string, lite = false): string {
+  const slug = workoutPlanSlug(data, plan, primary)
+  const player = slug === 'custom' && plan.programDay?.session_mode === 'tracked' ? 'log' : 'player'
+  const params = new URLSearchParams()
+  if (plan.programDay) params.set('day', plan.programDay.id)
+  if (lite) params.set('lite', '1')
+  return `/${player}/${slug}/${date}?${params}`
+}
+
 export function todayIso(): string {
   return iso(new Date())
 }

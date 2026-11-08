@@ -1,3 +1,4 @@
+import { bespokeProtocolFor } from '../lib/profilePolicy'
 /*
  * RPG Avatar dashboard: level HUD, hexagonal radar, six animated stat bars
  * with Upper/Lower strength sub-bars, per-stat history, baseline reasoning
@@ -78,7 +79,7 @@ function baselineNotes(profile: Profile) {
 }
 
 export function AvatarPage() {
-  const { appAccess, coachContext, data, snapshots, synergies, toast } = useStore()
+  const { appAccess, coachContext, data, snapshots, avatarDomainScores, avatarHydrationDays, synergies, toast } = useStore()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const navigate = useNavigate()
@@ -93,13 +94,30 @@ export function AvatarPage() {
   const now = snapshots[snapshots.length - 1] ?? null
   const before = snapshots[Math.max(0, snapshots.length - 15)] ?? now
   const advice = useMemo(() => whatYourBodyNeeds(data, snapshots), [data, snapshots])
-  const assessment = useMemo(() => assessBodyState(data, snapshots), [data, snapshots])
+  const assessment = useMemo(() => assessBodyState(data, snapshots, avatarHydrationDays), [data, snapshots, avatarHydrationDays])
 
-  if (!now) return null
+  if (!now) return (
+    <div className="mx-auto w-full max-w-3xl space-y-4">
+      <SectionHeader accent={emerald} title="Avatar" subtitle="Your body, as a living stat sheet" />
+      {data.profile && <AvatarPortraitHero profile={data.profile} />}
+      {coachPolicy.can_view_visual_progress && <button type="button" className="font-semibold" onClick={() => navigate('/progress', { state: { from: '/avatar' } })}>{t('Private Visual Progress')}</button>}
+      <GlassCard accent={emerald} className="p-5">
+        <h2 className="font-display text-xl font-bold">{t('Building your baseline')}</h2>
+        <dl className="mt-3 space-y-2">
+          {([['health', 'Health'], ['joint', 'Joint Health Balance'], ['flexibility', 'Body Flexibility'],
+             ['endurance', 'Endurance'], ['strength_upper', 'Upper Body Strength'], ['strength_lower', 'Lower Body Strength']] as const)
+             .map(([key, label]) => <div key={key} className="flex justify-between"><dt>{t(label)}</dt><dd>{avatarDomainScores[key]?.toFixed(0) ?? t('No data')}</dd></div>)}
+        </dl>
+        {data.profile && <button type="button" className="mt-4 font-bold text-emerald" onClick={() => setShowCalibration(true)}>{t('Calibrate my baseline')}</button>}
+      </GlassCard>
+      <MetabolicRhythmPanel /><RecoveryTrendPanel /><StrengthProgressPanel />
+      {data.profile && showCalibration && <BaselineCalibrationDialog profile={data.profile} onClose={() => setShowCalibration(false)} />}
+    </div>
+  )
 
   const profile = data.profile
   const baseline = baselineForProfile(profile)
-  const notes = profile ? baselineNotes(profile) : []
+  const notes = profile && bespokeProtocolFor(profile) ? baselineNotes(profile) : []
   const score = Math.floor(now.overall)
   const overallDelta = now.overall - before.overall
   const personalBest = Math.max(...snapshots.map((snapshot) => snapshot.overall))

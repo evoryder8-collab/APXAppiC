@@ -1,3 +1,4 @@
+import { warmupReceipt } from './workoutTimingMetadata.ts'
 import { manualWorkoutTitle } from './manualWorkout.ts'
 import { workoutGeneratedActivityIDs } from './workoutTimingMetadata.ts'
 import type { IntroLanguage } from './introLanguage.ts'
@@ -167,7 +168,7 @@ export function completedWorkoutHistoryForDate(
       const quickTitle = manualWorkoutTitle(session.notes)
       return {
         session,
-        title: quickTitle ?? days.get(session.program_day_id)?.name ?? 'Completed workout',
+        title: quickTitle ?? warmupReceipt(session.notes)?.title ?? days.get(session.program_day_id)?.name ?? 'Completed workout',
         isQuickLog: quickTitle != null,
       }
     })

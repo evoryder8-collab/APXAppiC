@@ -70,7 +70,7 @@ test('the mandatory movement pulse stays four-domain and uncertainty-safe', () =
   ), 'utf8')
   assert.match(native, /private let stepCount = 8/)
   assert.match(native, /I haven't tested this/)
-  assert.match(native, /How APEX estimated this/)
+  assert.match(native, /How FITR MAX estimated this/)
   assert.match(native, /Building your baseline/)
   assert.match(native, /induction-movement-(?:cardiorespiratory|upper-strength|lower-strength|mobility)/)
 })
@@ -130,7 +130,7 @@ test('native submission stores activity and evidence through the guarded ledger'
 const onboardingFullKeys = [
   'Your normal week', 'Your movement pulse', 'Your setup', 'Train safely', 'Your starting map',
   'Choose the week you usually live, not your most active one.',
-  'Four quick, observable signals give APEX a broad starting range. There is no penalty for not knowing.',
+  'Four quick, observable signals give FITR MAX a broad starting range. There is no penalty for not knowing.',
   'Pick what you can reliably use on a busy week. You can change it later.',
   'This decides what gets adapted or paused. Nothing here is shared with anyone.',
   'Broad early bands, never invented precision. You can sharpen them later from your Avatar.',
@@ -161,8 +161,8 @@ const onboardingFullKeys = [
   'About 60 minutes', '75 minutes or more', 'Choose equipment (optional)', 'Plan horizon',
   'No equipment', 'Exercise has caused chest pain, faintness or unusual breathlessness',
   'Building your baseline', 'Foundation', 'Developing', 'Capable', 'Strong signal',
-  'How APEX estimated this',
-  'These are broad early bands from your answers, not measured test results. Self-report stays low confidence. Overall Fitness remains Building your baseline until APEX has enough region-specific evidence.',
+  'How FITR MAX estimated this',
+  'These are broad early bands from your answers, not measured test results. Self-report stays low confidence. Overall Fitness stays at Building your baseline until each of your six training signals has evidence.',
   'Your plan will stay in clearance mode until a qualified clinician says loaded training is appropriate.',
 ] as const
 

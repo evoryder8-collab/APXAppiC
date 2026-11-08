@@ -1,3 +1,4 @@
+import { warmupReceipt } from './workoutTimingMetadata.ts'
 import type { ImportedActivity, WorkoutLog, WorkoutSession } from './types.ts'
 import { isAPEXWorkoutSourceBundle } from './wearableWorkoutLinking.ts'
 
@@ -93,6 +94,11 @@ export function workoutInsights(input: WorkoutInsightInput): WorkoutInsightSumma
   ), 0)
   for (const session of sessions) {
     if (linkedSessionIDs.has(session.id)) continue
+    const warmup = warmupReceipt(session.notes)
+    if (warmup) {
+      durationMinutes += Math.max(1, Math.round(warmup.seconds / 60))
+      continue
+    }
     const timestampDuration = validDurationMinutes(session.started_at, session.completed_at)
     if (timestampDuration != null) {
       durationMinutes += timestampDuration

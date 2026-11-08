@@ -18,11 +18,11 @@ const authoredStatusCopy = [
   'Bespoke resting-energy reference',
   'Review recommended',
   'Target unavailable',
-  'Add a valid birthdate before APEX calculates an energy target.',
+  'Add a valid birthdate before FITR MAX calculates an energy target.',
   'Automatic energy targets are available only for adults aged 19 or older.',
   'Review your age, height, weight, sex and activity details before using this target.',
   'Review the resting-energy value before using this target.',
-  'A DEXA-estimated BMR is saved as context; APEX used the calculated resting-energy formula instead.',
+  'A DEXA-estimated BMR is saved as context; FITR MAX used the calculated resting-energy formula instead.',
   'Confirm that this earlier resting-energy value came from indirect calorimetry, or clear it to use the calculated formula.',
   'This calorie target cannot fit the protected protein and fat minimums. Review the inputs before using it.',
 ] as const

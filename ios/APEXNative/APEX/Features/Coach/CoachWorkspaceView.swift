@@ -344,8 +344,15 @@ private struct CoachClientStudioView: View {
                 ProgressView().padding(.top, 80)
             } else {
                 VStack(spacing: 16) {
-                    if let overview { sharedOverview(overview) }
-                    planStudio
+                    if let overview {
+                        sharedOverview(overview)
+                        planStudio
+                    } else {
+                        Button(language.text("Try again")) {
+                            guard let operation = session.accountOperationLease() else { return }
+                            Task { await load(operation: operation) }
+                        }
+                    }
                 }
                 .padding(18)
                 .padding(.bottom, 34)
@@ -407,6 +414,10 @@ private struct CoachClientStudioView: View {
 
                 ForEach($plan.sessions) { $workout in
                     CoachSessionEditor(session: $workout)
+                    Button(role: .destructive) {
+                        let id = workout.id
+                        plan.sessions.removeAll { $0.id == id }
+                    } label: { Label(language.text("Remove session"), systemImage: "minus.circle") }
                 }
 
                 Button {
@@ -424,9 +435,11 @@ private struct CoachClientStudioView: View {
                 .foregroundStyle(APEXColor.violet)
                 .background(APEXColor.violet.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
 
+                .disabled(plan.sessions.count >= 7)
+
                 CoachChecklist(checklist: $plan.checklist)
                 if !validation.publishable {
-                    Text(language.format("%d checks remain before publishing.", validation.issues.count))
+                    Text(validation.issues.prefix(3).map { language.text($0.messageKey) }.joined(separator: "\n"))
                         .font(APEXFont.body(11, weight: .bold))
                         .foregroundStyle(APEXColor.amberDeep)
                 }
@@ -471,6 +484,7 @@ private struct CoachClientStudioView: View {
             return
         } catch {
             guard session.accountOperationIsCurrent(operation) else { return }
+            overview = nil
             session.alertMessage = error.localizedDescription
         }
     }

@@ -1,6 +1,6 @@
 import { differenceInCalendarDays, format, getISODay, parseISO, subDays } from 'date-fns'
 import { catalogExerciseByName, type ExerciseCatalogItem } from '../data/exerciseCatalog.ts'
-import type { AppData, WorkoutLog, WorkoutSession } from './types'
+import type { AppData, ProgramDay, WorkoutLog, WorkoutSession } from './types'
 import { descriptorForExercise } from './exerciseLogging.ts'
 import { withWorkoutTimingMetadata, withoutWorkoutTimingMetadata, workoutTimingMetadataDate } from './workoutTimingMetadata.ts'
 
@@ -108,6 +108,18 @@ export function manualWorkoutTitle(notes: string): string | null {
   } catch {
     return 'Workout'
   }
+}
+
+/** Old Quick Log releases wrote an active weekday row to satisfy the receipt foreign key. */
+export function isLegacyManualReceiptDay(data: AppData, day: ProgramDay): boolean {
+  if (day.name !== 'Manual workout' || day.day_type !== 'custom'
+    || data.exercises.some((row) => row.user_id === day.user_id && row.program_day_id === day.id)) return false
+  const receipts = data.workout_sessions.filter((row) => row.user_id === day.user_id && row.program_day_id === day.id)
+  return receipts.length > 0 && receipts.every((row) => manualWorkoutTitle(row.notes) != null)
+}
+
+export function prescriptionDays(data: AppData): ProgramDay[] {
+  return data.program_days.filter((day) => !isLegacyManualReceiptDay(data, day))
 }
 
 export function manualWorkoutHasAutomaticTitle(notes: string): boolean {

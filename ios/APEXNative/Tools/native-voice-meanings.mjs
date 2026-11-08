@@ -1,5 +1,5 @@
 /*
- * Meaning and placement for APEX's authored voice copy.
+ * Meaning and placement for FITR MAX's authored voice copy.
  *
  * These are writing briefs, not translation prompts. Locale authors should
  * understand what the user is doing on the named surface, then write what a
@@ -363,7 +363,7 @@ export const nativeVoiceMeanings = [
     meaning: 'Reassure the athlete that one missed day is minor, warn that repeated inconsistency removes the benefit, and advise resuming the usual dose without doubling.',
   },
   {
-    key: 'Performance guidance generated from your APEX logs and trends. It is not a medical diagnosis.',
+    key: 'Performance guidance generated from your FITR MAX logs and trends. It is not a medical diagnosis.',
     context: 'Small disclaimer below the personalised Avatar assessment and its coaching recommendations.',
     meaning: 'Clarify that the advice comes from app training trends and is performance guidance, not a medical diagnosis.',
   },
@@ -373,9 +373,9 @@ export const nativeVoiceMeanings = [
     meaning: 'Tell the athlete to rate unusual fatigue or discomfort rather than ordinary post-workout soreness, and clarify the non-medical scope.',
   },
   {
-    key: 'One point for every day APEX recorded a full picture of you. The line is your overall index, the same number shown at the top of this page, so you can see whether it is moving and not only where it stands today.',
+    key: 'Daily estimates based on what you log. The line shows your overall index over time. Missing logs can affect the estimate.',
     context: 'Expandable information text beside the Avatar overall-index history chart.',
-    meaning: 'Explain that each point is one complete daily snapshot and the line tracks the same overall index shown above over time.',
+    meaning: 'Explain how logged evidence shapes the daily estimate and how missing observations affect its interpretation.',
   },
   {
     key: 'Follow the episode on screen. Choose the modifier whenever form or breathing starts to break down. A completed modifier version still counts as a completed session.',

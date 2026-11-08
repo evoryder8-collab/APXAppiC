@@ -10,7 +10,8 @@ import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
 import { useOrbitText } from '../orbit/ui/i18n'
 import { useLanguage } from '../lib/i18n'
 import { UI_TRANSLATIONS } from '../lib/translations'
-import { accountAccessHasSponsoredAccess, clientPolicyForAccount } from '../lib/coachAccess'
+import { clientPolicyForAccount } from '../lib/coachAccess'
+import { hasActiveCoaching } from '../lib/coachPlatform'
 import { coachText } from '../lib/coachCopy'
 
 const EASE = [0.22, 1, 0.36, 1] as const
@@ -33,8 +34,7 @@ export function Portal() {
   const persona = personaBySlug(profile?.persona ?? 'constantine')
   const firstName = profile?.display_name?.split(' ')[0] || persona.firstName
   const coachPolicy = clientPolicyForAccount(appAccess, coachContext)
-  const sponsoredAccess = accountAccessHasSponsoredAccess(appAccess)
-  const showCoachPlan = sponsoredAccess || coachPolicy.coach_plan_read_only
+  const showCoachPlan = coachContext.capabilities.sponsored_client && hasActiveCoaching(coachContext.sponsorship)
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col sm:min-h-[calc(100dvh-13rem)] sm:justify-center">

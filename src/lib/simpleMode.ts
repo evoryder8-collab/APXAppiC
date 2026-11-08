@@ -246,7 +246,7 @@ export function simpleDailyProgress(input: SimpleDailyProgressInput): number {
 
 export function simpleWaterTargetComplete(waterLitres: number, targetLitres: number): boolean {
   const target = Math.max(0, targetLitres)
-  return target > 0 && Math.max(0, waterLitres) >= target * 0.9
+  return target > 0 && Math.max(0, waterLitres) >= target
 }
 
 /* The checklist is a binary promise, while the hydration action remains a

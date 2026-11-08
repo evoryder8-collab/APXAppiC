@@ -13,11 +13,11 @@ const TARGET_PROVENANCE_LABELS: Record<TargetProvenance, string> = {
 }
 
 export const TARGET_REVIEW_REASON_LABELS: Record<TargetReviewReason, string> = {
-  invalid_birthdate: 'Add a valid birthdate before APEX calculates an energy target.',
+  invalid_birthdate: 'Add a valid birthdate before FITR MAX calculates an energy target.',
   age_below_19: 'Automatic energy targets are available only for adults aged 19 or older.',
   implausible_demographics: 'Review your age, height, weight, sex and activity details before using this target.',
   implausible_bmr: 'Review the resting-energy value before using this target.',
-  dexa_estimated_bmr_ignored: 'A DEXA-estimated BMR is saved as context; APEX used the calculated resting-energy formula instead.',
+  dexa_estimated_bmr_ignored: 'A DEXA-estimated BMR is saved as context; FITR MAX used the calculated resting-energy formula instead.',
   legacy_bmr_needs_review: 'Confirm that this earlier resting-energy value came from indirect calorimetry, or clear it to use the calculated formula.',
   macro_infeasible: 'This calorie target cannot fit the protected protein and fat minimums. Review the inputs before using it.',
 }

@@ -9,6 +9,19 @@ export function isWorkoutDate(value: string): boolean {
   return Number.isFinite(instant.getTime()) && instant.toISOString().slice(0, 10) === value
 }
 
+/** A future prescription can be trained now, but a completion always belongs to a performed day. */
+export function performedWorkoutDay(requested: string, today: string): string {
+  return isWorkoutDate(requested) && requested <= today ? requested : today
+}
+
+/** A timed, set-free recovery receipt uses the active countdown, excluding pauses. */
+export function warmupReceipt(notes: string): { title: string; seconds: number } | null {
+  const match = /^FITR_WARMUP_V1\|(walk|warmup)\|(\d+)(?:\n|$)/.exec(notes)
+  if (!match) return null
+  const seconds = Number(match[2])
+  return Number.isSafeInteger(seconds) && seconds > 0 ? { title: match[1] === 'walk' ? 'Walking' : 'Warm-up', seconds } : null
+}
+
 export function workoutTimingMetadataDate(notes: string): string | null {
   for (const match of notes.matchAll(TIMING_LINE)) if (isWorkoutDate(match[1])) return match[1]
   return null

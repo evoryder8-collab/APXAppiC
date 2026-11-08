@@ -38,6 +38,59 @@ struct InductionView: View {
     @ScaledMetric(relativeTo: .body) private var pulseHeight = 470
     private let stepCount = 8
 
+    private struct Draft: Codable, Equatable {
+        let step: Int, pulse: Int
+        let input: TrainingInduction.Input
+        let sex: String, weight: String, height: String, day: String, month: String, year: String
+        let safety: Bool
+    }
+
+    @State private var draftOwner: UUID?
+    private var draft: Draft {
+        Draft(step: step, pulse: pulsePage, input: input, sex: baselineSex, weight: weightText,
+              height: heightText, day: birthDayText, month: birthMonthText, year: birthYearText,
+              safety: safetyAcknowledged)
+    }
+
+    private static func draftURL(_ owner: UUID) -> URL {
+        URL.applicationSupportDirectory.appendingPathComponent("fitr-induction-v1-" + owner.uuidString + ".json")
+    }
+
+    static func clearDraft(_ owner: UUID) { try? FileManager.default.removeItem(at: draftURL(owner)) }
+
+    private func restoreDraft() {
+        guard let owner = session.accountOperationLease()?.ownerID else { return }
+        draftOwner = owner
+        guard !session.isDeveloperSandbox, !APEXRuntimeEnvironment.usesLocalUITestFixture(),
+              let bytes = try? Data(contentsOf: Self.draftURL(owner)),
+              let saved = try? JSONDecoder().decode(Draft.self, from: bytes),
+              saved.input.dataConsent?.isCurrent == true, (0..<stepCount).contains(saved.step) else { return }
+        termsAccepted = true
+        privacyAccepted = true
+        input = saved.input
+        input.startDate = Date().apexDateKey
+        step = saved.step
+        pulsePage = min(3, max(0, saved.pulse))
+        baselineSex = saved.sex
+        weightText = saved.weight
+        heightText = saved.height
+        birthDayText = saved.day
+        birthMonthText = saved.month
+        birthYearText = saved.year
+        safetyAcknowledged = saved.safety
+    }
+
+    private func persistDraft(_ value: Draft) {
+        guard let owner = draftOwner, session.accountOperationLease()?.ownerID == owner,
+              session.route == .induction, !session.isDeveloperSandbox, !APEXRuntimeEnvironment.usesLocalUITestFixture(),
+              termsAccepted, privacyAccepted, value.input.dataConsent?.isCurrent == true else { return }
+        let url = Self.draftURL(owner)
+        do {
+            try FileManager.default.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
+            try JSONEncoder().encode(value).write(to: url, options: [.atomic, .completeFileProtection])
+        } catch { session.alertMessage = "Your setup progress could not be saved on this device." }
+    }
+
     var body: some View {
         ZStack {
             AuroraField(animated: !reduceMotion)
@@ -79,7 +132,14 @@ struct InductionView: View {
                 footer
             }
         }
-        .onAppear { shown = true }
+        .onAppear { shown = true; restoreDraft() }
+        .onChange(of: termsAccepted && privacyAccepted) { _, accepted in
+            if !accepted, let owner = draftOwner, session.accountOperationLease()?.ownerID == owner {
+                input.dataConsent = nil
+                Self.clearDraft(owner)
+            }
+        }
+        .onChange(of: draft) { _, next in persistDraft(next) }
         .onChange(of: step) { _, _ in
             validationPrompt = nil
             validationFocused = false
@@ -830,7 +890,7 @@ struct InductionView: View {
                 language.text("How FITR MAX estimated this"),
                 isExpanded: $showEstimateDetails
             ) {
-                Text(language.text("These are broad early bands from your answers, not measured test results. Self-report stays low confidence. Overall Fitness remains Building your baseline until FITR MAX has enough region-specific evidence."))
+                Text(language.text("These are broad early bands from your answers, not measured test results. Self-report stays low confidence. Overall Fitness stays at Building your baseline until each of your six training signals has evidence."))
                     .font(APEXFont.body(13))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .fixedSize(horizontal: false, vertical: true)

@@ -28,7 +28,7 @@ create table public.food_corpus_search (${columns}, search_text text, source_pri
 create index idx_food_corpus_search_document on public.food_corpus_search using gin(to_tsvector('simple', search_text));
 create index idx_food_corpus_search_trgm on public.food_corpus_search using gin(search_text gin_trgm_ops);
 `;
-const migration = read('supabase/migrations/20261102214557_indexed_food_corpus_search.sql');
+const migration = read('supabase/migrations/20261108120101_rank_plain_steak.sql');
 const assertions = read('tests/food-search-corpus-db-integration.sql')
   .replace(/^begin;\s*$/m, '').replace(/^rollback;\s*$/m, '');
 execFileSync('psql', args, {

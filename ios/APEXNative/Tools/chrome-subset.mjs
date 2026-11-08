@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 /*
  * Splits the translatable strings into chrome and content.
  *
@@ -20,7 +21,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
-const ROOT = new URL('../APEX', import.meta.url).pathname
+const ROOT = fileURLToPath(new URL('../APEX', import.meta.url))
 
 function swiftFiles(dir) {
   return readdirSync(dir).flatMap((name) => {

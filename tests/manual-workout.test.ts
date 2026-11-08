@@ -302,3 +302,37 @@ test('quick presets exclude a workout already logged on the selected day', () =>
 
   assert.deepEqual(rankManualWorkoutPresets(data, '2026-07-15').map((preset) => preset.title), ['Prior back day'])
 })
+
+test('a Quick Log uses its selected day, creates no daily prescription and stages the same graph on retry', async () => {
+  const { buildSeedData } = await import('../src/data/seed.ts')
+  const { stageManualWorkoutSave } = await import('../src/lib/manualWorkoutSave.ts')
+  const { activeTrainingProgramDays } = await import('../src/lib/trainingInduction.ts')
+  const { warmupReceipt, performedWorkoutDay } = await import('../src/lib/workoutTimingMetadata.ts')
+  const owner = '10000000-0000-4000-8000-000000000085'
+  const data = buildSeedData(owner, 'constantine')
+  const input = {
+    ownerID: owner, sessionID: crypto.randomUUID(), date: '2026-11-01', editing: false, title: 'Sunday',
+    now: new Date('2026-11-02T17:30:00Z'),
+    exercises: [{ id: 'draft-exercise', catalogId: null, canonicalName: 'Seated Cable Row', treadmill: null,
+      sets: [{ id: 'draft-set', reps: 8, weightKg: 24.875 }] }],
+  }
+  const saved = stageManualWorkoutSave(data, input)
+  const row = saved.data.workout_sessions.find((item) => item.id === input.sessionID)!
+  assert.equal(row.date, input.date)
+  assert.match(row.completed_at!, /^2026-11-01T/)
+  const holder = saved.data.program_days.find((item) => item.id === row.program_day_id)!
+  assert.equal(holder.is_active, false)
+  assert.equal(saved.data.programs.find((item) => item.id === holder.program_id)?.slug, 'custom')
+  assert.ok(!activeTrainingProgramDays(saved.data).some((item) => item.id === holder.id))
+  assert.deepEqual(saved.writes.slice(-2).map((write) => write.table), ['workout_sessions', 'workout_logs'])
+  const retry = stageManualWorkoutSave(saved.data, { ...input, now: new Date('2026-11-03T11:40:00Z') })
+  assert.deepEqual(retry.data.workout_sessions, saved.data.workout_sessions)
+  assert.deepEqual(retry.data.workout_logs, saved.data.workout_logs)
+  assert.equal(retry.data.workout_logs.at(-1)?.weight_kg, 24.875)
+  assert.throws(() => stageManualWorkoutSave(data, { ...input, date: '2026-11-04' }), /earlier/)
+  assert.throws(() => stageManualWorkoutSave(data, { ...input, ownerID: 'foreign' }), /account changed/)
+  assert.equal(performedWorkoutDay('2026-11-04', '2026-11-02'), '2026-11-02')
+  assert.equal(performedWorkoutDay('2026-11-01', '2026-11-02'), '2026-11-01')
+  assert.deepEqual(warmupReceipt('FITR_WARMUP_V1|walk|120\nFITR_WORKOUT_TIMING_V1|2026-11-01'), { title: 'Walking', seconds: 120 })
+  assert.equal(warmupReceipt('FITR_WARMUP_V1|walk|0'), null)
+})

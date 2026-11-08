@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { IntroLanguage } from '../../lib/introLanguage'
-import { analyzeMealTiming, timeZoneFromSettings, zonedClock } from '../../lib/mealTiming'
+import { analyzeMealTiming, daylineDateForInstant, timeZoneFromSettings, zonedClock } from '../../lib/mealTiming'
 import { ACCENTS } from '../../lib/theme'
 import { useLanguage } from '../../lib/i18n'
 import { useStore } from '../../store/AppStore'
@@ -33,7 +33,7 @@ const COPY = {
     completeDays: 'Complete meal days',
     dayUnit: 'D',
     minutes: 'min',
-    noData: 'Record finish times across several meals and start a workout. Your rhythm signal will build without guessing.',
+    noData: 'Log the same meal on two different days to compare timing.',
     strong: 'Your meal rhythm is highly repeatable.',
     steady: 'Your meal rhythm is becoming predictable.',
     flexible: 'Your timing is flexible. More recorded finish times will sharpen the signal.',
@@ -62,7 +62,7 @@ const COPY = {
     completeDays: 'Zile cu toate mesele',
     dayUnit: 'Z',
     minutes: 'min',
-    noData: 'Înregistrează ora de final pentru mai multe mese și pornește un antrenament. Semnalul se va construi fără presupuneri.',
+    noData: 'Înregistrează aceeași masă în două zile diferite pentru a compara orele.',
     strong: 'Ritmul meselor tale este foarte constant.',
     steady: 'Ritmul meselor tale devine previzibil.',
     flexible: 'Orele sunt flexibile. Mai multe înregistrări vor rafina semnalul.',
@@ -91,7 +91,7 @@ const COPY = {
     completeDays: 'วันที่บันทึกมื้อครบ',
     dayUnit: 'วัน',
     minutes: 'นาที',
-    noData: 'บันทึกเวลาที่กินเสร็จหลายมื้อและเริ่มการฝึก ระบบจะสร้างสัญญาณจากข้อมูลจริง',
+    noData: 'บันทึกมื้ออาหารประเภทเดียวกันในสองวันที่ต่างกันเพื่อเปรียบเทียบเวลา',
     strong: 'จังหวะมื้ออาหารของคุณสม่ำเสมอมาก',
     steady: 'จังหวะมื้ออาหารของคุณเริ่มคาดการณ์ได้',
     flexible: 'เวลาอาหารยังยืดหยุ่น บันทึกเพิ่มเพื่อให้สัญญาณแม่นยำขึ้น',
@@ -99,8 +99,8 @@ const COPY = {
   },
 } satisfies Record<IntroLanguage, Record<string, string>>
 
-function cutoffDate(days: number, timeZone: string): string {
-  const [year, month, day] = zonedClock(new Date(), timeZone).date.split('-').map(Number)
+function cutoffDate(days: number, through: string): string {
+  const [year, month, day] = through.split('-').map(Number)
   return new Date(Date.UTC(year, month - 1, day - (days - 1))).toISOString().slice(0, 10)
 }
 
@@ -112,11 +112,12 @@ export function MetabolicRhythmPanel() {
   const [range, setRange] = useState<30 | 90>(30)
   const [showScoreInfo, setShowScoreInfo] = useState(false)
   const timeZone = timeZoneFromSettings(data.settings)
-  const cutoff = cutoffDate(range, timeZone)
-  const meals = useMemo(() => food.meals.filter((meal) => meal.local_date >= cutoff), [cutoff, food.meals])
+  const today = daylineDateForInstant(new Date(), timeZone)
+  const cutoff = cutoffDate(range, today)
+  const meals = useMemo(() => food.meals.filter((meal) => meal.user_id === data.profile?.user_id && meal.local_date >= cutoff && meal.local_date <= today && Date.parse(meal.logged_at) <= Date.now()), [cutoff, today, food.meals, data.profile?.user_id])
   const mealIds = useMemo(() => new Set(meals.map((meal) => meal.id)), [meals])
   const entries = useMemo(() => food.entries.filter((entry) => mealIds.has(entry.meal_id)), [food.entries, mealIds])
-  const sessions = useMemo(() => data.workout_sessions.filter((session) => session.date >= cutoff && session.started_at), [cutoff, data.workout_sessions])
+  const sessions = useMemo(() => data.workout_sessions.filter((session) => session.user_id === data.profile?.user_id && session.date >= cutoff && session.date <= today && session.started_at), [cutoff, today, data.workout_sessions, data.profile?.user_id])
   const analysis = useMemo(() => analyzeMealTiming({
     meals,
     entries,
@@ -125,10 +126,10 @@ export function MetabolicRhythmPanel() {
   }), [entries, meals, sessions, timeZone])
   const historyDays = useMemo(
     () => Object.values(normalizeMealRhythmHistory(data.settings?.addons.meal_rhythm_history))
-      .filter((day) => day.finalized && day.date >= cutoff),
-    [cutoff, data.settings?.addons.meal_rhythm_history],
+      .filter((day) => day.finalized && day.date >= cutoff && day.date <= today),
+    [cutoff, today, data.settings?.addons.meal_rhythm_history],
   )
-  const closedRhythmScore = averageClosedMealRhythm(data.settings?.addons.meal_rhythm_history, cutoff)
+  const closedRhythmScore = averageClosedMealRhythm(data.settings?.addons.meal_rhythm_history, cutoff, today)
   const score = closedRhythmScore ?? analysis.rhythmScore
   const completeDays = historyDays.filter((day) => day.verdict === 'complete_on_time' || day.verdict === 'complete_irregular').length
   const readyShare = analysis.workoutsWithContext

@@ -253,33 +253,30 @@ final class HealthImportParityTests: XCTestCase {
         ]))
     }
 
-    func testExternalCompletionUsesTheViewedDayForReceiptAndWearableOwnership() throws {
-        let nativeRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let appSession = try String(contentsOf: nativeRoot.appending(
-            path: "APEX/App/AppSession.swift"
-        ))
-        let player = try String(contentsOf: nativeRoot.appending(
-            path: "APEX/Features/Training/TrainingProgramView.swift"
-        ))
-        let compactSession = appSession.filter { !$0.isWhitespace }
-        let compactPlayer = player.filter { !$0.isWhitespace }
-
-        XCTAssertTrue(appSession.contains("completionDate: String? = nil"))
-        XCTAssertTrue(appSession.contains(
-            "let completedDate = completionDate ?? Date().apexDateKey"
-        ))
-        XCTAssertGreaterThanOrEqual(
-            compactSession.components(separatedBy: "date:completedDate").count - 1,
-            2,
-            "both the workout receipt and its generated activity must use the viewed day"
-        )
-        XCTAssertTrue(compactSession.contains("isDeload(on:completedDate,"))
-        XCTAssertTrue(appSession.contains("if wearableLinkRequest == .automatic,\n           let profile"))
-        XCTAssertTrue(compactPlayer.contains(
-            "wearableLinkRequest:linkRequest,completionDate:date,operation:operation"
-        ))
+    @MainActor
+    func testExternalCompletionUsesTheViewedDayForReceiptAndWearableOwnership() async throws {
+        let app = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(app.profile?.userID)
+        var data = APEXDebugFixture.dashboard(userID: owner)
+        let day = try XCTUnwrap(data.programDays.first)
+        let date = "2026-08-29"
+        let activity = linkingActivity(ownerID: owner)
+        let foreign = linkingActivity(ownerID: UUID())
+        data.importedActivities = [activity, foreign]
+        app.data = data
+        let operation = try XCTUnwrap(app.accountOperationLease())
+        let start = try XCTUnwrap(ExternalWorkoutImport.parseTimestamp(activity.startedAt))
+        let saved = try await app.completeWorkout(day: day, setInputs: [], lite: false,
+            startedAt: start, finishedAt: start.addingTimeInterval(600),
+            wearableLinkRequest: .activity(activity.id), completionDate: date, operation: operation)
+        let id = try XCTUnwrap(saved)
+        XCTAssertEqual(app.data.workoutSessions.first { $0.id == id }?.date, date)
+        XCTAssertEqual(app.data.importedActivities.first { $0.id == activity.id }?.apexWorkoutSessionID, id)
+        XCTAssertNil(app.data.importedActivities.first { $0.id == foreign.id }?.apexWorkoutSessionID)
+        let future = try await app.completeWorkout(day: day, setInputs: [], lite: false,
+            startedAt: start, finishedAt: start.addingTimeInterval(600),
+            wearableLinkRequest: .none, completionDate: "2999-08-29", operation: operation)
+        XCTAssertNil(future)
     }
 
     func testDailyLogsMatchTheWeb() {

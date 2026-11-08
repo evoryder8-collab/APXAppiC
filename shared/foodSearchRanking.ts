@@ -162,8 +162,18 @@ function foodSearchFields(food: FoodSearchCandidate): string[] {
     .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
 }
 
+export function plainSteakScore(food: FoodSearchCandidate): number {
+  const name = normalizeFoodSearchText(food.name ?? '')
+  if (/\b(sauce|fries|pudding|pie|sandwich|burger|seasoning|pizza|tartare|teriyaki)\b/.test(name)) return -5_000
+  if ((food.protein_100 ?? 0) >= 15 && (food.carbs_100 ?? 0) <= 5
+    && /\b(beef|sirloin|ribeye|entrecote|rump|tenderloin)\b/.test(name)) return 5_000
+  if ((food.protein_100 ?? 0) >= 15 && (food.carbs_100 ?? 0) <= 5) return 1_000
+  return 0
+}
+
 function categoryScore(query: string, food: FoodSearchCandidate): number {
   const tokens = normalizeFoodSearchText(query).split(' ').filter(Boolean)
+  if (tokens.length === 1 && tokens[0] === 'steak') return plainSteakScore(food)
   const broadOilQuery = tokens.length === 1 && ['oil', 'ulei', 'ol', 'huile', 'olio', 'aceite'].includes(tokens[0])
   if (!broadOilQuery) return 0
   const text = normalizeFoodSearchText(foodSearchFields(food).join(' '))

@@ -161,6 +161,28 @@ enum FitnessBrainService {
         )
     }
 
+    /// Fold meals and the hydration ledger once when replaying many days of history.
+    static func waterTotals(_ data: DashboardData, ownerID: UUID) -> [String: Int] {
+        var mealDates: [UUID: String] = [:]
+        for meal in data.loggedMeals where meal.userID == ownerID { mealDates[meal.id] = meal.localDate }
+        var foodByDay: [String: Double] = [:]
+        for entry in data.loggedFoodEntries where entry.userID == ownerID {
+            guard let date = mealDates[entry.mealID],
+                  let water = entry.waterML ?? FoodHydration.portionWater(entry.snapshotWaterML100, equivalentAmount: entry.equivalentAmount),
+                  water.isFinite, water > 0 else { continue }
+            foodByDay[date, default: 0] += water
+        }
+        let events = Dictionary(grouping: (data.hydrationEvents ?? []).filter { $0.userID == ownerID }, by: \.localDate)
+        var drinks: [String: Double] = [:]
+        for log in data.dailyLogs where log.userID == ownerID && log.waterL > 0 { drinks[log.date] = log.waterL }
+        var totals: [String: Int] = [:]
+        for day in Set(foodByDay.keys).union(events.keys).union(drinks.keys) {
+            let ledger = HydrationLedger.resolve(ownerID: ownerID, date: day, events: events[day] ?? [], legacyDrinkLiters: drinks[day] ?? 0)
+            totals[day] = ledger.drinkML + max(ledger.foodML, Int((foodByDay[day] ?? 0).rounded()))
+        }
+        return totals
+    }
+
     // MARK: - addons JSON extraction
 
     static func capacityCalibrationEvidence(
@@ -272,5 +294,74 @@ enum FitnessBrainService {
                 strengthUpper: $0.strengthUpper,
                 strengthLower: $0.strengthLower)
         }
+    }
+}
+
+/// The additional JSON column is independent of legacy scores older apps still update.
+struct AvatarScorePublication: Encodable, Equatable, Sendable {
+    let row: RPGSnapshot
+    let verified: FBSnapshot?
+
+    enum CodingKeys: String, CodingKey { case verified = "verified_avatar" }
+
+    func encode(to encoder: Encoder) throws {
+        try row.encode(to: encoder)
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        if let verified { try container.encode(verified, forKey: .verified) }
+        else { try container.encodeNil(forKey: .verified) }
+    }
+}
+
+/// A snapshot of the active plan and dated activity used by both the dashboard and history replay.
+struct DailyWaterTargets {
+    private let data: DashboardData
+    private let phaseDays: [String: [ProgramDay]]
+    private let activity: [String: [ActivityLog]]
+    private let wearable: [String: WearableActivityRecord]
+    private let coachManaged: Bool
+    private let followsCoach: Bool
+    private let includesCustom: Bool
+
+    init(data: DashboardData, coachManaged: Bool, followsCoach: Bool, includeCustom: Bool) {
+        self.data = data
+        self.coachManaged = coachManaged
+        self.followsCoach = followsCoach
+        self.includesCustom = includeCustom
+        let owner = data.profile?.userID
+        let exercisedDays = Set(data.exercises.filter { $0.userID == owner && !$0.isLite }.map(\.programDayID))
+        phaseDays = Dictionary(uniqueKeysWithValues: ["coach", "main", "transition", "custom"].map { slug in
+            let days = TrainingInduction.visibleProgramDays(in: data, slug: slug).filter { exercisedDays.contains($0.id) }
+            return (slug, days)
+        })
+        activity = Dictionary(grouping: data.activityLogs.filter { $0.userID == owner }, by: \.date)
+        let history = data.settings?.userID == owner ? data.settings?.addons["watch_activity_history"] : nil
+        wearable = Dictionary(WearableActivityRecord.history(from: history).map { ($0.date, $0) }, uniquingKeysWith: { _, latest in latest })
+    }
+
+    func resolve(day: String, now: Date) -> HydrationTargetResolution {
+        guard let profile = data.profile else { return HydrationTargetPolicy.resolve(sex: "male", weightKG: 87) }
+        let preferences = data.hydrationPreferences.flatMap { $0.userID == profile.userID ? $0 : nil }
+        if preferences?.effectiveTargetMode == .custom {
+            return HydrationTargetPolicy.resolve(sex: profile.sex, weightKG: profile.weightKG, mode: .custom, customTargetML: preferences?.targetML)
+        }
+        let hasInduction = data.settings?.addons["training_induction"]?.objectValue != nil
+        let main = phaseDays["main"]?.isEmpty == false
+        let transition = phaseDays["transition"]?.isEmpty == false
+        let slug = SimpleHomeLogic.guidedProgramSlug(persona: profile.persona, mainIsUsable: main, transitionIsUsable: transition,
+            coachManaged: coachManaged, coachIsUsable: followsCoach && phaseDays["coach"]?.isEmpty == false,
+            transitionInductionIsUsable: hasInduction && transition && TrainingPlanEngine.isInsideInductionWindow(data, slug: "transition", date: day),
+            mainInductionIsUsable: hasInduction && main && TrainingPlanEngine.isInsideInductionWindow(data, slug: "main", date: day))
+        let inside = TrainingPlanEngine.isInsideInductionWindow(data, slug: slug, date: day)
+        let days = (inside ? (phaseDays[slug] ?? []) : []) + (includesCustom ? (phaseDays["custom"] ?? []) : [])
+        let planned = days.filter { RecoveryPlanner.day($0, matches: day) }.reduce(0) { $0 + max(0, $1.estimatedMinutes) }
+        let record = wearable[day]
+        let logs = activity[day] ?? []
+        let minutes = max(record?.exerciseMinutes ?? 0, logs.reduce(0) { $0 + max(0, $1.durationMinutes ?? 0) })
+        let today = now.apexDateKey
+        return HydrationTargetPolicy.resolve(sex: profile.sex, weightKG: profile.weightKG, mode: .automatic,
+            plannedExerciseMinutes: planned, recordedExerciseMinutes: minutes,
+            activeCalories: EnergyEngine.resolvedActiveCalories(wearableActiveCalories: record?.activeCalories, logs: logs),
+            steps: record?.steps, dateRelation: day < today ? .past : day > today ? .future : .today,
+            localHour: Calendar.current.component(.hour, from: now))
     }
 }

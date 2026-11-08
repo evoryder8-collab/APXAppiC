@@ -248,7 +248,7 @@ enum MealMemory {
         guard needle.count >= 2 else { return [] }
         let tokens = needle.split(separator: " ").map(String.init)
         let scopedPreferences = preferences.filter { preference in
-            userID == nil || preference.userID == userID
+            userID != nil && preference.userID == userID
         }
         let scopedFoods = foods.filter { food in
             guard let ownerUserID = food.ownerUserID else { return true }
@@ -271,13 +271,13 @@ enum MealMemory {
         let matches = scopedFoods.compactMap { food -> Match? in
             let preference = preferenceByFoodID[food.id.lowercased()]
             guard preference?.hidden != true else { return nil }
-            let fields = ([food.name, food.brand]
-                + Array(food.namesI18n.values)
-                + [preference?.personalName]
-                + (preference?.aliases ?? []))
-                .compactMap { $0 }
-                .map(normalizedSearchText)
-                .filter { !$0.isEmpty }
+            var names = [food.name] + Array(food.namesI18n.values) + (food.searchAliases ?? [])
+            if food.providerProductID?.hasPrefix("apex-protocol:generic:beef-sirloin-") == true {
+                names += ["steak", "beef steak", "sirloin steak", "Rindersteak", "bistecca di manzo"]
+            }
+            let branded = food.brand.map { brand in names.map { "\(brand) \($0)" } } ?? []
+            let fields = (names + branded + [food.brand, preference?.personalName].compactMap { $0 } + (preference?.aliases ?? []))
+                .map(normalizedSearchText).filter { !$0.isEmpty }
             guard !fields.isEmpty else { return nil }
             let score: Int
             if fields.contains(needle) {
@@ -405,6 +405,14 @@ enum MealMemory {
     }
 
     private static func foodCategoryPriority(queryTokens: [String], food: Food) -> Int {
+        if queryTokens == ["steak"] {
+            let name = normalizedSearchText(food.name)
+            let words = Set(name.split(separator: " ").map(String.init))
+            if !words.isDisjoint(with: ["sauce", "fries", "pudding", "pie", "sandwich", "burger", "seasoning", "pizza", "tartare", "teriyaki"]) { return 2 }
+            if (food.protein100 ?? 0) >= 15 && (food.carbs100 ?? 0) <= 5 &&
+                !words.isDisjoint(with: ["beef", "sirloin", "ribeye", "entrecote", "rump", "tenderloin"]) { return -3 }
+            if (food.protein100 ?? 0) >= 15 && (food.carbs100 ?? 0) <= 5 { return -1 }
+        }
         guard queryTokens.count == 1,
               ["oil", "ulei", "ol", "huile", "olio", "aceite"].contains(queryTokens[0]) else { return 0 }
         let text = normalizedSearchText(([food.name, food.brand] + Array(food.namesI18n.values))

@@ -266,6 +266,33 @@ actor SupabaseService {
         return session.user.id
     }
 
+    func requestPasswordReset(email: String) async throws {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        try await client.auth.resetPasswordForEmail(email, redirectTo: URL(string: "apex://auth-callback"))
+    }
+
+    func updateRecoveredPassword(_ password: String, owner: UUID) async throws {
+        guard let client, try await client.auth.session.user.id == owner else { throw CancellationError() }
+        _ = try await client.auth.update(user: UserAttributes(password: password))
+    }
+
+    func deleteAuthenticatedAccount(owner: UUID) async throws {
+        assertRemoteMutationAllowed()
+        guard let client else { throw APEXServiceError.configurationMissing }
+        let params = ["p_owner": owner.uuidString]
+        var previous: [String] = []
+        while true {
+            guard try await client.auth.session.user.id == owner else { throw CancellationError() }
+            let files: [String] = try await client.rpc("my_account_file_batch", params: params).execute().value
+            if files.isEmpty { break }
+            guard files != previous, files.allSatisfy({ $0.hasPrefix(owner.uuidString.lowercased() + "/") })
+            else { throw APEXServiceError.configurationMissing }
+            previous = files
+            _ = try await client.storage.from("apex-progress").remove(paths: files)
+        }
+        try await client.rpc("delete_my_account", params: params).execute()
+    }
+
     func signOut() async throws {
         guard let client else { return }
         await stopRealtime()
@@ -420,8 +447,8 @@ actor SupabaseService {
         async let foodPreferences: [FoodPreference] = loadOwnedFoodRows(client: client, table: "food_preferences", ownerID: foodOwnerID)
         async let mealPresets: [MealPreset] = loadOwnedFoodRows(client: client, table: "meal_presets", ownerID: foodOwnerID)
         async let mealPresetItems: [MealPresetItem] = loadOwnedFoodRows(client: client, table: "meal_preset_items", ownerID: foodOwnerID)
-        async let loggedMeals: [LoggedMeal] = client.from("logged_meals").select().order("logged_at", ascending: false).limit(360).execute().value
-        async let loggedFoodEntries: [LoggedFoodEntry] = client.from("logged_food_entries").select().order("created_at", ascending: false).limit(1000).execute().value
+        async let loggedMeals: [LoggedMeal] = loadOwnedFoodRows(client: client, table: "logged_meals", ownerID: foodOwnerID)
+        async let loggedFoodEntries: [LoggedFoodEntry] = loadOwnedFoodRows(client: client, table: "logged_food_entries", ownerID: foodOwnerID)
         async let snapshots: [RPGSnapshot] = client.from("rpg_snapshots").select().order("date", ascending: false).limit(180).execute().value
         async let healthMetrics: [HealthMetric] = client.from("health_metrics").select().order("date", ascending: false).limit(180).execute().value
         async let fitnessEvidence: [FitnessEvidenceRecord] = optionalSchemaRows {
@@ -505,6 +532,7 @@ actor SupabaseService {
             mealPresetItems: presetItems,
             loggedMeals: loggedMeals,
             loggedFoodEntries: foodEntries,
+            hasCompleteMealHistory: true,
             snapshots: snapshots,
             healthMetrics: healthMetrics,
             fitnessEvidence: fitnessEvidence,
@@ -636,6 +664,11 @@ actor SupabaseService {
         )
     }
 
+    func loadMealEditSnapshot(_ id: UUID) async throws -> MealEditSnapshot? {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        return try await client.rpc("get_meal_edit_snapshot", params: ["p_meal_id": id.uuidString]).execute().value
+    }
+
     func logStructuredMeal(
         meal: StructuredMealRequest,
         entries: [StructuredFoodEntryRequest]
@@ -646,11 +679,11 @@ actor SupabaseService {
         return try await client.rpc("log_structured_meal", params: params).execute().value
     }
 
-    func deleteStructuredMeal(_ id: UUID) async throws {
+    func deleteStructuredMeal(_ id: UUID, expectedVersion: String) async throws {
         assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
         let _: Bool = try await client
-            .rpc("delete_structured_meal", params: ["p_meal_id": id.uuidString])
+            .rpc("delete_structured_meal_checked", params: ["p_meal_id": id.uuidString, "p_expected_meal_version": expectedVersion])
             .execute()
             .value
     }
@@ -911,6 +944,7 @@ enum APEXServiceError: LocalizedError {
     case personaMismatch(expected: Persona, actual: Persona)
     case invalidOfflineOperation
     case incompleteFood
+    case staleMeal
 
     var errorDescription: String? {
         switch self {
@@ -922,6 +956,8 @@ enum APEXServiceError: LocalizedError {
             "A queued offline change could not be decoded."
         case .incompleteFood:
             "This food does not contain enough portion or nutrition data to log accurately."
+        case .staleMeal:
+            "This meal changed or its full ingredient list is unavailable. Refresh and reopen it before editing."
         }
     }
 }

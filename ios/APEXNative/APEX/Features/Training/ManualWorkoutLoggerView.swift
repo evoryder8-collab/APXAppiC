@@ -23,12 +23,14 @@ struct ManualWorkoutLoggerView: View {
     @State private var query = ""
     @State private var showSearch = false
     @State private var problem: String?
+    @State private var draftReceiptID = UUID()
+    @State private var isSaving = false
 
     init(date: String, editing: WorkoutSession? = nil, onSaved: @escaping () -> Void = {}) {
         self.date = date
         self.editing = editing
         self.onSaved = onSaved
-        _day = State(initialValue: editing?.date ?? date)
+        _day = State(initialValue: min(editing?.date ?? date, Date().apexDateKey))
     }
 
     private var canSave: Bool {
@@ -63,9 +65,10 @@ struct ManualWorkoutLoggerView: View {
                             DatePicker(
                                 language.text("Date"),
                                 selection: Binding(
-                                    get: { APEXDateMath.date(from: day) ?? .now },
-                                    set: { day = APEXDateMath.key(from: $0) }
+                                    get: { ISO8601DateFormatter.apexDateOnly.date(from: day) ?? .now },
+                                    set: { day = $0.apexDateKey }
                                 ),
+                                in: ...Date(),
                                 displayedComponents: .date
                             )
                             .font(APEXFont.body(13, weight: .semibold))
@@ -104,12 +107,12 @@ struct ManualWorkoutLoggerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(language.text("Cancel")) { dismiss() }
+                    Button(language.text("Cancel")) { dismiss() }.disabled(isSaving)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(language.text("Save")) { save() }
                         .fontWeight(.bold)
-                        .disabled(!canSave)
+                        .disabled(isSaving || !canSave)
                 }
             }
             .sheet(isPresented: $showSearch) {
@@ -277,13 +280,16 @@ struct ManualWorkoutLoggerView: View {
     }
 
     private func save() {
-        guard let operation = session.accountOperationLease() else { return }
+        guard !isSaving, let operation = session.accountOperationLease() else { return }
+        isSaving = true
         Task {
+            defer { isSaving = false }
             do {
                 let saved = try await session.saveManualWorkout(
                     date: day,
                     title: title,
                     exercises: exercises,
+                    draftID: draftReceiptID,
                     editing: editing?.id,
                     operation: operation
                 )

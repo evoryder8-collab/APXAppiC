@@ -1,3 +1,5 @@
+import { manualWorkoutTitle } from './manualWorkout.ts'
+import { loggedKind, mealMomentIdFromIdempotencyKey } from './mealBlocks.ts'
 import type { LoggedFoodEntry, LoggedMeal, MealSlot } from './food'
 import type { Settings, WorkoutSession } from './types'
 
@@ -81,6 +83,7 @@ export const MEAL_TIMELINE_SNAP_OPTIONS = [5, 15, 30, 60] as const
 export const MEAL_DAYLINE_DENSITY_OPTIONS = ['compact', 'medium', 'long'] as const
 
 export interface TimedWorkout {
+  localDate: string
   session: WorkoutSession
   startedTime: string | null
   completedTime: string
@@ -738,15 +741,21 @@ export function timedMeal(
 
 export function timedWorkout(session: WorkoutSession, timeZone: string): TimedWorkout | null {
   if (!session.completed || !session.completed_at) return null
+  const endMs = Date.parse(session.completed_at)
+  if (!Number.isFinite(endMs)) return null
   const completed = zonedClock(session.completed_at, timeZone)
-  const started = session.started_at ? zonedClock(session.started_at, timeZone) : null
-  const calendarOwned = (started?.date ?? completed.date) === session.date
-  if (!calendarOwned && !instantBelongsToDaylineDate(session.date, session.completed_at, timeZone)) return null
+  const startMs = session.started_at ? Date.parse(session.started_at) : NaN
+  const tracked = Number.isFinite(startMs) && startMs < endMs && manualWorkoutTitle(session.notes) == null
+  const finishDay = daylineDateForInstant(session.completed_at, timeZone)
+  const spansMidnight = session.started_at && startMs < endMs
+    && zonedClock(session.started_at, timeZone).date === session.date && completed.date === shiftIsoDate(session.date, 1)
+  if (!tracked && !spansMidnight && completed.date !== session.date && finishDay !== session.date) return null
+  const localDate = tracked ? finishDay : session.date
   return {
-    session,
-    startedTime: session.started_at && (started?.date === session.date || instantBelongsToDaylineDate(session.date, session.started_at, timeZone))
-      ? started?.time ?? null
-      : null,
+    session, localDate,
+    startedTime: session.started_at && Number.isFinite(startMs)
+      && (zonedClock(session.started_at, timeZone).date === localDate || daylineDateForInstant(session.started_at, timeZone) === localDate)
+      ? zonedClock(session.started_at, timeZone).time : null,
     completedTime: completed.time,
     completedMinute: completed.minute,
     completedLineMinute: toDaylineMinute(completed.minute),
@@ -778,13 +787,13 @@ export function resolvePostWorkoutNutrition(input: {
 }): PostWorkoutNutritionTiming[] {
   const { sessions, meals, timeZone } = input
   const completed = sessions
-    .flatMap((session) => timedWorkout(session, timeZone) ? [session] : [])
-    .sort((left, right) => Date.parse(left.completed_at ?? '') - Date.parse(right.completed_at ?? ''))
+    .flatMap((session) => { const timed = timedWorkout(session, timeZone); return timed ? [timed] : [] })
+    .sort((left, right) => Date.parse(left.session.completed_at ?? '') - Date.parse(right.session.completed_at ?? ''))
 
-  return completed.map((session) => {
+  return completed.map(({ session, localDate }) => {
     const completedAt = session.completed_at!
     const finishedMeal = meals
-      .filter((meal) => meal.local_date === session.date)
+      .filter((meal) => meal.local_date === localDate)
       .filter((meal) => {
         const gap = Date.parse(meal.logged_at) - Date.parse(completedAt)
         return gap >= 0 && gap <= 6 * 60 * 60 * 1_000
@@ -794,7 +803,7 @@ export function resolvePostWorkoutNutrition(input: {
       const gapMinutes = Math.max(0, Math.round((Date.parse(finishedMeal.logged_at) - Date.parse(completedAt)) / 60_000))
       return {
         sessionId: session.id,
-        date: session.date,
+        date: localDate,
         completedAt,
         mealId: finishedMeal.id,
         mealName: finishedMeal.display_name,
@@ -806,7 +815,7 @@ export function resolvePostWorkoutNutrition(input: {
     }
     return {
       sessionId: session.id,
-      date: session.date,
+      date: localDate,
       completedAt,
       mealId: null,
       mealName: null,
@@ -818,11 +827,27 @@ export function resolvePostWorkoutNutrition(input: {
   })
 }
 
-function standardDeviation(values: number[]): number | null {
-  if (values.length < 2) return null
-  const mean = values.reduce((sum, value) => sum + value, 0) / values.length
-  const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length
-  return Math.sqrt(variance)
+function typicalTimingVariation(recorded: TimedMeal[]): number | null {
+  const groups = new Map<string, TimedMeal[]>()
+  for (const item of recorded) {
+    const kind = mealMomentIdFromIdempotencyKey(item.meal.client_idempotency_key ?? '') ?? loggedKind(item.meal)
+    const group = groups.get(kind) ?? []
+    group.push(item)
+    groups.set(kind, group)
+  }
+  const variations: number[] = []
+  for (const group of groups.values()) {
+    if (new Set(group.map(item => item.meal.local_date)).size < 2) continue
+    const angles = group.map(item => item.minute * 2 * Math.PI / 1440)
+    const angle = Math.atan2(angles.reduce((sum, a) => sum + Math.sin(a), 0), angles.reduce((sum, a) => sum + Math.cos(a), 0))
+    const mean = (angle < 0 ? angle + 2 * Math.PI : angle) * 1440 / (2 * Math.PI)
+    const variance = group.reduce((sum, item) => {
+      const distance = Math.abs(item.minute - mean)
+      return sum + Math.min(distance, 1440 - distance) ** 2
+    }, 0) / group.length
+    variations.push(Math.sqrt(variance))
+  }
+  return variations.length ? Math.round(variations.reduce((sum, value) => sum + value, 0) / variations.length) : null
 }
 
 function sessionStart(session: WorkoutSession): string | null {
@@ -895,12 +920,7 @@ export function analyzeMealTiming(input: {
   }
 
   const contextual = workoutRelations.filter((relation) => relation.zone != null)
-  const variations = (['breakfast', 'lunch', 'dinner', 'snack'] as const)
-    .map((slot) => standardDeviation(recorded.filter((item) => item.meal.meal_slot === slot).map((item) => item.minute)))
-    .filter((value): value is number => value != null)
-  const typicalVariationMinutes = variations.length
-    ? Math.round(variations.reduce((sum, value) => sum + value, 0) / variations.length)
-    : null
+  const typicalVariationMinutes = typicalTimingVariation(recorded)
   const rhythmScore = typicalVariationMinutes == null
     ? null
     : Math.round(Math.max(0, Math.min(100, 100 - typicalVariationMinutes * 0.9)))

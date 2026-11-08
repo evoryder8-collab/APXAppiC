@@ -5,6 +5,7 @@ import type { SUPABASE_ENUMS } from './supabaseEnums'
 import {
   foodSearchTokenMatch,
   normalizeFoodSearchText,
+  plainSteakScore,
 } from '../../shared/foodSearchRanking.ts'
 import {
   foodNutrientEvidence,
@@ -1296,6 +1297,7 @@ export function foodSearchRelevanceScore(
 }
 
 function categorySearchBoost(query: string, food: FoodRecord): number {
+  if (query === 'steak') return plainSteakScore(food)
   const text = foodSearchText(food)
   const curated = food.provider_product_id?.startsWith('apex-curated:') ? 220 : 0
   const queryWithoutRetailer = query

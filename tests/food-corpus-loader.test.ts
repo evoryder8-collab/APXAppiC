@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import assert from 'node:assert/strict'
 import {
   mkdirSync,
@@ -149,7 +150,7 @@ test('validated staging emits one atomic, idempotent psql load outside the repos
     const emitted = spawnSync(
       'python3',
       [
-        importerPath.pathname,
+        fileURLToPath(importerPath),
         'emit-psql',
         '--stage-dir',
         stageDirectory,
@@ -173,7 +174,7 @@ test('validated staging emits one atomic, idempotent psql load outside the repos
     const queryEmission = spawnSync(
       'python3',
       [
-        importerPath.pathname,
+        fileURLToPath(importerPath),
         'emit-query-sql',
         '--stage-dir',
         stageDirectory,
@@ -200,7 +201,7 @@ test('validated staging emits one atomic, idempotent psql load outside the repos
     const remoteEmission = spawnSync(
       'python3',
       [
-        importerPath.pathname,
+        fileURLToPath(importerPath),
         'emit-remote-sql',
         '--stage-dir',
         stageDirectory,
@@ -226,7 +227,7 @@ test('validated staging emits one atomic, idempotent psql load outside the repos
     const compactRemoteEmission = spawnSync(
       'python3',
       [
-        importerPath.pathname,
+        fileURLToPath(importerPath),
         'emit-remote-sql',
         '--stage-dir',
         stageDirectory,

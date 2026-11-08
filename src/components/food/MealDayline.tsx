@@ -527,10 +527,9 @@ export function MealDayline({
   }), [dragPreview, items])
 
   const workouts = useMemo(() => sessions
-    .filter((session) => session.date === date)
     .flatMap((session) => {
       const timed = timedWorkout(session, timeZone)
-      return timed ? [timed] : []
+      return timed?.localDate === date ? [timed] : []
     })
     .sort((left, right) => left.completedLineMinute - right.completedLineMinute), [date, sessions, timeZone])
   const resolvedDensity = normalizeMealDaylineDensity(density)

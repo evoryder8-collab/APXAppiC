@@ -50,7 +50,9 @@ enum WorkoutInsights {
             total + max(0, activity.durationMinutes)
         }
         for session in sessions where !linkedSessionIDs.contains(session.id) {
-            if let minutes = validDurationMinutes(startedAt: session.startedAt, completedAt: session.completedAt) {
+            if let warmup = PlayerTimeline.WarmupOnly(notes: session.notes) {
+                durationMinutes += max(1, Int((Double(warmup.seconds) / 60).rounded()))
+            } else if let minutes = validDurationMinutes(startedAt: session.startedAt, completedAt: session.completedAt) {
                 durationMinutes += minutes
             } else {
                 let seconds = logs

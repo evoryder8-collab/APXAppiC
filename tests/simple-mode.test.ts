@@ -114,7 +114,8 @@ test('Simple Mode water checklist toggles the target instead of adding it twice'
   assert.equal(toggleSimpleWaterTarget(0, 2.5), 2.5)
   assert.equal(simpleWaterTargetComplete(2.5, 2.5), true)
   assert.equal(toggleSimpleWaterTarget(2.5, 2.5), 0)
-  assert.equal(toggleSimpleWaterTarget(2.25, 2.5), 0)
+  assert.equal(simpleWaterTargetComplete(2.25, 2.5), false)
+  assert.equal(toggleSimpleWaterTarget(2.25, 2.5), 2.5)
 })
 
 test('Simple Mode changes days only for a deliberate horizontal swipe', () => {

@@ -1,3 +1,4 @@
+import { prescriptionDays } from '../lib/manualWorkout.ts'
 import { lazy, Suspense, useMemo, useRef, useState } from 'react'
 import { addMonths, format, subDays } from 'date-fns'
 import { motion } from 'framer-motion'
@@ -79,6 +80,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   const detailedInterface = (data.settings?.addons.interface_mode ?? 'clean') === 'detailed'
 
   const today = todayIso()
+  const receiptDate = loadActiveDate(ownerId, today, selectedDay)
   const program = data.programs.find((candidate) => candidate.slug === slug)
   const customProgram = useMemo(
     () => data.programs.find((candidate) => candidate.slug === 'custom' && candidate.user_id === ownerId) ?? null,
@@ -86,10 +88,10 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   )
   const customDays = useMemo(
     () => customProgram && ownerId
-      ? activeCustomWorkoutDays(data.program_days, ownerId, customProgram.id)
+      ? activeCustomWorkoutDays(prescriptionDays(data), ownerId, customProgram.id)
           .sort((left, right) => left.weekday - right.weekday || left.sort_order - right.sort_order)
       : [],
-    [customProgram, data.program_days, ownerId],
+    [customProgram, data, ownerId],
   )
   const isIulianPhase = data.profile?.persona === 'iulian' && (slug === 'transition' || slug === 'main')
   const sectionTitle = isIulianPhase
@@ -360,7 +362,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           />
         )}
 
-        <CompletedWorkoutHistoryCards date={today} accent={accent} includeQuickLogs={false} />
+        <CompletedWorkoutHistoryCards date={receiptDate} accent={accent} includeQuickLogs={false} />
         <WorkoutInsightsCard anchorDate={today} accent={accent} />
 
         {/* Custom workout studio */}

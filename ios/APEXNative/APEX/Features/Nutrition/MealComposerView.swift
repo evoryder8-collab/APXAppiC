@@ -177,6 +177,7 @@ struct MealComposerView: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var hydrated = false
+    @State private var hydrationFailed = false
     @State private var guideOpen = false
     @State private var guideEditing = false
     @State private var guideDraft: [String] = []
@@ -278,6 +279,20 @@ struct MealComposerView: View {
                 .padding(.horizontal, 16)
                 .padding(.top, 12)
                 .padding(.bottom, 112)
+                .disabled(request.existingMeal != nil && !hydrated)
+            }
+            .overlay {
+                if request.existingMeal != nil && !hydrated {
+                    VStack(spacing: 12) {
+                        if hydrationFailed {
+                            Text(language.text("Could not load all meal ingredients."))
+                            Button(language.text("Try again")) { Task { await hydrateExistingMeal() } }
+                        } else {
+                            ProgressView(language.text("Loading meal ingredients"))
+                        }
+                    }
+                    .padding().background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+                }
             }
             .background(APEXBackground())
             .navigationBarTitleDisplayMode(.inline)
@@ -355,7 +370,7 @@ struct MealComposerView: View {
                 Button(language.text("Discard"), role: .destructive) { dismiss() }
                 Button(language.text("Keep editing"), role: .cancel) {}
             }
-            .task { hydrateExistingMeal() }
+            .task { await hydrateExistingMeal() }
         }
     }
 
@@ -388,7 +403,7 @@ struct MealComposerView: View {
                 Divider()
 
                 HStack(alignment: .firstTextBaseline) {
-                    Text("\(Int(draft.totals.kcal.rounded()))")
+                    Text("\(Int(exactly: draft.totals.kcal.rounded()) ?? 0)")
                         .font(APEXFont.display(38))
                         .contentTransition(.numericText())
                     Text("kcal")
@@ -840,11 +855,12 @@ struct MealComposerView: View {
                 } else if commitIntent == .unavailable {
                     Text(language.text("Save changes & close"))
                 } else {
-                    Text(language.format("Save changes & close · %d kcal", Int(draft.totals.kcal.rounded())))
+                    Text(language.format("Save changes & close · %d kcal", Int(exactly: draft.totals.kcal.rounded()) ?? 0))
                 }
             }
             .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.amber))
             .disabled(isSaving || commitIntent == .unavailable)
+            .disabled(request.existingMeal != nil && !hydrated)
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
             .confirmationDialog(
@@ -1034,14 +1050,22 @@ struct MealComposerView: View {
                                 meals: session.data.loggedMeals, entries: session.data.loggedFoodEntries)
     }
 
-    private func hydrateExistingMeal() {
-        guard !hydrated else { return }
-        hydrated = true
-        guard let meal = request.existingMeal else { return }
-        draft.items = session.data.loggedFoodEntries
-            .filter { $0.mealID == meal.id }
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .map(MealComposerItem.init(entry:))
+    @MainActor
+    private func hydrateExistingMeal() async {
+        guard !hydrated, let meal = request.existingMeal else { return }
+        hydrationFailed = false
+        guard let operation = session.accountOperationLease() else { hydrationFailed = true; return }
+        do {
+            let snapshot = try await session.mealEditSnapshot(meal, operation: operation)
+            guard session.accountOperationIsCurrent(operation), !Task.isCancelled else { return }
+            draft.items = snapshot.entries.map(MealComposerItem.init(entry:))
+            draft.expectedMealVersion = snapshot.version
+            draft.expectedEntryIDs = snapshot.entries.map(\.id)
+            hydrated = true
+        } catch {
+            guard session.accountOperationIsCurrent(operation), !Task.isCancelled else { return }
+            hydrationFailed = true
+        }
     }
 
     @MainActor
@@ -1650,7 +1674,7 @@ private struct MealFoodPicker: View {
 
     private func describeAmount(_ food: Food, _ quantity: Double, _ unit: FoodUnitKind) -> String {
         let rounded = (quantity * 10).rounded() / 10
-        let number = rounded == rounded.rounded() ? String(Int(rounded)) : String(rounded)
+        let number = FoodQuantity.formatAmount(rounded)
         switch unit {
         case .serving, .piece:
             let equivalent = FoodPortionMath.equivalentAmount(food, quantity: quantity, unit: unit)
@@ -1705,11 +1729,16 @@ private struct MealFoodPicker: View {
         operation: AccountOperationLease
     ) async {
         do {
-            let results = try await session.searchFoods(query: query, operation: operation)
+            var onlineAvailable = true
+            let results = try await session.searchFoods(query: query, operation: operation) { onlineAvailable = $0 }
             guard session.accountOperationIsCurrent(operation),
                   searchGate.canPublish(request, taskIsCancelled: Task.isCancelled) else { return }
             remoteResults = results
-            if remoteResults.isEmpty { message = "No reliable nutrition match was returned." }
+            if !onlineAvailable {
+                message = "Online search is unavailable. Your saved Food Memory remains usable."
+            } else {
+                message = results.isEmpty ? "No reliable nutrition match was returned." : nil
+            }
             isSearching = false
             searchTask = nil
         } catch is CancellationError {

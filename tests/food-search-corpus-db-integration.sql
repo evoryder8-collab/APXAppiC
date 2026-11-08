@@ -16,6 +16,10 @@ insert into public.food_corpus_batches (id, status) values
   ('00000000-0000-0000-0000-000000000002', 'staged');
 
 with fixtures(name, source_key, batch_id, aliases) as (values
+  ('Steak and kidney pudding', 'test-active', 1, array[]::text[]),
+  ('Steak fries', 'test-active', 1, array[]::text[]),
+  ('Steak sauce', 'test-active', 1, array[]::text[]),
+  ('Beef, sirloin steak', 'test-active', 1, array[]::text[]),
   ('Bread, seeded', 'test-active', 1, array[]::text[]),
   ('Bread, sunflower meal', 'test-active', 1, array[]::text[]),
   ('Wheat bread, white, with sunflower kernels', 'test-active', 1, array[]::text[]),
@@ -41,9 +45,16 @@ select md5(name)::uuid, source_key, name, name, '{}'::jsonb, aliases,
   public.food_search_normalize(name || ' ' || array_to_string(aliases, ' ')), 1
 from fixtures;
 
+update public.food_corpus_search set protein_g = 22, carbs_g = 0 where name = 'Beef, sirloin steak';
+
 do $$
 declare names text[];
 begin
+  if (select name from public.food_corpus_search_catalog('steak', 1)) is distinct from 'Beef, sirloin steak'
+     or (select name from public.food_corpus_search_catalog('steak sauce', 1)) is distinct from 'Steak sauce' then
+    raise exception 'steak intent was lost before the result limit';
+  end if;
+
   select array_agg(name) into names
   from public.food_corpus_search_catalog('bread seeds', 25);
   if names is distinct from array['Bread, seeded'] then

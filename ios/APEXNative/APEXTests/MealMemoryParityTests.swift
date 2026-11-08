@@ -627,6 +627,19 @@ final class MealMemoryParityTests: XCTestCase {
     }
 
     @MainActor
+    func testOfflineProviderPreservesSavedMatchesAndReportsCoverage() async throws {
+        let session = AppSession(foodSearchProvider: { _ in throw URLError(.notConnectedToInternet) })
+        let owner = UUID()
+        session.data = APEXDebugFixture.dashboard(userID: owner)
+        let operation = try XCTUnwrap(session.accountOperationLease())
+        let local = try XCTUnwrap(session.data.foods.first)
+        var online = true
+        let results = try await session.searchFoods(query: local.name, operation: operation) { online = $0 }
+        XCTAssertFalse(online)
+        XCTAssertTrue(results.contains { $0.id == local.id })
+    }
+
+    @MainActor
     func testLatestFoodSearchRequestRejectsAnOlderCompletion() {
         let gate = FoodSearchRequestGate()
         let first = gate.begin()
@@ -852,9 +865,9 @@ final class MealMemoryParityTests: XCTestCase {
             message: "queued-count publication must revalidate the lease after the count lookup completes"
         )
         assertEveryPostAwaitMutationIsLeaseGuarded(
-            "data = previousData",
+            "try await rollbackEditedMeal()",
             in: body,
-            message: "a late failure must not roll account B back to account A's previous dashboard"
+            message: "a late failure must not roll account B back to account A's previous meal"
         )
     }
 

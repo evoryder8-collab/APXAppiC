@@ -76,7 +76,7 @@ struct PortalHomeView: View {
                     )
                     .accessibilityIdentifier("portal.coach-workspace")
                 }
-                if session.coachContext.capabilities.sponsoredClient {
+                if session.coachContext.activelyCoached {
                     PortalTile(
                         title: language.text("Your coach plan"),
                         subtitle: language.format("Provided by %@", session.coachContext.sponsorship?.coachDisplayName ?? "FITR MAX"),
