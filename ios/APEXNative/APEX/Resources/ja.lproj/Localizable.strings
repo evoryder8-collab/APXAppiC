@@ -5878,3 +5878,4 @@
 "With backpack" = "リュックあり";
 "Without backpack" = "リュックなし";
 "Added weight not recorded" = "追加重量の記録なし";
+"%@ cm" = "%@ cm";

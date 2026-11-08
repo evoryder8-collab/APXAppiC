@@ -7,6 +7,7 @@ export const productInterfaceCopy: Array<readonly [string, string, string, strin
   ["With backpack","Mit Rucksack","Mit Rucksack","Con zaino","Con mochila","Com mochila","リュックあり","Cu rucsac","ใส่เป้"],
   ["Without backpack","Ohne Rucksack","Ohni Rucksack","Senza zaino","Sin mochila","Sem mochila","リュックなし","Fără rucsac","ไม่ใส่เป้"],
   ["Added weight not recorded","Zusatzgewicht nicht erfasst","Zuesatzgwicht nöd iitreit","Peso aggiunto non registrato","Peso añadido sin registrar","Peso adicional não registado","追加重量の記録なし","Greutate adăugată neînregistrată","ไม่ได้บันทึกน้ำหนักเสริม"],
+  ["%@ cm","%@ cm","%@ cm","%@ cm","%@ cm","%@ cm","%@ cm","%@ cm","%@ ซม."],
   ["Reference heights","Vergleichshöhen","Vergliichshöchine","Altezze di riferimento","Alturas de referencia","Alturas de referência","参考の高さ","Înălțimi de referință","ความสูงอ้างอิง"],
   ["Estimated load at the hands","Geschätzte Last auf den Händen","Gschätzts Gwicht uf de Händ","Carico stimato sulle mani","Carga estimada sobre las manos","Carga estimada nas mãos","両手にかかる推定荷重","Sarcină estimată pe mâini","น้ำหนักที่คาดว่าลงบนมือทั้งสองข้าง"],
   ["Level-floor reference","Richtwert bei gleicher Höhe von Händen und Füßen","Richtwärt für Händ und Füess uf de gliiche Höchi","Riferimento con mani e piedi alla stessa altezza","Referencia con manos y pies a la misma altura","Referência com mãos e pés à mesma altura","手と足が同じ高さの場合の目安","Reper cu mâinile și picioarele la aceeași înălțime","ค่าอ้างอิงเมื่อมือและเท้าอยู่ระดับเดียวกัน"],

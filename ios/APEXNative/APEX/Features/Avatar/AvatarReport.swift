@@ -608,8 +608,10 @@ struct AvatarReport: Transferable {
                 HandMetric(text: stage.name + " · " + language.dateKey(stage.card.date), size: 12, weight: .semibold)
             }
             func heights(_ refs: [StrengthProgress.PushUpLoadGuide.Elevation], _ body: Double, added: Double = 0) -> [String] {
-                refs.map { number($0.heightCm.rounded()) + " cm · " + approximateWeight(body * $0.bodyweightFraction + added * guide.addedWeightFraction) }
-
+                refs.map { reference in
+                    let height = language.format("%@ cm", number(reference.heightCm.rounded()))
+                    return height + " · " + approximateWeight(body * reference.bodyweightFraction + added * guide.addedWeightFraction)
+                }
             }
             var sections: [HandSection] = []
             if rows.contains(where: { $0.estimateKG != nil }) {

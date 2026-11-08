@@ -5860,3 +5860,4 @@
 "With backpack" = "ใส่เป้";
 "Without backpack" = "ไม่ใส่เป้";
 "Added weight not recorded" = "ไม่ได้บันทึกน้ำหนักเสริม";
+"%@ cm" = "%@ ซม.";
