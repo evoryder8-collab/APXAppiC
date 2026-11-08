@@ -60,8 +60,8 @@ export function liftedMassCaption(kilograms: number, locale: string, translate: 
     caption = tag.language === 'en' ? 'About the weight of ' + match.singular
       : name + ' · ' + translate('About the same weight')
   } else {
-    const words = ['two', 'three', 'four', 'five', 'six']
-    caption = tag.language === 'en' ? `About ${words[count - 2]} ${match.plural}`
+    const plural = match.plural!
+    caption = tag.language === 'en' ? `Around ${count}x ${plural[0].toUpperCase()}${plural.slice(1)}`
       : name + ' · ' + translate('About %d of these').replace('%d', new Intl.NumberFormat(locale).format(count))
   }
   return { caption, source: match.source, artwork: match.artwork, fact, factSource: match.factSource ?? match.source }

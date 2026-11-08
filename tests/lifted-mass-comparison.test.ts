@@ -62,7 +62,8 @@ test('object comparisons prefer one nearby object, then small whole groups with 
   assert.equal(liftedMassCaption(0, 'en'), undefined)
   const fireEngine = liftedMassCaption(37_833, 'en')!
   assert.equal(fireEngine.caption, 'About the weight of a fully loaded airport fire engine')
-  assert.equal(liftedMassCaption(708, 'en-US')?.caption, 'About three upright pianos')
+  assert.equal(liftedMassCaption(708, 'en-US')?.caption, 'Around 3x Upright pianos')
+  assert.equal(liftedMassCaption(752, 'en')?.caption, 'Around 4x Treadmills')
   const firstAt280g = objects.find(row => row.kg === 0.28)!
   assert.equal(liftedMassCaption(0.28, 'en')?.artwork, firstAt280g.artwork)
   const copy: Record<string, string> = {

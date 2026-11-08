@@ -58,15 +58,18 @@ test('family frequency keeps each variation while charts require comparable sess
   assert.match(html, /<dt>Lifted volume<\/dt><dd>1.2 t<\/dd>/)
 })
 
-test('report leads with the athlete category and comparable loads, then keeps partial work compact', () => {
+test('report leads with the athlete category, totals and comparison before secondary detail or charts', () => {
   const work = { ...noWork, sets:4, recordedReps:28, liftedKg:160, loadedReps:16, missingReps:true, missingVolume:true }
   const points = [{ date:'2026-11-07', topWeight:10, topReps:8 }, { date:'2026-11-07', topWeight:14, topReps:null }]
   const family = { name:'Split Squat', work, sessionCount:2,
     variants:[{ name:'Bulgarian Split Squat', work, sessionCount:2, points }] }
-  const training = { ...input.training, focus:'Resistance-focused' as const, workouts:3, counts:{ Resistance:3, Cardio:0, Mobility:0 } }
+  const training = { ...input.training, focus:'Resistance-focused' as const, workouts:3, counts:{ Resistance:3, Cardio:0, Mobility:0 }, comparison:{name:'Split Squat', reps:8, previous:10, recent:14} }
   const html = avatarReportHTML({ ...input, training, families:[family] })
   assert.match(html, /<header class="profile">.*<h1>Strength athlete<\/h1>.*<\/header>/)
-  assert.match(html, /<\/header>\s*<section class="lifts">/)
+  const order = ['</header>', '<h2>All-time training totals</h2>', '<aside class="comparison">', 'Fictional one-lift benchmark', 'Classified workouts 3', '<h2>Recorded load</h2>'].map(value => html.indexOf(value))
+  assert.ok(order.every((position, i) => position >= 0 && (!i || position > order[i - 1])))
+  assert.doesNotMatch(html,/Matched working load|Median session-best|Known external load|Volume sums each/)
+  assert.match(html,/\* Incomplete records/)
   assert.ok(html.indexOf('<h2>Recorded load</h2>') < html.indexOf('<h2>Most trained exercises</h2>'))
   assert.match(html, /Performed sets<\/h3><b class="score">4<\/b>/)
   assert.match(html, /Recorded reps<\/h3><b class="score">28\*<\/b>/)
@@ -131,19 +134,19 @@ test('unilateral estimates distinguish recorded load, combined mass and support 
   assert.match(rfess, /<title>#1 · Nov 1, 2026 · 5 reps × 20 kg<\/title>/)
   assert.match(rfess, /<title>#2 · Nov 2, 2026 · 8 reps × 20 kg<\/title>/)
   assert.match(rfess, /Personal best · <strong>8 reps × 20 kg/)
-  assert.match(rfess, /Estimated front-foot support at rest/)
-  assert.match(rfess, /<span>First<\/span><strong>≈ 76 kg/)
-  assert.match(rfess, /Current bodyweight used as a reference for every set/)
-  assert.match(rfess, /https:\/\/doi.org\/10.1519\/JSC.0000000000003727/)
-  assert.match(make('name:bulgarian split squat','Bulgarian Split Squat'), /Helme/)
-  assert.match(make('movement:single_leg_romanian_deadlift','Single-Leg Romanian Deadlift'), /Estimated standing-foot support at rest/)
-  for (const html of [make('movement:reverse_lunge','Reverse Lunge'),
-    make('movement:smith_split_squat','Smith Split Squat'),
+  assert.match(rfess, /<span>Front foot · estimated<\/span><strong>≈ 76 kg/)
+  assert.match(rfess, /Current bodyweight 70 \+ 20 kg/)
+  assert.match(make('name:bulgarian split squat','Bulgarian Split Squat'), /Front foot · estimated/)
+  assert.match(make('movement:single_leg_romanian_deadlift','Single-Leg Romanian Deadlift'), /Standing foot · estimated/)
+  const lunge = make('movement:reverse_lunge','Reverse Lunge',41)
+  assert.match(lunge, /<span>Added weight<\/span><strong>20 kg/)
+  assert.match(lunge, /<span>Body \+ load<\/span><strong>61 kg/)
+  assert.doesNotMatch(lunge,/≈/)
+  for (const html of [make('movement:smith_split_squat','Smith Split Squat'),
     make('movement:bulgarian_split_squat','Bulgarian Split Squat (hand-supported)'),
     make('movement:bulgarian_split_squat','Bulgarian Split Squat',null)]) {
-    assert.match(html,/External load during single-leg sets/)
-    assert.match(html, /<span>First<\/span><strong>20 kg/)
-    assert.doesNotMatch(html,/Body \+ load|Added weight|Helme|Estimated standing-foot support|≈/)
+    assert.match(html, /<span>Added weight<\/span><strong>20 kg/)
+    assert.doesNotMatch(html,/Body \+ load|≈/)
   }
   assert.doesNotMatch(make('name:custom','Custom split squat variation'), /Working leg/)
 })
@@ -178,28 +181,26 @@ test('download embeds each chart anatomy once per movement fetch and retains the
   const fetchImage = t.mock.method(globalThis,'fetch',async () => new Response(Buffer.from(webp,'base64')))
   const html = await downloadableAvatarReport(options,'/app/')
   assert.deepEqual(fetchImage.mock.calls.map(call=>call.arguments[0]),['/app/leg-anatomy/bulgarian_split_squat.webp'])
-  assert.equal((html.match(/<img alt="" src="data:image\/webp;base64,/g) ?? []).length,4)
+  assert.equal((html.match(/<img alt="" src="data:image\/webp;base64,/g) ?? []).length,2)
   fetchImage.mock.mockImplementation(async () => new Response('missing',{status:404}))
   const offline = await downloadableAvatarReport(options,'/app/')
   assert.doesNotMatch(offline,/<img/)
-  assert.match(offline,/Estimated front-foot support at rest/)
+  assert.match(offline,/Front foot · estimated/)
 })
 
-test('dated leg comparison uses one basis, ranks every unrounded supported mass, and keeps latest below peak', () => {
+test('the latest single-leg card uses that session’s dated bodyweight and keeps unknown mass out of historical reports', () => {
   const points = [[16,1],[20,2],[30,3]].map(([weight,i])=>({sessionId:'s'+i,date:'2026-11-0'+i,topWeight:weight,topReps:8}))
   const variant = { key:'movement:bulgarian_split_squat',name:'Bulgarian Split Squat',points,work:noWork,sessionCount:3 }
   const options = {...input,currentBodyweight:80,families:[{key:'family:split_squat',name:'Split Squat',work:noWork,sessionCount:3,variants:[variant]}]}
   const masses = new Map([['s1',70],['s2',80],['s3',60]])
   const html = avatarReportHTML({...options,sessionBodyweights:masses})
-  assert.match(html,/<span>First<\/span><strong>≈ 73 kg<\/strong><small>Nov 1, 2026/)
-  assert.match(html,/<span>Peak<\/span><strong>≈ 84 kg<\/strong><small>Nov 2, 2026/)
-  assert.match(html,/Latest · ≈ 76 kg<br><small>Nov 3, 2026/)
+  assert.match(html,/<span>Front foot · estimated<\/span><strong>≈ 76 kg/)
+  assert.match(html,/<span>Body \+ load<\/span><strong>90 kg<\/strong><small>60 \+ 30 kg/)
   assert.match(html,/Personal best · <strong>8 reps × 30 kg/)
-  assert.doesNotMatch(html,/Current bodyweight used as a reference/)
+  assert.doesNotMatch(html,/Current bodyweight|Peak<\/span>/)
   const incomplete = avatarReportHTML({...options,sessionBodyweights:new Map([['s2',100]])})
-  assert.match(incomplete, /External load during single-leg sets/)
-  assert.match(incomplete, /Bodyweight history is incomplete/)
-  assert.doesNotMatch(incomplete,/Helme|≈/)
+  assert.match(incomplete, /<span>Added weight<\/span><strong>30 kg/)
+  assert.doesNotMatch(incomplete,/Body \+ load|≈/)
   const historical = avatarReportHTML({...options,range:{from:'2026-11-01',to:'2026-11-03',allTime:false}})
   assert.doesNotMatch(historical,/Current bodyweight used as a reference|≈/)
 })

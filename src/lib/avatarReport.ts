@@ -1,5 +1,5 @@
 // A standalone document: the downloaded report needs neither a login nor a network connection.
-import { athleteTitle, trainingProfileLines, type TrainingProfile } from './trainingProfile.ts'
+import { athleteTitle, type TrainingProfile } from './trainingProfile.ts'
 import { datedChartAxis, distinctSessionPositions } from './datedChartAxis.ts'
 import { exerciseChartTitle, totalRecordedWork, type ExerciseFrequencyFamily, type RecordedWork, type RankedExerciseHistory } from './strengthProgress.ts'
 import { formattedMass, heroLiftCaption, liftedMassCaption } from './liftedMassComparison.ts'
@@ -156,38 +156,37 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
   function volumeTotal(work: RecordedWork) {
     return work.liftedKg == null ? null : formattedMass(work.liftedKg, locale) + (work.missingVolume ? '*' : '')
   }
-  function perLegComparison(variant: ReportFamily['variants'][number]) {
+  function workingLeg(variant: ReportFamily['variants'][number]) {
     const load = loadGuide(variant)
     if (!load) return ''
-    const points = variant.points
-    const bodies = points.map(p => options.sessionBodyweights?.get(p.sessionId))
-    const support = load.kind === 'rearFootElevated' || load.kind === 'singleSupport'
-    const dated = support && bodies.every(validMass)
-    const reference = support && bodies.every(mass => !validMass(mass)) && (options.range?.to ?? today) === today
-      && validMass(options.currentBodyweight) ? options.currentBodyweight : null
-    const estimated = dated || reference != null
-    const factor = load.kind === 'rearFootElevated' ? 0.8436 : 1
-    const values = points.map((point, i) => estimated ? (point.topWeight + (reference ?? bodies[i]!)) * factor : point.topWeight)
-    const peak = values.reduce((best, value, i) => value > values[best] ? i : best, 0)
-    const value = (index: number) => estimated ? '≈ ' + fmt.format(Math.round(values[index])) + ' kg' : fmt.format(values[index]) + ' kg'
-    const latest = points.length - 1
+    const latest = variant.points.at(-1)!
+    const external = latest.topWeight
+    const datedBody = options.sessionBodyweights?.get(latest.sessionId)
+    const canUseCurrent = (options.range?.to ?? today) === today
+      && !variant.points.some(point => validMass(options.sessionBodyweights?.get(point.sessionId)))
+    const body = validMass(datedBody) ? datedBody : canUseCurrent && validMass(options.currentBodyweight) ? options.currentBodyweight : null
+    const combined = body != null && load.kind !== 'externalOnly' ? body + external : null
+    const tiles: Array<[string, string, string?]> = []
+    let note = ''
+    if (combined != null) {
+      if (load.kind === 'rearFootElevated') {
+        tiles.push(['Front foot · estimated', '≈ ' + fmt.format(Math.round(combined * 0.8436))])
+      } else if (load.kind === 'singleSupport') {
+        tiles.push(['Standing foot · estimated', '≈ ' + fmt.format(Math.round(combined))])
+      } else {
+        note = t('The share on each foot varies with stance and support.')
+      }
+    }
+    tiles.push(['Added weight', fmt.format(external)])
+    if (combined != null && body != null) {
+      const reference = validMass(datedBody) ? '' : t('Current bodyweight') + ' '
+      tiles.push(['Body + load', fmt.format(combined), reference + fmt.format(body) + ' + ' + fmt.format(external) + ' kg'])
+    }
     const art = legArt.get(load.id)
     const image = art?.startsWith('data:image/webp;base64,') ? `<img alt="" src="${escape(art)}">` : ''
-    const basis = estimated
-      ? load.kind === 'rearFootElevated' ? 'Estimated front-foot support at rest' : 'Estimated standing-foot support at rest'
-      : 'External load during single-leg sets'
-    const notes = []
-    if (estimated && load.kind === 'rearFootElevated') notes.push(`<a href="https://doi.org/10.1519/JSC.0000000000003727">${t('At rest · based on Helme et al.')}</a>`)
-    if (estimated && load.kind === 'singleSupport') notes.push(t('Assumes one foot on the floor and no hand support.'))
-    if (support && !estimated) notes.push(t('Bodyweight history is incomplete. External load is shown for every set.'))
-    if (reference != null) notes.push(t('Current bodyweight used as a reference for every set.') + ' (' + fmt.format(reference) + ' kg)')
-    function panel(label: string, index: number, showLatest: boolean) {
-      return `<div class="leg-stage">${image}<div class="leg-value"><span>${t(label)}</span><strong>${value(index)}</strong><small>${stamp(points[index].date)}</small>
-        ${showLatest ? `<p class="leg-latest">${t('Latest')} · ${value(latest)}<br><small>${stamp(points[latest].date)}</small></p>` : ''}</div></div>`
-    }
-    return `<aside class="leg-load"><h4>${t('Working leg')}</h4><p class="leg-basis">${t(basis)}</p>
-      <div class="leg-stages">${panel('First', 0, false)}${panel('Peak', peak, true)}</div>
-      ${notes.length ? `<p class="leg-note">${notes.join(' · ')}</p>` : ''}</aside>`
+    return `<aside class="leg-load">${image}<div class="leg-content"><h4>${t('Working leg')}</h4><div class="leg-tiles">
+      ${tiles.map(([label,value,detail]) => `<div class="leg-tile"><span>${t(label)}</span><strong>${value} kg</strong>${detail ? `<small>${detail}</small>` : ''}</div>`).join('')}</div>
+      ${note ? `<p>${note}</p>` : ''}</div></aside>`
   }
   const lifts = families.flatMap(family => family.variants.filter(variant => variant.points.length >= 2).map(variant => {
     const points = variant.points.map(p => ({ date: p.date, value: p.topWeight, reps: p.topReps }))
@@ -202,24 +201,23 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
     return `<article><h3>${title}</h3>${subtitle ? `<p class="variation">${subtitle}</p>` : ''}
       ${chart(points, ' kg', t(variant.name), true)}
       <p class="best-set">${t(options.range && !options.range.allTime ? 'Best in range' : 'Personal best')} · <strong>${metric(best, ' kg')}</strong></p>
-      ${stats ? `<dl>${stats}</dl>` : ''}${perLegComparison(variant)}</article>`
+      ${stats ? `<dl>${stats}</dl>` : ''}${workingLeg(variant)}</article>`
   }))
   const total = totalRecordedWork(families)
   const object = liftedMassCaption(total.liftedKg ?? 0, locale, translate)
   const hero = heroLiftCaption(total.liftedKg ?? 0, locale, translate)
   const picture = object && illustration?.filename === object.artwork && illustration.dataURL.startsWith('data:image/webp;base64,')
     ? `<img class="award-art" alt="" src="${escape(illustration.dataURL)}">` : ''
-  const comparisons = [
-    object && `<figure>${picture}<figcaption><p><a href="${escape(object.source)}">${escape(object.caption)}</a></p><p class="fact"><a href="${escape(object.factSource)}">${escape(object.fact)}</a></p></figcaption></figure>`,
-    hero && `<p><a href="${escape(hero.source)}">${escape(hero.caption)}</a></p>`,
-  ].join('')
+  const analogy = object || hero ? `<aside class="comparison">${picture}<div>
+    ${object ? `<h3><a href="${escape(object.source)}">${escape(object.caption)}</a></h3><p class="fact"><a href="${escape(object.factSource)}">${escape(object.fact)}</a></p>` : ''}
+    ${hero ? `<p class="hero"><a href="${escape(hero.source)}">${escape(hero.caption)}</a></p>` : ''}</div></aside>` : ''
   const totals: Array<[string, string | null]> = [
     ['Performed sets', total.sets ? fmt.format(total.sets) : null],
     ['Recorded reps', repsTotal(total)],
     ['Lifted volume', volumeTotal(total)],
   ]
   const totalTiles = totals.flatMap(([label, value]) => value == null ? [] : [
-    `<article><h3>${t(label)}</h3><b class="score">${value}</b>${label === 'Lifted volume' ? comparisons : ''}</article>`,
+    `<article><h3>${t(label)}</h3><b class="score">${value}</b></article>`,
   ])
   const headers = ['Sessions', 'Recorded reps', 'Lifted volume', 'Load per rep'].map(t)
   function workRow(row: ReportWorkRow, rank?: number) {
@@ -237,11 +235,14 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
   const range = options.range
   const bounds = (from: string, to: string) => stamp(from) + ' – ' + stamp(to)
   const profileStart = training.period?.from ?? new Date(Date.parse((range?.to ?? today) + 'T12:00:00Z') - 89 * 86400000).toISOString().slice(0,10)
-  const profileLines = training.workouts ? trainingProfileLines(training, locale, translate)
-    : [translate('A pattern needs at least three classified workouts.')]
+  const profileDetails = training.workouts ? [
+    t('Classified workouts') + ' ' + fmt.format(training.workouts),
+    t('Workouts per week') + ' ' + fmt.format(training.workouts * 7 / (training.period?.days ?? 90)),
+    ...Object.entries(training.counts).filter(([,count]) => count > 0).map(([label,count]) => t(label) + ' ' + fmt.format(count)),
+  ].join(' · ') : ''
   return `<!doctype html><html lang="${escape(locale)}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${t('Avatar report')} · FITR MAX</title><style>
 *{box-sizing:border-box}body{margin:0;background:#f7f5fc;color:#271942;font:16px/1.5 system-ui,sans-serif}main{max-width:920px;margin:auto;padding:clamp(16px,4vw,52px)}h1{font-size:clamp(32px,7vw,64px);line-height:1.05;margin:.25em 0}h2{margin:1.6em 0 .45em}h3,p{margin:.25em 0}p,.ends,small{color:#584d69}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,290px),1fr));gap:12px}article,table{background:white;border:1px solid #ded8e9;border-radius:16px}article{padding:18px;break-inside:avoid}h1,h2,h3,th,p{overflow-wrap:anywhere}.work .family{background:#f8f5fd;font-weight:650}.work .variant th{padding-inline-start:26px;font-weight:400}.work .variant{color:#584d69;font-size:.88em}.work td{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}.work th:not(:first-child){text-align:right}.work-note{margin-top:.65em;font-size:.85em}@media screen and (max-width:600px){.work,.work tbody{display:block}.work thead{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}.work tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));padding:9px 12px;gap:6px}.work tr>th{grid-column:1/-1}.work th,.work td,.work .variant th{padding:0;border:0;text-align:left}.work td:before{display:block;content:attr(data-label);color:#62576b;font-size:.74em;font-weight:400;white-space:normal}.work .variant{padding-inline-start:24px;border-top:1px solid #eee9f3}.work .family{border-top:1px solid #ded8e9}}.score{font-size:1.7em}.score small{font-size:.5em}svg{display:block;width:100%;margin-top:14px}.ends{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:.78em;font-variant-numeric:tabular-nums}.lifts article{border-left:5px solid #ab82dc;margin-bottom:10px}.lifts svg{max-height:130px}table{border-spacing:0;width:100%;margin-top:.75em}td,th{padding:8px 14px;border-bottom:1px solid #eee9f3;text-align:left}td:last-child,th:last-child{text-align:right}thead{background:#f7efca}tr{break-inside:avoid}@page{margin:14mm}@media print{body{background:white;font-size:11pt}main{padding:0}.grid{display:block;columns:2}.grid article{margin-bottom:10px}.lifts>p,h2,h3{break-after:avoid}*{print-color-adjust:exact}}
-.totals{grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))}.totals figure{margin:.6em 0;break-inside:avoid}.award-art{display:block;max-width:100%;width:100%;height:150px;object-fit:contain;margin-bottom:.6em}@media print{.award-art{height:32mm}}
+.totals{grid-template-columns:repeat(auto-fit,minmax(min(100%,135px),1fr))}.comparison{display:flex;align-items:center;gap:clamp(12px,3vw,26px);background:#eef6f1;border-radius:16px;padding:14px 18px;margin-top:12px;break-inside:avoid}.comparison h3{font-size:1.35em;color:#145442}.comparison a{color:inherit;text-decoration:none}.comparison .fact{font-size:.9em}.comparison .hero{font-weight:650;color:#3e3566;margin-top:.55em}.award-art{width:clamp(70px,23%,155px);height:125px;object-fit:contain}.profile-details{font-size:.86em;margin:16px 0}.totals-section{break-inside:avoid}
 .profile{background:linear-gradient(115deg,#f1eafa,#e2d7f7);border-left:6px solid #7442be;border-radius:0 18px 18px 0;padding:clamp(18px,4vw,32px);break-inside:avoid}
 .profile h1{color:#41246b;font-size:clamp(32px,6.8vw,58px);margin:.16em 0 .25em}
 .report-range{margin:0 0 8px;font-weight:600}.profile .period{font-size:.82em;font-weight:700;color:#563280}
@@ -250,24 +251,20 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
 .masthead strong{letter-spacing:.12em}.masthead p{font-size:.88em}
 .lifts dl{display:flex;flex-wrap:wrap;gap:4px 22px;margin:10px 0 0;padding-top:8px;border-top:1px solid #e6e0ed}
 .lifts dl div{display:flex;gap:6px;align-items:baseline}.lifts dt{color:#584d69;font-size:.82em}.lifts dd{font-weight:700;margin:0}
-.lifts>p{margin-bottom:8px}.variation{font-weight:600}.leg-load{margin-top:10px;border-top:1px solid #e6e0ed;padding-top:10px}.leg-load h4{margin:0 0 6px;font-size:.95em}
-.best-set{margin-top:18px}.lifts dl{margin:14px 0 0;padding:12px 0 0;gap:8px 28px}.leg-load{margin-top:16px;padding-top:14px}
-.leg-basis{font-size:.87em;margin-bottom:9px}.leg-stages{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.leg-stage{display:flex;align-items:center;gap:8px;min-width:0;padding:10px;border-radius:12px;background:#e2efed;color:#193f37}
-.leg-stage+ .leg-stage{background:#ebe4f8;color:#493065}.leg-stage img{width:42%;height:110px;object-fit:contain;min-width:0}
-.leg-value{min-width:0}.leg-value span,.leg-value small{display:block;font-size:.76em;line-height:1.25;color:inherit}.leg-value strong{display:block;font-size:clamp(18px,3vw,30px);line-height:1.15;margin:4px 0;font-variant-numeric:tabular-nums}
-.leg-value .leg-latest{font-size:.85em;border-top:1px solid #d1c3e1;padding-top:5px;margin:7px 0 0;color:inherit}.leg-latest small{margin-top:2px}.leg-note{font-size:.76em;margin:6px 0 0}
-@media screen and (max-width:480px){.leg-stages{gap:6px}.leg-stage{flex-direction:column;justify-content:flex-start;align-items:flex-start;gap:4px;padding:8px}.leg-stage img{width:100%;height:88px}}
-@media print{.leg-stage img{height:24mm}.leg-value strong{font-size:18pt}}
+.lifts>p{margin-bottom:8px}.variation{font-weight:600}.best-set{margin-top:18px}.lifts dl{margin:14px 0 0;padding:12px 0 0;gap:8px 28px}
+.leg-load{display:flex;align-items:center;gap:12px;background:#edf5f1;border-radius:14px;margin-top:16px;padding:12px}.leg-load img{width:18%;height:110px;object-fit:contain}.leg-content{flex:1;min-width:0}.leg-load h4{margin:0 0 6px;font-size:1.05em}.leg-tiles{display:flex;flex-wrap:wrap;gap:6px}.leg-tile{flex:1 1 78px;border-radius:8px;padding:8px;background:#fff}.leg-tile:first-child{background:#cdeee3}.leg-tile span,.leg-tile small{display:block;font-size:.75em;overflow-wrap:anywhere}.leg-tile strong{display:block;font-size:clamp(17px,2.5vw,25px);font-variant-numeric:tabular-nums}.leg-load p{font-size:.76em;margin:.4em 0 0}
+@media print{.award-art{height:27mm}.leg-load img{height:25mm}}
 @media screen and (max-width:600px){svg text{font-size:17px}.profile p:not(.period){font-size:.9em}.lifts article{padding:14px}.ends{gap:2px 10px}}
 @media print{.profile{padding:14px 20px}.profile h1{font-size:29pt}.totals{display:flex;columns:auto;align-items:flex-start}.totals article{flex:1;min-width:0}}
 </style><main><div class="masthead"><strong>FITR MAX · ${t('Avatar report')}</strong><p>${escape(name)} · ${stamp(today)}</p></div>
-${range ? `<p class="report-range">${t(range.allTime ? 'All time' : 'Date range')} · ${bounds(range.from, range.to)}</p>` : ''}
-<header class="profile"><p class="period">${t(training.period ? 'Training profile' : '90-day training profile')}${range ? ' · ' + bounds(profileStart, range.to) : ''}</p><h1>${t(athleteTitle(training))}</h1>${profileLines.map(line => `<p>${escape(line)}</p>`).join('')}</header>
+${range && (range.allTime || profileStart !== range.from) ? `<p class="report-range">${t(range.allTime ? 'All time' : 'Date range')} · ${bounds(range.from, range.to)}</p>` : ''}
+<header class="profile"><p class="period">${t(training.period ? 'Training profile' : '90-day training profile')}${range ? ' · ' + bounds(profileStart, range.to) : ''}</p><h1>${t(athleteTitle(training))}</h1></header>
+${totalTiles.length ? `<section class="totals-section"><h2>${t(range && !range.allTime ? 'Training totals' : 'All-time training totals')}</h2><div class="grid totals">${totalTiles.join('')}</div>${analogy}</section>` : ''}
+${profileDetails ? `<p class="profile-details">${profileDetails}</p>` : ''}
+${total.missingReps || total.missingVolume ? `<p class="work-note">* ${t('Incomplete records')}</p>` : ''}
 ${lifts.length ? `<section class="lifts"><h2>${t('Recorded load')}</h2><p>${t('Heaviest recorded set per session, in kilograms.')}</p>${lifts.join('')}</section>` : ''}
-${totalTiles.length ? `<section><h2>${t(range && !range.allTime ? 'Training totals' : 'All-time training totals')}</h2><div class="grid totals">${totalTiles.join('')}</div><p class="work-note">${t('Known external load × recorded reps. Body mass, assistance and timed work are excluded from volume. Skipped sets are excluded from all totals.')} ${t('Volume sums each recorded load × reps. An asterisk marks incomplete records.')}</p></section>` : ''}
 ${tiles.length ? `<section><h2>${t('Stats')}</h2><p>${t('Legacy game scores. Not medical measurements.')}</p><div class="grid">${tiles.join('')}</div></section>` : ''}
-${rankings.length ? `<section><h2>${t('Most trained exercises')}</h2><p>${t('Each completed workout counts once per exercise family.')}</p><table class="work"><thead><tr><th>${t('Exercise')}</th>${headers.map(label => `<th>${label}</th>`).join('')}</tr></thead>${rankings.join('')}</table><p class="work-note">${t('Volume sums each recorded load × reps. An asterisk marks incomplete records.')} ${t('Load per rep averages only reps with a measured load.')}</p></section>` : ''}</main></html>`
+${rankings.length ? `<section><h2>${t('Most trained exercises')}</h2><p>${t('Each completed workout counts once per exercise family.')}</p><table class="work"><thead><tr><th>${t('Exercise')}</th>${headers.map(label => `<th>${label}</th>`).join('')}</tr></thead>${rankings.join('')}</table></section>` : ''}</main></html>`
 }
 
 async function embeddedWebP(url: string) {
