@@ -105,6 +105,8 @@ enum StrengthProgress {
         let date: String
         let time: String
         var totals = LifetimeTotals()
+        var heaviestSet: (kg: Double, reps: Int)?
+        var bestSingleKG: Double?
 
         init(_ session: WorkoutSession) {
             sessionID = session.id
@@ -113,7 +115,11 @@ enum StrengthProgress {
         }
 
         static func chronological(_ lhs: Self, _ rhs: Self) -> Bool {
-            (lhs.date, lhs.time, lhs.sessionID.uuidString) < (rhs.date, rhs.time, rhs.sessionID.uuidString)
+            if lhs.date != rhs.date { return lhs.date < rhs.date }
+            if let l = ExternalWorkoutImport.parseTimestamp(lhs.time), let r = ExternalWorkoutImport.parseTimestamp(rhs.time), l != r {
+                return l < r
+            }
+            return (lhs.time, lhs.sessionID.uuidString) < (rhs.time, rhs.sessionID.uuidString)
         }
     }
 
@@ -466,6 +472,22 @@ enum StrengthProgress {
             groups[key]?.sessions[session.id, default: SessionTotals(session)].totals.record(
                 log, measuresReps: measuresReps, measuresLoad: measuresExternalLoad
             )
+            if measuresReps, !isComposite, !substitute, !assisted,
+               !loggedEquipment.contains("band"), !canonicalEquipment.contains("band"),
+               descriptor.kind == .strength || descriptor.kind == .bodyweight,
+               let kg = log.weightKG, kg.isFinite, kg >= 0, let reps = log.reps, reps > 0 {
+                if let previous = groups[key]?.sessions[session.id]?.heaviestSet {
+                    if (kg, reps) > (previous.kg, previous.reps) {
+                        groups[key]?.sessions[session.id]?.heaviestSet = (kg, reps)
+                    }
+                } else {
+                    groups[key]?.sessions[session.id]?.heaviestSet = (kg, reps)
+                }
+                if reps == 1, kg > 0 {
+                    let previous = groups[key]?.sessions[session.id]?.bestSingleKG ?? 0
+                    groups[key]?.sessions[session.id]?.bestSingleKG = max(kg, previous)
+                }
+            }
             if let current = groups[key], session.date > current.lastPerformed
                 || (session.date == current.lastPerformed && name < current.name) {
                 groups[key]?.lastPerformed = session.date

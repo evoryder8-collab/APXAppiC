@@ -435,7 +435,8 @@ actor SupabaseService {
 
     func loadDashboard() async throws -> DashboardData {
         guard let client else { throw APEXServiceError.configurationMissing }
-        let ownerID = try await client.auth.session.user.id
+        let user = try await client.auth.session.user
+        let ownerID = user.id
 
         async let profile: [Profile] = client.from("profile").select().limit(1).execute().value
         async let settings: [UserSettings] = client.from("settings").select().limit(1).execute().value
@@ -526,6 +527,7 @@ actor SupabaseService {
         }
 
         return try await DashboardData(
+            accountCreation: .init(userID: ownerID, date: user.createdAt),
             profile: profile.first,
             settings: settings.first,
             meals: meals,

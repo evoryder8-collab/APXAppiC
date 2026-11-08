@@ -5858,3 +5858,6 @@
 "Current bodyweight used as a reference for every set." = "全セットで現在の体重を基準にしています。";
 "Bodyweight history is incomplete. External load is shown for every set." = "体重履歴が不足しているため、全セットで追加重量を表示しています。";
 "Incomplete records" = "記録が一部不足";
+"Joined FITR MAX" = "FITR MAX 登録日";
+"Best single" = "1回セットの最高重量";
+"Personal record" = "自己ベスト";

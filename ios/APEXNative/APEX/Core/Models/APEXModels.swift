@@ -2027,6 +2027,11 @@ struct OrbitCampaignSession: Codable, Identifiable, Hashable, Sendable {
 }
 
 struct DashboardData: Codable, Sendable {
+    struct AccountCreation: Codable, Sendable {
+        let userID: UUID
+        let date: Date
+    }
+    var accountCreation: AccountCreation?
     var profile: Profile?
     var settings: UserSettings?
     var meals: [Meal] = []

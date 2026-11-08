@@ -5840,3 +5840,6 @@
 "Current bodyweight used as a reference for every set." = "ใช้น้ำหนักตัวปัจจุบันเป็นค่าอ้างอิงสำหรับทุกเซต";
 "Bodyweight history is incomplete. External load is shown for every set." = "ข้อมูลน้ำหนักตัวยังไม่ครบ จึงแสดงน้ำหนักเสริมสำหรับทุกเซต";
 "Incomplete records" = "บันทึกไม่ครบ";
+"Joined FITR MAX" = "เริ่มใช้ FITR MAX";
+"Best single" = "น้ำหนักสูงสุดในเซ็ตที่ทำ 1 ครั้ง";
+"Personal record" = "สถิติส่วนตัว";

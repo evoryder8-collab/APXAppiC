@@ -296,7 +296,7 @@ final class ExportReportTests: XCTestCase {
         XCTAssertEqual(profile.classifiedWorkouts, 3)
         let pdf = AvatarReport(ownerID: user, displayName: "Alex Morgan", snapshots: [], partialScores: [:],
                                sessions: fixture.workoutSessions, logs: fixture.workoutLogs, unit: .kilograms,
-                               trainingProfile: profile, currentBodyweightKG: 60).pdfData()
+                               trainingProfile: profile, bodyweightBySession: [sessionID: 60, second.id: 60]).pdfData()
         let document = try XCTUnwrap(PDFDocument(data: pdf))
         let pages = (0..<document.pageCount).compactMap { document.page(at: $0)?.string }
         let language = LanguageState.shared
@@ -314,8 +314,8 @@ final class ExportReportTests: XCTestCase {
         XCTAssertTrue(charts.contains("≈ 66 kg"))
         XCTAssertTrue(charts.contains(language.text("Body + load")))
         XCTAssertTrue(charts.contains(language.text("Added weight")))
-        XCTAssertTrue(charts.contains(language.text("The share on each foot varies with stance and support.")))
-        XCTAssertTrue(charts.contains(language.text("Current bodyweight")))
+        XCTAssertTrue(charts.contains(language.text("Before")))
+        XCTAssertTrue(charts.contains(language.text("After")))
         XCTAssertFalse(charts.contains(language.text("Push-Up")))
         XCTAssertFalse(charts.contains(language.text("Dumbbell Curl")))
         for (reps, kg) in [(18, 292), (30, 332)] {
@@ -373,7 +373,7 @@ final class ExportReportTests: XCTestCase {
         let previous = language.language
         language.language = .english
         defer { language.language = previous }
-        let rows = [("2026-02-01", 100.0), ("2026-03-03", 12), ("2026-03-10", 24),
+        let rows = [("2026-02-01", 0.0), ("2026-03-03", 12), ("2026-03-10", 24),
                     ("2026-03-17", 20), ("2026-03-24", 20), ("2026-03-31", 18), ("2026-04-01", 200)]
         fixture.workoutSessions = rows.map { date, _ in
             WorkoutSession(id: UUID(), userID: user, date: date, programDayID: dayID, isLite: false, isDeload: false,
@@ -385,7 +385,8 @@ final class ExportReportTests: XCTestCase {
                        setNumber: 1, weightKG: row.1, reps: 8, rir: 2, movementID: "bulgarian_split_squat",
                        skipped: false, overrideFlag: false, createdAt: "")
         }
-        let weights = [("2026-02-28", 60.0), ("2026-03-10", 45), ("2026-03-16", 70), ("2026-03-31", 55)]
+        fixture.accountCreation = .init(userID: user, date: try XCTUnwrap(APEXDateMath.date(from: "2026-01-30")))
+        let weights = [("2026-01-31", 61.0), ("2026-02-28", 60.0), ("2026-03-10", 45), ("2026-03-16", 70), ("2026-03-31", 55)]
         fixture.healthMetrics = weights.map { date, kg in
             HealthMetric(id: UUID(), userID: user, date: date, weightKG: kg)
         } + [HealthMetric(id: UUID(), userID: UUID(), date: "2026-03-17", weightKG: 150)]
@@ -401,7 +402,12 @@ final class ExportReportTests: XCTestCase {
         let text = try XCTUnwrap(page.string)
         XCTAssertTrue(text.contains("Best working load · 8 reps × 24 kg"))
         XCTAssertTrue(text.contains("≈ 62 kg"))
-        XCTAssertTrue(text.contains("55 kg + 18 kg"))
+        XCTAssertTrue(text.contains("73 kg"))
+        XCTAssertTrue(text.contains("0 kg"))
+        XCTAssertTrue(text.contains("Before · " + language.dateKey("2026-02-01")))
+        XCTAssertTrue(text.contains("After · " + language.dateKey("2026-03-31")))
+        XCTAssertTrue(text.contains("8 reps × 90 kg · " + language.dateKey("2026-03-17")))
+        XCTAssertTrue(try XCTUnwrap(document.string).contains("Joined FITR MAX"))
         XCTAssertFalse(text.contains("200 kg"))
         let cover = try XCTUnwrap(document.page(at: 0))
         func coverY(_ label: String) throws -> CGFloat {
@@ -418,7 +424,7 @@ final class ExportReportTests: XCTestCase {
             XCTAssertFalse(copy.contains(obsolete))
         }
         let attachment = XCTAttachment(data: pdf, uniformTypeIdentifier: "com.adobe.pdf")
-        attachment.name = "Working leg latest recorded load.pdf"
+        attachment.name = "Working leg before and after.pdf"
         attachment.lifetime = .keepAlways
         add(attachment)
 
@@ -429,6 +435,20 @@ final class ExportReportTests: XCTestCase {
         XCTAssertTrue(partial.contains("Added weight"))
         XCTAssertFalse(partial.contains("Body + load"))
         XCTAssertFalse(partial.contains("Front foot · estimated"))
+    }
+
+    @MainActor
+    func testSparseChartPrintsActualSingleEvenBelowTheSessionsHeaviestSet() throws {
+        let reps = [log("Dumbbell Curl", set: 1, weight: 24, reps: 6, at: ""),
+                    log("Dumbbell Curl", set: 2, weight: 21, reps: 1, at: "")]
+        var fixture = data(logs: reps)
+        fixture.accountCreation = .init(userID: UUID(), date: .distantPast)
+        let report = AvatarReport.scoped(ownerID: user, data: fixture, partialScores: [:], period: .custom,
+                                        dates: "2026-01-05"..."2026-01-05", today: "2026-01-07")
+        XCTAssertNil(report.joinedDate)
+        let text = try XCTUnwrap(PDFDocument(data: report.pdfData())?.string)
+        XCTAssertTrue(text.contains(LanguageState.shared.text("Best single") + " · 21 kg"))
+        XCTAssertFalse(text.contains(LanguageState.shared.text("Best single") + " · 24 kg"))
     }
 
     func testAvatarReportCalendarRangesRejectInvalidDatesAndClampMonthEnds() {
