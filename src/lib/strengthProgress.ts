@@ -168,7 +168,7 @@ function historyMovement(name: string, movementId: string | null) {
     catalogUnit: movement?.repUnit,
     region: region === 'lower' || region === 'upper' || region === 'core' || region === 'other'
       ? region : strengthRegion(movement?.primaryMuscles[0]),
-    comparableLoad: descriptor.kind === 'strength' && !bodyweight && !composite && measuresExternalWeight,
+    comparableLoad: descriptor.kind === 'strength' && !bodyweight && measuresExternalWeight,
   }
 }
 

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { avatarReportHTML, downloadableAvatarReport, reportBodyweight, reportExerciseRecords, reportSessionBodyweights } from '../src/lib/avatarReport.ts'
 import { avatarReportRange } from '../src/lib/avatarReportRange.ts'
-import { exerciseChartTitle } from '../src/lib/strengthProgress.ts'
+import { buildExerciseFamilies, exerciseChartTitle } from '../src/lib/strengthProgress.ts'
 import { EMPTY_DATA } from '../src/lib/types.ts'
 import { seedProfile } from '../src/data/seed.ts'
 import { liftedMassCaption } from '../src/lib/liftedMassComparison.ts'
@@ -33,7 +33,7 @@ test('report exports every frequency rank, graphs only loaded exercises and esca
   const html = avatarReportHTML({ ...input, families })
   assert.equal((html.match(/<tr class="family">/g) || []).length, 11)
   assert.equal((html.match(/<svg/g) || []).length, 10)
-  assert.match(html, /6 reps × 52.5 kg/)
+  assert.match(html, /Personal best · <strong>6 reps × 52.5 kg/)
   assert.match(html, /Lift 10 &lt;test&gt;/)
   assert.doesNotMatch(html, /<test>|NaN|Infinity/)
 })
@@ -169,11 +169,20 @@ test('split records keep lifetime first, current in-range work, mid-period best 
   const html = avatarReportHTML(exampleReport())
   assert.match(html, /<h5>Before<\/h5>[\s\S]*?Jan 1, 2026<\/time>[\s\S]*?Joined FITR MAX · Aug 5, 2025[\s\S]*?Added weight<\/dt><dd>0 kg[\s\S]*?Body \+ load<\/dt><dd>39 kg/)
   assert.match(html, /<h5>After<\/h5>[\s\S]*?Nov 2, 2026<\/time>[\s\S]*?Added weight<\/dt><dd>12 kg[\s\S]*?Body \+ load<\/dt><dd>53 kg/)
-  assert.match(html, /Personal record<\/b>\s*<strong>67 kg<\/strong><small>Body \+ load · 6 reps · Nov 1, 2026/)
-  assert.match(html, /class="record-added">Added weight · <b>25 kg<\/b>/)
+  assert.match(html, /class="personal-record"><h4>Personal record<\/h4><p>6 reps · Nov 1, 2026 · Best in range<\/p>\s*<dl><div><dt>Added weight<\/dt><dd>25 kg<\/dd><\/div><div><dt>Body \+ load<\/dt><dd>67 kg<\/dd>/)
+  assert.match(html, /class="personal-record"><h4>Personal record<\/h4><p>3 reps · Nov 2, 2026 · Best in range<\/p>\s*<dl><div><dt>Added weight<\/dt><dd>40 kg<\/dd>/)
   assert.match(html, /Best single<\/b> · 1 rep × 24 kg · Nov 1, 2026/)
   assert.match(html, /Best single<\/b> · 1 rep × 35 kg · Nov 2, 2026/)
   assert.doesNotMatch(html,/1RM|1000 kg|Nov 7, 2026/)
+})
+
+test('an ordinary exercise performed once needs an actual single for a record card', () => {
+  const data = recordedHistory()
+  data.workout_logs = data.workout_logs.filter(log => log.reps !== 1)
+  const report = exampleReport()
+  const bench = buildExerciseFamilies(data, period).filter(family => family.variants.some(v => v.key === 'movement:barbell_bench_press'))
+  const html = avatarReportHTML({...report, families: bench, exerciseRecords: reportExerciseRecords(data, period)})
+  assert.doesNotMatch(html, /<section class="lifts">/)
 })
 
 test('an unrecorded starting weight stays unknown and old sessions do not borrow current profile mass', () => {
@@ -183,8 +192,39 @@ test('an unrecorded starting weight stays unknown and old sessions do not borrow
   assert.equal(exerciseRecords.get('movement:reverse_lunge').before.weight,null)
   const html=avatarReportHTML({...exampleReport(),exerciseRecords,joined:undefined,sessionBodyweights:new Map()})
   assert.match(html,/Jan 1, 2026<\/time>[\s\S]*?Added weight<\/dt><dd>&ndash;<\/dd>[\s\S]*?Body \+ load<\/dt><dd>&ndash;<\/dd>/)
-  assert.match(html,/Personal record<\/b>\s*<strong>25 kg<\/strong><small>Added weight/)
+  assert.match(html,/Personal record<\/h4><p>6 reps · Nov 1, 2026 · Best in range<\/p>\s*<dl><div><dt>Added weight<\/dt><dd>25 kg<\/dd><\/div><div><dt>Body \+ load<\/dt><dd>&ndash;<\/dd>/)
   assert.doesNotMatch(html,/Joined FITR MAX|88 kg/)
+})
+
+test('a mixed-era hip thrust history keeps the earliest reps, chart and actual record for its owner', () => {
+  const profile = seedProfile('user')
+  const name = 'B-Stance or Single-Leg Hip Thrust'
+  const days = [
+    { date: '2026-08-07', count: 2, weight: null, movementId: null },
+    { date: '2026-08-14', count: 3, weight: 8, movementId: null },
+    { date: '2026-11-06', count: 3, weight: 36, movementId: 'b_stance_hip_thrust' },
+  ]
+  const data = { ...EMPTY_DATA, profile,
+    workout_sessions: days.map(({date}) => ({ id: date, date, completed: true, user_id: profile.user_id })),
+    workout_logs: days.flatMap(({date, count, weight, movementId}) => Array.from({length: count}, (_, i) => ({
+      id: date + '-' + i, user_id: profile.user_id, session_id: date, set_no: i+1,
+      reps: 10, weight_kg: weight, exercise_name: name, movement_id: movementId, exercise_id: null, skipped: false,
+    }))),
+  }
+  const range = {from: days[0].date, to: input.today, allTime: true}
+  const families = buildExerciseFamilies(data, range)
+  assert.equal(families.length, 1)
+  assert.equal(families[0].variants.length, 1)
+  const variant = families[0].variants[0]
+  assert.equal(variant.sessionCount, 3)
+  assert.deepEqual(variant.points.map(p => [p.date,p.topWeight]), [['2026-08-14',8],['2026-11-06',36]])
+  assert.deepEqual(variant.work, {sets:8, recordedReps:80, liftedKg:1320, loadedReps:60, missingReps:false, missingVolume:true})
+  const exerciseRecords = reportExerciseRecords(data, range)
+  const html = avatarReportHTML({...input, range, families, exerciseRecords})
+  assert.match(html, /<h5>Before<\/h5>\s*<time datetime="2026-08-07">Aug 7, 2026<\/time><span>Recorded reps · 20<\/span>[\s\S]*?Added weight<\/dt><dd>&ndash;<\/dd>/)
+  assert.match(html, /#1 · Aug 14, 2026 · 10 reps × 8 kg/)
+  assert.match(html, /<h4>Personal record<\/h4><p>10 reps · Nov 6, 2026<\/p>\s*<dl><div><dt>Added weight<\/dt><dd>36 kg<\/dd>/)
+  assert.doesNotMatch(html, /<dt>Body \+ load|Best single|1RM/)
 })
 
 test('strength headings show variant modifiers once and keep custom names intact', () => {

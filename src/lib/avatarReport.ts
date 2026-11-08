@@ -18,7 +18,7 @@ type ReportFamily = ReportWorkRow & {
   variants: Array<ReportWorkRow & { key?: string } & Pick<RankedExerciseHistory, 'points'>>
 }
 type WorkingSet = { sessionId: string; date: string; weight: number | null; reps: number | null }
-type ExerciseRecord = { before: WorkingSet; sets: WorkingSet[]; bestSingle?: WorkingSet }
+type ExerciseRecord = { before: WorkingSet; firstSessionReps: number | null; sets: WorkingSet[]; bestSingle?: WorkingSet }
 type ReportInput = {
   name: string; locale: string; today: string; snapshots: RpgSnapshot[]; currentBodyweight?: number | null; range?: AvatarReportRange
   sessionBodyweights?: ReadonlyMap<string, number>; exerciseRecords?: ReadonlyMap<string, ExerciseRecord>; joined?: string
@@ -96,7 +96,7 @@ export function reportSessionBodyweights(data: AppData, through: string): Map<st
 
 export function reportExerciseRecords(data: AppData, range: { from: string; to: string }): Map<string, ExerciseRecord> {
   const observations = [...performedWorkoutObservations(data, { from: '0001-01-01', to: range.to })]
-    .filter(o => o.repBased && o.movement.measuresExternalWeight && !/[+/]|\bor\b/i.test(o.name))
+    .filter(o => o.repBased && o.movement.measuresExternalWeight)
     .sort((a,b) => a.session.date.localeCompare(b.session.date)
       || (a.session.started_at ?? a.session.completed_at ?? '').localeCompare(b.session.started_at ?? b.session.completed_at ?? '')
       || a.session.id.localeCompare(b.session.id) || a.log.set_no - b.log.set_no || a.log.id.localeCompare(b.log.id))
@@ -105,8 +105,9 @@ export function reportExerciseRecords(data: AppData, range: { from: string; to: 
     const weight = log.weight_kg
     const set: WorkingSet = { sessionId: session.id, date: session.date, reps,
       weight: weight != null && Number.isFinite(weight) && weight >= 0 ? weight : null }
-    const record: ExerciseRecord = records.get(movement.key) ?? { before: set, sets: [] }
+    const record: ExerciseRecord = records.get(movement.key) ?? { before: set, firstSessionReps: null, sets: [] }
     records.set(movement.key, record)
+    if (session.id === record.before.sessionId && reps != null) record.firstSessionReps = (record.firstSessionReps ?? 0) + reps
     if (session.date < range.from) continue
     record.sets.push(set)
     if (reps === 1 && set.weight != null && set.weight > (record.bestSingle?.weight ?? 0)) record.bestSingle = set
@@ -182,8 +183,27 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
   function setLabel(set: WorkingSet) {
     return [set.reps != null && repCount(set.reps), set.weight != null && fmt.format(set.weight) + ' kg'].filter(Boolean).join(' × ')
   }
-  function singleRecord(set?: WorkingSet) {
-    return set ? `<p class="single-record"><b>${t('Best single')}</b> · ${setLabel(set)} · ${stamp(set.date)}</p>` : ''
+  function heaviestSet(sets: WorkingSet[], load: (set: WorkingSet) => number | null) {
+    let best: WorkingSet | undefined
+    let peak = -Infinity
+    for (const set of sets) {
+      const kg = load(set)
+      if (kg == null || set.reps == null) continue
+      if (!best || kg > peak || (kg === peak && set.reps > (best.reps ?? 0))) {
+        best = set
+        peak = kg
+      }
+    }
+    return best
+  }
+  function personalRecord(set: WorkingSet, combinedKg?: number | null, single?: WorkingSet) {
+    const value = (label: string, kg: number | null) => `<div><dt>${t(label)}</dt><dd>${kg == null ? '&ndash;' : fmt.format(kg) + ' kg'}</dd></div>`
+    const detail = [set.reps != null && repCount(set.reps), stamp(set.date),
+      options.range && !options.range.allTime && t('Best in range')].filter(Boolean).join(' · ')
+    return `<section class="personal-record"><h4>${t('Personal record')}</h4><p>${detail}</p>
+      <dl>${value('Added weight', set.weight)}${combinedKg !== undefined ? value('Body + load', combinedKg) : ''}</dl>
+      ${single && single !== set
+        ? `<p class="single-record"><b>${t('Best single')}</b> · ${setLabel(single)} · ${stamp(single.date)}</p>` : ''}</section>`
   }
   function workingLeg(variant: ReportFamily['variants'][number], record: ExerciseRecord) {
     const load = loadGuide(variant)
@@ -204,13 +224,7 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
       const body = bodyFor(set)
       return kind !== 'externalOnly' && body != null && set.weight != null ? body + set.weight : null
     }
-    const comparable = record.sets.filter(set => set.weight != null && set.reps != null && set.reps > 0)
-    const measured = comparable.filter(set => combined(set) != null)
-    const best = (measured.length ? measured : comparable).reduce<WorkingSet | undefined>((peak, current) => {
-      const value = combined(current) ?? current.weight!
-      const previous = peak && (combined(peak) ?? peak.weight!)
-      return previous == null || value > previous || (value === previous && current.reps! > peak!.reps!) ? current : peak
-    }, undefined)
+    const best = heaviestSet(record.sets, combined) ?? heaviestSet(record.sets, set => set.weight)
     const art = legArt.get(load.id)
     const image = art?.startsWith('data:image/webp;base64,') ? `<img alt="" src="${escape(art)}">` : ''
     function stage(label: 'Before' | 'After', set: WorkingSet) {
@@ -222,26 +236,28 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
         const breakdown = total != null && body != null && added != null ? fmt.format(body) + ' + ' + fmt.format(added) + ' kg' : undefined
         values.push(['Body + load', total, breakdown])
       }
-      const peakTotal = best && combined(best)
-      const recordDisplay = label === 'After' && best ? `<p class="leg-record"><b>${t('Personal record')}</b>
-        <strong>${fmt.format(peakTotal ?? best.weight!)} kg</strong><small>${t(peakTotal != null ? 'Body + load' : 'Added weight')} · ${repCount(best.reps!)} · ${stamp(best.date)}</small>
-        ${peakTotal != null ? `<span class="record-added">${t('Added weight')} · <b>${fmt.format(best.weight!)} kg</b></span>` : ''}</p>` : ''
+      const reps = label === 'Before' && added == null && record.firstSessionReps != null
+        ? t('Recorded reps') + ' · ' + fmt.format(record.firstSessionReps)
+        : set.reps != null ? repCount(set.reps) : ''
       return `<div class="leg-stage"><div class="leg-dates"><h5>${t(label)}</h5>
-        <time datetime="${escape(set.date)}">${stamp(set.date)}</time>
+        <time datetime="${escape(set.date)}">${stamp(set.date)}</time>${reps ? `<span>${reps}</span>` : ''}
         ${label === 'Before' && isIsoDate(options.joined) ? `<small>${t('Joined FITR MAX')} · ${stamp(options.joined)}</small>` : ''}</div>
         ${image}<dl>${values.map(([key,value,detail]) =>
-          `<div><dt>${t(key)}</dt><dd>${value == null ? '&ndash;' : fmt.format(value) + ' kg'}</dd>${detail ? `<small>${detail}</small>` : ''}</div>`).join('')}</dl>${label === 'After' ? `<div class="leg-bests">${recordDisplay}${singleRecord(record.bestSingle)}</div>` : ''}</div>`
+          `<div><dt>${t(key)}</dt><dd>${value == null ? '&ndash;' : fmt.format(value) + ' kg'}</dd>${detail ? `<small>${detail}</small>` : ''}</div>`).join('')}</dl></div>`
     }
     return `<aside class="leg-load"><h4>${t('Working leg')}</h4><div class="leg-stages">${stage('Before',record.before)}${stage('After',latest)}</div>
-      ${load.kind === 'sharedSupport' ? `<p class="leg-note">${t('The share on each foot varies with stance and support.')}</p>` : ''}</aside>`
+      ${load.kind === 'sharedSupport' ? `<p class="leg-note">${t('The share on each foot varies with stance and support.')}</p>` : ''}
+      ${best ? personalRecord(best, kind === 'externalOnly' ? undefined : combined(best), record.bestSingle) : ''}</aside>`
   }
   const lifts = families.flatMap(family => family.variants.flatMap(variant => {
     const points = variant.points.map(p => ({ date: p.date, value: p.topWeight, reps: p.topReps }))
     const record = options.exerciseRecords?.get(variant.key ?? '')
     const leg = record ? workingLeg(variant, record) : ''
-    const single = leg ? '' : singleRecord(record?.bestSingle)
-    if (points.length < 2 && !leg && !single) return []
-    const best = points.reduce<ReportPoint | undefined>((peak, p) => !peak || p.value > peak.value || (p.value === peak.value && (p.reps ?? 0) > (peak.reps ?? 0)) ? p : peak, undefined)
+    if (points.length < 2 && !leg && !record?.bestSingle) return []
+    const best = !leg && record && heaviestSet(record.sets, set => set.weight != null && set.weight > 0 ? set.weight : null)
+    const card = leg || (best ? personalRecord(best, undefined, record?.bestSingle) : '')
+    const chartBest = !card && points.reduce<ReportPoint | undefined>((peak, p) =>
+      !peak || p.value > peak.value || (p.value === peak.value && (p.reps ?? 0) > (peak.reps ?? 0)) ? p : peak, undefined)
     const { title, subtitle } = exerciseChartTitle(family, variant.name, t)
     const reps = repsTotal(variant.work)
     const volume = volumeTotal(variant.work)
@@ -251,8 +267,8 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
     ].join('')
     return [`<article><h3>${title}</h3>${subtitle ? `<p class="variation">${subtitle}</p>` : ''}
       ${chart(points, ' kg', t(variant.name), true)}
-      ${best && points.length >= 2 ? `<p class="best-set">${t(options.range && !options.range.allTime ? 'Best in range' : 'Personal best')} · <strong>${metric(best, ' kg')}</strong></p>` : ''}
-      ${stats ? `<dl>${stats}</dl>` : ''}${leg}${single}</article>`]
+      ${chartBest ? `<p>${t(options.range && !options.range.allTime ? 'Best in range' : 'Personal best')} · <strong>${metric(chartBest, ' kg')}</strong></p>` : ''}
+      ${stats ? `<dl>${stats}</dl>` : ''}${card}</article>`]
   }))
   const total = totalRecordedWork(families)
   const object = liftedMassCaption(total.liftedKg ?? 0, locale, translate)
@@ -305,8 +321,12 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
 .masthead strong{letter-spacing:.12em}.masthead p{font-size:.88em}
 .lifts dl{display:flex;flex-wrap:wrap;gap:4px 22px;margin:10px 0 0;padding-top:8px;border-top:1px solid #e6e0ed}
 .lifts dl div{display:flex;gap:6px;align-items:baseline}.lifts dt{color:#584d69;font-size:.82em}.lifts dd{font-weight:700;margin:0}
-.lifts>p{margin-bottom:8px}.variation{font-weight:600}.best-set{margin-top:18px}.lifts dl{margin:14px 0 0;padding:12px 0 0;gap:8px 28px}
-.leg-load{background:#edf5f1;border-radius:14px;margin-top:16px;padding:12px}.leg-load h4{margin:4px 0 18px;font-size:1.8rem;line-height:1.2;font-weight:800}.record-added{display:block;margin-top:6px;font-weight:600}.leg-record .record-added b{display:inline}.leg-stages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.leg-stage{display:grid;grid-template-rows:subgrid;grid-row:span 4;row-gap:0;border-radius:12px;background:#fff;padding:12px}.leg-stage .leg-dates{grid-row:1}.leg-stage img{grid-row:2}.leg-stage dl{grid-row:3}.leg-bests{grid-row:4}.leg-stage+.leg-stage{background:#d9efe6}.leg-dates{min-height:4.3em}.leg-stage h5{margin:0 0 8px;font-size:1.45rem;line-height:1.1;font-weight:850;text-transform:uppercase;letter-spacing:.04em}.leg-dates time{display:block;font-size:1.1rem;line-height:1.3;font-weight:650;margin-bottom:6px;color:#122729}.leg-stage small{display:block;font-size:.76em;color:#425e55}.leg-stage img{display:block;width:100%;height:116px;object-fit:contain;margin:8px 0}.leg-stage dl{display:grid;align-content:start;margin:8px 0 0;border:0;padding:0;gap:12px}.leg-stage dl div{display:block}.leg-stage dt{font-size:1rem;line-height:1.25;font-weight:650;color:#183633}.leg-stage dd,.leg-record strong{font-size:1.25rem;font-weight:700}.leg-stage dl div:nth-child(2) dd{font-size:1.5rem;color:#00695c}.leg-record{border-top:1px solid #b8d2c4;margin:10px 0 0;padding-top:8px}.leg-record b,.leg-record strong{display:block;color:#174e3c}.leg-note,.single-record{font-size:.8em;margin:8px 0}.single-record{margin-top:12px}
+.lifts>p{margin-bottom:8px}.variation{font-weight:600}.lifts dl{margin:14px 0 0;padding:12px 0 0;gap:8px 28px}
+.leg-load{background:#edf5f1;border-radius:14px;margin-top:16px;padding:12px}.leg-load h4{margin:4px 0 18px;font-size:1.8rem;line-height:1.2;font-weight:800}.leg-stages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.leg-stage{display:grid;grid-template-rows:subgrid;grid-row:span 3;row-gap:0;border-radius:12px;background:#fff;padding:12px}.leg-stage .leg-dates{grid-row:1}.leg-stage img{grid-row:2}.leg-stage dl{grid-row:3}.leg-stage+.leg-stage{background:#d9efe6}.leg-dates{min-height:4.3em}.leg-stage h5{margin:0 0 8px;font-size:1.45rem;line-height:1.1;font-weight:850;text-transform:uppercase;letter-spacing:.04em}.leg-dates time{display:block;font-size:1.1rem;line-height:1.3;font-weight:650;margin-bottom:6px;color:#122729}.leg-stage small{display:block;font-size:.76em;color:#425e55}.leg-stage img{display:block;width:100%;height:116px;object-fit:contain;margin:8px 0}.leg-stage dl{display:grid;align-content:start;margin:8px 0 0;border:0;padding:0;gap:12px}.leg-stage dl div{display:block}.leg-stage dt{font-size:1rem;line-height:1.25;font-weight:650;color:#183633}.leg-stage dd{font-size:1.25rem;font-weight:700}.leg-stage dl div:nth-child(2) dd{font-size:1.5rem;color:#00695c}.leg-note{font-size:.8em;margin:8px 0}
+.personal-record{margin-top:14px;padding:clamp(14px,3vw,24px);background:#16483b;color:white;border-radius:12px;break-inside:avoid;overflow-wrap:anywhere}
+.personal-record h4{margin:0;font-size:clamp(1.5rem,4vw,2.2rem);line-height:1.1;letter-spacing:.025em;text-transform:uppercase}.personal-record p,.personal-record dt{color:#e3f2ea}
+.personal-record dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,140px),1fr));border-color:#53917e;margin:12px 0 0;padding:10px 0 0;gap:10px}
+.personal-record dl div{display:block}.personal-record dt{font-size:.9em}.personal-record dd{font-size:clamp(1.5rem,4vw,2.2rem);line-height:1.15}.single-record{margin-top:12px}
 @media print{.award-art{width:27mm}.leg-stage img{height:24mm}}
 @media screen and (max-width:600px){svg text{font-size:17px}.profile p:not(.period){font-size:.9em}.lifts article{padding:14px}.ends{gap:2px 10px}}
 @media print{.profile{padding:14px 20px}.profile h1{font-size:29pt}.totals{display:flex;columns:auto;align-items:flex-start}.totals article{flex:1;min-width:0}}

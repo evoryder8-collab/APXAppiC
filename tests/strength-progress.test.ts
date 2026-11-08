@@ -231,7 +231,7 @@ test('June’s exercise families count distinct receipts across aliases and morn
     ['family:hip_thrust','lower',3,3], ['family:push_up','upper',2,3],
   ])
   assert.deepEqual(families[0].variants.map(v => [v.name, v.points.map(p => p.topWeight)]), [
-    ['B-Stance or Single-Leg Hip Thrust', []],
+    ['B-Stance or Single-Leg Hip Thrust', [10,12]],
     ['Dumbbell Hip Thrust', [22]], ['Weighted Dumbbell Hip Thrust', [24]],
   ])
   assert.ok(families.some(f => f.name === 'Glute Bridge'))
@@ -282,7 +282,7 @@ test('lifetime work sums actual external kg × measured reps from each eligible 
     {sets:2, recordedReps:13, liftedKg:700, loadedReps:13, missingReps:false, missingVolume:false})
   const unilateral = hip.variants.find(v => v.name.startsWith('B-Stance'))!
   assert.equal(unilateral.work.liftedKg,180)
-  assert.equal(unilateral.points.length,0)
+  assert.deepEqual(unilateral.points.map(p => p.topWeight),[30])
   assert.deepEqual(families.find(f => f.name === 'Push-Up')?.work,
     {sets:3, recordedReps:24, liftedKg:60, loadedReps:6, missingReps:false, missingVolume:false})
   assert.deepEqual(families.find(f => f.name === 'Pull-Up')?.work,
