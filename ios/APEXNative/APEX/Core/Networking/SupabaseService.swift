@@ -444,17 +444,17 @@ actor SupabaseService {
         async let mealLogs: [MealLog] = client.from("meal_logs").select().execute().value
         async let supplements: [Supplement] = client.from("supplements").select().order("sort_order").execute().value
         async let supplementLogs: [SupplementLog] = client.from("supplement_logs").select().execute().value
-        async let programs: [Program] = client.from("programs").select().execute().value
-        async let programDays: [ProgramDay] = client.from("program_days").select().order("sort_order").execute().value
-        async let exercises: [Exercise] = client.from("exercises").select().order("sort_order").execute().value
+        async let programs: [Program] = loadOwnedRows(client: client, table: "programs", ownerID: ownerID)
+        async let programDays: [ProgramDay] = loadOwnedRows(client: client, table: "program_days", ownerID: ownerID, orderBy: "sort_order")
+        async let exercises: [Exercise] = loadOwnedRows(client: client, table: "exercises", ownerID: ownerID, orderBy: "sort_order")
         async let workoutSessions = loadAllWorkoutSessions(client: client, ownerID: ownerID)
         async let workoutLogs = loadAllWorkoutLogs(client: client, ownerID: ownerID)
         async let deloadMarks: [DeloadMark] = client.from("deload_marks").select().order("date", ascending: false).limit(180).execute().value
         async let activityTypes: [ActivityType] = client.from("activity_types").select().execute().value
-        async let activityLogs: [ActivityLog] = client.from("activity_logs").select().order("date", ascending: false).limit(360).execute().value
-        async let dailyLogs: [DailyLog] = client.from("daily_logs").select().order("date", ascending: false).limit(90).execute().value
+        async let activityLogs: [ActivityLog] = loadOwnedRows(client: client, table: "activity_logs", ownerID: ownerID, orderBy: "date", ascending: false)
+        async let dailyLogs: [DailyLog] = loadOwnedRows(client: client, table: "daily_logs", ownerID: ownerID, orderBy: "date", ascending: false)
         async let hydrationEvents: [HydrationEvent] = optionalSchemaRows {
-            try await client.from("hydration_events").select().order("occurred_at", ascending: false).limit(1000).execute().value
+            try await loadOwnedRows(client: client, table: "hydration_events", ownerID: ownerID, orderBy: "occurred_at", ascending: false)
         }
         async let hydrationPresets: [HydrationPreset] = optionalSchemaRows {
             try await client.from("hydration_presets").select().order("sort_order").execute().value
@@ -464,17 +464,18 @@ actor SupabaseService {
         }
         async let events: [EventRecord] = client.from("events").select().order("start_date", ascending: false).limit(180).execute().value
         async let recentFoods: [Food] = client.from("foods").select().order("updated_at", ascending: false).order("id").limit(250).execute().value
-        async let foodPreferences: [FoodPreference] = loadOwnedFoodRows(client: client, table: "food_preferences", ownerID: ownerID)
-        async let mealPresets: [MealPreset] = loadOwnedFoodRows(client: client, table: "meal_presets", ownerID: ownerID)
-        async let mealPresetItems: [MealPresetItem] = loadOwnedFoodRows(client: client, table: "meal_preset_items", ownerID: ownerID)
-        async let loggedMeals: [LoggedMeal] = loadOwnedFoodRows(client: client, table: "logged_meals", ownerID: ownerID)
-        async let loggedFoodEntries: [LoggedFoodEntry] = loadOwnedFoodRows(client: client, table: "logged_food_entries", ownerID: ownerID)
-        async let snapshots: [RPGSnapshot] = client.from("rpg_snapshots").select().order("date", ascending: false).limit(180).execute().value
-        async let healthMetrics: [HealthMetric] = client.from("health_metrics").select().order("date", ascending: false).limit(180).execute().value
+        async let foodPreferences: [FoodPreference] = loadOwnedRows(client: client, table: "food_preferences", ownerID: ownerID)
+        async let mealPresets: [MealPreset] = loadOwnedRows(client: client, table: "meal_presets", ownerID: ownerID)
+        async let mealPresetItems: [MealPresetItem] = loadOwnedRows(client: client, table: "meal_preset_items", ownerID: ownerID)
+        async let loggedMeals: [LoggedMeal] = loadOwnedRows(client: client, table: "logged_meals", ownerID: ownerID)
+        async let loggedFoodEntries: [LoggedFoodEntry] = loadOwnedRows(client: client, table: "logged_food_entries", ownerID: ownerID)
+        async let snapshots: [RPGSnapshot] = loadOwnedRows(client: client, table: "rpg_snapshots", ownerID: ownerID, orderBy: "date", ascending: false)
+        async let healthMetrics: [HealthMetric] = loadOwnedRows(client: client, table: "health_metrics", ownerID: ownerID, orderBy: "date", ascending: false)
         async let fitnessEvidence: [FitnessEvidenceRecord] = optionalSchemaRows {
             try await Self.collectPaginatedRows { range in
                 try await client
                     .from("fitness_evidence").select()
+                    .eq("user_id", value: ownerID)
                     .order("measured_at", ascending: false)
                     .order("id", ascending: true)
                     .range(from: range.lowerBound, to: range.upperBound)
@@ -486,6 +487,7 @@ actor SupabaseService {
             try await client
                 .from("imported_activities")
                 .select()
+                .eq("user_id", value: ownerID)
                 .order("date", ascending: false)
                 .order("id", ascending: false)
                 .range(from: range.lowerBound, to: range.upperBound)
@@ -494,7 +496,7 @@ actor SupabaseService {
         }
         async let progressPhotos: [ProgressPhoto] = client.from("progress_photos").select().order("local_date", ascending: false).limit(120).execute().value
         async let orbitRoutes: [OrbitRouteRecord] = client.from("orbit_routes").select().order("updated_at", ascending: false).limit(120).execute().value
-        async let orbitRuns: [OrbitRunRecord] = client.from("orbit_runs").select().order("local_date", ascending: false).limit(180).execute().value
+        async let orbitRuns: [OrbitRunRecord] = loadOwnedRows(client: client, table: "orbit_runs", ownerID: ownerID, orderBy: "local_date", ascending: false)
         async let orbitShoes: [OrbitShoe] = client.from("orbit_shoes").select().order("updated_at", ascending: false).limit(80).execute().value
         async let orbitSegments: [OrbitSegment] = client.from("orbit_segments").select().order("updated_at", ascending: false).limit(240).execute().value
         async let orbitPosters: [OrbitPoster] = client.from("orbit_posters").select().order("created_at", ascending: false).limit(180).execute().value
@@ -570,15 +572,17 @@ actor SupabaseService {
         )
     }
 
-    private func loadOwnedFoodRows<Row: Decodable & Sendable>(
+    private func loadOwnedRows<Row: Decodable & Sendable>(
         client: SupabaseClient,
         table: String,
-        ownerID: UUID
+        ownerID: UUID,
+        orderBy: String? = nil,
+        ascending: Bool = true
     ) async throws -> [Row] {
         try await Self.collectPaginatedRows { range in
-            try await client.from(table).select()
-                .eq("user_id", value: ownerID)
-                .order("id")
+            let query = client.from(table).select().eq("user_id", value: ownerID)
+            if let orderBy { _ = query.order(orderBy, ascending: ascending) }
+            return try await query.order("id")
                 .range(from: range.lowerBound, to: range.upperBound)
                 .execute().value
         }

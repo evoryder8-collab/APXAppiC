@@ -163,6 +163,9 @@ test('multi-year native insights load complete paginated workout facts', () => {
   assert.match(dashboard, /async let workoutLogs = loadAllWorkoutLogs/)
   assert.match(service, /private func loadAllWorkoutSessions[\s\S]*?Self\.collectPaginatedRows/)
   assert.match(service, /private func loadAllWorkoutLogs[\s\S]*?Self\.collectPaginatedRows/)
+  for (const table of ['programs', 'program_days', 'exercises', 'daily_logs', 'health_metrics', 'activity_logs', 'hydration_events', 'rpg_snapshots', 'orbit_runs']) {
+    assert.ok(dashboard.includes(`loadOwnedRows(client: client, table: "${table}", ownerID: ownerID`), table)
+  }
   assert.doesNotMatch(dashboard, /client\.from\("workout_sessions"\)\.select\(\)\.order\("date", ascending: false\)\.limit\(180\)/)
   assert.doesNotMatch(dashboard, /client\.from\("workout_logs"\)\.select\(\)\.order\("created_at", ascending: false\)\.limit\(2000\)/)
 })
