@@ -18,7 +18,7 @@ type ReportFamily = ReportWorkRow & {
   variants: Array<ReportWorkRow & { key?: string } & Pick<RankedExerciseHistory, 'points'>>
 }
 type WorkingSet = { sessionId: string; date: string; weight: number | null; reps: number | null }
-type ExerciseRecord = { before: WorkingSet; sessions: WorkingSet[]; bestSingle?: WorkingSet }
+type ExerciseRecord = { before: WorkingSet; sets: WorkingSet[]; bestSingle?: WorkingSet }
 type ReportInput = {
   name: string; locale: string; today: string; snapshots: RpgSnapshot[]; currentBodyweight?: number | null; range?: AvatarReportRange
   sessionBodyweights?: ReadonlyMap<string, number>; exerciseRecords?: ReadonlyMap<string, ExerciseRecord>; joined?: string
@@ -105,14 +105,10 @@ export function reportExerciseRecords(data: AppData, range: { from: string; to: 
     const weight = log.weight_kg
     const set: WorkingSet = { sessionId: session.id, date: session.date, reps,
       weight: weight != null && Number.isFinite(weight) && weight >= 0 ? weight : null }
-    const record: ExerciseRecord = records.get(movement.key) ?? { before: set, sessions: [] }
+    const record: ExerciseRecord = records.get(movement.key) ?? { before: set, sets: [] }
     records.set(movement.key, record)
     if (session.date < range.from) continue
-    const last = record.sessions.at(-1)
-    if (last?.sessionId !== session.id) record.sessions.push(set)
-    else if ((set.weight ?? -1) > (last.weight ?? -1) || (set.weight === last.weight && (reps ?? 0) > (last.reps ?? 0))) {
-      record.sessions[record.sessions.length - 1] = set
-    }
+    record.sets.push(set)
     if (reps === 1 && set.weight != null && set.weight > (record.bestSingle?.weight ?? 0)) record.bestSingle = set
   }
   return records
@@ -191,8 +187,13 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
   }
   function workingLeg(variant: ReportFamily['variants'][number], record: ExerciseRecord) {
     const load = loadGuide(variant)
-    const latest = record.sessions.at(-1)
-    if (!load || !latest) return ''
+    const last = record.sets.at(-1)
+    if (!load || !last) return ''
+    const latest = record.sets.reduce((best,set) => {
+      if (set.sessionId !== last.sessionId) return best
+      if ((set.weight ?? -1) > (best.weight ?? -1)) return set
+      return set.weight === best.weight && (set.reps ?? 0) > (best.reps ?? 0) ? set : best
+    }, last)
     const kind = load.kind
     function bodyFor(set: WorkingSet) {
       const mass = options.sessionBodyweights?.get(set.sessionId)
@@ -203,7 +204,7 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
       const body = bodyFor(set)
       return kind !== 'externalOnly' && body != null && set.weight != null ? body + set.weight : null
     }
-    const comparable = record.sessions.filter(set => set.weight != null && set.reps != null && set.reps > 0)
+    const comparable = record.sets.filter(set => set.weight != null && set.reps != null && set.reps > 0)
     const measured = comparable.filter(set => combined(set) != null)
     const best = (measured.length ? measured : comparable).reduce<WorkingSet | undefined>((peak, current) => {
       const value = combined(current) ?? current.weight!
@@ -334,7 +335,7 @@ export async function downloadableAvatarReport(options: ReportInput, baseURL: st
   const kg = totalRecordedWork(options.families).liftedKg
   const filename = kg == null ? undefined : liftedMassCaption(kg, options.locale, options.translate)?.artwork
   const ids = new Set(options.families.flatMap(family => family.variants.flatMap(variant => {
-    const load = options.exerciseRecords?.get(variant.key ?? '')?.sessions.length ? loadGuide(variant) : null
+    const load = options.exerciseRecords?.get(variant.key ?? '')?.sets.length ? loadGuide(variant) : null
     return load ? [load.id] : []
   })))
   const [award, anatomy] = await Promise.all([

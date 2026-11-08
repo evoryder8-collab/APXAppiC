@@ -135,7 +135,7 @@ function recordedHistory() {
   })
   const lunge = (day, set, weight, reps, changes = {}) => log(day,'Reverse Lunge','reverse_lunge',set,weight,reps,changes)
   return {...EMPTY_DATA,profile,workout_sessions:[session('s0','2026-01-01'),session('s1','2026-11-01'),session('s2','2026-11-02'),session('s3','2026-11-07')],
-    workout_logs:[lunge('s0',1,0,8),lunge('s0',2,10,8),lunge('s1',2,24,1),lunge('s1',1,25,6),lunge('s2',1,12,10),
+    workout_logs:[lunge('s0',1,0,8),lunge('s0',2,10,8),lunge('s1',2,24,1),lunge('s1',1,25,6),lunge('s1',3,26,null),lunge('s2',1,12,10),
       lunge('s3',1,100,1),lunge('s2',2,1000,1,{skipped:true}), log('s2','Bench Press','barbell_bench_press',1,35,1),
       log('s2','Bench Press','barbell_bench_press',2,40,3),
       log('s2','Bench Press','barbell_bench_press',3,1000,1,{user_id:'another'})]}
@@ -146,7 +146,7 @@ function exampleReport() {
   const data = recordedHistory()
   const exerciseRecords = reportExerciseRecords(data, period)
   const key = 'movement:reverse_lunge'
-  const points = exerciseRecords.get(key).sessions.map(set => ({
+  const points = exerciseRecords.get(key).sets.filter(set => set.sessionId === 's2' || set.weight === 26).map(set => ({
     sessionId:set.sessionId,date:set.date,topWeight:set.weight,topReps:set.reps,
   }))
   return {...input,joined:'2025-08-05',range:period,currentBodyweight:88,exerciseRecords,
