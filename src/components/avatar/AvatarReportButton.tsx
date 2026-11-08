@@ -1,7 +1,7 @@
 import { useStore } from '../../store/AppStore'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 import { todayIso } from '../../lib/plan'
-import { buildRankedExerciseHistory } from '../../lib/strengthProgress'
+import { buildExerciseFamilies } from '../../lib/strengthProgress'
 import { avatarReportHTML } from '../../lib/avatarReport'
 
 export function AvatarReportButton() {
@@ -12,11 +12,8 @@ export function AvatarReportButton() {
   const profile = data.profile
   function download() {
     const today = todayIso()
-    const exercises = buildRankedExerciseHistory(data).map(e => ({
-      name: e.name, sessionCount: e.sessionCount,
-      points: e.points.map(p => ({ date: p.date, value: p.topWeight, reps: p.topReps })),
-    }))
-    const html = avatarReportHTML({ name: profile.display_name, locale: language, today, exercises,
+    const families = buildExerciseFamilies(data)
+    const html = avatarReportHTML({ name: profile.display_name, locale: language, today, families,
       snapshots: snapshots.filter(s => s.user_id === profile.user_id), observed: avatarDomainScores, translate: t })
     const url = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }))
     const link = document.createElement('a')

@@ -96,6 +96,36 @@ enum ExerciseCatalog {
             .split(whereSeparator: { !$0.isLetter && !$0.isNumber }).joined(separator: " ")
     }
 
+    private static let artworkIDs = Set(all.map(\.movementID))
+
+    // Search aliases include substitutions like “Any 10-min HIIT video” → Burpee.
+    // Only exact catalog names and verified names from legacy programmes identify a photo.
+    private static let artworkIDsByName: [String: Set<String>] = {
+        var names: [String: Set<String>] = [:]
+        for item in all {
+            for label in [item.name, item.name + "s"] + Array(item.names.values) {
+                names[lookupKey(label), default: []].insert(item.movementID)
+            }
+        }
+        for (name, id) in [
+            "Weighted backpack push-up": "weighted_push_up",
+            "Strict Bodyweight Push-Up": "push_up",
+            "Dumbbell lateral raise": "lateral_raise",
+            "One-Arm Supported Dumbbell Row": "one_arm_dumbbell_row",
+            "Front Lunge": "forward_lunge",
+        ] {
+            names[lookupKey(name), default: []].insert(id)
+        }
+        return names
+    }()
+
+    static func artworkMovementID(for exercise: Exercise) -> String? {
+        if let id = exercise.movementID { return artworkIDs.contains(id) ? id : nil }
+        if artworkIDs.contains(exercise.name) { return exercise.name }
+        let matches = artworkIDsByName[lookupKey(exercise.name)]
+        return matches?.count == 1 ? matches?.first : nil
+    }
+
     static func search(_ query: String, category: String, language: AppLanguage) -> [ExerciseCatalogItem] {
         let matches = all.filter { item in
             (category == "all" || item.categories.contains(category)) && item.matches(query, language: language)

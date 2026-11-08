@@ -180,6 +180,7 @@ function hasTranslation(language, text) {
 
 // These literals are matched or concatenated solely as internal identifiers.
 const internalLiterals = {
+  'GuidedArtworkView.swift': ['GuidedArtwork'],
   'BespokeProgrammeUpgrade.swift': ['day: : ', 'exercise: : : '],
   'MealBlocks.swift': ['post workout', 'after training'],
   'MealMemory.swift': ['beef steak', 'sirloin steak', 'Rindersteak', 'bistecca di manzo'],

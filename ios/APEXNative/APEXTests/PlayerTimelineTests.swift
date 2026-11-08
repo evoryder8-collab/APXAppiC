@@ -3,6 +3,7 @@
  * never manufacture work that did not happen.
  */
 import XCTest
+import SwiftUI
 @testable import APEX
 
 final class PlayerTimelineTests: XCTestCase {
@@ -34,6 +35,89 @@ final class PlayerTimelineTests: XCTestCase {
             warmup: warmup,
             warmupDuration: warmupDuration
         )
+    }
+
+    @MainActor
+    func testPackagedGuidedArtworkResolvesAndDecodesOffline() throws {
+        var pushUp = exercise("Push-ups")
+        guard case let .pair(id, cadence)? = GuidedArtwork.movement(pushUp) else {
+            return XCTFail("Legacy push-ups must resolve to two bundled endpoint photographs.")
+        }
+        XCTAssertEqual(id, "push_up")
+        XCTAssertEqual(cadence?.first, .eccentric)
+        var bike = exercise("Custom activity label")
+        bike.movementID = "air_bike"
+        guard case let .reference(bikeID)? = GuidedArtwork.movement(bike),
+              case let .reference(breakID)? = GuidedArtwork.waterBreak else {
+            return XCTFail("The full movement reference and water break must be bundled.")
+        }
+        for stem in [id + "-1", id + "-2", bikeID, breakID] {
+            let image = try XCTUnwrap(GuidedArtwork.image(stem), stem)
+            let pixels = try XCTUnwrap(image.cgImage, stem)
+            XCTAssertGreaterThan(pixels.height, 0)
+            XCTAssertGreaterThan(pixels.width, 0)
+        }
+        func thumbnail(_ artwork: GuidedArtwork, elapsed: Double) throws -> [UInt8] {
+            let playerImage = GuidedArtworkView(artwork: artwork, exercise: pushUp, elapsed: elapsed, accent: .mint)
+                .frame(width: 200, height: 160)
+                .background(.white)
+            let rendered = try XCTUnwrap(ImageRenderer(content: playerImage).cgImage)
+            // A blank pastel panel passes an image-existence or accessibility check.
+            // The photographed athlete and bottle contribute dark pixels in both panels.
+            var samples = [UInt8](repeating: 255, count: 64 * 64)
+            try samples.withUnsafeMutableBytes { bytes in
+                let context = try XCTUnwrap(CGContext(
+                    data: bytes.baseAddress, width: 64, height: 64, bitsPerComponent: 8,
+                    bytesPerRow: 64, space: CGColorSpaceCreateDeviceGray(),
+                    bitmapInfo: CGImageAlphaInfo.none.rawValue
+                ))
+                context.draw(rendered, in: CGRect(x: 0, y: 0, width: 64, height: 64))
+            }
+            XCTAssertGreaterThan(samples.filter { $0 < 110 }.count, 20, "The player must render the bundled photograph.")
+            return samples
+        }
+        let pushUpArtwork = GuidedArtwork.pair(id, cadence)
+        let raised = try thumbnail(pushUpArtwork, elapsed: 0)
+        let lowered = try thumbnail(pushUpArtwork, elapsed: 1)
+        XCTAssertGreaterThan(zip(raised, lowered).filter { abs(Int($0) - Int($1)) > 25 }.count, 50)
+        _ = try thumbnail(.reference(breakID), elapsed: 0)
+        pushUp.movementID = "unknown-custom-id"
+        XCTAssertNil(GuidedArtwork.movement(pushUp), "An unresolved stored ID cannot fall back to a different movement.")
+        XCTAssertNil(GuidedArtwork.movement(exercise("Any 10-min HIIT video")))
+        XCTAssertNil(GuidedArtwork.movement(exercise("abs")))
+        XCTAssertNil(GuidedArtwork.movement(exercise("Suitcase Hold or March")))
+        XCTAssertEqual(ExerciseCatalog.artworkMovementID(for: exercise("Weighted backpack push-up")), "weighted_push_up")
+    }
+
+    func testGuidedPhotosFollowOrderedPrescriptionAndPauseAtItsEndpoint() throws {
+        var squat = exercise("Barbell Back Squat")
+        squat.tempoDown = 3
+        squat.tempoPause = 1
+        squat.tempoUp = 1
+        let downFirst = GuidedPoseCadence(first: .eccentric, pause: .eccentric)
+        func cue(_ elapsed: Double, _ reduceMotion: Bool = false) throws -> GuidedPoseCadence.Cue {
+            try XCTUnwrap(downFirst.cue(for: squat, elapsed: elapsed, reduceMotion: reduceMotion))
+        }
+        XCTAssertEqual(try cue(0).concentricOpacity, 1)
+        XCTAssertEqual(try cue(0.21).concentricOpacity, 0.5, accuracy: 0.0001)
+        XCTAssertEqual(try cue(0.21, true).concentricOpacity, 0)
+        XCTAssertEqual(try cue(2.9).label, "Eccentric phase")
+        XCTAssertEqual(try cue(3.5).label, "Hold")
+        XCTAssertEqual(try cue(3.5).concentricOpacity, 0)
+        XCTAssertEqual(try cue(4.6).label, "Concentric phase")
+        XCTAssertEqual(try cue(4.6).concentricOpacity, 1)
+        XCTAssertEqual(try cue(5.2).label, "Hold")
+        XCTAssertEqual(try cue(5.6).label, "Eccentric phase")
+        XCTAssertEqual(try cue(10 * PlayerTimeline.repDuration(squat) + 0.25).label, "Hold")
+
+        let upFirst = GuidedPoseCadence(first: .concentric, pause: .concentric)
+        XCTAssertEqual(upFirst.cue(for: squat, elapsed: 0, reduceMotion: false)?.concentricOpacity, 0)
+        XCTAssertEqual(upFirst.cue(for: squat, elapsed: 1.5, reduceMotion: false)?.concentricOpacity, 1)
+        XCTAssertEqual(upFirst.cue(for: squat, elapsed: 2.5, reduceMotion: false)?.concentricOpacity, 0)
+        let mid = GuidedPoseCadence(first: .concentric, pause: .mid)
+        XCTAssertNil(mid.cue(for: squat, elapsed: 1.5, reduceMotion: false))
+        squat.repUnit = "seconds"
+        XCTAssertNil(downFirst.cue(for: squat, elapsed: 1.5, reduceMotion: false))
     }
 
     func testTimelineOrdersWarmupSetsRestsAndLog() {

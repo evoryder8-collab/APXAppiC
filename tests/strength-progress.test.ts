@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { assessJointCheckin, buildRankedExerciseHistory, buildStrengthSeries, checkinDue, distinctInsightTexts, sessionStrengthInsights } from '../src/lib/strengthProgress.ts'
+import { assessJointCheckin, buildExerciseFamilies, buildStrengthSeries, checkinDue, distinctInsightTexts, sessionStrengthInsights } from '../src/lib/strengthProgress.ts'
 import { seedProfile } from '../src/data/seed.ts'
 import { recommendLoad } from '../src/lib/progression.ts'
 import { EMPTY_DATA, type AppData, type Exercise, type JointCheckin } from '../src/lib/types.ts'
@@ -163,10 +163,10 @@ test('rank all performed sessions, including reps-only sessions, independently o
     { ...set, exercise_name: 'Wrong receipt owner', session_id: 'foreign' },
     { ...set, exercise_name: 'Invalid load', weight_kg: Infinity, reps: null },
   ]
-  const ranked = buildRankedExerciseHistory(data)
+  const ranked = buildExerciseFamilies(data)
   assert.deepEqual(ranked.map((item) => [item.name, item.sessionCount]), [
-    ['Leg Press', 3], ['Machine Row', 2], ['Band or DB Curls', 1],
-    ['Custom band exercise', 1], ['Dead Hang', 1], ['Dumbbell Curl', 1],
+    ['Leg Press', 3], ['Row', 2], ['Biceps Curl', 1],
+    ['Custom band exercise', 1], ['Dead Hang', 1],
   ])
   const weighted = buildStrengthSeries(data)
   assert.deepEqual(weighted.map((item) => [item.name, item.region, item.points.length]), [
@@ -174,7 +174,7 @@ test('rank all performed sessions, including reps-only sessions, independently o
   ])
   assert.deepEqual([weighted[0].points[0].date, weighted[0].points[0].topWeight, weighted[0].points[0].topReps], ['2020-01-01', 60, 8])
   assert.equal(weighted[2].points[0].topWeight, 8)
-  assert.deepEqual(buildRankedExerciseHistory({ ...data, profile: null, settings: null }), [])
+  assert.deepEqual(buildExerciseFamilies({ ...data, profile: null, settings: null }), [])
 })
 
 test('legacy treadmill distances count as one movement and never produce a weight curve', () => {
@@ -184,8 +184,8 @@ test('legacy treadmill distances count as one movement and never produce a weigh
     { ...set, session_id: 's1', exercise_name: 'Treadmill Run · 3 km · 2° · 20 min', weight_kg: null, reps: null },
     { ...set, session_id: 's2', exercise_name: 'Treadmill Run · 5 km · 1° · 30 min', weight_kg: null, reps: null },
   ]
-  const history = buildRankedExerciseHistory(data)
-  assert.deepEqual(history.map((item) => [item.name, item.sessionCount, item.points.length]), [['Treadmill Run', 2, 0]])
+  const history = buildExerciseFamilies(data)
+  assert.deepEqual(history.map((item) => [item.name, item.sessionCount, item.variants[0].points.length]), [['Treadmill Run', 2, 0]])
 })
 
 test('substitute catalog IDs keep different equipment in distinct load curves', () => {
@@ -198,6 +198,54 @@ test('substitute catalog IDs keep different equipment in distinct load curves', 
     { ...set, exercise_name: 'Hip Adduction Machine', movement_id: 'hip_adduction', weight_kg: 50, session_id: 's2' },
   ]
   assert.deepEqual(buildStrengthSeries(data).map(({ name, points }) => [name, points.map((point) => point.topWeight)]), [
-    ['Barbell Curl', [35]], ['Hip Adduction Machine', [50]], ['Cable Hip Adduction', [10]], ['Dumbbell Curl', [12]],
+    ['Barbell Curl', [35]], ['Dumbbell Curl', [12]], ['Hip Adduction Machine', [50]], ['Cable Hip Adduction', [10]],
   ])
+})
+
+test('June’s exercise families count distinct receipts across aliases and morning/evening workouts on one date', () => {
+  const data = strengthData()
+  const set = data.workout_logs[0]
+  data.workout_sessions = ['morning','evening','other'].map((id, index) => ({
+    ...data.workout_sessions[0], id, date: index === 2 ? '2026-07-15' : '2026-07-14',
+  }))
+  const performed = (name: string, session_id: string, movement_id: string | null, weight_kg: number | null) =>
+    ({ ...set, session_id, exercise_name: name, movement_id, weight_kg })
+  data.workout_logs = [
+    performed('Weighted Dumbbell Hip Thrust','morning',null,24),
+    performed('Weighted Dumbbell Hip Thrust','morning',null,24),
+    performed('Dumbbell Hip Thrust','evening','hip_thrust_dumbbell',22),
+    performed('B-Stance or Single-Leg Hip Thrust','evening','b_stance_hip_thrust',10),
+    performed('B-Stance or Single-Leg Hip Thrust','other','b_stance_hip_thrust',12),
+    performed('Strict Push-Up','morning','push_up',null),
+    performed('Diamond or Close-Grip Push-Up','morning',null,null),
+    performed('Weighted or Feet-Elevated Push-Up','evening',null,null),
+    performed('Glute Bridge','morning','glute_bridge',null),
+    { ...performed('Gimbal Front Hold','morning','plank',null), duration_seconds: 25 },
+    { ...performed('Plank','evening','plank',null), duration_seconds: 30 },
+    performed('Pike Push-Up','morning','pike_push_up',null),
+    performed('Cable Curl + Rope Pressdown','morning','cable_curl',10),
+    performed('Cable Curl','evening','cable_curl',12),
+  ]
+  const families = buildExerciseFamilies(data)
+  assert.deepEqual(families.slice(0,2).map(f => [f.key,f.region,f.sessionCount,f.variants.length]), [
+    ['family:hip_thrust','lower',3,3], ['family:push_up','upper',2,3],
+  ])
+  assert.deepEqual(families[0].variants.map(v => [v.name, v.points.map(p => p.topWeight)]), [
+    ['B-Stance or Single-Leg Hip Thrust', []],
+    ['Dumbbell Hip Thrust', [22]], ['Weighted Dumbbell Hip Thrust', [24]],
+  ])
+  assert.ok(families.some(f => f.name === 'Glute Bridge'))
+  assert.equal(families.find(f => f.name === 'Gimbal Front Hold')?.sessionCount, 1)
+  assert.equal(families.find(f => f.name === 'Plank')?.sessionCount, 1)
+  assert.ok(families.some(f => f.name === 'Pike Push-Up'))
+  assert.ok(families.some(f => f.name === 'Cable Curl + Rope Pressdown'))
+  assert.equal(families.find(f => f.name === 'Biceps Curl')?.sessionCount, 1)
+})
+
+test('calendar ticks and chart points share the elapsed-day scale, with repeated dates at the same position', async () => {
+  const { datedChartAxis } = await import('../src/lib/datedChartAxis.ts')
+  const axis = datedChartAxis(['2026-09-01','2026-09-02','2026-09-02','2026-09-11'], 'en')
+  assert.deepEqual(axis.positions,[0,0.1,0.1,1])
+  assert.deepEqual(axis.ticks.map(t => t.fraction), [0,0.3,0.7,1])
+  assert.equal(datedChartAxis(['2026-09-01','2026-09-01'], 'ro').ticks.length,1)
 })

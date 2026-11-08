@@ -74,9 +74,9 @@ struct AvatarView: View {
                     baselineProgressCard
                 }
                 if let ownerID = session.accountOperationLease()?.ownerID {
-                    StrengthHistoryCard(history: StrengthProgress.exerciseHistory(
+                    StrengthHistoryCard(families: StrengthProgress.rankedFamilies(StrengthProgress.exerciseHistory(
                         ownerID: ownerID, sessions: session.data.workoutSessions, logs: session.data.workoutLogs
-                    ), unit: .current(session.data.settings))
+                    )), unit: .current(session.data.settings))
                     .id(ownerID)
                 }
                 jointCheckCard
@@ -114,7 +114,7 @@ struct AvatarView: View {
                         sessions: session.data.workoutSessions, logs: session.data.workoutLogs,
                         unit: .current(session.data.settings)
                     )
-                    ShareLink(item: report, preview: SharePreview(language.text("Avatar report"))) {
+                    ShareLink(item: report, preview: SharePreview(report.fileName)) {
                         Label(language.text("Share Avatar report"), systemImage: "square.and.arrow.up")
                             .labelStyle(.iconOnly)
                             .frame(width: 44, height: 44)
@@ -965,11 +965,13 @@ private struct StrengthHistoryCard: View {
     @State private var language = LanguageState.shared
     @State private var selectedExercise = ""
     @State private var showAll = false
-    let history: [StrengthProgress.ExerciseHistory]
+    @State private var regionFilter: StrengthProgress.BodyRegion?
+    let families: [StrengthProgress.RankedFamily]
     let unit: WeightUnit
 
     var body: some View {
-        let loaded = history.filter { !$0.points.isEmpty }
+        let visible = families.filter { regionFilter == nil || $0.region == regionFilter }
+        let loaded = families.flatMap(\.variants).filter { !$0.points.isEmpty }
         let active = loaded.first { $0.key == selectedExercise } ?? loaded.first
         GlassCard(radius: 32, padding: 20) {
             VStack(alignment: .leading, spacing: 15) {
@@ -1006,30 +1008,56 @@ private struct StrengthHistoryCard: View {
                 }
                 Divider()
                 Text(language.text("Most performed exercises")).font(APEXFont.display(20))
-                if history.isEmpty {
-                    Text(language.text("No recorded exercises yet."))
+                Text(language.text("Each completed workout counts once per exercise family."))
+                    .font(APEXFont.body(12, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
+                if !families.isEmpty {
+                    Picker(language.text("Most performed exercises"), selection: $regionFilter) {
+                        Text(language.text("All")).tag(nil as StrengthProgress.BodyRegion?)
+                        Text(language.text("Lower body")).tag(Optional(StrengthProgress.BodyRegion.lower))
+                        Text(language.text("Upper body")).tag(Optional(StrengthProgress.BodyRegion.upper))
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: regionFilter) { _, _ in showAll = false }
+                }
+                if visible.isEmpty {
+                    Text(language.text(regionFilter == nil ? "No recorded exercises yet." : "No recorded exercises in this group."))
                         .font(APEXFont.body(13, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
                 } else {
                     HStack {
                         Text(language.text("Exercise")); Spacer(); Text(language.text("Sessions"))
                     }
                     .font(APEXFont.mono(10)).foregroundStyle(APEXColor.secondaryInk)
-                    ForEach(history.prefix(showAll ? history.count : 5), id: \.key) { item in
-                        HStack {
-                            Text(language.text(item.name))
-                            Spacer()
-                            Text(item.sessionCount.formatted()).monospacedDigit()
+                    ForEach(visible.prefix(showAll ? visible.count : 5), id: \.key) { family in
+                        if family.showsVariants {
+                            DisclosureGroup {
+                                ForEach(family.variants, id: \.key) { variant in
+                                    rankingRow(variant.name, sessions: variant.sessionCount)
+                                        .padding(.leading, 12).foregroundStyle(APEXColor.secondaryInk)
+                                }
+                            } label: {
+                                rankingRow(family.name, sessions: family.sessionCount)
+                            }
+                        } else {
+                            rankingRow(family.name, sessions: family.sessionCount)
                         }
-                        .font(APEXFont.body(13, weight: .medium))
-                        .accessibilityElement(children: .combine)
                     }
-                    if history.count > 5 {
+                    if visible.count > 5 {
                         Button(language.text(showAll ? "Show fewer exercises" : "Show all exercises")) { showAll.toggle() }
                             .font(APEXFont.body(13, weight: .semibold))
                     }
                 }
             }
         }
+    }
+
+    private func rankingRow(_ name: String, sessions: Int) -> some View {
+        HStack {
+            Text(language.text(name))
+            Spacer()
+            Text(sessions.formatted()).monospacedDigit()
+        }
+        .font(APEXFont.body(13, weight: .medium))
+        .accessibilityElement(children: .combine)
     }
 
     private func formattedLoad(_ value: Double?) -> String {
@@ -1040,32 +1068,40 @@ private struct StrengthHistoryCard: View {
         language.text(unit == .kilograms ? "Working load (kg)" : "Working load (lb)")
     }
 
+    @ViewBuilder
     private func loadChart(_ points: [StrengthProgress.Point]) -> some View {
-        Chart(points, id: \.sessionID) { point in
-            LineMark(
-                x: .value(language.text("Sessions"), point.sessionID.uuidString),
-                y: .value(loadAxisTitle, unit.value(fromKilograms: point.topWeight))
-            )
-            .foregroundStyle(APEXColor.violet)
-            PointMark(
-                x: .value(language.text("Sessions"), point.sessionID.uuidString),
-                y: .value(loadAxisTitle, unit.value(fromKilograms: point.topWeight))
-            )
-            .foregroundStyle(APEXColor.violet)
-            .accessibilityLabel(point.date)
-            .accessibilityValue(formattedLoad(point.topWeight))
-        }
-        .chartXAxis {
-            let indexes = Set([0, points.count / 2, points.count - 1]).sorted()
-            let labels = indexes.map { points[$0] }
-            AxisMarks(values: labels.map { $0.sessionID.uuidString }) { value in
-                if let id = value.as(String.self), let point = labels.first(where: { $0.sessionID.uuidString == id }) {
-                    AxisValueLabel { Text(verbatim: point.date).font(APEXFont.mono(8)) }
+        if let first = points.first, let last = points.last,
+           let axis = WorkoutChartCalendar(from: first.date, to: last.date, intervals: 3) {
+            Chart(points, id: \.sessionID) { point in
+                if let date = APEXDateMath.date(from: point.date) {
+                    AreaMark(x: .value("Date", axis.position(date)),
+                             y: .value(loadAxisTitle, unit.value(fromKilograms: point.topWeight)))
+                        .foregroundStyle(LinearGradient(colors: [APEXColor.violet.opacity(0.22), .clear],
+                                                        startPoint: .top, endPoint: .bottom))
+                    LineMark(x: .value("Date", axis.position(date)),
+                             y: .value(loadAxisTitle, unit.value(fromKilograms: point.topWeight)))
+                        .lineStyle(StrokeStyle(lineWidth: 2.8, lineCap: .round, lineJoin: .round))
+                        .foregroundStyle(APEXColor.violet)
+                    PointMark(x: .value("Date", axis.position(date)),
+                              y: .value(loadAxisTitle, unit.value(fromKilograms: point.topWeight)))
+                        .symbolSize(point.sessionID == last.sessionID ? 42 : 16)
+                        .foregroundStyle(APEXColor.violet)
+                        .accessibilityLabel(point.date)
+                        .accessibilityValue(formattedLoad(point.topWeight))
                 }
             }
+            .chartXScale(domain: 0...1)
+            .chartXAxis {
+                AxisMarks(values: axis.ticks.map(axis.position)) { value in
+                    AxisGridLine(stroke: StrokeStyle(lineWidth: 0.5, dash: [2, 4]))
+                    if axis.ticks.indices.contains(value.index) {
+                        AxisValueLabel { Text(verbatim: axis.label(axis.ticks[value.index], locale: language.language.locale)) }
+                    }
+                }
+            }
+            .chartYAxisLabel(loadAxisTitle)
+            .frame(height: 180)
         }
-        .chartYAxisLabel(loadAxisTitle)
-        .frame(height: 165)
     }
 
     private func historyMetric(_ title: String, _ value: String) -> some View {

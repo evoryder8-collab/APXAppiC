@@ -526,6 +526,21 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["settings-active-identity-name"].label, "Constantine")
     }
 
+    func testAvatarPDFUsesProfileAndLocalDateInSaveToFiles() {
+        let app = configuredApp()
+        app.launch()
+        let avatar = app.buttons["portal.avatar"]
+        XCTAssertTrue(avatar.waitForExistence(timeout: 5))
+        avatar.tap()
+        app.buttons["avatar.share-report"].tap()
+        let save = app.descendants(matching: .any).matching(NSPredicate(format: "label ==[c] %@ OR identifier == %@", "Save to Files", "com.apple.DocumentManagerUICore.SaveToFiles")).firstMatch
+        XCTAssertTrue(save.waitForExistence(timeout: 6), app.debugDescription)
+        save.tap()
+        let expected = "Constantine - " + calendarKey(offset: 0) + " - FITR MAX"
+        let filename = app.textFields.matching(NSPredicate(format: "value == %@ OR value == %@", expected, expected + ".pdf")).firstMatch
+        XCTAssertTrue(filename.waitForExistence(timeout: 8), app.debugDescription)
+    }
+
     func testAvatarOffersExportAndSelectsPerformedExerciseInsteadOfPlan() {
         let app = configuredApp()
         app.launch()
@@ -1593,6 +1608,7 @@ final class APEXSmokeUITests: XCTestCase {
 
         XCTAssertTrue(app.descendants(matching: .any)["workout-phase-active"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Push-ups"].exists)
+        capture("guided-push-up-artwork")
         /* Reps count themselves now (tempo cadence). The athlete only
            pauses, finishes, or skips. */
         XCTAssertTrue(app.buttons["workout-pause-set"].exists)
@@ -1600,6 +1616,7 @@ final class APEXSmokeUITests: XCTestCase {
         app.buttons["workout-end-set"].tap()
 
         XCTAssertTrue(app.descendants(matching: .any)["workout-phase-rest"].waitForExistence(timeout: 2))
+        capture("guided-water-break-artwork")
         let reps = app.textFields["exercise-fact-reps"]
         XCTAssertTrue(reps.waitForExistence(timeout: 2))
         reps.tap()

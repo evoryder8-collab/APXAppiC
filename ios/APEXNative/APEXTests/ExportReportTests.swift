@@ -156,12 +156,46 @@ final class ExportReportTests: XCTestCase {
         let localizedLatest = 66.1.formatted(.number.locale(LanguageState.shared.language.locale))
         XCTAssertTrue(charts.contains(localizedLatest + " lb"))
         XCTAssertTrue(charts.contains("+22 lb"))
+        let axis = try XCTUnwrap(WorkoutChartCalendar(from: "2026-01-05", to: "2026-03-05"))
+        XCTAssertEqual(axis.ticks.count, 5)
+        let early = try XCTUnwrap(APEXDateMath.date(from: "2026-01-06"))
+        XCTAssertLessThan(axis.position(early), 0.02)
+        let middleDate = axis.label(axis.ticks[2], locale: LanguageState.shared.language.locale)
+        XCTAssertTrue(charts.contains(middleDate), "The PDF must label dates between the first and latest set")
         XCTAssertTrue(charts.contains("6 " + LanguageState.shared.text("reps")))
         XCTAssertTrue(charts.contains(LanguageState.shared.text("One recorded session")))
         let attachment = XCTAttachment(data: pdf, uniformTypeIdentifier: "com.adobe.pdf")
         attachment.name = "Avatar report.pdf"
         attachment.lifetime = .keepAlways
         add(attachment)
+    }
+
+    @MainActor
+    func testAvatarPDFRanksFamilyOnceWithItsDistinctSessionCountAndVariantBreakdown() throws {
+        let sameDay = WorkoutSession(
+            id: UUID(), userID: user, date: "2026-01-05", programDayID: dayID,
+            isLite: false, isDeload: false, isEventRecovery: false, completed: true,
+            qualityScore: 1, startedAt: nil, completedAt: nil, notes: ""
+        )
+        let rows = [
+            log("Barbell Hip Thrust", set: 1, weight: 50, reps: 6, at: ""),
+            log("Machine Hip Thrust", set: 1, weight: 90, reps: 8, at: ""),
+            WorkoutLog(id: UUID(), userID: user, sessionID: sameDay.id, exerciseID: nil,
+                       exerciseName: "Machine Hip Thrust", setNumber: 1, weightKG: 95, reps: 8, rir: nil,
+                       movementID: "machine_hip_thrust", skipped: false, overrideFlag: false, createdAt: ""),
+        ]
+        let pdf = AvatarReport(ownerID: user, displayName: "Sample", snapshots: [], partialScores: [:],
+                               sessions: data().workoutSessions + [sameDay], logs: rows, unit: .kilograms).pdfData()
+        let document = try XCTUnwrap(PDFDocument(data: pdf))
+        let page = try XCTUnwrap(document.page(at: 1))
+        let text = try XCTUnwrap(page.string)
+        let language = LanguageState.shared
+        XCTAssertTrue(text.contains(language.text("Hip Thrust") + " · " + language.text("Lower body")))
+        XCTAssertTrue(text.contains(language.text("Barbell Hip Thrust") + " (1)"))
+        XCTAssertTrue(text.contains(language.text("Machine Hip Thrust") + " (2)"))
+        let totalsColumn = CGRect(x: 478, y: page.bounds(for: .mediaBox).height - 730, width: 96, height: 730 - 194)
+        let totals = try XCTUnwrap(page.selection(for: totalsColumn)?.string)
+        XCTAssertEqual(totals.split(whereSeparator: { $0.isWhitespace }).compactMap { Int($0) }, [2])
     }
 
     @MainActor

@@ -2346,3 +2346,11 @@ Avatar now ranks each account's performed exercises by distinct completed workou
 
 Verification used synthetic account histories including skipped work, long names, one-point charts, missing domains and conflicting equipment aliases. The iPhone simulator opened the Avatar picker and selected the recorded goblet squat rather than a prescribed exercise. PDFKit read the paginated report; Chromium rendered a narrow-screen report and printed it to PDF. TestFlight availability is separate from web deployment.
 The external-review retry uses a new TestFlight marketing version, 1.0.1 (405). The app remains compatible with iOS 17 and watchOS 10. Xcode 27.0 (27A266a) and the 27.0 SDKs built the release. A version change is a diagnostic experiment, not an Apple-confirmed fix for the review error.
+
+## 2026-11-08 · Guided exercise photos and Avatar reports (1.0.1 build 406)
+
+The iPhone bundles all 549 exercise illustrations and the water-break image as transparent WebP resources. The guided repetition clock controls two endpoint photos for 258 exercises with identifiable and separable poses. The other 291 use a complete reference. The photographed athlete, equipment and rest image render in the workout without network access. The source orientation map and conversion script live under tools/.
+
+Avatar frequency on iPhone, web and exports groups related movements and counts the distinct completed workout IDs across their variants. A second workout on the same day counts separately. The default list shows all families; Lower body and Upper body narrow it, and each family with multiple variants can be expanded. Load history stays specific to the equipment and variation. Trend dots use actual workout dates with intermediate calendar labels. Native PDF filenames include the profile display name, local export date and FITR MAX.
+
+Validation: iPhone simulator rendered push-ups and the water-break photograph during a guided workout; a pixel check covers blank rendering. The system Save to Files dialog showed the profile and date. PDF extraction, exercise-family counts and calendar scaling were verified with synthetic histories, including two sessions on one day and multiple variants in one session.

@@ -1,4 +1,5 @@
 import type { AppData, JointCheckin } from './types'
+import frequencyFamilies from '../../shared/exercise-frequency-families.json' with { type: 'json' }
 import { MOVEMENTS } from '../data/movements.ts'
 import { catalogExerciseByName } from '../data/exerciseCatalog.ts'
 import { descriptorForExercise, isValidExerciseFacts } from './exerciseLogging.ts'
@@ -30,6 +31,24 @@ export interface RankedExerciseHistory extends ExerciseStrengthSeries {
   region: StrengthRegion
   sessionCount: number
   lastPerformedDate: string
+}
+
+export interface ExerciseFrequencyFamily {
+  key: string
+  name: string
+  region: StrengthRegion
+  sessionCount: number
+  lastPerformedDate: string
+  variants: RankedExerciseHistory[]
+}
+
+const familyByMovement = new Map(frequencyFamilies.flatMap(family => family.movementIDs.map(id => [id, family] as const)))
+const familyAlias = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '')
+const familyByAlias = new Map(frequencyFamilies.flatMap(family => family.aliases.map(name => [familyAlias(name), family] as const)))
+
+function frequencyOrder(a: Pick<RankedExerciseHistory, 'key' | 'name' | 'sessionCount' | 'lastPerformedDate'>, b: typeof a) {
+  return b.sessionCount - a.sessionCount || b.lastPerformedDate.localeCompare(a.lastPerformedDate)
+    || a.name.localeCompare(b.name, 'en') || a.key.localeCompare(b.key, 'en')
 }
 
 export interface SessionStrengthInsight {
@@ -78,12 +97,22 @@ function historyMovement(name: string, movementId: string | null) {
   const canonicalEquipment = movement && `${movement.name} ${movement.id}`.toLowerCase()
   const differentEquipment = canonicalEquipment && equipmentWords.some((word) => !canonicalEquipment.includes(word.replace(/s$/, '')))
   // The training catalogue also uses substitute IDs, e.g. Barbell Curl maps to Dumbbell Curl.
-  const key = descriptor.movementId && !differentEquipment && (!bandLabel || bandEquipment)
+  const explicitFamily = familyByAlias.get(familyAlias(name))
+  const movementFamily = familyByMovement.get(descriptor.movementId ?? '')
+  const substitute = explicitFamily && movementFamily && explicitFamily !== movementFamily
+  const composite = /[+\/]|\bor\b/i.test(name)
+  const key = descriptor.movementId && !substitute && !composite && !differentEquipment && (!bandLabel || bandEquipment)
     ? `movement:${descriptor.movementId.toLowerCase()}`
     : `name:${name.toLowerCase().replace(/\s+/g, ' ')}`
+  // Composite programme slots can refer to just their first movement in the catalogue.
+  const family = explicitFamily ?? (composite ? undefined : movementFamily)
+  const region = family?.region
   return {
-    descriptor, key, region: strengthRegion(movement?.primaryMuscles[0]),
-    comparableLoad: descriptor.kind === 'strength' && !bandEquipment && !bandLabel,
+    descriptor, key, family,
+    region: region === 'lower' || region === 'upper' || region === 'core' || region === 'other'
+      ? region : strengthRegion(movement?.primaryMuscles[0]),
+    comparableLoad: descriptor.kind === 'strength' && !composite && !bandEquipment && !bandLabel
+      && !(family?.id === 'push_up' && !descriptor.movementId),
   }
 }
 
@@ -105,7 +134,7 @@ export function estimatedOneRepMax(weight: number, reps: number | null): number 
   return Math.round(weight * (1 + boundedReps / 30) * 10) / 10
 }
 
-export function buildRankedExerciseHistory(data: AppData): RankedExerciseHistory[] {
+export function buildExerciseFamilies(data: AppData): ExerciseFrequencyFamily[] {
   const owner = data.profile?.user_id ?? data.settings?.user_id
   if (!owner) return []
   const sessions = new Map(data.workout_sessions
@@ -113,6 +142,7 @@ export function buildRankedExerciseHistory(data: AppData): RankedExerciseHistory
     .map((session) => [session.id, session]))
   const movements = new Map<string, ReturnType<typeof historyMovement>>()
   const groups = new Map<string, {
+    family: (typeof frequencyFamilies)[number] | undefined
     history: Omit<RankedExerciseHistory, 'sessionCount' | 'points'>
     performed: Set<string>
     points: Map<string, StrengthPoint>
@@ -140,6 +170,7 @@ export function buildRankedExerciseHistory(data: AppData): RankedExerciseHistory
     if (!performed && !(loaded && log.reps == null)) continue
 
     const group = groups.get(movement.key) ?? {
+      family: movement.family,
       history: {
         key: movement.key, exerciseId: log.exercise_id, name, region: movement.region,
         lastPerformedDate: session.date,
@@ -174,18 +205,34 @@ export function buildRankedExerciseHistory(data: AppData): RankedExerciseHistory
     const session = sessions.get(id)
     return session?.started_at ?? session?.completed_at ?? ''
   }
-  return [...groups.values()].map(({ history, performed, points }) => ({
-    ...history, sessionCount: performed.size,
-    points: [...points.values()].sort((a, b) => a.date.localeCompare(b.date)
-      || sessionTime(a.sessionId).localeCompare(sessionTime(b.sessionId))
-      || a.sessionId.localeCompare(b.sessionId)),
-  })).sort((a, b) => b.sessionCount - a.sessionCount
-    || b.lastPerformedDate.localeCompare(a.lastPerformedDate)
-    || a.name.localeCompare(b.name, 'en') || a.key.localeCompare(b.key, 'en'))
+  const families = new Map<string, { row: ExerciseFrequencyFamily; sessions: Set<string> }>()
+  for (const { history, performed, points, family } of groups.values()) {
+    const variant = {
+      ...history, sessionCount: performed.size,
+      points: [...points.values()].sort((a, b) => a.date.localeCompare(b.date)
+        || sessionTime(a.sessionId).localeCompare(sessionTime(b.sessionId))
+        || a.sessionId.localeCompare(b.sessionId)),
+    }
+    const key = family ? `family:${family.id}` : variant.key
+    const entry = families.get(key) ?? {
+      row: { key, name: family?.name ?? variant.name, region: variant.region,
+        lastPerformedDate: variant.lastPerformedDate, sessionCount: 0, variants: [] },
+      sessions: new Set<string>(),
+    }
+    for (const id of performed) entry.sessions.add(id)
+    entry.row.sessionCount = entry.sessions.size
+    entry.row.variants.push(variant)
+    if (variant.lastPerformedDate > entry.row.lastPerformedDate) entry.row.lastPerformedDate = variant.lastPerformedDate
+    families.set(key, entry)
+  }
+  return [...families.values()].map(({ row }) => {
+    row.variants.sort(frequencyOrder)
+    return row
+  }).sort(frequencyOrder)
 }
 
 export function buildStrengthSeries(data: AppData): RankedExerciseHistory[] {
-  return buildRankedExerciseHistory(data).filter((series) => series.points.length > 0)
+  return buildExerciseFamilies(data).flatMap((family) => family.variants.filter((variant) => variant.points.length > 0))
 }
 
 export function sessionStrengthInsights(data: AppData, sessionId: string): SessionStrengthInsight[] {

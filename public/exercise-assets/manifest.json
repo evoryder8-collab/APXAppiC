@@ -2256,26 +2256,25 @@
       "record_type": "movement",
       "status": "generated_corrected_checked",
       "file": "handstand_push_up.png",
-      "prompt": "Use case: scientific-educational.\nGenerate a COMPLETELY NEW photorealistic transparent exercise illustration from scratch. The attached goblet squat is ONLY a reference for the adult woman's identity, skin tone, dark ponytail, black workout clothing and white trainers. Do not depict a squat.\n\nCreate TWO side-by-side full-body key poses of a BACK-TO-WALL HANDSTAND PUSH-UP. Same woman, same side-view camera and scale, narrow grey wall on RIGHT of each pose. Black fitted long-sleeve crop top and full leggings, white trainers. Both whole figures and wall slabs fit with transparent margins.\n\nCRITICAL HAND SETUP: all FOUR hands press palms flat DOWN on the implied floor, with fingers pointing RIGHT TOWARD THE WALL. Wrists and palm heels are LEFT of their fingers. Both hands of each woman are parallel and point the same way, even though their thumbs are opposite. Each hand has one wrist, one palm, five digits. Leave enough floor space between wrists and wall for the full finger lengths. No double-ended palms. No fingers or second palm pointing left. Separate the two supporting hands slightly in depth so each is readable. Arms and wrists connect normally to the LEFT end of each palm.\n\nWHOLE-BODY DIRECTION in both poses: face, nose, chest, abdomen, front pelvis, kneecaps and horizontal shoe TOES face LEFT AWAY from wall. Back, spine, buttocks, calves and shoe HEELS face RIGHT toward wall. Rounded buttocks lightly touch wall without penetration. Shoes have toes on LEFT and heels on RIGHT, soles on their upper side because she is upside down. All body segments share one coherent front/back orientation.\n\nHEAD AND HAIR: the head is truly UPSIDE DOWN with the body. Chin/mouth are ABOVE eyes, forehead/crown BELOW eyes. Face/nose point LEFT away from wall. Neck attaches from shoulders above the head. Ponytail hangs DOWN toward floor under gravity. No upright portrait head on inverted body.\n\nLEFT POSE: straight arms supporting a near-vertical inverted body, shoulders elevated, knees straight, buttocks touching wall. Position wrists a hand-length away from wall, enough space for fingers toward wall.\nRIGHT POSE: lowered phase with naturally bent elbows, forearms supporting the same parallel right-pointing palms, crown close to floor, legs straight, buttocks at wall. Preserve the same orientation, stance, grip and equipment. Show meaningful motion between top and lowered states.\n\nStyle: realistic anatomy and clean studio photographic cutouts. True transparent PNG background. No text, arrows, phase labels, floor/background scenery, shadows or extra objects. Prioritize coherent hand/wrist anatomy, inverted heads and consistent whole-body orientation.",
-      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-f1a7fe84-e1cd-4b8d-a358-4bd60ee25913.png",
-      "width": 1355,
-      "height": 1161,
+      "prompt": "Create a completely new photorealistic full-body exercise photograph pair from scratch. Use the supplied approved handstand as a precise movement and direction reference for both panels. Same adult dark-ponytailed athlete in fitted black long-sleeve top, black leggings, white trainers. Strict side profile, TWO phases of one back-to-wall handstand push-up side-by-side. In EACH pose a narrow gray vertical wall is immediately to her RIGHT. Heels and glutes touch it, toes, kneecaps, chest and face point LEFT away from wall. The entire head is physically inverted in line with body, chin above eyes, crown down, ponytail drops vertically toward floor. Both palms flat at shoulder width, staggered very slightly in depth so each separate hand can be seen. ALL fingertips point RIGHT toward wall, both wrists to LEFT of fingertips. Exactly two arms, two wrists and two hands in each. Left panel straight elbows and crown well above ground, right panel elbows flexed with head lowered near floor and heels slid slightly down same wall. Feet together, straight legs continuous from pelvis to knees to ankles, same shoes and orientation. Fixed camera and same scale and baseline, both figures complete and separated, generous margins. Real transparent background, only athletes and narrow wall sections, no text, frames, floor plane or shadow.",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-712361db-918e-44da-8d3e-3ad156d8157b.png",
+      "width": 1359,
+      "height": 1157,
       "mode": "RGBA",
       "alpha_extrema": [
         0,
         255
       ],
-      "review_notes": "Fresh full two-pose generation from the original goblet-squat identity/style reference only. Both distinct supporting hands in each pose have palms down and fingers right toward the wall. Heads are inverted, faces left away and ponytails hang down. Whole body fronts, knees and shoe toes face left away; buttocks touch the right wall. Straight-arm top and bent-arm lower endpoints keep the same identity and orientation.",
-      "sha256": "d2d9e02b2b227261e331e072d3e416d4fb3821241719b7f845ef23845e986f06",
+      "review_notes": "User approved November 8 two-pose regeneration. Inverted head, downward ponytail, fingertips toward wall and toes away in both phases.",
+      "sha256": "9d2be50c7eb4cf7d5b8db2651fe4a54090a6055696c50bb9667fc02d585678b4",
       "first_pass_review": {
         "status": "generated_reviewed",
         "note": ""
       },
       "anatomy_audit": {
         "status": "visual_review_passed",
-        "date": "2026-10-04",
-        "review": "User explicitly approved this fresh pair; preserved its exact bytes. Inverted head, hanging hair and single palms remain coherent.",
-        "full_size_checked": false
+        "date": "2026-11-08",
+        "review": "User approved November 8 two-pose regeneration. Inverted head, downward ponytail, fingertips toward wall and toes away in both phases."
       },
       "correction_attempts": [
         {
@@ -2733,7 +2732,7 @@
           "file": "handstand_push_up.png",
           "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-f1a7fe84-e1cd-4b8d-a358-4bd60ee25913.png",
           "prompt": "Use case: scientific-educational.\nGenerate a COMPLETELY NEW photorealistic transparent exercise illustration from scratch. The attached goblet squat is ONLY a reference for the adult woman's identity, skin tone, dark ponytail, black workout clothing and white trainers. Do not depict a squat.\n\nCreate TWO side-by-side full-body key poses of a BACK-TO-WALL HANDSTAND PUSH-UP. Same woman, same side-view camera and scale, narrow grey wall on RIGHT of each pose. Black fitted long-sleeve crop top and full leggings, white trainers. Both whole figures and wall slabs fit with transparent margins.\n\nCRITICAL HAND SETUP: all FOUR hands press palms flat DOWN on the implied floor, with fingers pointing RIGHT TOWARD THE WALL. Wrists and palm heels are LEFT of their fingers. Both hands of each woman are parallel and point the same way, even though their thumbs are opposite. Each hand has one wrist, one palm, five digits. Leave enough floor space between wrists and wall for the full finger lengths. No double-ended palms. No fingers or second palm pointing left. Separate the two supporting hands slightly in depth so each is readable. Arms and wrists connect normally to the LEFT end of each palm.\n\nWHOLE-BODY DIRECTION in both poses: face, nose, chest, abdomen, front pelvis, kneecaps and horizontal shoe TOES face LEFT AWAY from wall. Back, spine, buttocks, calves and shoe HEELS face RIGHT toward wall. Rounded buttocks lightly touch wall without penetration. Shoes have toes on LEFT and heels on RIGHT, soles on their upper side because she is upside down. All body segments share one coherent front/back orientation.\n\nHEAD AND HAIR: the head is truly UPSIDE DOWN with the body. Chin/mouth are ABOVE eyes, forehead/crown BELOW eyes. Face/nose point LEFT away from wall. Neck attaches from shoulders above the head. Ponytail hangs DOWN toward floor under gravity. No upright portrait head on inverted body.\n\nLEFT POSE: straight arms supporting a near-vertical inverted body, shoulders elevated, knees straight, buttocks touching wall. Position wrists a hand-length away from wall, enough space for fingers toward wall.\nRIGHT POSE: lowered phase with naturally bent elbows, forearms supporting the same parallel right-pointing palms, crown close to floor, legs straight, buttocks at wall. Preserve the same orientation, stance, grip and equipment. Show meaningful motion between top and lowered states.\n\nStyle: realistic anatomy and clean studio photographic cutouts. True transparent PNG background. No text, arrows, phase labels, floor/background scenery, shadows or extra objects. Prioritize coherent hand/wrist anatomy, inverted heads and consistent whole-body orientation.",
-          "selected": true,
+          "selected": false,
           "review": "Fresh full two-pose generation from the original goblet-squat identity/style reference only. Both distinct supporting hands in each pose have palms down and fingers right toward the wall. Heads are inverted, faces left away and ponytails hang down. Whole body fronts, knees and shoe toes face left away; buttocks touch the right wall. Straight-arm top and bent-arm lower endpoints keep the same identity and orientation.",
           "sha256": "d2d9e02b2b227261e331e072d3e416d4fb3821241719b7f845ef23845e986f06",
           "width": 1355,
@@ -2746,12 +2745,36 @@
           "input_images": [
             "/Users/jaxoncorrey/Downloads/goblet squat.png"
           ],
-          "file_scope": "exercise-assets",
+          "file_scope": "historical_metadata",
           "role": "selected_fresh_generation",
           "accepted_by_user": true,
           "accepted_date": "2026-10-04",
           "previous_repo_file": "public/exercise-assets/corrections/handstand_push_up-v22.png",
-          "attempt_id": "handstand_push_up-v22.png"
+          "attempt_id": "handstand_push_up-v22.png",
+          "file_retired": true
+        },
+        {
+          "file": "handstand_push_up.png",
+          "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-712361db-918e-44da-8d3e-3ad156d8157b.png",
+          "width": 1359,
+          "height": 1157,
+          "mode": "RGBA",
+          "alpha_extrema": [
+            0,
+            255
+          ],
+          "sha256": "9d2be50c7eb4cf7d5b8db2651fe4a54090a6055696c50bb9667fc02d585678b4",
+          "prompt": "Create a completely new photorealistic full-body exercise photograph pair from scratch. Use the supplied approved handstand as a precise movement and direction reference for both panels. Same adult dark-ponytailed athlete in fitted black long-sleeve top, black leggings, white trainers. Strict side profile, TWO phases of one back-to-wall handstand push-up side-by-side. In EACH pose a narrow gray vertical wall is immediately to her RIGHT. Heels and glutes touch it, toes, kneecaps, chest and face point LEFT away from wall. The entire head is physically inverted in line with body, chin above eyes, crown down, ponytail drops vertically toward floor. Both palms flat at shoulder width, staggered very slightly in depth so each separate hand can be seen. ALL fingertips point RIGHT toward wall, both wrists to LEFT of fingertips. Exactly two arms, two wrists and two hands in each. Left panel straight elbows and crown well above ground, right panel elbows flexed with head lowered near floor and heels slid slightly down same wall. Feet together, straight legs continuous from pelvis to knees to ankles, same shoes and orientation. Fixed camera and same scale and baseline, both figures complete and separated, generous margins. Real transparent background, only athletes and narrow wall sections, no text, frames, floor plane or shadow.",
+          "date": "2026-11-08",
+          "attempt_id": "handstand_push_up-2026-11-08",
+          "selected": true,
+          "accepted_by_user": true,
+          "accepted_date": "2026-11-08",
+          "file_scope": "exercise-assets",
+          "review": "User approved November 8 two-pose regeneration. Inverted head, downward ponytail, fingertips toward wall and toes away in both phases.",
+          "input_images": [
+            "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-f1a7fe84-e1cd-4b8d-a358-4bd60ee25913.png"
+          ]
         }
       ],
       "original_asset": {
@@ -2769,19 +2792,19 @@
         "historical_only": true,
         "note": "Canonical image replaced at user request. Original generation metadata retained for traceability."
       },
-      "review": "Fresh full two-pose generation from the original goblet-squat identity/style reference only. Both distinct supporting hands in each pose have palms down and fingers right toward the wall. Heads are inverted, faces left away and ponytails hang down. Whole body fronts, knees and shoe toes face left away; buttocks touch the right wall. Straight-arm top and bent-arm lower endpoints keep the same identity and orientation.",
-      "production_spec": "Fresh complete two-pose back-to-wall handstand illustration, generated from original goblet-squat identity/style reference only. Wall on right in both poses; body front, knees and shoe toes face left away, buttocks touch wall. Head fully inverted, face left away, ponytail hangs down. Two distinct supporting hands per pose, all fingers right toward wall, palms down, wrists on left side of palms. Left straight-arm top and right bent-arm lower positions, same woman and camera. Black long-sleeve crop top/leggings and white trainers; actual transparent PNG.",
+      "review": "User approved November 8 two-pose regeneration. Inverted head, downward ponytail, fingertips toward wall and toes away in both phases.",
+      "production_spec": "Two phases of the approved back-to-wall push-up, with the wall on the right and fingers pointing toward it.",
       "selected_prompt_chain": [
-        "handstand_push_up-v22.png"
+        "handstand_push_up-2026-11-08"
       ],
       "input_images": [
-        "/Users/jaxoncorrey/Downloads/goblet squat.png"
+        "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-f1a7fe84-e1cd-4b8d-a358-4bd60ee25913.png"
       ],
-      "generation_strategy": "fresh_two_pose_image_from_original_style_reference",
+      "generation_strategy": "fresh_two_pose_generation_from_approved_pose_reference",
       "user_approval": {
-        "date": "2026-10-04",
+        "date": "2026-11-08",
         "status": "explicitly_approved_by_user",
-        "scope": "fresh complete two-pose handstand v22"
+        "scope": "2026-11-08 wall handstand push-up"
       },
       "asset_delivery": "canonical_filename_replaces_previous_image_at_user_request",
       "previous_accepted_variants": [
@@ -25347,5 +25370,30 @@
       "status": "complete",
       "summary": "All 549 catalog images were visually inspected: 499 kept and 50 freshly regenerated replacements checked. No unresolved replacement remains."
     }
+  },
+  "supplemental_workout_assets": {
+    "breaktime": {
+      "file": "../workout-assets/breaktime.png",
+      "generation_source": "/Users/jaxoncorrey/.codex/generated_images/01a10213-f12e-7bf1-885d-8f495848334d/exec-57c445f4-f788-49d0-8105-0793877995ac.png",
+      "width": 941,
+      "height": 1671,
+      "mode": "RGBA",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "sha256": "76047be0474cdfe1dc4a770410accc452ecda7457c18c7ae1fc0a98c064cccfd",
+      "prompt": "Create one brand new high-quality realistic photographic full-body isolated cutout of the same adult woman in the supplied fitness-library style reference. Single figure standing comfortably on both feet in white trainers, black shorts and black sports bra, same dark high ponytail. A pale cotton gym towel drapes over her LEFT shoulder with visible folds and hanging ends. In her RIGHT hand she lifts a clear unbranded water bottle and is visibly taking a sip, bottle opening touching her lips, base tilted up, with believable fingers and wrist and water level. Left arm relaxed. Calm recovery between workout sets, three-quarter view. Frame the whole head, bottle, towel, hands and both shoes with clear margins. True transparent PNG, studio cutout, no text, no gym, no floor or backdrop.",
+      "date": "2026-11-08",
+      "role": "rest interval"
+    }
+  },
+  "latest_asset_update": {
+    "date": "2026-11-08",
+    "handstand_previous_sha256": "d2d9e02b2b227261e331e072d3e416d4fb3821241719b7f845ef23845e986f06",
+    "handstand_selected_sha256": "9d2be50c7eb4cf7d5b8db2651fe4a54090a6055696c50bb9667fc02d585678b4",
+    "breaktime_sha256": "76047be0474cdfe1dc4a770410accc452ecda7457c18c7ae1fc0a98c064cccfd",
+    "catalog_entries": 549,
+    "catalog_png_bytes": 786069710
   }
 }

@@ -12,23 +12,38 @@ struct AvatarReport: Transferable {
     let logs: [WorkoutLog]
     let unit: WeightUnit
 
+    var fileName: String {
+        let separators = CharacterSet(charactersIn: "/\\:").union(.controlCharacters)
+        let cleanName = displayName.components(separatedBy: separators).joined(separator: " ")
+            .split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+            .trimmingCharacters(in: CharacterSet(charactersIn: ". "))
+        var name = ""
+        for character in cleanName {
+            guard name.utf8.count + String(character).utf8.count <= 200 else { break }
+            name.append(character)
+        }
+        let date = Date.now.formatted(Date.ISO8601FormatStyle(timeZone: .current).year().month().day())
+        return [name.isEmpty ? "Avatar" : name, date, AppBrand.name].joined(separator: " - ") + ".pdf"
+    }
+
     static var transferRepresentation: some TransferRepresentation {
         DataRepresentation(exportedContentType: .pdf) { report in
             await report.pdfData()
         }
-        .suggestedFileName([AppBrand.name, "Avatar"].joined(separator: "-") + ".pdf")
+        .suggestedFileName { $0.fileName }
     }
 
     @MainActor
     func pdfData() -> Data {
         let scores = snapshots.filter { $0.userID == ownerID }.sorted { $0.date < $1.date }
         let exercises = StrengthProgress.exerciseHistory(ownerID: ownerID, sessions: sessions, logs: logs)
+        let families = StrengthProgress.rankedFamilies(exercises)
         let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 612, height: 792))
         return renderer.pdfData { context in
             let pages = Pages(context: context, report: self)
             pages.drawScores(scores)
-            pages.drawRankings(exercises)
-            pages.drawCharts(exercises.filter { !$0.points.isEmpty }.prefix(5))
+            pages.drawRankings(families)
+            pages.drawCharts(families.flatMap(\.variants).filter { !$0.points.isEmpty }.prefix(5))
         }
     }
 
@@ -103,9 +118,9 @@ struct AvatarReport: Transferable {
             }
         }
 
-        func drawRankings(_ rows: [StrengthProgress.ExerciseHistory]) {
+        func drawRankings(_ rows: [StrengthProgress.RankedFamily]) {
             func heading() {
-                begin("Most trained exercises", subtitle: language.text("Each completed workout counts once per exercise."))
+                begin("Most trained exercises", subtitle: language.text("Each completed workout counts once per exercise family."))
                 label(language.text("Exercise"), 76, y, 335, size: 11, weight: .bold, color: muted)
                 label(language.text("Sessions"), 422, y, 152, size: 11, weight: .bold, color: muted, alignment: .right)
                 y += 24
@@ -116,8 +131,13 @@ struct AvatarReport: Transferable {
                 y += 34
             }
             for (index, row) in rows.enumerated() {
-                let lines = wrapped(language.text(row.name), width: 390, size: 13)
-                let rowHeight = 12 + 17 * CGFloat(lines.count)
+                let title = language.text(row.name) + " · " + language.text(row.region.rawValue)
+                let lines = wrapped(title, width: 390, size: 13)
+                let detail = row.variants.map {
+                    language.text($0.name) + " (" + String($0.sessionCount) + ")"
+                }.joined(separator: " · ")
+                let detailLines = row.showsVariants ? wrapped(detail, width: 390, size: 10) : []
+                let rowHeight = 12 + 17 * CGFloat(lines.count) + 13 * CGFloat(detailLines.count)
                 if y + min(rowHeight, 730 - 194) > 730 { heading() }
                 line(38, y, 574, y, color: rule)
                 label(String(index + 1), 38, y + 6, 32, size: 12, weight: .bold, color: green)
@@ -127,12 +147,17 @@ struct AvatarReport: Transferable {
                     label(nameLine, 76, y + 6, 395, size: 13)
                     y += 17
                 }
+                for detailLine in detailLines {
+                    if y + 20 > 730 { heading() }
+                    label(detailLine, 76, y + 4, 395, size: 10, color: muted)
+                    y += 13
+                }
                 y += 12
             }
         }
 
         func drawCharts(_ rows: ArraySlice<StrengthProgress.ExerciseHistory>) {
-            let subtitle = language.text("Heaviest recorded set per session, in workout order")
+            let subtitle = language.text("Heaviest recorded working load in each completed session.")
             if rows.isEmpty {
                 if y + 100 > 730 { begin("Strength progress", subtitle: subtitle) }
                 else {
@@ -157,24 +182,29 @@ struct AvatarReport: Transferable {
                 }
                 y -= 24
                 if y + 260 > 730 { begin("Strength progress", subtitle: subtitle) }
-                let plot = CGRect(x: 105, y: y + 52, width: 456, height: 98)
+                guard let calendar = WorkoutChartCalendar(from: first.date, to: last.date) else { continue }
+                let field = CGRect(x: 38, y: y + 33, width: 536, height: 141)
+                UIColor(red: 0.96, green: 0.95, blue: 0.99, alpha: 1).setFill()
+                UIBezierPath(roundedRect: field, cornerRadius: 12).fill()
+                let plot = CGRect(x: 102, y: field.minY + 15, width: 436, height: 92)
                 for tick in 0...2 {
                     let fraction = CGFloat(tick) / 2
                     let tickY = plot.maxY - fraction * plot.height
-                    label(weight(highest * fraction), 38, tickY - 7, 58, size: 10, color: muted, alignment: .right)
+                    label(weight(highest * fraction), 40, tickY - 7, 56, size: 10, color: muted, alignment: .right)
                     line(plot.minX, tickY, plot.maxX, tickY, color: rule)
                 }
-                let coordinates = points.enumerated().map { offset, point in
-                    let x = points.count == 1 ? plot.midX : plot.minX + CGFloat(offset) * plot.width / CGFloat(points.count - 1)
-                    return CGPoint(x: x, y: plot.maxY - point.topWeight / highest * plot.height)
+                for tick in calendar.ticks {
+                    let x = plot.minX + calendar.position(tick) * plot.width
+                    line(x, plot.minY, x, plot.maxY, color: rule.withAlphaComponent(0.65))
+                    label(calendar.label(tick, locale: language.language.locale), x - 34,
+                          plot.maxY + 7, 68, size: 9, color: muted, alignment: .center)
                 }
-                trace(coordinates)
-                if points.count == 1 {
-                    label(first.date, plot.minX, plot.maxY + 8, plot.width, size: 10, color: muted, alignment: .center)
-                } else {
-                    label(first.date, plot.minX, plot.maxY + 8, 180, size: 10, color: muted)
-                    label(last.date, 374, plot.maxY + 8, 187, size: 10, color: muted, alignment: .right)
+                let coordinates = points.compactMap { point -> CGPoint? in
+                    guard let date = APEXDateMath.date(from: point.date) else { return nil }
+                    return CGPoint(x: plot.minX + calendar.position(date) * plot.width,
+                                   y: plot.maxY - point.topWeight / highest * plot.height)
                 }
+                drawLoadTrace(coordinates, baseline: plot.maxY)
                 func set(_ point: StrengthProgress.Point) -> String {
                     weight(point.topWeight) + (point.topReps.map { " × \($0) " + language.text("reps") } ?? "")
                 }
@@ -183,15 +213,57 @@ struct AvatarReport: Transferable {
                                (language.text("Change"), points.count == 1 ? "—" : (change > 0 ? "+" : "") + weight(change))]
                 for (metric, item) in summary.enumerated() {
                     let x = 38 + CGFloat(metric) * 182
-                    label(item.0, x, y + 187, 174, size: 11, color: muted)
-                    label(item.1, x, y + 205, 174, size: 15, weight: .semibold)
+                    let tint = metric == 2 ? UIColor(red: 0.97, green: 0.94, blue: 0.77, alpha: 1)
+                                           : UIColor(white: 0.965, alpha: 1)
+                    tint.setFill()
+                    UIBezierPath(roundedRect: CGRect(x: x, y: y + 183, width: 172, height: 47), cornerRadius: 9).fill()
+                    label(item.0, x + 10, y + 186, 153, size: 10, color: muted)
+                    label(item.1, x + 10, y + 200, 153, size: 15, weight: .bold)
                 }
                 if points.count == 1 {
                     label(language.text("One recorded session"), 38, y + 232, 536, size: 11, color: muted)
                 }
+                if points.count > 1, let peak = points.first(where: { $0.topWeight == highest }),
+                   let date = APEXDateMath.date(from: peak.date) {
+                    let record = [language.text("Best working load"), set(peak),
+                                  date.formatted(Date.FormatStyle(locale: language.language.locale, timeZone: .gmt).year().month(.abbreviated).day())].joined(separator: " · ")
+                    label(record, 38, y + 235, 536, size: 10, color: muted)
+                }
                 line(38, y + 260, 574, y + 260, color: rule)
                 y += 286
             }
+        }
+
+        private func drawLoadTrace(_ points: [CGPoint], baseline: CGFloat) {
+            guard let first = points.first, let last = points.last else { return }
+            let purple = UIColor(red: 0.38, green: 0.21, blue: 0.67, alpha: 1)
+            let path = UIBezierPath()
+            path.move(to: first)
+            for point in points.dropFirst() { path.addLine(to: point) }
+            if let area = path.copy() as? UIBezierPath {
+                area.addLine(to: CGPoint(x: last.x, y: baseline))
+                area.addLine(to: CGPoint(x: first.x, y: baseline))
+                area.close()
+                purple.withAlphaComponent(0.09).setFill()
+                area.fill()
+            }
+            path.lineWidth = 2.8
+            path.lineJoinStyle = .round
+            path.lineCapStyle = .round
+            purple.setStroke()
+            path.stroke()
+            for point in points {
+                let radius = points.count > 40 ? 1.4 : 2.8
+                purple.setFill()
+                UIBezierPath(ovalIn: CGRect(x: point.x - radius, y: point.y - radius,
+                                            width: radius * 2, height: radius * 2)).fill()
+            }
+            let end = UIBezierPath(ovalIn: CGRect(x: last.x - 4.3, y: last.y - 4.3, width: 8.6, height: 8.6))
+            UIColor.white.setFill()
+            end.fill()
+            purple.setStroke()
+            end.lineWidth = 2.7
+            end.stroke()
         }
 
         func wrapped(_ string: String, width: Double, size: CGFloat, weight: UIFont.Weight = .regular) -> [String] {

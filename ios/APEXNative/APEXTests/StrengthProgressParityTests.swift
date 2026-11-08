@@ -239,6 +239,49 @@ final class StrengthProgressParityTests: XCTestCase {
         XCTAssertEqual(curls.map { $0.points.map(\.topWeight) }, [[12, 15], [40]])
     }
 
+    func testFamilyFrequencyUnionsSessionsAndPreservesVariantLoads() throws {
+        let owner = UUID()
+        let sessions = (0..<5).map { hour in
+            WorkoutSession(id: UUID(), userID: owner, date: "2026-10-10", programDayID: UUID(),
+                           isLite: false, isDeload: false, isEventRecovery: false, completed: true,
+                           qualityScore: 1, startedAt: "2026-10-10T1\(hour):00:00Z", completedAt: nil, notes: "")
+        }
+        func row(_ index: Int, _ name: String, _ movement: String?, _ kg: Double? = nil) -> WorkoutLog {
+            WorkoutLog(id: UUID(), userID: owner, sessionID: sessions[index].id, exerciseID: nil,
+                       exerciseName: name, setNumber: 1, weightKG: kg, reps: 8, rir: nil,
+                       movementID: movement, skipped: false, overrideFlag: false, createdAt: "")
+        }
+        let logs = [
+            row(0, "Weighted Dumbbell Hip Thrust", nil, 20), row(0, "Weighted Dumbbell Hip Thrust", nil, 25),
+            row(0, "Machine Hip Thrust", "machine_hip_thrust", 70), row(1, "Machine Hip Thrust", "machine_hip_thrust", 75),
+            row(2, "B-Stance Hip Thrust", "b_stance_hip_thrust", 30),
+            row(3, "Weighted Dumbbell Hip Thrust", nil, 26),
+            row(0, "Leg Press", "leg_press", 100), row(1, "Leg Press", "leg_press", 110), row(2, "Leg Press", "leg_press", 120),
+            row(0, "Strict Push-Up", nil), row(0, "Diamond or Close-Grip Push-Up", nil),
+            row(1, "Strict Push-Up", nil), row(2, "Incline Push-Up", "incline_push_up"),
+            row(4, "Cable Curl + Rope Pressdown", "dumbbell_curl", 30),
+        ]
+        let variants = StrengthProgress.exerciseHistory(ownerID: owner, sessions: sessions, logs: logs)
+        let families = StrengthProgress.rankedFamilies(variants)
+        let hip = try XCTUnwrap(families.first)
+        XCTAssertEqual(hip.key, "family:hip_thrust")
+        XCTAssertEqual(hip.region, .lower)
+        XCTAssertEqual(hip.sessionCount, 4)
+        XCTAssertEqual(hip.variants.count, 3)
+        XCTAssertEqual(hip.variants.map(\.sessionCount).sorted(), [1, 2, 2])
+        XCTAssertEqual(hip.variants.first { $0.name == "Weighted Dumbbell Hip Thrust" }?.points.map(\.topWeight), [25, 26])
+        XCTAssertEqual(hip.variants.first { $0.name == "Machine Hip Thrust" }?.points.map(\.topWeight), [70, 75])
+        let pushUp = try XCTUnwrap(families.first { $0.key == "family:push_up" })
+        XCTAssertEqual(pushUp.region, .upper)
+        XCTAssertEqual(pushUp.sessionCount, 3)
+        XCTAssertTrue(pushUp.variants.allSatisfy { $0.points.isEmpty })
+        let combined = try XCTUnwrap(families.first { $0.name == "Cable Curl + Rope Pressdown" })
+        XCTAssertTrue(combined.key.hasPrefix("name:"))
+        XCTAssertEqual(combined.sessionCount, 1)
+        XCTAssertTrue(combined.variants.allSatisfy { $0.points.isEmpty })
+        XCTAssertEqual(families.count, 4)
+    }
+
     func testSessionInsightsMatchTheWeb() {
         for scenario in Self.fixture.insights {
             let rows = StrengthProgress.sessionInsights(

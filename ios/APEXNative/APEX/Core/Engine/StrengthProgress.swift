@@ -64,13 +64,85 @@ enum StrengthProgress {
         let key: String
         let name: String
         let region: BodyRegion
-        let sessionCount: Int
+        let sessionIDs: Set<UUID>
+        let familyKey: String
+        let familyName: String?
+        let familyRegion: BodyRegion
+        var sessionCount: Int { sessionIDs.count }
         let lastPerformed: String
         let points: [Point]
 
         var loadGain: Double? {
             guard points.count >= 2, let first = points.first, let last = points.last else { return nil }
             return round1(last.topWeight - first.topWeight)
+        }
+    }
+
+    struct RankedFamily {
+        let key: String
+        let name: String
+        let sessionCount: Int
+        let lastPerformed: String
+        let region: BodyRegion
+        let variants: [ExerciseHistory]
+
+        var showsVariants: Bool {
+            variants.count > 1 || variants.first?.name.caseInsensitiveCompare(name) != .orderedSame
+        }
+    }
+
+    private struct FamilyDefinition: Decodable {
+        let id: String
+        let name: String
+        let movementIDs: [String]
+        let aliases: [String]
+        let region: String
+
+        var bodyRegion: BodyRegion {
+            switch region {
+            case "lower": .lower
+            case "upper": .upper
+            case "core": .core
+            default: .other
+            }
+        }
+
+        static func normalized(_ text: String) -> String {
+            text.lowercased().filter { $0.isLetter || $0.isNumber }
+        }
+
+        static let index: (movement: [String: Self], alias: [String: Self]) = {
+            guard let url = Bundle.main.url(forResource: "exercise-frequency-families", withExtension: "json"),
+                  let data = try? Data(contentsOf: url),
+                  let families = try? JSONDecoder().decode([Self].self, from: data) else { return ([:], [:]) }
+            var movements: [String: Self] = [:], aliases: [String: Self] = [:]
+            for family in families {
+                for id in family.movementIDs { movements[id] = family }
+                for label in family.aliases { aliases[normalized(label)] = family }
+            }
+            return (movements, aliases)
+        }()
+
+        static func resolve(_ log: WorkoutLog, name: String, resolvedID: String?, isComposite: Bool) -> Self? {
+            if isComposite { return index.alias[normalized(name)] }
+            return log.movementID.flatMap { index.movement[$0] }
+                ?? index.alias[normalized(name)]
+                ?? resolvedID.flatMap { index.movement[$0] }
+        }
+    }
+
+    static func rankedFamilies(_ history: [ExerciseHistory]) -> [RankedFamily] {
+        Dictionary(grouping: history, by: \.familyKey).compactMap { key, variants -> RankedFamily? in
+            guard let first = variants.first else { return nil }
+            let sessionIDs = variants.reduce(into: Set<UUID>()) { $0.formUnion($1.sessionIDs) }
+            return RankedFamily(key: key, name: first.familyName ?? first.name,
+                                sessionCount: sessionIDs.count, lastPerformed: variants.map(\.lastPerformed).max() ?? "",
+                                region: first.familyRegion, variants: variants)
+        }.sorted {
+            if $0.sessionCount != $1.sessionCount { return $0.sessionCount > $1.sessionCount }
+            if $0.lastPerformed != $1.lastPerformed { return $0.lastPerformed > $1.lastPerformed }
+            if $0.name.lowercased() != $1.name.lowercased() { return $0.name.lowercased() < $1.name.lowercased() }
+            return $0.key < $1.key
         }
     }
 
@@ -231,6 +303,7 @@ enum StrengthProgress {
         struct Group {
             var name: String
             let region: BodyRegion
+            let family: FamilyDefinition?
             var sessionIDs: Set<UUID> = []
             var lastPerformed = ""
             var loads: [UUID: [WorkoutLog]] = [:]
@@ -245,9 +318,11 @@ enum StrengthProgress {
                 ?? ExerciseCatalog.movementID(matchingName: name).flatMap { MovementTiming.movement(named: name, movementID: $0) }
             let descriptor = ExerciseLogging.descriptor(for: movement)
             let normalized = name.lowercased().split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+            let isComposite = normalized.contains("+") || normalized.contains("/")
+                || normalized.split(whereSeparator: { !$0.isLetter }).contains("or")
             let loggedEquipment = equipment(in: name)
             let canonicalEquipment = movement.map { equipment(in: $0.name + " " + $0.id) } ?? []
-            let hasLoad = descriptor.kind == .strength && !loggedEquipment.contains("band")
+            let hasLoad = !isComposite && descriptor.kind == .strength && !loggedEquipment.contains("band")
                 && !canonicalEquipment.contains("band") && treadmill == nil
                 && log.weightKG?.isFinite == true && (log.weightKG ?? 0) > 0
             var facts = WorkoutReceipt.editInput(log)
@@ -257,10 +332,13 @@ enum StrengthProgress {
             }
             guard ExerciseLogging.isValid(facts, descriptor: descriptor) || (hasLoad && log.reps == nil) else { continue }
             // Historical aliases sometimes point different implements at the same movement ID.
-            let key = movement.flatMap { loggedEquipment.isSubset(of: canonicalEquipment) ? "movement:" + $0.id : nil }
+            let key = movement.flatMap { !isComposite && loggedEquipment.isSubset(of: canonicalEquipment) ? "movement:" + $0.id : nil }
                 ?? "name:" + normalized
             if groups[key] == nil {
-                groups[key] = Group(name: name, region: BodyRegion(primaryMuscle: movement?.primaryMuscles?.first))
+                let family = FamilyDefinition.resolve(log, name: name, resolvedID: movement?.id, isComposite: isComposite)
+                let region = BodyRegion(primaryMuscle: movement?.primaryMuscles?.first)
+                groups[key] = Group(name: name, region: region == .other ? family?.bodyRegion ?? region : region,
+                                    family: family)
             }
             groups[key]?.sessionIDs.insert(session.id)
             if let current = groups[key], session.date > current.lastPerformed
@@ -285,7 +363,9 @@ enum StrengthProgress {
                 return lhs.sessionID.uuidString < rhs.sessionID.uuidString
             }
             return ExerciseHistory(key: key, name: group.name, region: group.region,
-                                   sessionCount: group.sessionIDs.count, lastPerformed: group.lastPerformed, points: points)
+                                   sessionIDs: group.sessionIDs, familyKey: group.family.map { "family:" + $0.id } ?? key,
+                                   familyName: group.family?.name, familyRegion: group.family?.bodyRegion ?? group.region,
+                                   lastPerformed: group.lastPerformed, points: points)
         }.sorted {
             if $0.sessionCount != $1.sessionCount { return $0.sessionCount > $1.sessionCount }
             if $0.lastPerformed != $1.lastPerformed { return $0.lastPerformed > $1.lastPerformed }
@@ -370,5 +450,41 @@ enum StrengthProgress {
             }
             return JointCheckin(date: date, arms: score("arms"), core: score("core"), legs: score("legs"))
         }
+    }
+}
+
+// Session IDs preserve separate workouts; the performed date controls horizontal distance.
+struct WorkoutChartCalendar {
+    let first: Date
+    let last: Date
+    let ticks: [Date]
+
+    init?(from start: String, to end: String, intervals: Int = 4) {
+        guard let first = APEXDateMath.date(from: start), let last = APEXDateMath.date(from: end),
+              first <= last else { return nil }
+        self.first = first
+        self.last = last
+        let calendar = APEXDateMath.calendar
+        let days = calendar.dateComponents([.day], from: first, to: last).day ?? 0
+        let count = min(days, max(1, intervals))
+        if count == 0 { ticks = [first]; return }
+        ticks = (0...count).compactMap { i in
+            let offset = Int((Double(days * i) / Double(count)).rounded())
+            return calendar.date(byAdding: .day, value: offset, to: first)
+        }
+    }
+
+    func position(_ date: Date) -> Double {
+        let span = last.timeIntervalSince(first)
+        return span > 0 ? date.timeIntervalSince(first) / span : 0.5
+    }
+
+    func label(_ date: Date, locale: Locale) -> String {
+        var style = Date.FormatStyle(locale: locale, calendar: APEXDateMath.calendar, timeZone: .gmt)
+            .month(.abbreviated).day()
+        if APEXDateMath.calendar.component(.year, from: first) != APEXDateMath.calendar.component(.year, from: last) {
+            style = style.year(.twoDigits)
+        }
+        return date.formatted(style)
     }
 }

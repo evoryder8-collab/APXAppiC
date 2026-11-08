@@ -4,10 +4,11 @@ import { ACCENTS } from '../../lib/theme'
 import { GlassCard } from '../ui'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 import { useStore } from '../../store/AppStore'
+import { datedChartAxis } from '../../lib/datedChartAxis'
 import { todayIso } from '../../lib/plan'
 import {
   assessJointCheckin,
-  buildRankedExerciseHistory,
+  buildExerciseFamilies,
   checkinDue,
   type DeloadState,
   type JointRegion,
@@ -80,7 +81,7 @@ function filteredPoints(points: StrengthPoint[], days: number): StrengthPoint[] 
   return points.filter((point) => toTimestamp(point.date) >= threshold)
 }
 
-function curveGeometry(points: StrengthPoint[]) {
+function curveGeometry(points: StrengthPoint[], language: IntroLanguage) {
   const width = 640
   const height = 230
   const padX = 60
@@ -91,8 +92,11 @@ function curveGeometry(points: StrengthPoint[]) {
   const spread = Math.max(2.5, max - min)
   const low = Math.max(0, min - spread * 0.24)
   const high = max + spread * 0.24
+  const axis = datedChartAxis(points.map(p => p.date), language)
+  const x = (fraction: number) => padX + fraction * (width - 2 * padX)
+  const dates = axis.ticks.map(tick => ({ x: x(tick.fraction), label: tick.label }))
   const coords = points.map((point, index) => ({
-    x: points.length === 1 ? width / 2 : padX + (index / (points.length - 1)) * (width - padX * 2),
+    x: x(axis.positions[index]),
     y: height - padY - ((point.topWeight - low) / Math.max(1, high - low)) * (height - padY * 2),
     point,
     index,
@@ -100,20 +104,20 @@ function curveGeometry(points: StrengthPoint[]) {
   const ticks = [...new Set([min, max])].map((weight) => ({
     weight, y: height - padY - ((weight - low) / Math.max(1, high - low)) * (height - padY * 2),
   }))
-  if (coords.length === 0) return { width, height, coords, ticks, line: '', area: '' }
+  if (coords.length === 0) return { width, height, coords, ticks, dates, line: '', area: '' }
   if (coords.length === 1) {
     const line = `M ${coords[0].x} ${coords[0].y}`
-    return { width, height, coords, ticks, line, area: `${line} L ${coords[0].x} ${height - padY} Z` }
+    return { width, height, coords, ticks, dates, line, area: `${line} L ${coords[0].x} ${height - padY} Z` }
   }
   const line = coords.map(({ x, y }, index) => `${index === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ')
-  return { width, height, coords, ticks, line, area: `${line} L ${coords.at(-1)!.x} ${height - padY} L ${coords[0].x} ${height - padY} Z` }
+  return { width, height, coords, ticks, dates, line, area: `${line} L ${coords.at(-1)!.x} ${height - padY} L ${coords[0].x} ${height - padY} Z` }
 }
 
 function StrengthCurve({ points }: { points: StrengthPoint[] }) {
   const id = useId().replace(/:/g, '')
   const { language } = useLanguage()
   const axisLabel = translateInterfaceText('Working load (kg)', language)
-  const graph = curveGeometry(points)
+  const graph = curveGeometry(points, language)
   return (
     <svg viewBox={`0 0 ${graph.width} ${graph.height}`} className="h-auto w-full overflow-visible" role="img" aria-label={axisLabel}>
       <defs>
@@ -129,7 +133,7 @@ function StrengthCurve({ points }: { points: StrengthPoint[] }) {
       {graph.area && <motion.path initial={{ opacity: 0 }} animate={{ opacity: 1 }} d={graph.area} fill={`url(#strength-area-${id})`} />}
       {graph.line && <motion.path key={graph.line} initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }} d={graph.line} fill="none" stroke={`url(#strength-line-${id})`} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" filter={`url(#strength-glow-${id})`} />}
       {graph.coords.map(({ x, y, point, index }) => <g key={`${point.sessionId}:${index}`}><circle cx={x} cy={y} r="8" fill="rgba(255,255,255,.92)" stroke={index === graph.coords.length - 1 ? '#10b981' : '#8b5cf6'} strokeWidth="4"><title>{point.date}: {point.topWeight} kg</title></circle></g>)}
-      {graph.coords.length > 0 && <><text x="30" y={graph.height - 7} className="fill-ink-faint font-mono text-[16px]">{graph.coords[0].point.date}</text><text x={graph.width - 30} y={graph.height - 7} textAnchor="end" className="fill-ink-faint font-mono text-[16px]">{graph.coords.at(-1)!.point.date}</text></>}
+      {graph.dates.map(tick => <text key={tick.x} x={tick.x} y={graph.height - 6} textAnchor="middle" className="fill-ink-soft font-mono text-[16px]">{tick.label}</text>)}
     </svg>
   )
 }
@@ -144,8 +148,10 @@ export function StrengthProgressPanel() {
   const { language } = useLanguage()
   const copy = COPY[language]
   const t = (value: string): string => translateInterfaceText(value, language)
-  const history = useMemo(() => buildRankedExerciseHistory(data), [data])
-  const series = history.filter((item) => item.points.length > 0)
+  const history = useMemo(() => buildExerciseFamilies(data), [data])
+  const series = history.flatMap(family => family.variants.filter(variant => variant.points.length > 0))
+  const [regionFilter, setRegionFilter] = useState<'all' | 'lower' | 'upper'>('all')
+  const rankedFamilies = regionFilter === 'all' ? history : history.filter(family => family.region === regionFilter)
   const [showAll, setShowAll] = useState(false)
   const [selectedKey, setSelectedKey] = useState('')
   const [range, setRange] = useState<RangeChoice>('all')
@@ -218,17 +224,30 @@ export function StrengthProgressPanel() {
 
         <section className="mt-5 border-t border-white/85 pt-4">
           <h3 className="font-display text-base font-black text-ink">{t('Most performed exercises')}</h3>
-          <p className="mt-1 text-xs text-ink-soft">{t('Each completed workout counts once per exercise.')}</p>
-          {history.length > 0 ? <>
+          <p className="mt-1 text-xs text-ink-soft">{t('Each completed workout counts once per exercise family.')}</p>
+          {history.length > 0 && <div className="mt-3 flex flex-wrap gap-1">
+            {(['all', 'lower', 'upper'] as const).map(region => <button key={region} type="button"
+              aria-pressed={regionFilter === region} onClick={() => { setRegionFilter(region); setShowAll(false) }}
+              className={`rounded-full px-3 py-1.5 text-xs font-bold ${regionFilter === region ? 'bg-violet-600 text-white' : 'bg-white/75 text-ink-soft'}`}>
+              {region === 'all' ? t('All') : copy[region]}
+            </button>)}
+          </div>}
+          {rankedFamilies.length > 0 ? <>
             <table className="mt-3 w-full text-left text-xs">
               <thead className="text-ink-faint"><tr><th scope="col">{copy.exercise}</th><th scope="col" className="text-right">{copy.sessions}</th></tr></thead>
-              <tbody>{history.slice(0, showAll ? history.length : 5).map((item) => <tr key={item.key} className="border-b border-white/65">
-                <th scope="row" className="py-2 font-medium text-ink">{t(item.name)}</th>
+              <tbody>{rankedFamilies.slice(0, showAll ? rankedFamilies.length : 5).map((item) => <tr key={item.key} className="border-b border-white/65">
+                <th scope="row" className="py-2 font-medium text-ink">
+                  {item.variants.length > 1 || item.name !== item.variants[0].name
+                    ? <details><summary className="cursor-pointer">{t(item.name)}</summary>
+                      <ul className="mt-2 space-y-1 ps-4 text-ink-soft">{item.variants.map(variant =>
+                        <li key={variant.key}>{t(variant.name)} · {variant.sessionCount}</li>)}</ul>
+                    </details> : t(item.name)}
+                </th>
                 <td className="text-right font-mono font-bold">{item.sessionCount}</td>
               </tr>)}</tbody>
             </table>
-            {history.length > 5 && <button type="button" aria-expanded={showAll} onClick={() => setShowAll(!showAll)} className="mt-2 py-2 text-xs font-bold text-violet-700">{t(showAll ? 'Show fewer exercises' : 'Show all exercises')}</button>}
-          </> : <p className="mt-3 text-sm text-ink-soft">{t('No recorded exercises yet.')}</p>}
+            {rankedFamilies.length > 5 && <button type="button" aria-expanded={showAll} onClick={() => setShowAll(!showAll)} className="mt-2 py-2 text-xs font-bold text-violet-700">{t(showAll ? 'Show fewer exercises' : 'Show all exercises')}</button>}
+          </> : <p className="mt-3 text-sm text-ink-soft">{t(history.length ? 'No recorded exercises in this group.' : 'No recorded exercises yet.')}</p>}
         </section>
 
         <div className="mt-5 rounded-[1.75rem] border border-white/85 bg-[#08111d] p-4 text-white shadow-[0_24px_50px_-32px_rgba(76,29,149,.9)] sm:p-5">

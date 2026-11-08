@@ -122,6 +122,8 @@
 		5E7512E1A18FCE089E55BD03 /* FitnessBrainShadowValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C6A2BD467FFE3052437E461 /* FitnessBrainShadowValidationTests.swift */; };
 		5FE70D7E3BF921E84072006F /* bundle.js in Resources */ = {isa = PBXBuildFile; fileRef = A6F726BF795538B01541803E /* bundle.js */; };
 		6227F8BFC3310BF52BA17F2F /* DaylineSwipeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC1512A57154952F2B5701F /* DaylineSwipeTests.swift */; };
+		14406EBDAB20261108000002 /* GuidedArtwork in Resources */ = {isa = PBXBuildFile; fileRef = 14406EBDAB20261108000001 /* GuidedArtwork */; };
+		14406EBDAB20261108000005 /* exercise-frequency-families.json in Resources */ = {isa = PBXBuildFile; fileRef = 14406EBDAB20261108000006 /* exercise-frequency-families.json */; };
 		623DEDE52B70C8DFA651E1D4 /* APEXIcon.svg in Resources */ = {isa = PBXBuildFile; fileRef = 30B06C160134CB27687F7B35 /* APEXIcon.svg */; };
 		6250713D3E5FA542A5535F97 /* training-support-parity.json in Resources */ = {isa = PBXBuildFile; fileRef = 297741B62F81B0636B34F35C /* training-support-parity.json */; };
 		65016A753C50D66AE4789CC3 /* OrbitLocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8172120F69D75C87F5025756 /* OrbitLocationManager.swift */; };
@@ -289,6 +291,7 @@
 		F4FB65B7C724511A5AC2889E /* AddActivitySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DCBD44E63C4ADAA7603EFD2 /* AddActivitySheet.swift */; };
 		F51077D8FF8673F38D33FA65 /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546D39EB90030A612FF78CF7 /* ConsentView.swift */; };
 		F76CE2A4FF09A75EB68BD666 /* FitnessBrainModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7757182FAE315C42B5918CBC /* FitnessBrainModels.swift */; };
+		14406EBDAB20261108000003 /* GuidedArtworkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14406EBDAB20261108000004 /* GuidedArtworkView.swift */; };
 		F91D484EDC1DD48833DF5E9E /* TrainingProgramView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EFDFD9852F284C2D009DA48 /* TrainingProgramView.swift */; };
 		F93650FBDEF08078139961E5 /* ActivityGuideSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51A13108863A51E2AF4564DA /* ActivityGuideSheet.swift */; };
 		FA2954837522C8D06AF25758 /* OnboardingBaseline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9BA7945C98BF562580AC539E /* OnboardingBaseline.swift */; };
@@ -420,8 +423,11 @@
 		2D7AC07E80FBE3B8D77C3D44 /* head_bump.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = head_bump.jpg; sourceTree = "<group>"; };
 		2DCBD44E63C4ADAA7603EFD2 /* AddActivitySheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddActivitySheet.swift; sourceTree = "<group>"; };
 		2DCCC6DAAD90DC79C994C853 /* arms_bump.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = arms_bump.jpg; sourceTree = "<group>"; };
+		14406EBDAB20261108000004 /* GuidedArtworkView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GuidedArtworkView.swift; sourceTree = "<group>"; };
 		2EFDFD9852F284C2D009DA48 /* TrainingProgramView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingProgramView.swift; sourceTree = "<group>"; };
 		2FC9E251EB7BB3E5A44FAC00 /* CoachPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachPlanView.swift; sourceTree = "<group>"; };
+		14406EBDAB20261108000001 /* GuidedArtwork */ = {isa = PBXFileReference; lastKnownFileType = folder; path = GuidedArtwork; sourceTree = "<group>"; };
+		14406EBDAB20261108000006 /* exercise-frequency-families.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/exercise-frequency-families.json"; sourceTree = SOURCE_ROOT; };
 		30B06C160134CB27687F7B35 /* APEXIcon.svg */ = {isa = PBXFileReference; path = APEXIcon.svg; sourceTree = "<group>"; };
 		30E466A7F4101C8729453FCE /* ProfileAvatarPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileAvatarPicker.swift; sourceTree = "<group>"; };
 		3155391EAD03EBC5E9C93E63 /* AdaptiveMealPlanEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveMealPlanEngine.swift; sourceTree = "<group>"; };
@@ -730,6 +736,7 @@
 				7A2EBA8504BDA79522C3269E /* TrainingAdjustmentEngine.swift */,
 				E6EA5B3B7A38534303CC9A5B /* TrainingCalendarView.swift */,
 				AF4FB2647B0249740E926616 /* TrainingInductionPanel.swift */,
+				14406EBDAB20261108000004 /* GuidedArtworkView.swift */,
 				2EFDFD9852F284C2D009DA48 /* TrainingProgramView.swift */,
 				C291C5F233756DE156CFB464 /* WorkoutDaySheet.swift */,
 				B758DC8D82472A68E201ABF0 /* WorkoutInsightsCard.swift */,
@@ -985,6 +992,8 @@
 		8EC68038D7DF7D455A621F8F /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				14406EBDAB20261108000001 /* GuidedArtwork */,
+				14406EBDAB20261108000006 /* exercise-frequency-families.json */,
 				30B06C160134CB27687F7B35 /* APEXIcon.svg */,
 				FC1E568F9FFFF6AD4CC7A7DB /* Assets.xcassets */,
 				F78087ACF73AE7CD08DA1931 /* constantine-v85.json */,
@@ -1388,6 +1397,8 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				14406EBDAB20261108000002 /* GuidedArtwork in Resources */,
+				14406EBDAB20261108000005 /* exercise-frequency-families.json in Resources */,
 				623DEDE52B70C8DFA651E1D4 /* APEXIcon.svg in Resources */,
 				C30A5C4E317B88881A38DF5F /* Assets.xcassets in Resources */,
 				E4036F21EDE6CE6179EA150B /* InfoPlist.strings in Resources */,
@@ -1621,6 +1632,7 @@
 				019A4C7BDFBE9550A37412B7 /* TrainingInduction.swift in Sources */,
 				A2E16B3BF3E852F711857030 /* TrainingInductionPanel.swift in Sources */,
 				4154DA562D4F6D8CD716D414 /* TrainingPlanEngine.swift in Sources */,
+				14406EBDAB20261108000003 /* GuidedArtworkView.swift in Sources */,
 				F91D484EDC1DD48833DF5E9E /* TrainingProgramView.swift in Sources */,
 				500BA9E51D98FDF57E4B2DE8 /* VisualProgressView.swift in Sources */,
 				D39CFB0D2B422B8BB8CC6831 /* WatchHydrationAmountAdjustment.swift in Sources */,
@@ -1959,7 +1971,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 405;
+				CURRENT_PROJECT_VERSION = 406;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -2023,7 +2035,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 405;
+				CURRENT_PROJECT_VERSION = 406;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;

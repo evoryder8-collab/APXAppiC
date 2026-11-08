@@ -1815,7 +1815,7 @@ struct WorkoutPlayerView: View {
                 side: setExecution.side.flatMap { PlayerTimeline.Side(rawValue: $0.rawValue) },
                 resultKey: "\(currentIndex)-\(currentSet)",
                 targetReps: targetReps(current),
-                repDuration: repDuration(current),
+                repDuration: PlayerTimeline.repDuration(current),
                 timed: timedSeconds(current).map(Int.init)
             )
         case .sideSwitch:
@@ -1839,11 +1839,6 @@ struct WorkoutPlayerView: View {
         exercise.repUnit == "max"
             ? nil
             : Int((Double(exercise.repMin + exercise.repMax) / 2).rounded(.toNearestOrAwayFromZero))
-    }
-
-    /* Web parity: seconds per rep from prescribed tempo, floor 1.6 s */
-    private func repDuration(_ exercise: Exercise) -> Double {
-        max(1.6, exercise.tempoUp + exercise.tempoDown + exercise.tempoPause + 0.4)
     }
 
     /* Timed holds and video blocks: dead hangs, stretches, T25 */
@@ -2476,6 +2471,16 @@ struct WorkoutPlayerView: View {
                             .accessibilityIdentifier("workout-current-side")
                     }
 
+                    if let artwork = GuidedArtwork.movement(current) {
+                        GuidedArtworkView(
+                            artwork: artwork, exercise: current, elapsed: repElapsed,
+                            advancing: cadenceGate.allowsTick(paused: paused, foreground: scenePhase == .active),
+                            accent: accent
+                        )
+                        .id(current.id)
+                        .frame(height: 174)
+                    }
+
                     if let hold = timedSeconds(current) {
                         /* Timed hold: countdown ring, auto-completes */
                         ZStack {
@@ -2607,19 +2612,26 @@ struct WorkoutPlayerView: View {
                     .tracking(2)
                     .foregroundStyle(APEXColor.secondaryInk)
 
-                ZStack {
-                    Circle().stroke(APEXColor.ink.opacity(0.08), lineWidth: 12)
-                    Circle()
-                        .trim(from: 0, to: timerTotal == 0 ? 0 : CGFloat(timerRemaining) / CGFloat(timerTotal))
-                        .stroke(accent.gradient, style: StrokeStyle(lineWidth: 12, lineCap: .round))
-                        .rotationEffect(.degrees(-90))
-                    Text("\(timerRemaining)")
-                        .font(APEXFont.mono(48))
-                        .foregroundStyle(accent)
-                        .contentTransition(.numericText())
-                        .accessibilityIdentifier("workout-rest-countdown")
+                HStack(spacing: 16) {
+                    if let artwork = GuidedArtwork.waterBreak {
+                        GuidedArtworkView(artwork: artwork, accent: accent)
+                            .frame(maxWidth: 170)
+                            .frame(height: 124)
+                    }
+                    ZStack {
+                        Circle().stroke(APEXColor.ink.opacity(0.08), lineWidth: 12)
+                        Circle()
+                            .trim(from: 0, to: timerTotal == 0 ? 0 : CGFloat(timerRemaining) / CGFloat(timerTotal))
+                            .stroke(accent.gradient, style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                        Text("\(timerRemaining)")
+                            .font(APEXFont.mono(48))
+                            .foregroundStyle(accent)
+                            .contentTransition(.numericText())
+                            .accessibilityIdentifier("workout-rest-countdown")
+                    }
+                    .frame(width: 116, height: 116)
                 }
-                .frame(width: 180, height: 180)
 
                 if let next = nextWorkDescription {
                     Text(next)
@@ -3120,7 +3132,7 @@ struct WorkoutPlayerView: View {
 
         guard GuidedWorkout.usesAutomaticCadence(for: current) else { return }
 
-        let duration = repDuration(current)
+        let duration = PlayerTimeline.repDuration(current)
         let target = targetReps(current)
         let rep = Int(repElapsed / duration) + 1
         let capped = target.map { min($0, rep) } ?? rep
