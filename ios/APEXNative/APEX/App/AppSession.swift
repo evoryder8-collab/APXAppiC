@@ -792,9 +792,12 @@ final class AppSession {
             }
             if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-installed-plan"),
                var settings = data.settings {
+                // The installed-plan walkthrough checks the controls of a prescribed Monday.
+                let date = "2026-11-02"
+                browsingDate = APEXDateMath.date(from: date)!
                 let generated = TrainingInduction.generate(
                     userID: settings.userID,
-                    input: TrainingInduction.Input(startDate: Date().apexDateKey),
+                    input: TrainingInduction.Input(startDate: date),
                     existingPrograms: data.programs
                 )
                 settings.addons["training_induction"] = .object(generated.induction)
