@@ -24,7 +24,7 @@ export interface ParsedHealth {
   linesScanned: number
 }
 
-const ACTIVITY_KIND: Record<string, ImportedActivityKind> = {
+export const ACTIVITY_KIND: Record<string, ImportedActivityKind> = {
   TraditionalStrengthTraining: 'strength',
   FunctionalStrengthTraining: 'strength',
   CoreTraining: 'strength',

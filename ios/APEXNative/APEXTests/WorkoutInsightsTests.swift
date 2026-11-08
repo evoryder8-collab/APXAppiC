@@ -82,6 +82,73 @@ final class WorkoutInsightsTests: XCTestCase {
         )
     }
 
+    func testTrainingProfileMatchesWorkingLoadsAtTheSameRepsAndIgnoresForeignAndUnfinishedWork() {
+        var data = DashboardData.empty
+        let older = session(date: "2026-08-11"), recent = session(date: "2026-10-25")
+        let latest = session(date: "2026-11-08"), outside = session(date: "2026-08-10")
+        let future = session(date: "2026-11-09"), unfinished = session(completed: false)
+        data.workoutSessions = [older, recent, latest, outside, future, unfinished]
+        func squat(_ workout: WorkoutSession, _ kg: Double, _ reps: Int) -> WorkoutLog {
+            var row = log(sessionID: workout.id, weight: kg, reps: reps)
+            row.movementID = "barbell_back_squat"
+            row.exerciseName = "Barbell Back Squat"
+            return row
+        }
+        let current = squat(recent, 60, 8)
+        data.workoutLogs = [squat(older, 40, 8), squat(older, 100, 1), current, current,
+                            squat(latest, 70, 8), squat(latest, 55, 20), squat(unfinished, 99, 8),
+                            squat(outside, 150, 8), squat(future, 160, 8), log(sessionID: recent.id, ownerID: otherID)]
+        let profile = TrainingProfile90.summarize(ownerID: ownerID, data: data, through: "2026-11-08")
+        XCTAssertEqual(profile.from, "2026-08-11")
+        XCTAssertEqual(profile.category, "Resistance-focused")
+        XCTAssertEqual(profile.classifiedWorkouts, 3)
+        XCTAssertEqual(profile.counts[.resistance], 3)
+        XCTAssertEqual(profile.recentMedianReps, 18)
+        XCTAssertEqual(profile.matchedLoad?.reps, 8)
+        XCTAssertEqual(profile.matchedLoad?.earlierKG, 40)
+        XCTAssertEqual(profile.matchedLoad?.recentKG, 65)
+    }
+
+    func testTrainingProfileCountsLinkedAndDuplicateRunsOnceAndKeepsYogaInMixedSessions() {
+        var data = DashboardData.empty
+        let workout = session(date: "2026-11-08")
+        data.workoutSessions = [workout]
+        var yoga = log(sessionID: workout.id, weight: nil, reps: nil, duration: 60)
+        yoga.movementID = "pigeon_pose"
+        yoga.exerciseName = "Pigeon Pose"
+        data.workoutLogs = [yoga]
+        let healthID = UUID()
+        func running(_ linked: UUID?) -> ImportedActivity {
+            ImportedActivity(id: UUID(), userID: ownerID, date: workout.date, kind: "endurance",
+                             activity: "Laufen", durationMinutes: 35, source: "Apple Watch",
+                             healthKitWorkoutID: healthID, startedAt: "2026-11-08T09:00:00Z",
+                             workoutNameKey: "health.workout.outdoor_run", apexWorkoutSessionID: linked)
+        }
+        data.importedActivities = [running(nil), running(workout.id),
+                                   ImportedActivity(id: UUID(), userID: ownerID, date: workout.date, kind: "mobility",
+                                                    activity: "Other", durationMinutes: 60, source: "Apple Watch")]
+        func orbit(_ hour: String) -> OrbitRunRecord {
+            OrbitRunRecord(id: UUID(), userID: ownerID, clientIdempotencyKey: hour, localDate: workout.date,
+                           startedAt: "2026-11-08T" + hour + ":00:25Z", endedAt: "2026-11-08T" + hour + ":40:00Z",
+                           mission: "easy", routeID: nil, campaignSessionID: nil, shoeID: nil, samples: [], pauses: [],
+                           manualLapsM: [], metrics: ["distance_m": .number(5_000)], checkIn: [:],
+                           nutritionAdjustmentAppliedAt: nil, status: "completed", createdAt: "", updatedAt: "")
+        }
+        data.orbitRuns = [orbit("09"), orbit("14"), orbit("14")]
+        let limited = TrainingProfile90.summarize(ownerID: ownerID, data: data, through: workout.date)
+        XCTAssertEqual(limited.category, "Limited history")
+        XCTAssertEqual(limited.classifiedWorkouts, 2)
+        XCTAssertEqual(limited.runs, 2)
+        XCTAssertEqual(limited.counts[.mobility], 1)
+        XCTAssertNil(limited.recentMedianReps)
+        data.orbitRuns.append(orbit("18"))
+        let runningProfile = TrainingProfile90.summarize(ownerID: ownerID, data: data, through: workout.date)
+        XCTAssertEqual(runningProfile.category, "Running-focused")
+        XCTAssertEqual(runningProfile.classifiedWorkouts, 3)
+        XCTAssertEqual(runningProfile.counts[.cardio], 3)
+        XCTAssertEqual(runningProfile.note, "Mixed workouts can count in more than one category.")
+    }
+
     func testLinkedWearableEvidenceReplacesDurationWithoutBecomingASecondWorkout() {
         let sessionID = UUID()
         let summary = WorkoutInsights.summarize(

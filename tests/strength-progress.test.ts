@@ -162,7 +162,7 @@ test('rank all performed sessions, including reps-only sessions, independently o
     { ...set, exercise_name: 'Wrong owner', user_id: 'other' },
     { ...set, exercise_name: 'Wrong receipt owner', session_id: 'foreign' },
     { ...set, exercise_name: 'Invalid load', weight_kg: Infinity, reps: null },
-  ]
+  ].map((log, index) => ({ ...log, id: 'set-' + index }))
   const ranked = buildExerciseFamilies(data)
   assert.deepEqual(ranked.map((item) => [item.name, item.sessionCount]), [
     ['Leg Press', 3], ['Row', 2], ['Biceps Curl', 1],
@@ -183,7 +183,7 @@ test('legacy treadmill distances count as one movement and never produce a weigh
   data.workout_logs = [
     { ...set, session_id: 's1', exercise_name: 'Treadmill Run · 3 km · 2° · 20 min', weight_kg: null, reps: null },
     { ...set, session_id: 's2', exercise_name: 'Treadmill Run · 5 km · 1° · 30 min', weight_kg: null, reps: null },
-  ]
+  ].map((log, index) => ({ ...log, id: 'set-' + index }))
   const history = buildExerciseFamilies(data)
   assert.deepEqual(history.map((item) => [item.name, item.sessionCount, item.variants[0].points.length]), [['Treadmill Run', 2, 0]])
 })
@@ -196,7 +196,7 @@ test('substitute catalog IDs keep different equipment in distinct load curves', 
     { ...set, exercise_name: 'Barbell Curl', movement_id: 'dumbbell_curl', weight_kg: 35, session_id: 's2' },
     { ...set, exercise_name: 'Cable Hip Adduction', movement_id: 'hip_adduction', weight_kg: 10 },
     { ...set, exercise_name: 'Hip Adduction Machine', movement_id: 'hip_adduction', weight_kg: 50, session_id: 's2' },
-  ]
+  ].map((log, index) => ({ ...log, id: 'set-' + index }))
   assert.deepEqual(buildStrengthSeries(data).map(({ name, points }) => [name, points.map((point) => point.topWeight)]), [
     ['Barbell Curl', [35]], ['Dumbbell Curl', [12]], ['Hip Adduction Machine', [50]], ['Cable Hip Adduction', [10]],
   ])
@@ -225,7 +225,7 @@ test('June’s exercise families count distinct receipts across aliases and morn
     performed('Pike Push-Up','morning','pike_push_up',null),
     performed('Cable Curl + Rope Pressdown','morning','cable_curl',10),
     performed('Cable Curl','evening','cable_curl',12),
-  ]
+  ].map((log, index) => ({ ...log, id: 'set-' + index }))
   const families = buildExerciseFamilies(data)
   assert.deepEqual(families.slice(0,2).map(f => [f.key,f.region,f.sessionCount,f.variants.length]), [
     ['family:hip_thrust','lower',3,3], ['family:push_up','upper',2,3],
@@ -248,4 +248,95 @@ test('calendar ticks and chart points share the elapsed-day scale, with repeated
   assert.deepEqual(axis.positions,[0,0.1,0.1,1])
   assert.deepEqual(axis.ticks.map(t => t.fraction), [0,0.3,0.7,1])
   assert.equal(datedChartAxis(['2026-09-01','2026-09-01'], 'ro').ticks.length,1)
+})
+
+test('lifetime work sums actual external kg × measured reps from each eligible set once', () => {
+  const data = strengthData()
+  const set = data.workout_logs[0]
+  const lift = (name: string, movement_id: string | null, reps: number | null, weight_kg: number | null) =>
+    ({ ...set, exercise_name: name, movement_id, reps, weight_kg })
+  data.workout_logs = [
+    lift('Dumbbell Hip Thrust','hip_thrust_dumbbell',8,50),
+    { ...lift('Dumbbell Hip Thrust','hip_thrust_dumbbell',5,60), set_no: 2 },
+    lift('Weighted Dumbbell Hip Thrust',null,4,null),
+    lift('Weighted Dumbbell Hip Thrust',null,null,20),
+    lift('B-Stance or Single-Leg Hip Thrust','b_stance_hip_thrust',6,30),
+    { ...lift('Dumbbell Hip Thrust','hip_thrust_dumbbell',8,150), skipped:true },
+    { ...lift('Dumbbell Hip Thrust','hip_thrust_dumbbell',8,150), user_id:'foreign' },
+    lift('Push-Up','push_up',10,0),
+    lift('Weighted Push-Up','weighted_push_up',6,10),
+    lift('Weighted or Feet-Elevated Push-Up',null,8,20),
+    lift('Pull-Up','pull_up',8,-20),
+    lift('Band-Assisted Pull-Up','band_assisted_pull_up',6,30),
+    lift('Assisted Pull-Up Machine','assisted_pull_up_machine',10,40),
+    lift('Band Row','band_row',12,30),
+    { ...lift('Treadmill Run',null,180,80), duration_seconds:180, distance_meters:500 },
+    lift('Wrist Roller','wrist_roller',3,10),
+  ].map((log, index) => ({ ...log, id: 'set-' + index }))
+  data.workout_logs.push({ ...data.workout_logs[0] })
+  const families = buildExerciseFamilies(data)
+  const hip = families.find(f => f.name === 'Hip Thrust')!
+  assert.equal(hip.sessionCount,1)
+  assert.deepEqual(hip.work,{recordedReps:23, liftedKg:880, loadedReps:19, missingReps:true, missingVolume:true})
+  assert.deepEqual(hip.variants.find(v => v.name === 'Dumbbell Hip Thrust')?.work,
+    {recordedReps:13, liftedKg:700, loadedReps:13, missingReps:false, missingVolume:false})
+  const unilateral = hip.variants.find(v => v.name.startsWith('B-Stance'))!
+  assert.equal(unilateral.work.liftedKg,180)
+  assert.equal(unilateral.points.length,0)
+  assert.deepEqual(families.find(f => f.name === 'Push-Up')?.work,
+    {recordedReps:24, liftedKg:60, loadedReps:6, missingReps:false, missingVolume:false})
+  assert.deepEqual(families.find(f => f.name === 'Pull-Up')?.work,
+    {recordedReps:24, liftedKg:null, loadedReps:0, missingReps:false, missingVolume:false})
+  assert.equal(families.find(f => f.name === 'Row')?.work.recordedReps,12)
+  assert.equal(families.find(f => f.name === 'Row')?.work.liftedKg,null)
+  for (const name of ['Treadmill Run','Wrist Roller']) {
+    assert.equal(families.find(f => f.name === name)?.work.recordedReps,null)
+    assert.equal(families.find(f => f.name === name)?.work.liftedKg,null)
+  }
+})
+
+test('training profile compares equal-rep session peaks across inclusive halves and ignores skipped, future and timed reps', async () => {
+  const { trainingProfile,trainingProfileLines } = await import('../src/lib/trainingProfile.ts')
+  const data = strengthData()
+  data.workout_sessions = ['2026-08-11','2026-09-01','2026-10-01','2026-11-08','2026-08-10','2026-11-09'].map((date,i) =>
+    ({...data.workout_sessions[0], id: 's'+i, date}))
+  const set = data.workout_logs[0]
+  data.workout_logs = [[0,8,40],[0,8,50],[1,8,60],[2,8,60],[2,6,90],[3,8,70],[4,8,100],[5,8,100]].map(([i,reps,weight],idx)=>
+    ({...set,id:'w'+idx,exercise_name:'Dumbbell Hip Thrust',movement_id:'hip_thrust_dumbbell',session_id:'s'+i,reps,weight_kg:weight}))
+  data.workout_logs.push({...data.workout_logs[4]}, {...set,id:'x',session_id:'s2',movement_id:'wrist_roller',reps:400},
+    {...set,id:'y',session_id:'s1',skipped:true,weight_kg:1000})
+  const result = trainingProfile(data,[],'2026-11-08')
+  assert.equal(result.focus,'Resistance-focused')
+  assert.equal(result.workouts,4)
+  assert.equal(result.medianReps,11)
+  assert.deepEqual(result.comparison,{name:'Dumbbell Hip Thrust',reps:8,previous:55,recent:65})
+  assert.match(trainingProfileLines(result,'en',s=>s).join(' '),/Workouts per week 0.3/)
+})
+
+test('training profile deduplicates Health and Orbit, skips unknown and hidden copies, and counts mixed receipts once', async () => {
+  const { trainingProfile } = await import('../src/lib/trainingProfile.ts')
+  const data = strengthData()
+  data.workout_sessions = [{...data.workout_sessions[0],id:'s',date:'2026-11-06'}]
+  data.workout_logs = [{...data.workout_logs[0],session_id:'s',exercise_name:'Weighted Dumbbell Hip Thrust',weight_kg:null}]
+  const imported = { user_id:'u',source:'Watch',kind:'endurance' as const,activity:'Running',date:'2026-11-06',duration_min:20 }
+  data.imported_activities = [
+    {...imported,id:'1',healthkit_workout_id:'hk-1',apex_workout_session_id:'s',started_at:'2026-11-06T09:00:00Z'},
+    {...imported,id:'2',healthkit_workout_id:'hk-1'},
+    {...imported,id:'3',healthkit_workout_id:'hk-3',hidden_at:'2026-11-06'},
+    {...imported,id:'4',healthkit_workout_id:'hk-3'},
+    {...imported,id:'5',workout_name_key:'health.workout.unknown',activity:'Apple Health Workout',kind:'mobility'},
+    {...imported,id:'6',apex_workout_session_id:'missing'},
+    {...imported,id:'7',user_id:'someone-else'},
+    {...imported,id:'8',source_bundle_id:'ch.apexperformance.APEX'},
+  ]
+  const orbit = (id:string,date:string,time:string) => ({
+    id,user_id:'u',client_idempotency_key:id,local_date:date,started_at:date+'T'+time+':00Z',ended_at:date+'T12:00:00Z',
+    metrics:{distance_m:3300},status:'completed' as const,
+  })
+  const runs = [orbit('duplicate','2026-11-06','09:01'),orbit('second','2026-11-07','10:00'),orbit('third','2026-11-08','10:00')]
+  const result = trainingProfile(data,runs,'2026-11-08')
+  assert.deepEqual(result.counts,{Resistance:1,Cardio:3,Mobility:0})
+  assert.equal(result.workouts,3)
+  assert.equal(result.focus,'Running-focused')
+  assert.equal(trainingProfile(data,[],'2026-11-08').focus,'Limited history')
 })

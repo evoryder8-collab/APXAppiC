@@ -4,6 +4,8 @@ import { ACCENTS } from '../../lib/theme'
 import { GlassCard } from '../ui'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 import { useStore } from '../../store/AppStore'
+import { useOrbitStore } from '../../orbit/store/OrbitStore'
+import { trainingProfile, trainingProfileLines } from '../../lib/trainingProfile'
 import { datedChartAxis } from '../../lib/datedChartAxis'
 import { todayIso } from '../../lib/plan'
 import {
@@ -145,6 +147,9 @@ function regionLabel(region: JointRegion, language: IntroLanguage): string {
 
 export function StrengthProgressPanel() {
   const { data, setSettings } = useStore()
+  const { state: { runs } } = useOrbitStore()
+  const today = todayIso()
+  const profile = useMemo(() => trainingProfile(data, runs, today), [data, runs, today])
   const { language } = useLanguage()
   const copy = COPY[language]
   const t = (value: string): string => translateInterfaceText(value, language)
@@ -221,6 +226,13 @@ export function StrengthProgressPanel() {
             {range === 'months' && <label className="flex min-w-[180px] flex-1 items-center gap-3 sm:max-w-xs"><span className="whitespace-nowrap font-mono text-[9px] font-black text-ink-soft">{copy.window}</span><input type="range" min="3" max="12" step="1" value={months} onChange={(event) => setMonths(Number(event.target.value))} className="min-w-0 flex-1 accent-violet-600" /><span className="w-10 rounded-full bg-white/75 px-2 py-1 text-center font-mono text-[9px] font-black text-violet-700">{months}M</span></label>}
           </div>
         </> : <div className="mt-4 rounded-[1.75rem] border border-dashed border-violet-200 bg-white/55 px-5 py-9 text-center"><p className="text-sm font-bold text-ink">{t('Record a working load in a completed workout to see your progress.')}</p></div>}
+
+        <section className="mt-5 border-t border-white/85 pt-4">
+          <h3 className="font-display text-base font-black text-ink">{t('90-day training profile')}</h3>
+          <p className="mt-1 font-bold text-violet-800">{t(profile.focus)}</p>
+          {trainingProfileLines(profile, language, t).map(line =>
+            <p key={line} className="mt-1 text-xs leading-relaxed text-ink-soft">{line}</p>)}
+        </section>
 
         <section className="mt-5 border-t border-white/85 pt-4">
           <h3 className="font-display text-base font-black text-ink">{t('Most performed exercises')}</h3>

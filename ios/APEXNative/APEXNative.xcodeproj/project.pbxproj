@@ -177,6 +177,7 @@
 		8DBAE91679035DCA8933F468 /* HealthWaterAccessHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77FFE32936F43C1B57EBFBF5 /* HealthWaterAccessHelpView.swift */; };
 		8E2A71F45ACBC6FA812BA569 /* MealProtocolGuideTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1B8829B779CC0DD5CA6D4C /* MealProtocolGuideTests.swift */; };
 		8E65B12988DD76BCCDF06E51 /* APEXStableID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2402484CFB9ECDD04C1C9FF5 /* APEXStableID.swift */; };
+		14406EBDAB20261108000007 /* TrainingProfile90.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14406EBDAB20261108000008 /* TrainingProfile90.swift */; };
 		8F8F28A4C1D48840624E3517 /* StrengthProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5190A21466A8A95661FAA6BA /* StrengthProgress.swift */; };
 		8FEFDD624A830B3DFE90628D /* FoodLibraryHydrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 504380BCFB476ADFD93C2396 /* FoodLibraryHydrationTests.swift */; };
 		9057EF08489372E852896190 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F6BECBAB4CA6357DBA3B0593 /* Localizable.strings */; };
@@ -459,6 +460,7 @@
 		4F318D18BF638C81579A0B60 /* ProfileIntegrityPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileIntegrityPolicy.swift; sourceTree = "<group>"; };
 		4FDB18182DA0A32F7CCB39EC /* MealFinishedAtReplacement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealFinishedAtReplacement.swift; sourceTree = "<group>"; };
 		504380BCFB476ADFD93C2396 /* FoodLibraryHydrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLibraryHydrationTests.swift; sourceTree = "<group>"; };
+		14406EBDAB20261108000008 /* TrainingProfile90.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingProfile90.swift; sourceTree = "<group>"; };
 		5190A21466A8A95661FAA6BA /* StrengthProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrengthProgress.swift; sourceTree = "<group>"; };
 		51A13108863A51E2AF4564DA /* ActivityGuideSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityGuideSheet.swift; sourceTree = "<group>"; };
 		5223D35F36742B2C02829F7B /* macro-guidance-parity.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "macro-guidance-parity.json"; sourceTree = "<group>"; };
@@ -1172,6 +1174,7 @@
 				907EAF0468F87EDC2E82AE50 /* SeedVersion.swift */,
 				CC50357C443CEF634FC6E37B /* SessionBriefing.swift */,
 				1ED7DB9E8F45543BD013D100 /* SessionBriefingKnowledge.swift */,
+				14406EBDAB20261108000008 /* TrainingProfile90.swift */,
 				5190A21466A8A95661FAA6BA /* StrengthProgress.swift */,
 				5D60D6A952E3D2AEB29D6431 /* SupplementCatalogue.swift */,
 				CA3D7D71971D9F075B4CA57C /* SupplementMutationQueue.swift */,
@@ -1621,6 +1624,7 @@
 				FF6E7B8235214E585BC86A80 /* SessionBriefingSheet.swift in Sources */,
 				E56AE4DFDCB1970EE8214CFE /* SettingsView.swift in Sources */,
 				4E8109D8E62DD0784BBFDF3A /* SimpleHomeView.swift in Sources */,
+				14406EBDAB20261108000007 /* TrainingProfile90.swift in Sources */,
 				8F8F28A4C1D48840624E3517 /* StrengthProgress.swift in Sources */,
 				4C3430D0B040A751B27CA88D /* SupabaseService.swift in Sources */,
 				2C0C4EFB8089AF18E47CC813 /* SupplementCatalogue.swift in Sources */,

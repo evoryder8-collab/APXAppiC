@@ -50,10 +50,13 @@ struct AvatarView: View {
     private var weakest: AvatarStat? { bodySignals.min(by: { $0.value < $1.value }) }
 
     var body: some View {
+        let profile = session.accountOperationLease().map {
+            TrainingProfile90.summarize(ownerID: $0.ownerID, data: session.data, through: Date.now.formatted(Date.ISO8601FormatStyle(timeZone: .current).year().month().day()))
+        }
         ScrollView {
             LazyVStack(spacing: 20) {
                 APEXTopBar(profile: session.profile) { session.openPortalDestination(.settings) }
-                pageHeader
+                pageHeader(profile: profile)
                 /* Ordered by how often it is looked at, not by when it was
                    built. Who you are, then the index, then the shape of the
                    index, then the numbers behind it. The long prose blocks sit
@@ -73,9 +76,13 @@ struct AvatarView: View {
                 } else {
                     baselineProgressCard
                 }
+                if let profile {
+                    TrainingProfileCard(profile: profile, unit: .current(session.data.settings))
+                }
                 if let ownerID = session.accountOperationLease()?.ownerID {
                     StrengthHistoryCard(families: StrengthProgress.rankedFamilies(StrengthProgress.exerciseHistory(
-                        ownerID: ownerID, sessions: session.data.workoutSessions, logs: session.data.workoutLogs
+                        ownerID: ownerID, sessions: session.data.workoutSessions, logs: session.data.workoutLogs,
+                        exercises: session.data.exercises
                     )), unit: .current(session.data.settings))
                     .id(ownerID)
                 }
@@ -102,7 +109,7 @@ struct AvatarView: View {
         }
     }
 
-    private var pageHeader: some View {
+    private func pageHeader(profile: TrainingProfile90?) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
                 Text(language.text("Avatar")).font(APEXFont.display(38))
@@ -112,7 +119,7 @@ struct AvatarView: View {
                         ownerID: account.ownerID, displayName: session.profile?.displayName ?? "",
                         snapshots: session.data.snapshots, partialScores: session.avatarDomainScores,
                         sessions: session.data.workoutSessions, logs: session.data.workoutLogs,
-                        unit: .current(session.data.settings)
+                        unit: .current(session.data.settings), exercises: session.data.exercises, trainingProfile: profile
                     )
                     ShareLink(item: report, preview: SharePreview(report.fileName)) {
                         Label(language.text("Share Avatar report"), systemImage: "square.and.arrow.up")
@@ -958,6 +965,41 @@ private struct AvatarRadarChart: View {
         case "Lower Body Strength": "LOWER BODY"
         default: name.uppercased()
         }
+    }
+}
+
+private struct TrainingProfileCard: View {
+    let profile: TrainingProfile90
+    let unit: WeightUnit
+    @State private var language = LanguageState.shared
+
+    var body: some View {
+        GlassCard(radius: 32, padding: 20) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(language.text("90-day training profile")).font(APEXFont.body(14, weight: .bold))
+                Text(language.text(profile.category)).font(APEXFont.display(25))
+                Text(language.dateKey(profile.from) + " – " + language.dateKey(profile.to))
+                    .font(APEXFont.mono(11)).foregroundStyle(APEXColor.secondaryInk)
+                ForEach(profile.metrics(language: language), id: \.key) { metric in
+                    LabeledContent(language.text(metric.key), value: metric.value)
+                        .font(APEXFont.body(14, weight: .medium))
+                }
+                if let note = profile.note {
+                    Text(language.text(note)).font(APEXFont.body(12)).foregroundStyle(APEXColor.secondaryInk)
+                }
+                if let comparison = profile.matchedLoad {
+                    Divider()
+                    Text(language.text("Matched working load")).font(APEXFont.body(15, weight: .bold))
+                    Text(language.text(comparison.exercise) + " · " + language.format("%d reps", comparison.reps))
+                        .font(APEXFont.body(14, weight: .semibold))
+                    LabeledContent(language.text("Previous 45 days"), value: unit.format(kilograms: comparison.earlierKG))
+                    LabeledContent(language.text("Last 45 days"), value: unit.format(kilograms: comparison.recentKG))
+                    Text(language.text("Median session-best load at the same rep count."))
+                        .font(APEXFont.body(12)).foregroundStyle(APEXColor.secondaryInk)
+                }
+            }
+        }
+        .accessibilityIdentifier("avatar.training-profile")
     }
 }
 

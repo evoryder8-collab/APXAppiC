@@ -11,6 +11,8 @@ struct AvatarReport: Transferable {
     let sessions: [WorkoutSession]
     let logs: [WorkoutLog]
     let unit: WeightUnit
+    var exercises: [Exercise] = []
+    var trainingProfile: TrainingProfile90? = nil
 
     var fileName: String {
         let separators = CharacterSet(charactersIn: "/\\:").union(.controlCharacters)
@@ -36,14 +38,15 @@ struct AvatarReport: Transferable {
     @MainActor
     func pdfData() -> Data {
         let scores = snapshots.filter { $0.userID == ownerID }.sorted { $0.date < $1.date }
-        let exercises = StrengthProgress.exerciseHistory(ownerID: ownerID, sessions: sessions, logs: logs)
-        let families = StrengthProgress.rankedFamilies(exercises)
+        let history = StrengthProgress.exerciseHistory(ownerID: ownerID, sessions: sessions, logs: logs, exercises: exercises)
+        let families = StrengthProgress.rankedFamilies(history)
         let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 612, height: 792))
         return renderer.pdfData { context in
             let pages = Pages(context: context, report: self)
             pages.drawScores(scores)
             pages.drawRankings(families)
             pages.drawCharts(families.flatMap(\.variants).filter { !$0.points.isEmpty }.prefix(5))
+            if let trainingProfile { pages.drawTrainingProfile(trainingProfile) }
         }
     }
 
@@ -118,41 +121,116 @@ struct AvatarReport: Transferable {
             }
         }
 
+        func drawTrainingProfile(_ profile: TrainingProfile90) {
+            begin("90-day training profile", subtitle: language.dateKey(profile.from) + " – " + language.dateKey(profile.to))
+            label(language.text(profile.category), 38, y, 536, size: 23, weight: .bold, color: green)
+            y += 48
+            func metric(_ key: String, _ value: String) {
+                for part in wrapped(language.text(key), width: 375, size: 14) {
+                    label(part, 38, y, 375, size: 14)
+                    y += 19
+                }
+                label(value, 425, y - 19, 149, size: 14, weight: .bold, alignment: .right)
+                y += 12
+            }
+            for row in profile.metrics(language: language) { metric(row.key, row.value) }
+            if let note = profile.note {
+                for part in wrapped(language.text(note), width: 536, size: 12) {
+                    label(part, 38, y, 536, size: 12, color: muted)
+                    y += 17
+                }
+            }
+            if let match = profile.matchedLoad {
+                y += 25
+                label(language.text("Matched working load"), 38, y, 536, size: 18, weight: .bold)
+                y += 31
+                let title = language.text(match.exercise) + " · " + language.format("%d reps", match.reps)
+                for part in wrapped(title, width: 536, size: 14) {
+                    if y > 687 { begin("Matched working load", subtitle: language.text(profile.category)) }
+                    label(part, 38, y, 536, size: 14)
+                    y += 19
+                }
+                if y > 597 { begin("Matched working load", subtitle: language.text(profile.category)) }
+                y += 8
+                metric("Previous 45 days", weight(match.earlierKG))
+                metric("Last 45 days", weight(match.recentKG))
+                for part in wrapped(language.text("Median session-best load at the same rep count."), width: 536, size: 12) {
+                    label(part, 38, y, 536, size: 12, color: muted)
+                    y += 17
+                }
+            }
+        }
+
         func drawRankings(_ rows: [StrengthProgress.RankedFamily]) {
+            let columns: [(title: String, x: CGFloat, width: CGFloat)] = [
+                ("Exercise", 38, 201), ("Sessions", 242, 62), ("Recorded reps", 307, 74),
+                ("Load per rep", 384, 81), ("Lifted volume", 468, 106),
+            ]
             func heading() {
                 begin("Most trained exercises", subtitle: language.text("Each completed workout counts once per exercise family."))
-                label(language.text("Exercise"), 76, y, 335, size: 11, weight: .bold, color: muted)
-                label(language.text("Sessions"), 422, y, 152, size: 11, weight: .bold, color: muted, alignment: .right)
-                y += 24
+                y = 150
+                let explanation = language.text("Volume sums each recorded load × reps. An asterisk marks incomplete records.")
+                    + " " + language.text("Load per rep averages only reps with a measured load.")
+                for part in wrapped(explanation, width: 536, size: 10) {
+                    label(part, 38, y, 536, size: 10, color: muted)
+                    y += 14
+                }
+                y += 9
+                var height: CGFloat = 0
+                for (i, column) in columns.enumerated() {
+                    let lines = wrapped(language.text(column.title), width: column.width - 3, size: 10, weight: .bold)
+                    for (j, part) in lines.enumerated() {
+                        label(part, column.x, y + 13 * CGFloat(j), column.width, size: 10, weight: .bold,
+                              color: muted, alignment: i == 0 ? .left : .right)
+                    }
+                    height = max(height, CGFloat(lines.count) * 13)
+                }
+                y += height + 6
             }
+
+            func row(_ title: String, sessions: Int, totals: StrengthProgress.LifetimeTotals, variant: Bool) {
+                let size: CGFloat = variant ? 10 : 12
+                let indent: CGFloat = variant ? 12 : 0
+                let fontWeight: UIFont.Weight = variant ? .regular : .semibold
+                let lines = wrapped(title, width: columns[0].width - indent - 4, size: size, weight: fontWeight)
+                if y + min(500, CGFloat(lines.count) * (size + 3) + 8) > 730 { heading() }
+                if !variant { line(38, y, 574, y, color: rule) }
+                let reps = totals.recordedReps.map { String($0) + (totals.missingReps ? "*" : "") }
+                let mark = totals.missingVolume ? "*" : ""
+                let volume = totals.liftedVolumeKG.map { kg in
+                    if kg < 1_000 { return number(kg) + " kg" + mark }
+                    let tonnes = (kg / 1_000).formatted(.number.locale(language.language.locale).precision(.fractionLength(0...3)))
+                    return tonnes + " t" + mark
+                }
+                let average = totals.averageLoadKG.map { weight($0) + mark }
+                let values = [String(sessions), reps ?? "—", average ?? "—", volume ?? "—"]
+                for (index, value) in values.enumerated() {
+                    let column = columns[index + 1]
+                    label(value, column.x, y + 3, column.width, size: size, weight: fontWeight,
+                          color: variant ? muted : ink, alignment: .right)
+                }
+                for part in lines {
+                    if y + size + 6 > 730 { heading() }
+                    label(part, 38 + indent, y + 3, columns[0].width - indent, size: size,
+                          weight: fontWeight, color: variant ? muted : ink)
+                    y += size + 3
+                }
+                y += variant ? 3 : 6
+            }
+
             heading()
             if rows.isEmpty {
                 label(language.text("No exercises recorded yet."), 38, y + 8, 536)
                 y += 34
             }
-            for (index, row) in rows.enumerated() {
-                let title = language.text(row.name) + " · " + language.text(row.region.rawValue)
-                let lines = wrapped(title, width: 390, size: 13)
-                let detail = row.variants.map {
-                    language.text($0.name) + " (" + String($0.sessionCount) + ")"
-                }.joined(separator: " · ")
-                let detailLines = row.showsVariants ? wrapped(detail, width: 390, size: 10) : []
-                let rowHeight = 12 + 17 * CGFloat(lines.count) + 13 * CGFloat(detailLines.count)
-                if y + min(rowHeight, 730 - 194) > 730 { heading() }
-                line(38, y, 574, y, color: rule)
-                label(String(index + 1), 38, y + 6, 32, size: 12, weight: .bold, color: green)
-                label(String(row.sessionCount), 478, y + 6, 96, size: 13, weight: .semibold, alignment: .right)
-                for nameLine in lines {
-                    if y + 24 > 730 { heading() }
-                    label(nameLine, 76, y + 6, 395, size: 13)
-                    y += 17
+            for family in rows {
+                row(language.text(family.name) + " · " + language.text(family.region.rawValue),
+                    sessions: family.sessionCount, totals: family.totals, variant: false)
+                if family.showsVariants {
+                    for variant in family.variants {
+                        row(language.text(variant.name), sessions: variant.sessionCount, totals: variant.totals, variant: true)
+                    }
                 }
-                for detailLine in detailLines {
-                    if y + 20 > 730 { heading() }
-                    label(detailLine, 76, y + 4, 395, size: 10, color: muted)
-                    y += 13
-                }
-                y += 12
             }
         }
 

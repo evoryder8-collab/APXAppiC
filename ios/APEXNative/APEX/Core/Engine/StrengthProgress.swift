@@ -60,6 +60,43 @@ enum StrengthProgress {
         }
     }
 
+    struct LifetimeTotals: Sendable {
+        private(set) var reps = 0
+        private(set) var loadedReps = 0
+        private(set) var volumeKG = 0.0
+        private(set) var missingReps = false
+        private(set) var missingVolume = false
+
+        var recordedReps: Int? { reps > 0 ? reps : nil }
+        var liftedVolumeKG: Double? { loadedReps > 0 ? volumeKG : nil }
+        var averageLoadKG: Double? { liftedVolumeKG.map { $0 / Double(loadedReps) } }
+
+        mutating func record(_ log: WorkoutLog, measuresReps: Bool, measuresLoad: Bool) {
+            guard measuresReps else { return }
+            guard let count = log.reps, count > 0 else {
+                missingReps = true
+                if measuresLoad { missingVolume = true }
+                return
+            }
+            reps += count
+            guard measuresLoad else { return }
+            guard let load = log.weightKG, load.isFinite, load > 0 else {
+                missingVolume = true
+                return
+            }
+            loadedReps += count
+            volumeKG += load * Double(count)
+        }
+
+        mutating func add(_ other: Self) {
+            reps += other.reps
+            loadedReps += other.loadedReps
+            volumeKG += other.volumeKG
+            missingReps = missingReps || other.missingReps
+            missingVolume = missingVolume || other.missingVolume
+        }
+    }
+
     struct ExerciseHistory: Sendable {
         let key: String
         let name: String
@@ -68,6 +105,7 @@ enum StrengthProgress {
         let familyKey: String
         let familyName: String?
         let familyRegion: BodyRegion
+        let totals: LifetimeTotals
         var sessionCount: Int { sessionIDs.count }
         let lastPerformed: String
         let points: [Point]
@@ -84,6 +122,7 @@ enum StrengthProgress {
         let sessionCount: Int
         let lastPerformed: String
         let region: BodyRegion
+        let totals: LifetimeTotals
         let variants: [ExerciseHistory]
 
         var showsVariants: Bool {
@@ -123,12 +162,10 @@ enum StrengthProgress {
             return (movements, aliases)
         }()
 
-        static func resolve(_ log: WorkoutLog, name: String, resolvedID: String?, isComposite: Bool) -> Self? {
-            if isComposite { return index.alias[normalized(name)] }
-            return log.movementID.flatMap { index.movement[$0] }
-                ?? index.alias[normalized(name)]
-                ?? resolvedID.flatMap { index.movement[$0] }
-        }
+    }
+
+    static func isKnownFamilyAlias(_ name: String) -> Bool {
+        FamilyDefinition.index.alias[FamilyDefinition.normalized(name)] != nil
     }
 
     static func rankedFamilies(_ history: [ExerciseHistory]) -> [RankedFamily] {
@@ -137,7 +174,8 @@ enum StrengthProgress {
             let sessionIDs = variants.reduce(into: Set<UUID>()) { $0.formUnion($1.sessionIDs) }
             return RankedFamily(key: key, name: first.familyName ?? first.name,
                                 sessionCount: sessionIDs.count, lastPerformed: variants.map(\.lastPerformed).max() ?? "",
-                                region: first.familyRegion, variants: variants)
+                                region: first.familyRegion, totals: variants.reduce(into: LifetimeTotals()) { $0.add($1.totals) },
+                                variants: variants)
         }.sorted {
             if $0.sessionCount != $1.sessionCount { return $0.sessionCount > $1.sessionCount }
             if $0.lastPerformed != $1.lastPerformed { return $0.lastPerformed > $1.lastPerformed }
@@ -297,20 +335,31 @@ enum StrengthProgress {
         })
     }
 
-    static func exerciseHistory(ownerID: UUID, sessions: [WorkoutSession], logs: [WorkoutLog]) -> [ExerciseHistory] {
+    private static let catalogRepUnits = Dictionary(
+        ExerciseCatalog.all.map { ($0.movementID, $0.unit) }, uniquingKeysWith: { first, _ in first }
+    )
+
+    static func exerciseHistory(
+        ownerID: UUID, sessions: [WorkoutSession], logs: [WorkoutLog], exercises: [Exercise] = []
+    ) -> [ExerciseHistory] {
+        let units = Dictionary(exercises.filter { $0.userID == ownerID }.map { ($0.id, $0.repUnit) },
+                               uniquingKeysWith: { first, _ in first })
+
         let completed = sessions.filter { $0.completed && $0.userID == ownerID }
         let sessionByID = Dictionary(completed.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         struct Group {
             var name: String
             let region: BodyRegion
             let family: FamilyDefinition?
+            var totals = LifetimeTotals()
             var sessionIDs: Set<UUID> = []
             var lastPerformed = ""
             var loads: [UUID: [WorkoutLog]] = [:]
         }
         var groups: [String: Group] = [:]
+        var seen = Set<UUID>()
         for log in logs where log.userID == ownerID && !log.skipped {
-            guard let session = sessionByID[log.sessionID] else { continue }
+            guard let session = sessionByID[log.sessionID], seen.insert(log.id).inserted else { continue }
             let treadmill = log.exerciseName.contains(" · ") ? ManualWorkout.parseTreadmill(log.exerciseName) : nil
             let name = (treadmill?.name ?? log.exerciseName).trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty else { continue }
@@ -322,9 +371,24 @@ enum StrengthProgress {
                 || normalized.split(whereSeparator: { !$0.isLetter }).contains("or")
             let loggedEquipment = equipment(in: name)
             let canonicalEquipment = movement.map { equipment(in: $0.name + " " + $0.id) } ?? []
-            let hasLoad = !isComposite && descriptor.kind == .strength && !loggedEquipment.contains("band")
-                && !canonicalEquipment.contains("band") && treadmill == nil
-                && log.weightKG?.isFinite == true && (log.weightKG ?? 0) > 0
+            let aliasFamily = FamilyDefinition.index.alias[FamilyDefinition.normalized(name)]
+            let movementFamily = movement.flatMap { FamilyDefinition.index.movement[$0.id] }
+            let family = aliasFamily ?? (isComposite ? nil : movementFamily)
+            let substitute = aliasFamily != nil && movementFamily != nil && aliasFamily?.id != movementFamily?.id
+            let explicitLoad = log.weightKG?.isFinite == true && (log.weightKG ?? 0) > 0
+            let usesBodyweight = descriptor.kind == .bodyweight || (family?.id == "push_up" && movement == nil)
+            let storedUnit = log.exerciseID.flatMap { units[$0] }
+            let catalogUnit = movement.flatMap { catalogRepUnits[$0.id] }
+            let measuresReps = descriptor.fields.contains(.reps) && treadmill == nil
+                && [storedUnit, catalogUnit].compactMap { $0 }.allSatisfy { $0 == "reps" || $0 == "max" }
+            // A recorded mass still measures a same-implement set when the log leaves its stance unspecified.
+            let comparableMass = !isComposite || ["hip_thrust", "biceps_curl", "calf_raise"].contains(aliasFamily?.id ?? "")
+            let assisted = (normalized + " " + (movement?.id ?? "")).split(whereSeparator: { !$0.isLetter })
+                .contains { ["assisted", "counterweight", "counterweighted"].contains($0) }
+            let measuresExternalLoad = measuresReps && comparableMass && !substitute && !assisted
+                && !loggedEquipment.contains("band") && !canonicalEquipment.contains("band")
+                && (usesBodyweight ? explicitLoad : descriptor.kind == .strength && log.weightKG != 0 && (log.weightKG ?? 0) >= 0)
+            let hasLoad = measuresExternalLoad && !isComposite && !usesBodyweight && explicitLoad
             var facts = WorkoutReceipt.editInput(log)
             if let treadmill {
                 facts.distanceMeters = facts.distanceMeters ?? treadmill.metrics.distanceKM * 1_000
@@ -332,15 +396,15 @@ enum StrengthProgress {
             }
             guard ExerciseLogging.isValid(facts, descriptor: descriptor) || (hasLoad && log.reps == nil) else { continue }
             // Historical aliases sometimes point different implements at the same movement ID.
-            let key = movement.flatMap { !isComposite && loggedEquipment.isSubset(of: canonicalEquipment) ? "movement:" + $0.id : nil }
+            let key = movement.flatMap { !isComposite && !substitute && loggedEquipment.isSubset(of: canonicalEquipment) ? "movement:" + $0.id : nil }
                 ?? "name:" + normalized
             if groups[key] == nil {
-                let family = FamilyDefinition.resolve(log, name: name, resolvedID: movement?.id, isComposite: isComposite)
                 let region = BodyRegion(primaryMuscle: movement?.primaryMuscles?.first)
                 groups[key] = Group(name: name, region: region == .other ? family?.bodyRegion ?? region : region,
                                     family: family)
             }
             groups[key]?.sessionIDs.insert(session.id)
+            groups[key]?.totals.record(log, measuresReps: measuresReps, measuresLoad: measuresExternalLoad)
             if let current = groups[key], session.date > current.lastPerformed
                 || (session.date == current.lastPerformed && name < current.name) {
                 groups[key]?.lastPerformed = session.date
@@ -364,7 +428,7 @@ enum StrengthProgress {
             }
             return ExerciseHistory(key: key, name: group.name, region: group.region,
                                    sessionIDs: group.sessionIDs, familyKey: group.family.map { "family:" + $0.id } ?? key,
-                                   familyName: group.family?.name, familyRegion: group.family?.bodyRegion ?? group.region,
+                                   familyName: group.family?.name, familyRegion: group.family?.bodyRegion ?? group.region, totals: group.totals,
                                    lastPerformed: group.lastPerformed, points: points)
         }.sorted {
             if $0.sessionCount != $1.sessionCount { return $0.sessionCount > $1.sessionCount }

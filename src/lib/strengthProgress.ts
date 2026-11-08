@@ -27,8 +27,29 @@ export interface ExerciseStrengthSeries {
 
 export type StrengthRegion = 'lower' | 'upper' | 'core' | 'other'
 
+export interface RecordedWork {
+  recordedReps: number | null
+  liftedKg: number | null
+  loadedReps: number
+  missingReps: boolean
+  missingVolume: boolean
+}
+
+function emptyWork(): RecordedWork {
+  return { recordedReps: null, liftedKg: null, loadedReps: 0, missingReps: false, missingVolume: false }
+}
+
+function accumulateWork(total: RecordedWork, work: RecordedWork) {
+  if (work.recordedReps != null) total.recordedReps = (total.recordedReps ?? 0) + work.recordedReps
+  if (work.liftedKg != null) total.liftedKg = (total.liftedKg ?? 0) + work.liftedKg
+  total.loadedReps += work.loadedReps
+  total.missingReps ||= work.missingReps
+  total.missingVolume ||= work.missingVolume
+}
+
 export interface RankedExerciseHistory extends ExerciseStrengthSeries {
   region: StrengthRegion
+  work: RecordedWork
   sessionCount: number
   lastPerformedDate: string
 }
@@ -37,6 +58,7 @@ export interface ExerciseFrequencyFamily {
   key: string
   name: string
   region: StrengthRegion
+  work: RecordedWork
   sessionCount: number
   lastPerformedDate: string
   variants: RankedExerciseHistory[]
@@ -107,8 +129,12 @@ function historyMovement(name: string, movementId: string | null) {
   // Composite programme slots can refer to just their first movement in the catalogue.
   const family = explicitFamily ?? (composite ? undefined : movementFamily)
   const region = family?.region
+  const hasRepField = descriptor.fields.includes('reps') && (!movement || movement.repUnit === 'reps')
+  const sameExternalLoad = !composite || ['hip_thrust', 'biceps_curl', 'calf_raise'].includes(explicitFamily?.id ?? '')
+  const assisted = /\b(?:assisted|counterweight(?:ed)?)\b/i.test(`${name} ${movement?.id.replaceAll('_', ' ') ?? ''}`)
   return {
-    descriptor, key, family,
+    descriptor, key, family, hasRepField, entityType: movement?.entityType,
+    measuresExternalWeight: sameExternalLoad && !assisted && !bandLabel && !bandEquipment,
     region: region === 'lower' || region === 'upper' || region === 'core' || region === 'other'
       ? region : strengthRegion(movement?.primaryMuscles[0]),
     comparableLoad: descriptor.kind === 'strength' && !composite && !bandEquipment && !bandLabel
@@ -134,23 +160,21 @@ export function estimatedOneRepMax(weight: number, reps: number | null): number 
   return Math.round(weight * (1 + boundedReps / 30) * 10) / 10
 }
 
-export function buildExerciseFamilies(data: AppData): ExerciseFrequencyFamily[] {
+export function* performedWorkoutObservations(data: AppData, range?: { from: string; to: string }) {
   const owner = data.profile?.user_id ?? data.settings?.user_id
-  if (!owner) return []
+  if (!owner) return
   const sessions = new Map(data.workout_sessions
-    .filter((session) => session.user_id === owner && session.completed)
+    .filter((session) => session.user_id === owner && session.completed
+      && (!range || (session.date >= range.from && session.date <= range.to)))
     .map((session) => [session.id, session]))
+  const prescribedUnits = new Map(data.exercises.filter(exercise => exercise.user_id === owner)
+    .map(exercise => [exercise.id, exercise.rep_unit]))
   const movements = new Map<string, ReturnType<typeof historyMovement>>()
-  const groups = new Map<string, {
-    family: (typeof frequencyFamilies)[number] | undefined
-    history: Omit<RankedExerciseHistory, 'sessionCount' | 'points'>
-    performed: Set<string>
-    points: Map<string, StrengthPoint>
-  }>()
-
+  const seen = new Set<string>()
   for (const log of data.workout_logs) {
     const session = sessions.get(log.session_id)
-    if (!session || log.user_id !== owner || log.skipped) continue
+    if (!session || log.user_id !== owner || log.skipped || seen.has(log.id)) continue
+    seen.add(log.id)
     const treadmill = parseTreadmillLog(log.exercise_name)
     const name = (treadmill?.name ?? log.exercise_name).trim()
     if (!name) continue
@@ -169,11 +193,27 @@ export function buildExerciseFamilies(data: AppData): ExerciseFrequencyFamily[] 
     // Old strength receipts sometimes recorded a working load without reps.
     if (!performed && !(loaded && log.reps == null)) continue
 
+    const unit = log.exercise_id ? prescribedUnits.get(log.exercise_id) : undefined
+    const repBased = !treadmill && movement.hasRepField && (!unit || unit === 'reps' || unit === 'max')
+    yield { session, log, movement, name, loadedWeight: loaded ? weight : null, reps, repBased }
+  }
+}
+
+export function buildExerciseFamilies(data: AppData): ExerciseFrequencyFamily[] {
+  const sessionTimes = new Map<string, string>()
+  const groups = new Map<string, {
+    family: (typeof frequencyFamilies)[number] | undefined
+    history: Omit<RankedExerciseHistory, 'sessionCount' | 'points'>
+    performed: Set<string>
+    points: Map<string, StrengthPoint>
+  }>()
+
+  for (const { session, log, movement, name, loadedWeight, reps, repBased } of performedWorkoutObservations(data)) {
     const group = groups.get(movement.key) ?? {
       family: movement.family,
       history: {
         key: movement.key, exerciseId: log.exercise_id, name, region: movement.region,
-        lastPerformedDate: session.date,
+        lastPerformedDate: session.date, work: emptyWork(),
       },
       performed: new Set<string>(), points: new Map<string, StrengthPoint>(),
     }
@@ -186,7 +226,19 @@ export function buildExerciseFamilies(data: AppData): ExerciseFrequencyFamily[] 
       group.history.exerciseId = log.exercise_id
     }
 
-    if (!loaded) continue
+    if (repBased) {
+      const weight = log.weight_kg
+      const measured = movement.measuresExternalWeight && weight != null && Number.isFinite(weight) && weight > 0
+      const missingWeight = (weight == null || !Number.isFinite(weight)) && movement.descriptor.kind !== 'bodyweight'
+      accumulateWork(group.history.work, {
+        recordedReps: reps, liftedKg: measured && reps != null ? weight * reps : null,
+        loadedReps: measured ? reps ?? 0 : 0, missingReps: reps == null,
+        missingVolume: movement.measuresExternalWeight && (missingWeight || (measured && reps == null)),
+      })
+    }
+    if (loadedWeight == null) continue
+    sessionTimes.set(session.id, session.started_at ?? session.completed_at ?? '')
+    const weight = loadedWeight
     const point = group.points.get(session.id) ?? {
       sessionId: session.id, date: session.date, topWeight: 0, topReps: null,
       estimated1rm: 0, volume: 0, setWeights: {},
@@ -201,26 +253,23 @@ export function buildExerciseFamilies(data: AppData): ExerciseFrequencyFamily[] 
     group.points.set(session.id, point)
   }
 
-  const sessionTime = (id: string) => {
-    const session = sessions.get(id)
-    return session?.started_at ?? session?.completed_at ?? ''
-  }
   const families = new Map<string, { row: ExerciseFrequencyFamily; sessions: Set<string> }>()
   for (const { history, performed, points, family } of groups.values()) {
     const variant = {
       ...history, sessionCount: performed.size,
       points: [...points.values()].sort((a, b) => a.date.localeCompare(b.date)
-        || sessionTime(a.sessionId).localeCompare(sessionTime(b.sessionId))
+        || (sessionTimes.get(a.sessionId) ?? '').localeCompare(sessionTimes.get(b.sessionId) ?? '')
         || a.sessionId.localeCompare(b.sessionId)),
     }
     const key = family ? `family:${family.id}` : variant.key
     const entry = families.get(key) ?? {
       row: { key, name: family?.name ?? variant.name, region: variant.region,
-        lastPerformedDate: variant.lastPerformedDate, sessionCount: 0, variants: [] },
+        lastPerformedDate: variant.lastPerformedDate, sessionCount: 0, work: emptyWork(), variants: [] },
       sessions: new Set<string>(),
     }
     for (const id of performed) entry.sessions.add(id)
     entry.row.sessionCount = entry.sessions.size
+    accumulateWork(entry.row.work, variant.work)
     entry.row.variants.push(variant)
     if (variant.lastPerformedDate > entry.row.lastPerformedDate) entry.row.lastPerformedDate = variant.lastPerformedDate
     families.set(key, entry)

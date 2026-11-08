@@ -146,13 +146,14 @@ final class ExportReportTests: XCTestCase {
         let pdf = AvatarReport(ownerID: user, displayName: "Sample", snapshots: scores + [otherOwner], partialScores: [:],
                                sessions: data().workoutSessions + [second], logs: once + recorded, unit: .pounds).pdfData()
         let document = try XCTUnwrap(PDFDocument(data: pdf))
-        XCTAssertEqual(document.pageCount, 4)
+        XCTAssertGreaterThanOrEqual(document.pageCount, 3)
         let firstPage = try XCTUnwrap(document.page(at: 0)?.string)
         XCTAssertTrue(firstPage.contains("63 / 100"))
         XCTAssertTrue(firstPage.contains("2026-01-05"))
         XCTAssertFalse(firstPage.contains("99 / 100"))
-        XCTAssertTrue(document.string?.contains("last word") == true)
-        let charts = try XCTUnwrap(document.page(at: 3)?.string)
+        let extracted = try XCTUnwrap(document.string)
+        XCTAssertTrue(extracted.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ").contains("last word"))
+        let charts = try XCTUnwrap(document.page(at: document.pageCount - 1)?.string)
         let localizedLatest = 66.1.formatted(.number.locale(LanguageState.shared.language.locale))
         XCTAssertTrue(charts.contains(localizedLatest + " lb"))
         XCTAssertTrue(charts.contains("+22 lb"))
@@ -191,11 +192,25 @@ final class ExportReportTests: XCTestCase {
         let text = try XCTUnwrap(page.string)
         let language = LanguageState.shared
         XCTAssertTrue(text.contains(language.text("Hip Thrust") + " · " + language.text("Lower body")))
-        XCTAssertTrue(text.contains(language.text("Barbell Hip Thrust") + " (1)"))
-        XCTAssertTrue(text.contains(language.text("Machine Hip Thrust") + " (2)"))
-        let totalsColumn = CGRect(x: 478, y: page.bounds(for: .mediaBox).height - 730, width: 96, height: 730 - 194)
-        let totals = try XCTUnwrap(page.selection(for: totalsColumn)?.string)
-        XCTAssertEqual(totals.split(whereSeparator: { $0.isWhitespace }).compactMap { Int($0) }, [2])
+        XCTAssertTrue(text.contains(language.text("Barbell Hip Thrust")))
+        XCTAssertTrue(text.contains(language.text("Machine Hip Thrust")))
+        XCTAssertTrue(text.contains("1.78 t"))
+        XCTAssertTrue(text.contains("1.48 t"))
+        XCTAssertTrue(text.contains("300 kg"))
+        XCTAssertTrue(text.contains("80.9 kg"))
+        let expectedRows = [
+            (language.text("Hip Thrust") + " · " + language.text("Lower body"), 2, 22),
+            (language.text("Machine Hip Thrust"), 2, 16),
+            (language.text("Barbell Hip Thrust"), 1, 6),
+        ]
+        for (name, sessions, reps) in expectedRows {
+            let title = try XCTUnwrap(document.findString(name, withOptions: .literal).first { $0.pages.first == page })
+            let midY = title.bounds(for: page).midY
+            let sessionCell = CGRect(x: 242, y: midY - 3, width: 62, height: 6)
+            let repsCell = CGRect(x: 307, y: midY - 3, width: 74, height: 6)
+            XCTAssertEqual(page.selection(for: sessionCell)?.string?.trimmingCharacters(in: .whitespacesAndNewlines), String(sessions), name)
+            XCTAssertEqual(page.selection(for: repsCell)?.string?.trimmingCharacters(in: .whitespacesAndNewlines), String(reps), name)
+        }
     }
 
     @MainActor

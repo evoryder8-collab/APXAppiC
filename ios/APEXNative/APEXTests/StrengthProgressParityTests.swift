@@ -220,8 +220,19 @@ final class StrengthProgressParityTests: XCTestCase {
         XCTAssertEqual(leg.points.map(\.topWeight), [80, 70])
         XCTAssertEqual(leg.points.map(\.topReps), [7, 8])
         XCTAssertEqual(leg.loadGain, -10)
+        XCTAssertEqual(leg.totals.recordedReps, 41)
+        XCTAssertEqual(leg.totals.liftedVolumeKG, 2_320)
+        XCTAssertEqual(leg.totals.loadedReps, 33)
+        XCTAssertEqual(leg.totals.averageLoadKG ?? 0, 2_320.0 / 33, accuracy: 0.001)
+        XCTAssertTrue(leg.totals.missingVolume)
         let bench = try XCTUnwrap(history.first { $0.name == "Bench press" })
         XCTAssertEqual(bench.region, .upper)
+        XCTAssertEqual(bench.totals.recordedReps, 8)
+        XCTAssertEqual(bench.totals.liftedVolumeKG, 400)
+        XCTAssertTrue(bench.totals.missingReps)
+        XCTAssertTrue(bench.totals.missingVolume)
+        XCTAssertNil(history.first { $0.name == "Dead hang" }?.totals.recordedReps)
+        XCTAssertNil(history.first { $0.name == "Band Abduction" }?.totals.liftedVolumeKG)
         XCTAssertEqual(bench.loadGain, 10)
         XCTAssertNil(bench.points.first?.topReps)
         let crunch = try XCTUnwrap(history.first { $0.name == "Cable Crunch" })
@@ -260,6 +271,8 @@ final class StrengthProgressParityTests: XCTestCase {
             row(0, "Strict Push-Up", nil), row(0, "Diamond or Close-Grip Push-Up", nil),
             row(1, "Strict Push-Up", nil), row(2, "Incline Push-Up", "incline_push_up"),
             row(4, "Cable Curl + Rope Pressdown", "dumbbell_curl", 30),
+            row(3, "Weighted Push-Up", "weighted_push_up", 10),
+            row(4, "Heel Walk", "heel_walk", 10),
         ]
         let variants = StrengthProgress.exerciseHistory(ownerID: owner, sessions: sessions, logs: logs)
         let families = StrengthProgress.rankedFamilies(variants)
@@ -273,13 +286,18 @@ final class StrengthProgressParityTests: XCTestCase {
         XCTAssertEqual(hip.variants.first { $0.name == "Machine Hip Thrust" }?.points.map(\.topWeight), [70, 75])
         let pushUp = try XCTUnwrap(families.first { $0.key == "family:push_up" })
         XCTAssertEqual(pushUp.region, .upper)
-        XCTAssertEqual(pushUp.sessionCount, 3)
+        XCTAssertEqual(pushUp.sessionCount, 4)
+        XCTAssertEqual(pushUp.totals.recordedReps, 40)
+        XCTAssertEqual(pushUp.totals.liftedVolumeKG, 80)
+        XCTAssertEqual(pushUp.totals.averageLoadKG, 10)
+        XCTAssertEqual(hip.totals.liftedVolumeKG, (20 + 25 + 70 + 75 + 30 + 26) * 8 as Double)
+        XCTAssertNil(families.first { $0.name == "Heel Walk" }?.totals.recordedReps)
         XCTAssertTrue(pushUp.variants.allSatisfy { $0.points.isEmpty })
         let combined = try XCTUnwrap(families.first { $0.name == "Cable Curl + Rope Pressdown" })
         XCTAssertTrue(combined.key.hasPrefix("name:"))
         XCTAssertEqual(combined.sessionCount, 1)
         XCTAssertTrue(combined.variants.allSatisfy { $0.points.isEmpty })
-        XCTAssertEqual(families.count, 4)
+        XCTAssertEqual(families.count, 5)
     }
 
     func testSessionInsightsMatchTheWeb() {
