@@ -38,6 +38,17 @@ test('authentication resolves account persona without exposing a profile mismatc
   }
 })
 
+test('native sign-out is device scoped except after a completed password reset', () => {
+  const appSession = readFileSync(new URL('../ios/APEXNative/APEX/App/AppSession.swift', import.meta.url), 'utf8')
+  const service = readFileSync(new URL('../ios/APEXNative/APEX/Core/Networking/SupabaseService.swift', import.meta.url), 'utf8')
+  for (const layer of [appSession, service]) assert.match(layer, /func signOut\(scope: SignOutScope = \.local\)/)
+  assert.match(service, /client\.auth\.signOut\(scope: scope\)/)
+  assert.match(appSession, /service\.signOut\(scope: scope\)/)
+  const recovery = appSession.slice(appSession.indexOf('func finishPasswordReset('), appSession.indexOf('func deleteMyAccount('))
+  assert.match(recovery, /updateRecoveredPassword[\s\S]+?signOut\(scope: \.global\)/)
+  assert.doesNotMatch(appSession.replace(recovery, ''), /signOut\(scope: \.global\)/)
+})
+
 test('neutral entry and reveal copy is complete in every intro language', () => {
   for (const language of ['en', 'ro', 'th'] as const) {
     assert.ok(INTRO_COPY[language].neutralTitle)

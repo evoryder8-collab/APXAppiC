@@ -426,7 +426,7 @@ final class EntitlementTests: XCTestCase {
             return String(source[lower.lowerBound..<upper.lowerBound])
         }
 
-        for boundary in ["func signIn(email:", "func signUp(email:", "func signInWithApple(", "func signOut()", "func handleAuthCallback("] {
+        for boundary in ["func signIn(email:", "func signUp(email:", "func signInWithApple(", "func signOut(scope:", "func handleAuthCallback("] {
             let start = try XCTUnwrap(source.range(of: boundary))
             let tail = String(source[start.lowerBound...])
             XCTAssertTrue(
@@ -554,21 +554,16 @@ final class EntitlementTests: XCTestCase {
         XCTAssertFalse(realtime.contains("await self?.refresh()"))
     }
 
-    func testPersonaMismatchRevokesTheAuthenticatedOwnerBeforePublishingItsError() throws {
-        let nativeRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let source = try String(
-            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
-        )
+    func testEmailLoginUsesTheCredentialOwnerAcrossPortraitAndPublicEntry() throws {
+        let appRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let source = try String(contentsOf: appRoot.appending(path: "APEX/App/AppSession.swift"))
         let start = try XCTUnwrap(source.range(of: "func signIn(email:"))
-        let end = try XCTUnwrap(
-            source.range(of: "func signUp(email:", range: start.upperBound..<source.endIndex)
-        )
-        let signIn = String(source[start.lowerBound..<end.lowerBound])
-        let mismatch = try XCTUnwrap(signIn.range(of: "APEXServiceError.personaMismatch"))
-        let prefix = String(signIn[..<mismatch.lowerBound])
-        XCTAssertTrue(prefix.contains("accountToken = beginAccountBoundary()"))
+        let end = try XCTUnwrap(source.range(of: "func signUp(email:", range: start.upperBound..<source.endIndex))
+        let login = source[start.lowerBound..<end.lowerBound]
+        XCTAssertTrue(login.contains("refreshDashboard(expectedUserID: userID)"))
+        XCTAssertTrue(login.contains("greetingPersona = profile.persona"))
+        XCTAssertFalse(login.contains("service.signOut"))
+        XCTAssertFalse(login.contains("selectedPersona"))
     }
 
     func testAuthCallbackCannotExposeWritableInductionBeforeDashboardOwnershipIsProven() throws {

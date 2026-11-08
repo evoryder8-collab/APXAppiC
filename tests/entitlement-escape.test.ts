@@ -714,7 +714,7 @@ test('the web recovery surface offers retry and safe sign-out without pretending
   assert.doesNotMatch(recovery, /(?:CHF|displayPrice|purchase\s*\(|redeemBeta|beta code)/i)
   assert.match(
     store,
-    /const signOut = useCallback\(async \(\) => \{[\s\S]*?let remoteSignOut[\s\S]*?try \{[\s\S]*?remoteSignOut = supabase\.auth\.signOut\(\)[\s\S]*?\} finally \{[\s\S]*?adoptSession\(null\)[\s\S]*?\}[\s\S]*?await remoteSignOut/,
+    /const signOut = useCallback\(async \(\) => \{[\s\S]*?let remoteSignOut[\s\S]*?try \{[\s\S]*?remoteSignOut = supabase\.auth\.signOut\(\{ scope: 'local' \}\)[\s\S]*?\} finally \{[\s\S]*?adoptSession\(null\)[\s\S]*?\}[\s\S]*?await remoteSignOut/,
     'local account state must clear before waiting for a network sign-out',
   )
 })

@@ -1577,7 +1577,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const signOut = useCallback(async () => {
     let remoteSignOut: Promise<unknown> | undefined
     try {
-      if (supabase) remoteSignOut = supabase.auth.signOut()
+      if (supabase) remoteSignOut = supabase.auth.signOut({ scope: 'local' })
     } finally {
       /* Start revocation, but clear the local account before waiting on the
          network. An offline request must never hold the person inside a locked

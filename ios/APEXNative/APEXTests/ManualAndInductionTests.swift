@@ -2591,7 +2591,6 @@ final class TrainingInductionTests: XCTestCase {
         for authenticatedEntry in [
             "authenticatedOwnerID = userID\n            try await refreshDashboard",
             "authenticatedOwnerID = userID\n                EntitlementStore.shared.prepareForAccount(userID)",
-            "authenticatedOwnerID = userID\n            selectedPersona = nil",
             "authenticatedOwnerID = userID\n            EntitlementStore.shared.prepareForAccount(userID)",
         ] {
             XCTAssertTrue(session.contains(authenticatedEntry), authenticatedEntry)

@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import Supabase
 import UIKit
 import CoreFoundation
 
@@ -273,7 +274,6 @@ typealias FoodSearchProvider = @Sendable (String) async throws -> FoodLookupEnve
 final class AppSession {
     @ObservationIgnored private var dashboardMutationRevision: UInt64 = 0
     var route: AppRoute = .launching
-    var selectedPersona: Persona?
     /// Shown briefly after a bespoke account signs in by email.
     var greetingPersona: Persona?
     /// The address a confirmation link was just sent to, if any. Held so the
@@ -830,7 +830,6 @@ final class AppSession {
                 coachContext = APEXDebugFixture.coachPlanContext()
                 navigationPath = [.coachPlan]
             }
-            selectedPersona = .constantine
             if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-failed-sync"),
                let debugProfile = data.profile,
                let operationID = UUID(uuidString: "B72E51D1-5D0B-4585-B361-9AF511F98964"),
@@ -889,7 +888,6 @@ final class AppSession {
                     )
                     hydratedCache.foods = hydratedCache.foods.map(FoodHydration.resolved)
                     data = hydratedCache
-                    selectedPersona = hydratedCache.profile?.persona
                     route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
                         ? .portal : .induction
                     if migratedRestingEnergySettings != nil {
@@ -920,7 +918,6 @@ final class AppSession {
                     )
                     hydratedCache.foods = hydratedCache.foods.map(FoodHydration.resolved)
                     data = hydratedCache
-                    selectedPersona = hydratedCache.profile?.persona
                     route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
                         ? .portal : .induction
                     if migratedRestingEnergySettings != nil {
@@ -932,7 +929,6 @@ final class AppSession {
                 guard accountGeneration.accepts(accountToken) else { return }
                 try await refreshDashboard(expectedUserID: userID, refreshAccess: false)
                 guard accountGeneration.accepts(accountToken) else { return }
-                selectedPersona = data.profile?.persona
                 route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
                     ? .portal : .induction
                 guard let operation = accountOperationLease() else { return }
@@ -968,12 +964,10 @@ final class AppSession {
     }
 
     func choose(_ persona: Persona) {
-        selectedPersona = persona
         route = .login(persona)
     }
 
     func returnToPersonas() {
-        selectedPersona = nil
         route = .persona
     }
 
@@ -994,31 +988,8 @@ final class AppSession {
             authenticatedOwnerID = userID
             try await refreshDashboard(expectedUserID: userID)
             guard accountGeneration.accepts(accountToken) else { return }
-            /* The portrait entrance promises a particular person, so it still
-               checks. The public email door promises nothing and skips it. */
-            if let expected = selectedPersona {
-                guard let actual = data.profile?.persona else {
-                    throw APEXServiceError.configurationMissing
-                }
-                guard actual == expected else {
-                    try await service.signOut()
-                    guard accountGeneration.accepts(accountToken) else { return }
-                    /* The remote session is already gone. Revoke the local
-                       pre-profile owner too, otherwise the empty dashboard
-                       could still mint a valid operation lease. */
-                    accountToken = beginAccountBoundary()
-                    throw APEXServiceError.personaMismatch(expected: expected, actual: actual)
-                }
-            }
-            if let persona = data.profile?.persona {
-                defaults.set(persona.rawValue, forKey: "apex.lastPersona")
-                /* A bespoke account gets its own portrait on the way in, and
-                   only its own. The portrait wall asked you to pick a face
-                   before proving who you were; this shows the face the
-                   credentials already identified. */
-                if data.profile?.foundingMember == true, selectedPersona == nil {
-                    greetingPersona = persona
-                }
+            if let profile = data.profile, profile.foundingMember == true, route != .login(profile.persona) {
+                greetingPersona = profile.persona
             }
             route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
                 ? .portal : .induction
@@ -1069,7 +1040,6 @@ final class AppSession {
                     EntitlementStore.shared.markUnavailable(expectedUserID: userID)
                 }
                 guard accountGeneration.accepts(accountToken) else { return }
-                selectedPersona = nil
                 data = .empty
                 route = .induction
             case .awaitingEmailConfirmation:
@@ -1102,7 +1072,6 @@ final class AppSession {
             accountToken = completeAccountBoundary()
             boundaryCompleted = true
             authenticatedOwnerID = userID
-            selectedPersona = nil
             try await refreshDashboard(expectedUserID: userID)
             guard accountGeneration.accepts(accountToken) else { return }
             /* A returning Apple account already has a profile and goes home. A
@@ -1352,7 +1321,7 @@ final class AppSession {
         guard route == .resetPassword, let owner = authenticatedOwnerID else { throw CancellationError() }
         try await service.updateRecoveredPassword(password, owner: owner)
         guard authenticatedOwnerID == owner else { throw CancellationError() }
-        await signOut()
+        await signOut(scope: .global)
         alertMessage = "Password updated. Sign in with your new password."
     }
 
@@ -1368,7 +1337,7 @@ final class AppSession {
         try await offlineStore.eraseAccount(operation.ownerID)
     }
 
-    func signOut() async {
+    func signOut(scope: SignOutScope = .local) async {
         if let owner = accountOperationLease()?.ownerID { InductionView.clearDraft(owner) }
         UserDefaults.standard.removeObject(forKey: Self.recoveryEmailKey)
         UserDefaults.standard.removeObject(forKey: Self.recoveryExpiryKey)
@@ -1381,7 +1350,7 @@ final class AppSession {
             if accountGeneration.accepts(accountToken) { isBusy = false }
         }
         do {
-            try await service.signOut()
+            try await service.signOut(scope: scope)
         } catch {
             /* The local privacy boundary and exit are already complete. If the
                network sign-out fails, keep the user safely outside rather than
@@ -1800,7 +1769,6 @@ final class AppSession {
             refreshAccess: false
         )
         try requireCurrentAccountOperation(operation)
-        selectedPersona = data.profile?.persona
         route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
             ? .portal : .induction
         if route == .portal {
@@ -2357,7 +2325,6 @@ final class AppSession {
             pendingSyncCount = 0
             failedSyncCount = 0
             navigationPath.removeAll()
-            selectedPersona = nil
             /* A completed OAuth exchange proves identity, not that the
                account is new. Keep the route non-writable until either its
                owner-scoped cache or the server dashboard proves its state. */
@@ -2374,7 +2341,6 @@ final class AppSession {
                     )
                     hydratedCache.foods = hydratedCache.foods.map(FoodHydration.resolved)
                     data = hydratedCache
-                    selectedPersona = hydratedCache.profile?.persona
                     route = TrainingInduction.shouldEnterPortal(
                         profile: hydratedCache.profile,
                         settings: hydratedCache.settings
@@ -2383,7 +2349,6 @@ final class AppSession {
             }
             try await refreshDashboard(expectedUserID: userID)
             guard accountGeneration.accepts(accountToken) else { return }
-            selectedPersona = data.profile?.persona
             route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
                 ? .portal : .induction
             if route == .portal, let operation = accountOperationLease() {
@@ -2424,7 +2389,6 @@ final class AppSession {
                         )
                         hydratedCache.foods = hydratedCache.foods.map(FoodHydration.resolved)
                         data = hydratedCache
-                        selectedPersona = hydratedCache.profile?.persona
                         route = TrainingInduction.shouldEnterPortal(
                             profile: hydratedCache.profile,
                             settings: hydratedCache.settings

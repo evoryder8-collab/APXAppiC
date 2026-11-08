@@ -293,10 +293,10 @@ actor SupabaseService {
         try await client.rpc("delete_my_account", params: params).execute()
     }
 
-    func signOut() async throws {
+    func signOut(scope: SignOutScope = .local) async throws {
         guard let client else { return }
         await stopRealtime()
-        try await client.auth.signOut()
+        try await client.auth.signOut(scope: scope)
     }
 
     func handleAuthCallback(_ url: URL) async throws -> UUID {
@@ -943,7 +943,6 @@ actor SupabaseService {
 
 enum APEXServiceError: LocalizedError {
     case configurationMissing
-    case personaMismatch(expected: Persona, actual: Persona)
     case invalidOfflineOperation
     case incompleteFood
     case staleMeal
@@ -952,8 +951,6 @@ enum APEXServiceError: LocalizedError {
         switch self {
         case .configurationMissing:
             "The native Supabase configuration is missing."
-        case .personaMismatch(let expected, let actual):
-            "Those credentials belong to \(actual.displayName). Choose that profile to continue as \(expected.displayName)."
         case .invalidOfflineOperation:
             "A queued offline change could not be decoded."
         case .incompleteFood:

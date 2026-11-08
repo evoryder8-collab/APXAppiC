@@ -83,7 +83,7 @@ enum SyncFailurePolicy {
         }
         if let serviceError = error as? APEXServiceError {
             switch serviceError {
-            case .invalidOfflineOperation, .incompleteFood, .staleMeal, .personaMismatch, .configurationMissing:
+            case .invalidOfflineOperation, .incompleteFood, .staleMeal, .configurationMissing:
                 return .permanent
             }
         }
