@@ -3290,6 +3290,7 @@ private struct DailyTrainingSessionPreviewCard: View {
     let trainToday: Bool
     let fixedLite: Bool?
     let onOpen: (Bool) -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicType
     @State private var language = LanguageState.shared
     @State private var expanded = false
     @State private var selectedLite = false
@@ -3357,7 +3358,7 @@ private struct DailyTrainingSessionPreviewCard: View {
                                  prescription: prescription)
                 .id(lite)
 
-            if exercises.count > 3 {
+            if exercises.count > 3 && !dynamicType.isAccessibilitySize {
                 Button { expanded.toggle() } label: {
                     HStack(spacing: 8) {
                         Text(language.text(expanded ? "Show fewer exercises" : "Show all exercises"))

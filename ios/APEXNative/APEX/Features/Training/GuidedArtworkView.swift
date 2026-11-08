@@ -171,7 +171,8 @@ struct GuidedExerciseLineup: View {
 
     var body: some View {
         if expanded || dynamicType.isAccessibilitySize {
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: cardWidth - 22), spacing: 14, alignment: .topLeading)],
+            let column: GridItem.Size = dynamicType.isAccessibilitySize ? .flexible() : .adaptive(minimum: cardWidth - 22)
+            LazyVGrid(columns: [GridItem(column, spacing: 14, alignment: .topLeading)],
                       alignment: .leading, spacing: 18) { cards(inRow: false) }
                 .accessibilityElement(children: .contain)
                 .accessibilityIdentifier("training-lineup-grid")
