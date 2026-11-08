@@ -37,11 +37,13 @@ function completedSessionFor(
   dateIso: string,
   programDayId?: string,
 ): WorkoutSession | null {
-  const program = data.programs.find((p) => p.slug === slug)
+  const ownerID = data.profile?.user_id ?? data.settings?.user_id
+  if (!ownerID) return null
+  const program = data.programs.find((p) => p.slug === slug && p.user_id === ownerID)
   const dayIds = new Set(data.program_days.filter((d) => d.program_id === program?.id).map((d) => d.id))
   return (
     data.workout_sessions.find(
-      (s) => s.user_id === data.profile?.user_id && s.date === dateIso && s.completed && manualWorkoutTitle(s.notes) == null && (
+      (s) => s.user_id === ownerID && s.date === dateIso && s.completed && manualWorkoutTitle(s.notes) == null && (
         programDayId
           ? s.program_day_id === programDayId
           : dayIds.has(s.program_day_id)

@@ -175,7 +175,6 @@ export function Player() {
   const { data, upsert, toast } = useStore()
   const ownerId = data.profile?.user_id ?? data.settings?.user_id
   const playerTimeZone = timeZoneFromSettings(data.settings)
-  const date = performedWorkoutDay(prescriptionDate, zonedClock(new Date(), playerTimeZone).date)
   const { language } = useLanguage()
   const voiceText = useCallback((value: string) => {
     const exercise = catalogExerciseByName(value)
@@ -226,6 +225,8 @@ export function Player() {
     }
     return { idx: 0, paused: false, elapsed: 0, results: {}, countedReps: {}, startedAt: new Date().toISOString() }
   })
+
+  const date = performedWorkoutDay(prescriptionDate, zonedClock(state.startedAt, playerTimeZone).date)
 
   /* persist on change so backgrounding mid-session loses nothing */
   useEffect(() => {

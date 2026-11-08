@@ -130,7 +130,7 @@ export function CustomWorkoutBuilder({
     return activeCustomWorkoutDays(prescriptionDays(data), profile.user_id, program.id)
       .filter((day) => conflicts.has(day.id))
       .sort((left, right) => left.id.localeCompare(right.id))
-  }, [data.profile, data.program_days, data.programs, replacementDayIds])
+  }, [data, replacementDayIds])
 
   const addExercise = (item: ExerciseCatalogItem): void => {
     if (document.activeElement instanceof HTMLElement) document.activeElement.blur()

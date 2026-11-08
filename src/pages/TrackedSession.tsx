@@ -146,7 +146,7 @@ export function TrackedSession() {
     const { session, logs } = buildSessionRecords({
       sessionId: crypto.randomUUID(),
       userId: ownerId,
-      date: performedWorkoutDay(date ?? '', zonedClock(new Date(), timeZoneFromSettings(data.settings)).date),
+      date: performedWorkoutDay(date ?? '', zonedClock(startedAt, timeZoneFromSettings(data.settings)).date),
       programDayId: plan.programDay.id,
       isLite: lite,
       isDeload: plan.isDeload,

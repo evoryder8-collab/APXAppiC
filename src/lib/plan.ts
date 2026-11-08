@@ -171,7 +171,8 @@ export function planForDate(
   lite: boolean,
   programDayId?: string,
 ): PlannedDay {
-  const program = data.programs.find((p) => p.slug === slug)
+  const plannerOwner = data.profile?.user_id ?? data.settings?.user_id
+  const program = data.programs.find((p) => p.slug === slug && p.user_id === plannerOwner)
   const weekday = getISODay(parse(date))
   const induction = data.settings?.addons.training_induction
   const activeDayIds = activeInductionDayIds(induction, slug)
@@ -465,7 +466,8 @@ export function programDaysForDate(
   date: string,
   lite = false,
 ): PlannedDay[] {
-  const program = data.programs.find((row) => row.slug === slug)
+  const plannerOwner = data.profile?.user_id ?? data.settings?.user_id
+  const program = data.programs.find((row) => row.slug === slug && row.user_id === plannerOwner)
   if (!program) return []
   const induction = data.settings?.addons.training_induction
   if (!isInsideInductionWindow(induction, slug, date)) return []
