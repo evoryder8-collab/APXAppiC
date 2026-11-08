@@ -25,6 +25,7 @@ function MarkerIcon({ kind }: { kind: 'layers' | 'fit' | 'history' }) {
 
 export function OrbitMap({
   planned = [],
+  plannedRouteId,
   completed = [],
   current = null,
   history = [],
@@ -34,6 +35,7 @@ export function OrbitMap({
   className = '',
 }: {
   planned?: GeoPoint[]
+  plannedRouteId?: string
   completed?: GeoPoint[]
   current?: GeoPoint | null
   history?: GeoPoint[][]
@@ -189,7 +191,7 @@ export function OrbitMap({
           ? [[current.lat, current.lng] as L.LatLngTuple]
           : usableHistory.flatMap(latLngs)
     viewPoints.current = primary
-    const signature = `${routeSignature(planned)}|${routeSignature(completed)}|${current ? 'current' : 'none'}`
+    const signature = `${plannedRouteId ?? ''}|${routeSignature(planned)}|${routeSignature(completed)}|${current ? 'current' : 'none'}`
     if (signature !== lastFitSignature.current) {
       lastFitSignature.current = signature
       window.setTimeout(fitMap, 40)
@@ -197,7 +199,7 @@ export function OrbitMap({
       map.panTo([current.lat, current.lng], { animate: true, duration: 0.45 })
     }
     map.getContainer().style.cursor = editable ? 'crosshair' : ''
-  }, [completed, current, editable, fitMap, followCurrent, history, historyVisible, planned])
+  }, [completed, current, editable, fitMap, followCurrent, history, historyVisible, planned, plannedRouteId])
 
   const cycleStyle = (): void => setStyle(nextMapStyle)
   const styleLabel = t(style === 'night' ? 'Night map' : style === 'light' ? 'Light map' : 'Satellite map')

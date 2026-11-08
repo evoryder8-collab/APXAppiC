@@ -2368,3 +2368,5 @@ The historical report reader accepts positive seconds stored in the old reps fie
 Build 408 gives close single objects priority. Where one object is a poor match, the report can use two through six countable objects. Wider gaps use milestone labels. Object captions omit ratios and keep the calculated volume in its own metric.
 
 Build 409 bases native email sign-in on the authenticated owner and their verified dashboard. A prior portrait choice cannot reject another account's valid credentials. Web and iPhone sign-out revoke the current session by default. Finishing a native password reset explicitly revokes all sessions. Account isolation, dashboard owner checks and the local sign-out privacy boundary still apply.
+
+Build 410 places Orbit’s route selector next to the map. Previous and next cycle through ranked alternatives; tapping the selected option opens the full list. The visible route, guidance, save and start actions follow the same selection. Generating routes brings the preview into view.

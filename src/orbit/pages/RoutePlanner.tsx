@@ -1,5 +1,6 @@
-import { lazy, Suspense, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { ChevronLeftIcon, ChevronRightIcon } from '../../components/Icons.tsx'
 import { GlassCard, GhostButton, GradientButton } from '../../components/ui.tsx'
 import { ACCENTS } from '../../lib/theme.ts'
 import { useStore } from '../../store/AppStore.tsx'
@@ -103,6 +104,15 @@ export function RoutePlanner() {
   const [message, setMessage] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [attempted, setAttempted] = useState(false)
+  const mapSection = useRef<HTMLDivElement>(null)
+  const optionPicker = useRef<HTMLSelectElement>(null)
+  const selectedIndex = candidates.findIndex((candidate) => candidate.id === selected?.id)
+  useEffect(() => {
+    if (!candidates.length) return
+    optionPicker.current?.focus({ preventScroll: true })
+    mapSection.current?.scrollIntoView({ block: 'start' })
+  }, [candidates])
+
   const fileRef = useRef<HTMLInputElement>(null)
   const provider = useMemo(() => new OpenOrbitRouteProvider(), [])
   const geocoder = useMemo(() => new OpenStreetMapGeocoder(), [])
@@ -165,6 +175,7 @@ export function RoutePlanner() {
         const updated = { ...candidate, familiarity_pct: sampled.length > 0 ? Math.round(familiar / sampled.length * 100) : 0 }
         return { ...updated, score: scoreRouteCandidate(updated, request) }
       }).sort((a, b) => b.score - a.score)
+        .map((candidate, index) => ({ ...candidate, name: `Orbit option ${index + 1}` }))
       setCandidates(enriched)
       setSelected(enriched[0] ?? null)
       setManual(false)
@@ -174,18 +185,20 @@ export function RoutePlanner() {
     } finally { setBusy(false) }
   }
 
-  const save = async (route = selected): Promise<OrbitRoute | null> => {
-    if (!route || !userId) return null
+  const save = async (): Promise<OrbitRoute | null> => {
+    if (!selected || !userId) return null
+    let route: OrbitRoute = selected
+    if ('score' in selected) {
+      const { score: _score, explanation: _explanation, estimated_duration_min: _estimate, ...record } = selected
+      route = record
+    }
     const stamped: OrbitRoute = {
       ...route,
       user_id: userId,
-      id: route.user_id === userId ? route.id : orbitUuid(userId, `${route.id}:${Date.now()}`),
-      client_idempotency_key: route.user_id === userId ? route.client_idempotency_key : orbitUuid(userId, `route-client:${route.id}:${Date.now()}`),
       updated_at: new Date().toISOString(),
       sync_state: 'local',
     }
     await orbit.saveRoute(stamped)
-    setSelected(stamped)
     toast(t('Orbit route saved privately.'), 'ok')
     return stamped
   }
@@ -242,19 +255,39 @@ export function RoutePlanner() {
             </div>
           </div>
 
-          <div className="relative px-3 sm:px-4">
-            <Suspense fallback={<div className="h-[48dvh] min-h-[380px] animate-pulse rounded-[28px] bg-slate-900" />}>
-              <OrbitMap
-                planned={manual ? manualPoints : selected?.points ?? [start, ...waypoints, destination].filter((point): point is GeoPoint => point != null)}
-                history={orbit.state.routes.map((route) => route.points)}
-                editable={manual}
-                onAddPoint={(point) => setManualPoints((points) => [...points, point])}
-                className="h-[48dvh] min-h-[380px] max-h-[620px]"
-              />
-            </Suspense>
-            <div className="pointer-events-none absolute right-6 bottom-4 left-6 z-[490] flex justify-start">
-              <div className="rounded-full border border-white/12 bg-[#050b16]/90 px-3 py-2 font-mono text-[9px] font-bold tracking-wide text-sky-100 shadow-xl">{start ? `${t('START READY')} · ${start.lat.toFixed(3)}, ${start.lng.toFixed(3)}` : t('SET A START POINT')}</div>
+          <div ref={mapSection} className="scroll-mt-20 px-3 sm:px-4">
+            {selectedIndex >= 0 && <div className="mb-2 flex items-center gap-2" role="group" aria-label={t('Route options')}>
+              <button type="button" aria-label={t('Previous route')} disabled={candidates.length < 2} onClick={() => setSelected(candidates[(selectedIndex + candidates.length - 1) % candidates.length])} className="grid size-12 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/8 text-sky-100 disabled:opacity-35">
+                <ChevronLeftIcon className="size-5" />
+              </button>
+              <select ref={optionPicker} aria-label={t('Route options')} value={selectedIndex} onChange={(event) => setSelected(candidates[Number(event.target.value)])} className="h-12 min-w-0 flex-1 rounded-2xl border border-sky-300/40 bg-slate-900 px-3 text-sm font-bold text-white">
+                {candidates.map((candidate, index) => <option key={candidate.id} value={index}>
+                  {t('Option')} {index + 1} · {formatDistance(candidate.distance_m)}{index === 0 ? ` · ${t('Best fit')}` : ''}
+                </option>)}
+              </select>
+              <button type="button" aria-label={t('Next route')} disabled={candidates.length < 2} onClick={() => setSelected(candidates[(selectedIndex + 1) % candidates.length])} className="grid size-12 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/8 text-sky-100 disabled:opacity-35">
+                <ChevronRightIcon className="size-5" />
+              </button>
+            </div>}
+            <div className="relative">
+              <Suspense fallback={<div className="h-[48dvh] min-h-[380px] animate-pulse rounded-[28px] bg-slate-900" />}>
+                <OrbitMap
+                  planned={manual ? manualPoints : selected?.points ?? [start, ...waypoints, destination].filter((point): point is GeoPoint => point != null)}
+                  plannedRouteId={selected?.id}
+                  history={orbit.state.routes.map((route) => route.points)}
+                  editable={manual}
+                  onAddPoint={(point) => setManualPoints((points) => [...points, point])}
+                  className="h-[48dvh] min-h-[380px] max-h-[620px]"
+                />
+              </Suspense>
+              {!manual && !selected && <div className="pointer-events-none absolute right-3 bottom-7 left-3 z-[490] flex justify-start">
+                <div className="rounded-full border border-white/12 bg-[#050b16]/90 px-3 py-2 font-mono text-[9px] font-bold tracking-wide text-sky-100 shadow-xl">{start ? `${t('START READY')} · ${start.lat.toFixed(3)}, ${start.lng.toFixed(3)}` : t('SET A START POINT')}</div>
+              </div>}
             </div>
+            {selectedIndex >= 0 && <p aria-live="polite" aria-atomic="true" className="mt-2 text-center text-xs font-semibold text-sky-100">
+              <span className="sr-only">{t('Option')} {selectedIndex + 1}. </span>
+              {candidates[selectedIndex].estimated_duration_min} {t('MIN')} · {selected?.elevation_gain_m == null ? t('Elevation unavailable') : `${selected.elevation_gain_m} ${t('m gain')}`} · {t(candidates[selectedIndex].navigation_complexity)} {t('NAV')}
+            </p>}
           </div>
 
           <div className="p-4 sm:p-5">
@@ -266,6 +299,17 @@ export function RoutePlanner() {
             </div>
           </div>
         </section>
+
+        {selected && !manual && <GlassCard accent={ACCENTS.ice} className="p-5">
+          <div className="flex items-start justify-between gap-3"><div><p className="font-display text-xl font-bold text-ink">{t(selected.name)}</p><p className="mt-1 text-xs font-medium text-ink-soft">{selected.provider} · {selected.attribution}</p></div><OrbitPill tone="emerald">{t('Private').toUpperCase()}</OrbitPill></div>
+          {'explanation' in selected && <p className="mt-3 text-sm leading-relaxed text-ink-soft">{t(selected.explanation)}</p>}
+          <p className="mt-3 text-xs leading-relaxed text-ink-faint">{t('Orbit describes map-supported characteristics, not guaranteed safety, lighting, access or traffic conditions. Verify the route before running.')}</p>
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:flex">
+            <GradientButton accent={ACCENTS.ice} onClick={() => void startRoute()} className="col-span-2 min-h-14 sm:col-span-1 sm:min-w-44">{t('Start this route')}</GradientButton>
+            <GhostButton onClick={() => void save()}>{t('Save route')}</GhostButton>
+            <GhostButton onClick={() => download(`${selected.name.replaceAll(' ', '-').toLowerCase()}.gpx`, exportGpx(selected.name, selected.points), 'application/gpx+xml')}>{t('Export GPX')}</GhostButton>
+          </div>
+        </GlassCard>}
 
         {searchOpen && <GlassCard accent={ACCENTS.ice} className="p-4 sm:p-5">
           <div className="flex items-center justify-between gap-3"><div><p className="font-display text-base font-bold text-ink">{t('Choose a location')}</p><p className="mt-0.5 text-xs text-ink-soft">{t('Start, destination or waypoint')}</p></div><button type="button" onClick={() => setSearchOpen(false)} className="grid h-10 w-10 place-items-center rounded-full bg-white/70 text-lg text-ink">×</button></div>
@@ -301,23 +345,10 @@ export function RoutePlanner() {
 
         <details className="glass group rounded-[26px] border border-white/80 p-4">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3"><div><p className="font-display text-base font-bold text-ink">{t('Route tools')}</p><p className="mt-0.5 text-xs text-ink-soft">{t('Draw manually or import GPX')}</p></div><span className="grid h-9 w-9 place-items-center rounded-full bg-white/70 text-lg text-ink transition group-open:rotate-45">+</span></summary>
-          <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-200/70 pt-4"><GhostButton onClick={() => { setManual(true); setManualPoints(start ? [start] : []); setSelected(null) }}>{t('Draw manually')}</GhostButton><GhostButton onClick={() => fileRef.current?.click()}>{t('Import GPX')}</GhostButton><input ref={fileRef} type="file" accept=".gpx,application/gpx+xml,text/xml" className="hidden" onChange={(event) => void onFile(event.target.files?.[0])} /></div>
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-200/70 pt-4"><GhostButton onClick={() => { setManual(true); setCandidates([]); setManualPoints(start ? [start] : []); setSelected(null) }}>{t('Draw manually')}</GhostButton><GhostButton onClick={() => fileRef.current?.click()}>{t('Import GPX')}</GhostButton><input ref={fileRef} type="file" accept=".gpx,application/gpx+xml,text/xml" className="hidden" onChange={(event) => void onFile(event.target.files?.[0])} /></div>
         </details>
 
         {manual && <GlassCard accent={ACCENTS.amber} className="p-4"><p className="text-sm font-bold text-ink">{t('Tap the map to add route points.')}</p><p className="mt-1 text-xs text-ink-soft">{manualPoints.length} {t('points')} · {formatDistance(polylineDistanceM(manualPoints))}</p><div className="mt-3 flex gap-2"><GradientButton accent={ACCENTS.amber} onClick={commitManual}>{t('Use drawing')}</GradientButton><GhostButton onClick={() => setManualPoints(start ? [start] : [])}>{t('Clear')}</GhostButton></div></GlassCard>}
-
-        {candidates.length > 0 && <section><div className="mb-2 flex items-end justify-between"><div><p className="font-display text-lg font-bold text-ink">{t('Route options')}</p><p className="text-xs text-ink-soft">{t('Different shapes, ranked for this mission')}</p></div><span className="font-mono text-[10px] font-bold text-sky-700">{candidates.length} {t('OPTIONS')}</span></div><div className="flex snap-x gap-3 overflow-x-auto pb-2 sm:grid sm:grid-cols-3 sm:overflow-visible">{candidates.map((candidate, index) => <button type="button" key={candidate.id} onClick={() => setSelected(candidate)} className={`min-w-[82%] snap-center rounded-3xl border p-4 text-left transition sm:min-w-0 ${selected?.id === candidate.id ? 'border-sky-400 bg-sky-950 text-white shadow-xl' : 'glass border-white/80 text-ink'}`}><OrbitPill tone={index === 0 ? 'amber' : 'ice'}>{index === 0 ? t('Best fit').toUpperCase() : `${t('Option').toUpperCase()} ${index + 1}`}</OrbitPill><p className="mt-3 font-display text-xl font-bold">{formatDistance(candidate.distance_m)}</p><p className="mt-1 font-mono text-[9px] opacity-70">{candidate.estimated_duration_min} {t('MIN')} · {candidate.elevation_gain_m == null ? t('Elevation unavailable').toUpperCase() : `${candidate.elevation_gain_m} ${t('m gain').toUpperCase()}`} · {t(candidate.navigation_complexity).toUpperCase()} {t('NAV')}</p><p className="mt-3 text-xs leading-relaxed opacity-80">{t(candidate.explanation)}</p></button>)}</div></section>}
-
-        {selected && !manual && <GlassCard accent={ACCENTS.ice} className="p-5">
-          <div className="flex items-start justify-between gap-3"><div><p className="font-display text-xl font-bold text-ink">{t(selected.name)}</p><p className="mt-1 text-xs font-medium text-ink-soft">{selected.provider} · {selected.attribution}</p></div><OrbitPill tone="emerald">{t('Private').toUpperCase()}</OrbitPill></div>
-          {'explanation' in selected && <p className="mt-3 text-sm leading-relaxed text-ink-soft">{t(selected.explanation)}</p>}
-          <p className="mt-3 text-xs leading-relaxed text-ink-faint">{t('Orbit describes map-supported characteristics, not guaranteed safety, lighting, access or traffic conditions. Verify the route before running.')}</p>
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:flex">
-            <GradientButton accent={ACCENTS.ice} onClick={() => void startRoute()} className="col-span-2 min-h-14 sm:col-span-1 sm:min-w-44">{t('Start this route')}</GradientButton>
-            <GhostButton onClick={() => void save()}>{t('Save route')}</GhostButton>
-            <GhostButton onClick={() => download(`${selected.name.replaceAll(' ', '-').toLowerCase()}.gpx`, exportGpx(selected.name, selected.points), 'application/gpx+xml')}>{t('Export GPX')}</GhostButton>
-          </div>
-        </GlassCard>}
 
         {attempted && !selected && !manual && <GlassCard className="p-5 text-center"><p className="font-display text-base font-bold text-ink">{t('Automatic routing unavailable')}</p><p className="mt-1 text-sm text-ink-soft">{t('You can still draw a route, import GPX or begin a free run.')}</p><GradientButton accent={ACCENTS.ice} onClick={() => navigate('/orbit/run', { state: { mission, campaignSessionId: navigationContext.campaignSessionId } })} className="mt-4">{t('Start free run')}</GradientButton></GlassCard>}
       </div>

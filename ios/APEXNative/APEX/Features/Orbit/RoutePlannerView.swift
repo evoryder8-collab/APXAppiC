@@ -3,6 +3,7 @@ import SwiftUI
 
 struct RoutePlannerView: View {
     @Environment(AppSession.self) private var session
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var location = OrbitLocationManager.shared
     @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var distanceKM = 5.0
@@ -26,177 +27,41 @@ struct RoutePlannerView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 18) {
-                ZStack(alignment: .bottomLeading) {
-                    Map(position: $position) {
-                        UserAnnotation()
-                        if let selected {
-                            MapPolyline(coordinates: selected.points.map(\.coordinate))
-                                .stroke(APEXColor.cyan.gradient, style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round))
+        GeometryReader { viewport in
+            ScrollViewReader { scroll in
+                ScrollView {
+                    VStack(spacing: 18) {
+                        routePreview(mapHeight: min(390, max(155, viewport.size.height * 0.44)))
+                            .id("route-preview")
+                        if let message {
+                            Text(language.text(message))
+                                .font(APEXFont.body(12, weight: .semibold))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                    }
-                    .mapStyle(.standard(elevation: .realistic, emphasis: .muted))
-                    .mapControls { MapCompass(); MapUserLocationButton(); MapScaleView() }
-                    .frame(height: 430)
-
-                    HStack(spacing: 8) {
-                        Image(systemName: selected == nil ? "location.fill" : "point.topleft.down.to.point.bottomright.curvepath")
-                        Text(language.text(mapCaption))
-                    }
-                    .font(APEXFont.mono(9))
-                    .tracking(1)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 13)
-                    .frame(height: 38)
-                    .background(.black.opacity(0.72), in: Capsule())
-                    .padding(15)
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 34).stroke(.white.opacity(0.8)))
-
-                GlassCard(radius: 30, padding: 20) {
-                    VStack(alignment: .leading, spacing: 18) {
-                        Text(language.text("Build a route"))
-                            .font(APEXFont.display(27))
-                        HStack {
-                            Text(language.text("DISTANCE")).font(APEXFont.mono(10)).tracking(1.2)
-                            Spacer()
-                            Text(language.format("%.1f km", distanceKM)).font(APEXFont.display(19))
-                        }
-                        Slider(value: $distanceKM, in: 1...42.2, step: 0.5).tint(APEXColor.cyan)
-                        Picker("Shape", selection: $shape) {
-                            Text(language.text("Loop")).tag("loop")
-                            Text(language.text("Out & back")).tag("out_back")
-                            Text(language.text("Point to point")).tag("point_to_point")
-                        }.pickerStyle(.segmented)
-                        Picker("Terrain", selection: $terrain) {
-                            Text(language.text("Flat")).tag("flat")
-                            Text(language.text("Rolling")).tag("rolling")
-                            Text(language.text("Hilly")).tag("hilly")
-                        }.pickerStyle(.segmented)
-                        Picker("Surface", selection: $surface) {
-                            Text(language.text("Road")).tag("road")
-                            Text(language.text("Path")).tag("path")
-                            Text(language.text("Trail")).tag("trail")
-                            Text(language.text("Mixed")).tag("mixed")
-                        }.pickerStyle(.menu)
-                        Picker("Mission", selection: $mission) {
-                            ForEach(["Recovery", "Easy", "Tempo", "Hills", "Long run"], id: \.self) { Text(language.text($0)).tag($0) }
-                        }.pickerStyle(.menu)
-                        Toggle(language.text("Prefer simpler navigation"), isOn: $simpleNavigation)
-                            .tint(APEXColor.cyan)
-
-                        Button {
-                            guard let operation = session.accountOperationLease() else { return }
-                            Task { await generate(operation: operation) }
-                        } label: {
-                            if isGenerating { ProgressView().tint(.white) }
-                            else { Label(language.text("Generate route options"), systemImage: "point.topleft.down.to.point.bottomright.curvepath") }
-                        }
-                        .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.cyan))
-                        .disabled(isGenerating || location.currentLocation == nil)
-
-                        HStack(spacing: 10) {
+                        routeForm
+                        if selected == nil, message != nil, !isGenerating {
                             NavigationLink {
-                                ManualRouteEditorView()
+                                LiveRunView(mission: mission, campaignSessionID: campaignSessionID)
                             } label: {
-                                Label(language.text("Draw"), systemImage: "pencil.and.outline")
+                                Label(language.text("Start a free run instead"), systemImage: "figure.run")
                             }
-                            .buttonStyle(.bordered)
-
-                            Button { importingGPX = true } label: {
-                                Label(language.text("Import GPX"), systemImage: "square.and.arrow.down")
-                            }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.cyan))
                         }
-
-                        if location.currentLocation == nil {
-                            Label(language.text("Waiting for location permission and a usable GPS fix"), systemImage: "location.circle")
-                                .font(APEXFont.body(11, weight: .semibold))
-                                .foregroundStyle(APEXColor.secondaryInk)
-                        }
+                        Text(language.text("Orbit never labels a route guaranteed safe. It can compare map-supported features such as crossings, turns, terrain and surface where data exists."))
+                            .font(APEXFont.body(11, weight: .medium))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                            .padding(.horizontal, 5)
+                    }
+                    .padding(18)
+                    .padding(.bottom, 24)
+                }
+                .onChange(of: candidates.first?.id) { _, firstID in
+                    if firstID != nil {
+                        withAnimation(reduceMotion ? nil : .snappy) { scroll.scrollTo("route-preview", anchor: .top) }
                     }
                 }
-
-                if let message {
-                    Text(language.text(message))
-                        .font(APEXFont.body(12, weight: .semibold))
-                        .foregroundStyle(APEXColor.secondaryInk)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(15)
-                        .background(APEXColor.cyan.opacity(0.08), in: RoundedRectangle(cornerRadius: 18))
-                }
-
-                if candidates.isEmpty == false {
-                    VStack(alignment: .leading, spacing: 11) {
-                        Text(language.text("Route options"))
-                            .font(APEXFont.display(24))
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 11) {
-                                ForEach(Array(candidates.enumerated()), id: \.element.id) { index, candidate in
-                                    Button {
-                                        withAnimation(.snappy) {
-                                            selected = candidate
-                                            fit(candidate)
-                                        }
-                                    } label: {
-                                        RouteCandidateCard(
-                                            candidate: candidate,
-                                            isBest: index == 0,
-                                            isSelected: selected?.id == candidate.id
-                                        )
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-                    }
-                }
-
-                if let selected {
-                    GlassCard(radius: 30, padding: 20) {
-                        VStack(alignment: .leading, spacing: 13) {
-                            Text(language.format("Orbit option %d", selected.optionNumber))
-                                .font(APEXFont.display(23))
-                            Text(language.text(selected.explanation))
-                                .font(APEXFont.body(13, weight: .medium))
-                                .foregroundStyle(APEXColor.secondaryInk)
-                            HStack(spacing: 10) {
-                                Button(language.text("Save route")) {
-                                    guard let operation = session.accountOperationLease() else { return }
-                                    Task { _ = await save(selected, operation: operation) }
-                                }
-                                    .buttonStyle(.bordered)
-                                Button(language.text("Start this route")) {
-                                    guard let operation = session.accountOperationLease() else { return }
-                                    Task {
-                                        let route = await save(selected, operation: operation)
-                                        guard session.accountOperationIsCurrent(operation) else { return }
-                                        routeToStart = route
-                                    }
-                                }
-                                .buttonStyle(.borderedProminent)
-                                .tint(APEXColor.cyan)
-                            }
-                        }
-                    }
-                } else if message != nil {
-                    NavigationLink {
-                        LiveRunView(mission: mission, campaignSessionID: campaignSessionID)
-                    } label: {
-                        Label(language.text("Start a free run instead"), systemImage: "figure.run")
-                    }
-                    .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.cyan))
-                }
-
-                Text(language.text("Orbit never labels a route guaranteed safe. It can compare map-supported features such as crossings, turns, terrain and surface where data exists."))
-                    .font(APEXFont.body(11, weight: .medium))
-                    .foregroundStyle(APEXColor.secondaryInk)
-                    .padding(.horizontal, 5)
             }
-            .padding(18)
-            .padding(.bottom, 24)
         }
         .navigationTitle(language.text("Plan a run"))
         .navigationBarTitleDisplayMode(.inline)
@@ -207,6 +72,229 @@ struct RoutePlannerView: View {
         .fileImporter(isPresented: $importingGPX, allowedContentTypes: [.gpx]) { result in
             guard let operation = session.accountOperationLease() else { return }
             Task { await importGPX(result, operation: operation) }
+        }
+    }
+
+    private func routePreview(mapHeight: CGFloat) -> some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Map(position: $position) {
+                UserAnnotation()
+                if let selected {
+                    MapPolyline(coordinates: selected.points.map(\.coordinate))
+                        .stroke(APEXColor.cyan.gradient, style: StrokeStyle(lineWidth: 7, lineCap: .round, lineJoin: .round))
+                }
+            }
+            .mapStyle(.standard(elevation: .realistic, emphasis: .muted))
+            .mapControls { MapCompass(); MapUserLocationButton(); MapScaleView() }
+            .frame(height: mapHeight)
+            .accessibilityIdentifier("orbit.route.map")
+            .overlay(alignment: .bottomLeading) {
+                if selected == nil {
+                    Label(language.text("START FROM CURRENT LOCATION"), systemImage: "location.fill")
+                        .font(APEXFont.mono(10))
+                        .foregroundStyle(.white)
+                        .padding(10)
+                        .background(.black.opacity(0.72), in: Capsule())
+                        .padding(12)
+                        .allowsHitTesting(false)
+                }
+            }
+
+            if let selected {
+                VStack(alignment: .leading, spacing: 12) {
+                    if let index = candidates.firstIndex(where: { $0.id == selected.id }) {
+                        HStack {
+                            Text(language.text("Route options"))
+                                .font(APEXFont.display(20))
+                            Spacer()
+                            Text("\(index + 1) / \(candidates.count)")
+                                .font(APEXFont.mono(12))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                        }
+
+                        HStack(spacing: 8) {
+                            if candidates.count > 1 {
+                                routeArrow(previous: true)
+                                Menu {
+                                    ForEach(Array(candidates.enumerated()), id: \.element.id) { offset, option in
+                                        Button {
+                                            select(option)
+                                        } label: {
+                                            let title = optionTitle(option, at: offset) + " · " + elevation(option)
+                                            if option.id == selected.id { Label(title, systemImage: "checkmark") }
+                                            else { Text(title) }
+                                        }
+                                    }
+                                } label: {
+                                    optionLabel(selected, index: index, opensMenu: true)
+                                }
+                                .accessibilityLabel(language.text("Route options"))
+                                .accessibilityValue(optionTitle(selected, at: index) + " · " + elevation(selected))
+                                .accessibilityIdentifier("orbit.route.options")
+                                routeArrow(previous: false)
+                            } else {
+                                optionLabel(selected, index: index, opensMenu: false)
+                            }
+                        }
+                    } else {
+                        Text(distance(selected)).font(APEXFont.display(22))
+                    }
+
+                    Text(language.text(selected.explanation))
+                        .font(APEXFont.body(13, weight: .medium))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                    routeActions(selected)
+                }
+                .padding(16)
+            }
+        }
+        .background(.ultraThinMaterial)
+        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .overlay { RoundedRectangle(cornerRadius: 26).strokeBorder(.white.opacity(0.7)).allowsHitTesting(false) }
+    }
+
+    private func optionTitle(_ option: OrbitRouteCandidate, at index: Int) -> String {
+        let rank = index == 0 ? language.text("Best fit") : language.format("OPTION %d", index + 1)
+        return rank + " · " + distance(option)
+    }
+
+    private func distance(_ option: OrbitRouteCandidate) -> String {
+        language.format("%.1f km", Double(option.distanceM) / 1_000)
+    }
+
+    private func elevation(_ option: OrbitRouteCandidate) -> String {
+        option.elevationGainM.map { language.format("%d m gain", $0) } ?? language.text("Elevation unavailable")
+    }
+
+    private func optionLabel(_ option: OrbitRouteCandidate, index: Int, opensMenu: Bool) -> some View {
+        HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(optionTitle(option, at: index)).font(APEXFont.body(16, weight: .bold))
+                Text(elevation(option) + " · " + language.format("MISSION FIT %d", option.score))
+                    .font(APEXFont.mono(10))
+                    .foregroundStyle(APEXColor.secondaryInk)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 0)
+            if opensMenu { Image(systemName: "chevron.down").font(.caption.weight(.bold)) }
+        }
+        .foregroundStyle(APEXColor.ink)
+        .multilineTextAlignment(.leading)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .frame(minHeight: 44)
+        .background(APEXColor.cyan.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+        .contentShape(Rectangle())
+    }
+
+    private func routeArrow(previous: Bool) -> some View {
+        Button {
+            guard let index = candidates.firstIndex(where: { $0.id == selected?.id }) else { return }
+            let count = candidates.count
+            select(candidates[(index + (previous ? count - 1 : 1)) % count])
+        } label: {
+            Image(systemName: previous ? "chevron.backward" : "chevron.forward")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(APEXColor.ink)
+                .frame(width: 44, height: 44)
+                .background(.thinMaterial, in: Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(language.text(previous ? "Previous route" : "Next route"))
+        .accessibilityIdentifier(previous ? "orbit.route.previous" : "orbit.route.next")
+    }
+
+    private func select(_ candidate: OrbitRouteCandidate) {
+        withAnimation(reduceMotion ? nil : .snappy) {
+            selected = candidate
+            fit(candidate)
+        }
+    }
+
+    private func routeActions(_ selected: OrbitRouteCandidate) -> some View {
+        HStack(spacing: 10) {
+            Button(language.text("Save route")) {
+                guard let operation = session.accountOperationLease() else { return }
+                Task { _ = await save(selected, operation: operation) }
+            }
+            .buttonStyle(.bordered)
+            Button(language.text("Start this route")) {
+                guard let operation = session.accountOperationLease() else { return }
+                Task {
+                    let route = await save(selected, operation: operation)
+                    guard session.accountOperationIsCurrent(operation) else { return }
+                    routeToStart = route
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(APEXColor.cyan)
+        }
+    }
+
+    private var routeForm: some View {
+        GlassCard(radius: 30, padding: 20) {
+            VStack(alignment: .leading, spacing: 18) {
+                Text(language.text("Build a route"))
+                    .font(APEXFont.display(27))
+                HStack {
+                    Text(language.text("DISTANCE")).font(APEXFont.mono(10)).tracking(1.2)
+                    Spacer()
+                    Text(language.format("%.1f km", distanceKM)).font(APEXFont.display(19))
+                }
+                Slider(value: $distanceKM, in: 1...42.2, step: 0.5).tint(APEXColor.cyan)
+                Picker("Shape", selection: $shape) {
+                    Text(language.text("Loop")).tag("loop")
+                    Text(language.text("Out & back")).tag("out_back")
+                    Text(language.text("Point to point")).tag("point_to_point")
+                }.pickerStyle(.segmented)
+                Picker("Terrain", selection: $terrain) {
+                    Text(language.text("Flat")).tag("flat")
+                    Text(language.text("Rolling")).tag("rolling")
+                    Text(language.text("Hilly")).tag("hilly")
+                }.pickerStyle(.segmented)
+                Picker("Surface", selection: $surface) {
+                    Text(language.text("Road")).tag("road")
+                    Text(language.text("Path")).tag("path")
+                    Text(language.text("Trail")).tag("trail")
+                    Text(language.text("Mixed")).tag("mixed")
+                }.pickerStyle(.menu)
+                Picker("Mission", selection: $mission) {
+                    ForEach(["Recovery", "Easy", "Tempo", "Hills", "Long run"], id: \.self) { Text(language.text($0)).tag($0) }
+                }.pickerStyle(.menu)
+                Toggle(language.text("Prefer simpler navigation"), isOn: $simpleNavigation)
+                    .tint(APEXColor.cyan)
+
+                Button {
+                    guard let operation = session.accountOperationLease() else { return }
+                    Task { await generate(operation: operation) }
+                } label: {
+                    if isGenerating { ProgressView().tint(.white) }
+                    else { Label(language.text("Generate route options"), systemImage: "point.topleft.down.to.point.bottomright.curvepath") }
+                }
+                .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.cyan))
+                .disabled(isGenerating || location.currentLocation == nil)
+
+                HStack(spacing: 10) {
+                    NavigationLink {
+                        ManualRouteEditorView()
+                    } label: {
+                        Label(language.text("Draw"), systemImage: "pencil.and.outline")
+                    }
+                    .buttonStyle(.bordered)
+
+                    Button { importingGPX = true } label: {
+                        Label(language.text("Import GPX"), systemImage: "square.and.arrow.down")
+                    }
+                    .buttonStyle(.bordered)
+                }
+
+                if location.currentLocation == nil {
+                    Label(language.text("Waiting for location permission and a usable GPS fix"), systemImage: "location.circle")
+                        .font(APEXFont.body(11, weight: .semibold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                }
+            }
         }
     }
 
@@ -273,18 +361,15 @@ struct RoutePlannerView: View {
     private func fit(_ candidate: OrbitRouteCandidate) {
         guard let first = candidate.points.first else { return }
         let latitudes = candidate.points.map(\.lat)
-        let longitudes = candidate.points.map(\.lng)
-        let span = MKCoordinateSpan(
-            latitudeDelta: max(0.008, (latitudes.max() ?? first.lat) - (latitudes.min() ?? first.lat)) * 1.35,
-            longitudeDelta: max(0.008, (longitudes.max() ?? first.lng) - (longitudes.min() ?? first.lng)) * 1.35
-        )
-        position = .region(.init(center: first.coordinate, span: span))
-    }
-
-    private var mapCaption: String {
-        guard let selected else { return "START FROM CURRENT LOCATION" }
-        let distance = (Double(selected.distanceM) / 1_000).formatted(.number.precision(.fractionLength(1)).locale(language.language.locale))
-        return language.format("OPTION %d · %@ KM", selected.optionNumber, distance)
+        let offsets = candidate.points.map { ($0.lng - first.lng).remainder(dividingBy: 360) }
+        guard let south = latitudes.min(), let north = latitudes.max(),
+              let west = offsets.min(), let east = offsets.max() else { return }
+        let center = CLLocationCoordinate2D(latitude: (south + north) / 2,
+            longitude: (first.lng + (west + east) / 2).remainder(dividingBy: 360))
+        position = .region(MKCoordinateRegion(center: center, span: MKCoordinateSpan(
+            latitudeDelta: max(0.008, north - south) * 1.35,
+            longitudeDelta: max(0.008, east - west) * 1.35
+        )))
     }
 
     @MainActor
@@ -308,6 +393,7 @@ struct RoutePlannerView: View {
                 operation: operation
             )
             guard session.accountOperationIsCurrent(operation) else { return }
+            candidates = []
             selected = candidate
             fit(candidate)
             message = route == nil ? "The GPX route could not be saved." : "GPX imported into your private Orbit library."
@@ -317,51 +403,5 @@ struct RoutePlannerView: View {
             guard session.accountOperationIsCurrent(operation) else { return }
             message = language.text(error.localizedDescription)
         }
-    }
-}
-
-private struct RouteCandidateCard: View {
-    @State private var language = LanguageState.shared
-    let candidate: OrbitRouteCandidate
-    let isBest: Bool
-    let isSelected: Bool
-
-    private var distanceLabel: String {
-        language.format("%.1f km", Double(candidate.distanceM) / 1_000)
-    }
-
-    private var elevationLabel: String {
-        candidate.elevationGainM.map { language.format("%d m gain", $0) } ?? language.text("Elevation unavailable")
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(isBest ? language.text("BEST FIT") : language.format("OPTION %d", candidate.optionNumber))
-                .font(APEXFont.mono(9))
-                .tracking(1)
-                .foregroundStyle(isBest ? APEXColor.amber : APEXColor.cyan)
-            Text(distanceLabel)
-                .font(APEXFont.display(25))
-            Text(elevationLabel)
-                .font(APEXFont.mono(9))
-                .foregroundStyle(APEXColor.secondaryInk)
-            Text(language.text(candidate.explanation))
-                .font(APEXFont.body(11, weight: .medium))
-                .foregroundStyle(APEXColor.secondaryInk)
-                .lineLimit(4)
-            Text(language.format("MISSION FIT %d", candidate.score))
-                .font(APEXFont.mono(8))
-                .foregroundStyle(APEXColor.cyan)
-        }
-        .frame(width: 225, alignment: .leading)
-        .padding(17)
-        .background(
-            isSelected ? APEXColor.cyan.opacity(0.14) : .white.opacity(0.62),
-            in: RoundedRectangle(cornerRadius: 24)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 24)
-                .stroke(isSelected ? APEXColor.cyan : .white.opacity(0.9))
-        )
     }
 }

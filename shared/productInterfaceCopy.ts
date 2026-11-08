@@ -181,4 +181,6 @@ export const productInterfaceCopy: Array<readonly [string, string, string, strin
   ["Next milestone", "Deine nächste Marke", "Dini nächschti Marke", "Prossimo traguardo", "Próximo hito", "Próxima marca", "次の目安", "Următorul reper", "เป้าหมายถัดไป"],
   ["About the weight of %@", "Etwa so schwer wie %@", "Öppe so schwär wie %@", "Circa il peso di %@", "Aproximadamente el peso de %@", "Aproximadamente o peso de %@", "%@とほぼ同じ重さ", "Cam cât greutatea următorului reper: %@", "น้ำหนักพอ ๆ กับ%@"],
   ["About %@ %@", "Etwa %@ %@", "Öppe %@ %@", "Circa %@ %@", "Aproximadamente %@ %@", "Cerca de %@ %@", "およそ%2$@%1$@個分", "Cam %@ %@", "ประมาณ %@ %@"],
+  ["Previous route", "Vorherige Route", "Vorhärigi Route", "Percorso precedente", "Ruta anterior", "Percurso anterior", "前のルート", "Traseul anterior", "เส้นทางก่อนหน้า"],
+  ["Next route", "Nächste Route", "Nächschti Route", "Percorso successivo", "Ruta siguiente", "Percurso seguinte", "次のルート", "Traseul următor", "เส้นทางถัดไป"],
 ]
