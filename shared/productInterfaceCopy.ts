@@ -2,6 +2,16 @@
 export const interfaceLocales = ["en", "de", "de-CH", "it", "es", "pt", "ja", "ro", "th"] as const
 
 export const productInterfaceCopy: Array<readonly [string, string, string, string, string, string, string, string, string]> = [
+  ["Feet elevated · Peak load from bodyweight","Füße erhöht · Spitzenlast durch Körpergewicht","Füess erhöht · Höchschti Last vom Körpergwicht","Piedi rialzati · Carico massimo dal peso corporeo","Pies elevados · Carga máxima por peso corporal","Pés elevados · Carga máxima do peso corporal","足上げ時の自重によるピーク荷重","Picioare ridicate · Sarcină maximă din greutatea corporală","ยกเท้าสูง · แรงกดสูงสุดจากน้ำหนักตัว"],
+  ["Narrow-grip reference · Half shoulder width","Enger Griff · Halbe Schulterbreite als Referenz","Enge Griff · Halbi Schulterbreiti als Referänz","Riferimento a presa stretta · Metà larghezza delle spalle","Referencia de agarre estrecho · Mitad del ancho de hombros","Referência de pega estreita · Metade da largura dos ombros","ナローの参考値 · 肩幅の半分","Reper pentru priză îngustă · Jumătate din lățimea umerilor","ค่าอ้างอิงแบบมือแคบ · ระยะมือครึ่งหนึ่งของความกว้างไหล่"],
+  ["With backpack","Mit Rucksack","Mit Rucksack","Con zaino","Con mochila","Com mochila","リュックあり","Cu rucsac","ใส่เป้"],
+  ["Without backpack","Ohne Rucksack","Ohni Rucksack","Senza zaino","Sin mochila","Sem mochila","リュックなし","Fără rucsac","ไม่ใส่เป้"],
+  ["Added weight not recorded","Zusatzgewicht nicht erfasst","Zuesatzgwicht nöd iitreit","Peso aggiunto non registrato","Peso añadido sin registrar","Peso adicional não registado","追加重量の記録なし","Greutate adăugată neînregistrată","ไม่ได้บันทึกน้ำหนักเสริม"],
+  ["Reference heights","Vergleichshöhen","Vergliichshöchine","Altezze di riferimento","Alturas de referencia","Alturas de referência","参考の高さ","Înălțimi de referință","ความสูงอ้างอิง"],
+  ["Estimated load at the hands","Geschätzte Last auf den Händen","Gschätzts Gwicht uf de Händ","Carico stimato sulle mani","Carga estimada sobre las manos","Carga estimada nas mãos","両手にかかる推定荷重","Sarcină estimată pe mâini","น้ำหนักที่คาดว่าลงบนมือทั้งสองข้าง"],
+  ["Level-floor reference","Richtwert bei gleicher Höhe von Händen und Füßen","Richtwärt für Händ und Füess uf de gliiche Höchi","Riferimento con mani e piedi alla stessa altezza","Referencia con manos y pies a la misma altura","Referência com mãos e pés à mesma altura","手と足が同じ高さの場合の目安","Reper cu mâinile și picioarele la aceeași înălțime","ค่าอ้างอิงเมื่อมือและเท้าอยู่ระดับเดียวกัน"],
+  ["At current bodyweight","Bei aktuellem Körpergewicht","Bim aktuelle Körpergwicht","Con il peso corporeo attuale","Con el peso corporal actual","Com o peso corporal atual","現在の体重での目安","La greutatea corporală actuală","อิงจากน้ำหนักตัวปัจจุบัน"],
+  ["Bodyweight only","Nur Körpergewicht","Nur Körpergwicht","Solo peso corporeo","Solo peso corporal","Apenas peso corporal","自重のみ","Doar greutatea corporală","เฉพาะน้ำหนักตัว"],
   ["With Dumbbells","Mit Kurzhanteln","Mit Churzhantle","Con manubri","Con mancuernas","Com halteres","ダンベル使用","Cu gantere","ใช้ดัมเบล"],
   ["With a Barbell","Mit einer Langhantel","Mit ere Langhantle","Con bilanciere","Con barra","Com barra","バーベル使用","Cu haltera","ใช้บาร์เบล"],
   ["With a Kettlebell","Mit einer Kettlebell","Mit ere Kettlebell","Con kettlebell","Con una pesa rusa","Com um kettlebell","ケトルベル使用","Cu un kettlebell","ใช้เคตเทิลเบล"],

@@ -106,7 +106,7 @@ test('strength pages lead with the greatest load change across regions, includin
     'Push-Up · Strict', 'Lunge · Reverse', 'Hip Thrust · With Dumbbells', 'Romanian Deadlift · With Dumbbells', 'Bench Press',
   ])
   assert.match(progress, /Upper body<\/p><h3>Push-Up · Strict<\/h3>/)
-  assert.match(progress, /#1 · Jan 1, 2026 · 10 reps × 0 kg/)
+  assert.match(progress, /#1 · Jan 1, 2026 · 10 reps · Bodyweight only/)
   assert.match(progress, /#2 · Nov 1, 2026 · 10 reps × 16 kg/)
   assert.match(progress, /#2 · Nov 1, 2026 · 16 kg/)
   assert.doesNotMatch(progress, /Incline Push-Up|Nov 2, 2026|NaN/)
@@ -135,6 +135,97 @@ test('rep-only progress compares complete sessions per variation once, including
   assert.match(section, /Row · Band<\/th><td><b>12<\/b>.*?<td><b>22<\/b>/)
   assert.doesNotMatch(section, /Knee|Lunge|<svg/)
   assert.ok(html.indexOf('<section class="lifts">') < html.indexOf('<section class="rep-progress">'))
+})
+
+test('push-up hand estimates separate body contribution, recorded added load and dated personal records', () => {
+  const data = recordedHistory()
+  data.workout_logs = [0,10,4].map((weight,i) => ({
+    session_id:'s'+i, exercise_name:'Strict Push-Up', movement_id:'push_up', weight_kg:weight, reps:10,
+    id:'lift'+i, user_id:'user', exercise_id:null, set_no:1, skipped:false,
+  }))
+  const range = {from:'2026-01-01',to:'2026-11-07',allTime:true}
+  const report = (weights = new Map([['s0',41],['s1',41],['s2',41]]), currentBodyweight = null) => {
+    const families = buildExerciseFamilies(data,range), exerciseRecords = reportExerciseRecords(data,range)
+    return avatarReportHTML({...input,families,exerciseRecords,sessionBodyweights:weights,currentBodyweight})
+  }
+  const panel = (html: string) => html.split('<aside class="push-load">')[1]?.split('</aside>')[0]
+  assert.match(panel(report()), /First.*?Jan 1, 2026[\s\S]*?Bodyweight 41 kg[\s\S]*?Without backpack[\s\S]*?≈ 26 kg[\s\S]*?Bodyweight only/)
+  assert.match(panel(report()), /Personal record.*?Nov 1, 2026[\s\S]*?Without backpack[\s\S]*?≈ 26 kg[\s\S]*?With backpack[\s\S]*?≈ 33 kg[\s\S]*?Added weight 10 kg/)
+  assert.match(report(), /<h3>Lifted volume<\/h3><b class="score">140 kg</)
+  assert.match(panel(report(new Map(),41)), /At current bodyweight/)
+  assert.doesNotMatch(panel(report(new Map(),41)), /Personal record/)
+  assert.equal(panel(report(new Map())),undefined)
+  data.workout_logs.forEach(log => { log.weight_kg = null })
+  assert.match(panel(report()), /≈ 26 kg[\s\S]*?Added weight not recorded/)
+  assert.doesNotMatch(panel(report()), /Added weight 0 kg|Personal record/)
+  data.workout_logs.forEach(log => { log.weight_kg = 10; log.exercise_name = 'Weighted or Feet-Elevated Push-Up'; log.movement_id = 'weighted_push_up' })
+  assert.match(panel(report()), /≈ 33 kg[\s\S]*?Level-floor reference/)
+  assert.doesNotMatch(panel(report()), /Personal record/)
+  data.workout_logs.forEach(log => { log.exercise_name = 'Strict Push-Up'; log.movement_id = 'push_up' })
+  const bodyweightSets = [{...data.workout_logs[1],id:'zero1',weight_kg:0,reps:7,set_no:2},
+    {...data.workout_logs[1],id:'zero2',weight_kg:0,reps:5,set_no:3},
+    {...data.workout_logs[1],id:'skipped',weight_kg:0,reps:99,set_no:4,skipped:true},
+    {...data.workout_logs[1],id:'unknown',weight_kg:null,reps:99,set_no:5}]
+  data.workout_logs.push(...bodyweightSets)
+  assert.match(report(), /<b>Bodyweight only<\/b> · Performed sets 2 · 12 reps/)
+  const high = { ...data.workout_logs[2], set_no:2, id:'outside', weight_kg:40 }
+  data.workout_logs.push(high)
+  assert.match(report(), /#3 · Nov 2, 2026 · 10 reps × 40 kg/)
+  assert.doesNotMatch(panel(report()), /Nov 2, 2026/)
+  assert.match(panel(report()), /First · Personal record/)
+  data.workout_logs.pop()
+  for (const [name, id, weight] of [['Incline Push-Up','incline_push_up',10], ['Bench Press','barbell_bench_press',10],
+    ['Custom push-up','push_up',10], ['Strict Push-Up','push_up',31], ['Strict Push-Up','push_up',-2]]) {
+    data.workout_logs.forEach(log => { log.exercise_name = name; log.movement_id = id; log.weight_kg = weight })
+    assert.equal(panel(report()),undefined,name)
+  }
+})
+
+test('feet-elevated push-up references compare peak load on the floor and at two example heights and exclude diamond and incline setups', () => {
+  const data = recordedHistory()
+  const range = {from:'2026-01-01',to:'2026-11-07',allTime:true}
+  function render(name: string, id: string, added: number | number[], sessionBodyweights = new Map([['s1',41]]), currentBodyweight = null) {
+    data.workout_logs = ['s0','s1'].map((session_id,i) => ({session_id, exercise_name:name, movement_id:id,
+      weight_kg:Array.isArray(added) ? added[i] : added, reps:6, id:session_id+'-set', user_id:'user', exercise_id:null, set_no:1, skipped:false}))
+    return avatarReportHTML({...input,families:buildExerciseFamilies(data,range),exerciseRecords:reportExerciseRecords(data,range),
+      sessionBodyweights,currentBodyweight})
+  }
+  const panel = html => html.split('<aside class="push-load elevated">')[1]?.split('</aside>')[0]
+  const model = html => html.split('<aside class="push-load setup-model">')[1]?.split('</aside>')[0]
+  for (const [name, id] of [['Feet-Elevated Push-Up','feet_elevated_push_up'],['Weighted or Feet-Elevated Push-Up','weighted_push_up'],
+    ['Decline Push-Up','decline_push_up_high_feet']]) {
+    const html = render(name,id,10)
+    assert.match(panel(html), /Feet elevated · Peak load from bodyweight/)
+    assert.match(panel(html), /41 kg · Without backpack · Nov 1, 2026/)
+    assert.match(panel(html), /Reference heights.*?<b>0 cm<\/b><strong>≈ 26 kg.*?30 cm<\/b><strong>≈ 29 kg.*?61 cm<\/b><strong>≈ 30 kg/)
+    assert.equal(panel(html),panel(render(name,id,30)))
+    assert.match(model(html), /With backpack/)
+    assert.match(model(html), /Bodyweight 41 kg · Added weight 10 kg[\s\S]*?30 cm<\/b><strong>≈ 37 kg.*?61 cm<\/b><strong>≈ 37 kg/)
+    assert.doesNotMatch(model(html), /Personal record/)
+    for (const added of [null,0,31]) assert.equal(model(render(name,id,added)),undefined)
+    assert.doesNotMatch(panel(html), /Added weight|record|33 kg/)
+    if (id !== 'weighted_push_up') assert.doesNotMatch(html, /<h4>Estimated load at the hands/)
+  }
+  assert.match(panel(render('Decline Push-Up','decline_push_up_high_feet',10,new Map(),50)), /50 kg · Without backpack · At current bodyweight/)
+  assert.equal(panel(render('Decline Push-Up','decline_push_up_high_feet',10,new Map())),undefined)
+  const endpoints = model(render('Weighted or Feet-Elevated Push-Up','weighted_push_up',[5,10],new Map([['s0',40],['s1',41]])))
+  assert.match(endpoints, /First · Jan 1, 2026[\s\S]*?40 kg · Added weight 5 kg[\s\S]*?Latest · Nov 1, 2026[\s\S]*?41 kg · Added weight 10 kg/)
+  assert.match(model(render('Decline Push-Up','decline_push_up_high_feet',10,new Map(),50)), /At current bodyweight/)
+  for (const [name,id] of [['Diamond Push-Up','diamond_push_up'],['Diamond or Close-Grip Push-Up','diamond_push_up'],
+    ['Close-Grip Push-Up','close_grip_push_up']]) {
+    const html = render(name,id,10)
+    const narrow = html.split('<aside class="push-load narrow">')[1]?.split('</aside>')[0]
+    assert.match(narrow, /Narrow-grip reference · Half shoulder width.*?41 kg · Without backpack · Nov 1, 2026[\s\S]*?≈ 27 kg/)
+    assert.doesNotMatch(narrow, /Added weight|Personal record/)
+    assert.match(model(html), /Half shoulder width[\s\S]*?41 kg · Added weight 10 kg[\s\S]*?≈ 34 kg/)
+    assert.doesNotMatch(model(html), /Personal record/)
+    assert.match(html, /#2 · Nov 1, 2026 · 6 reps × 10 kg/)
+    assert.match(html, /Lifted volume<\/h3><b class="score">120 kg</)
+    assert.doesNotMatch(html, /<h4>Estimated load at the hands|<h4>Feet elevated/)
+  }
+  for (const [name,id] of [['Incline Push-Up','incline_push_up'],['Decline Push-Up','push_up'],['Diamond or Close-Grip Push-Up','band_row']]) {
+    assert.doesNotMatch(render(name,id,0), /<aside class="push-load/)
+  }
 })
 
 test('the cover distinguishes zero volume from unrecorded volume', () => {

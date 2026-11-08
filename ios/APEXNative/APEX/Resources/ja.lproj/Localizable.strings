@@ -5868,3 +5868,13 @@
 "With Dumbbells" = "ダンベル使用";
 "With a Barbell" = "バーベル使用";
 "With a Kettlebell" = "ケトルベル使用";
+"Estimated load at the hands" = "両手にかかる推定荷重";
+"Level-floor reference" = "手と足が同じ高さの場合の目安";
+"At current bodyweight" = "現在の体重での目安";
+"Bodyweight only" = "自重のみ";
+"Feet elevated · Peak load from bodyweight" = "足上げ時の自重によるピーク荷重";
+"Narrow-grip reference · Half shoulder width" = "ナローの参考値 · 肩幅の半分";
+"Reference heights" = "参考の高さ";
+"With backpack" = "リュックあり";
+"Without backpack" = "リュックなし";
+"Added weight not recorded" = "追加重量の記録なし";

@@ -1,4 +1,5 @@
 import type { AppData, JointCheckin, RepUnit } from './types'
+import pushUpGuide from '../../shared/push-up-load-guide.json' with { type: 'json' }
 import frequencyFamilies from '../../shared/exercise-frequency-families.json' with { type: 'json' }
 import { MOVEMENTS } from '../data/movements.ts'
 import { catalogExerciseByName } from '../data/exerciseCatalog.ts'
@@ -140,6 +141,21 @@ function strengthRegion(primary = ''): StrengthRegion {
   return 'other'
 }
 
+const levelPushUps = new Set(pushUpGuide.floorNames.map(familyAlias))
+const alternativePushUps = new Set(pushUpGuide.floorReferenceNames.map(familyAlias))
+const elevatedPushUps = new Set(pushUpGuide.feetElevatedNames.map(familyAlias))
+const narrowPushUps = new Set(pushUpGuide.narrowGripNames.map(familyAlias))
+
+export type PushUpSetup = 'floor' | 'alternative' | 'elevated' | 'narrow'
+function pushUpSetup(name: string, movementID: string | null | undefined): PushUpSetup | undefined {
+  const label = familyAlias(name)
+  if (narrowPushUps.has(label) && (!movementID || pushUpGuide.narrowGripMovementIDs.includes(movementID))) return 'narrow'
+  if (elevatedPushUps.has(label) && (!movementID || pushUpGuide.feetElevatedMovementIDs.includes(movementID))) return 'elevated'
+  if (movementID && !pushUpGuide.floorMovementIDs.includes(movementID)) return
+  if (alternativePushUps.has(label)) return 'alternative'
+  if (levelPushUps.has(label)) return 'floor'
+}
+
 function historyMovement(name: string, movementId: string | null) {
   const equivalentId = equivalentMovementByLabel.get(name.trim().toLowerCase().replace(/\s+/g, ' '))
   let descriptor = descriptorForExercise({ name, movement_id: movementId ?? equivalentId })
@@ -167,13 +183,15 @@ function historyMovement(name: string, movementId: string | null) {
   const family = explicitFamily ?? (composite ? undefined : movementFamily)
   const region = family?.region
   const hasRepField = descriptor.fields.includes('reps') && (!movement || movement.repUnit === 'reps')
-  const sameExternalLoad = !composite || ['hip_thrust', 'biceps_curl', 'calf_raise'].includes(explicitFamily?.id ?? '')
+  const pushSetup = pushUpSetup(name, movementId)
+  const sameExternalLoad = !composite || pushSetup === 'narrow' || ['hip_thrust', 'biceps_curl', 'calf_raise'].includes(explicitFamily?.id ?? '')
     || (explicitFamily?.id === 'push_up' && movementId === 'weighted_push_up')
   const assisted = /\b(?:assisted|counterweight(?:ed)?)\b/i.test(`${name} ${movement?.id.replaceAll('_', ' ') ?? ''}`)
   const bodyweight = descriptor.kind === 'bodyweight' || (family?.id === 'push_up' && !descriptor.movementId)
   const measuresExternalWeight = sameExternalLoad && !substitute && !assisted && !bandLabel && !bandEquipment
   return {
     descriptor, key, family, hasRepField, bodyweight, measuresExternalWeight, entityType: movement?.entityType,
+    pushUpSetup: pushSetup,
     displayName: movement && movement.id === equivalentId ? movement.name : name,
     catalogUnit: movement?.repUnit,
     region: region === 'lower' || region === 'upper' || region === 'core' || region === 'other'

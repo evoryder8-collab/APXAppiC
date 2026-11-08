@@ -5850,3 +5850,13 @@
 "With Dumbbells" = "ใช้ดัมเบล";
 "With a Barbell" = "ใช้บาร์เบล";
 "With a Kettlebell" = "ใช้เคตเทิลเบล";
+"Estimated load at the hands" = "น้ำหนักที่คาดว่าลงบนมือทั้งสองข้าง";
+"Level-floor reference" = "ค่าอ้างอิงเมื่อมือและเท้าอยู่ระดับเดียวกัน";
+"At current bodyweight" = "อิงจากน้ำหนักตัวปัจจุบัน";
+"Bodyweight only" = "เฉพาะน้ำหนักตัว";
+"Feet elevated · Peak load from bodyweight" = "ยกเท้าสูง · แรงกดสูงสุดจากน้ำหนักตัว";
+"Narrow-grip reference · Half shoulder width" = "ค่าอ้างอิงแบบมือแคบ · ระยะมือครึ่งหนึ่งของความกว้างไหล่";
+"Reference heights" = "ความสูงอ้างอิง";
+"With backpack" = "ใส่เป้";
+"Without backpack" = "ไม่ใส่เป้";
+"Added weight not recorded" = "ไม่ได้บันทึกน้ำหนักเสริม";

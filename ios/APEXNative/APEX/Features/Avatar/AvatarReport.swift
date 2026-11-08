@@ -41,6 +41,7 @@ struct AvatarReport: Transferable {
     var exercises: [Exercise] = []
     var trainingProfile: TrainingProfile90? = nil
     var bodyweightBySession: [UUID: Double] = [:]
+    var currentBodyweight: Double?
     var earlierFirst: [String: StrengthProgress.SessionTotals] = [:]
     var joinedDate: String?
     var period: AvatarReportPeriod = .allTime
@@ -73,6 +74,17 @@ struct AvatarReport: Transferable {
         let required = Set(first.values.map(\.sessionID))
         let weights = bodyweights(in: data, owner: ownerID, through: dates.upperBound,
                                   sessions: sessions + earlier.filter { required.contains($0.id) })
+        let currentMass = data.profile.flatMap { profile -> Double? in
+            guard profile.userID == ownerID, (10...500).contains(profile.weightKG) else { return nil }
+            // A new profile can carry the database default until the user enters a weight.
+            if profile.weightKG == 70 && ProfileIntegrityPolicy.authorizedProtocol(for: profile) == nil &&
+                !weights.values.contains(70) {
+                let hasMeasurement = data.healthMetrics.contains { $0.userID == ownerID && $0.date <= today && $0.weightKG == 70 } ||
+                    data.dailyLogs.contains { $0.userID == ownerID && $0.date <= today && $0.weightKG == 70 }
+                if !hasMeasurement { return nil }
+            }
+            return profile.weightKG
+        }
         let joined = data.accountCreation.flatMap { creation -> String? in
             let day = creation.date.apexDateKey
             return creation.userID == ownerID && day <= dates.upperBound ? day : nil
@@ -85,7 +97,7 @@ struct AvatarReport: Transferable {
                     sessions: sessions, logs: data.workoutLogs.filter { $0.userID == ownerID && ids.contains($0.sessionID) },
                     unit: .current(data.settings?.userID == ownerID ? data.settings : nil),
                     exercises: data.exercises.filter { $0.userID == ownerID }, trainingProfile: profile,
-                    bodyweightBySession: weights,
+                    bodyweightBySession: weights, currentBodyweight: currentMass,
                     earlierFirst: first, joinedDate: joined, period: period, reportDates: dates)
     }
 
@@ -480,9 +492,11 @@ struct AvatarReport: Transferable {
                 let single = best.flatMap { row in
                     row.bestSingleKG.map { [language.text("Best single"), weight($0), language.dateKey(row.date)].joined(separator: " · ") }
                 }
+                let hands = handLoadSections(variant)
                 if !points.isEmpty {
                     drawChart(variant, points: points, panel: panel, single: single, firstInSection: firstInSection)
-                } else if panel != nil || single != nil {
+                    drawHandLoadSections(hands, exercise: chartHeading(variant))
+                } else if panel != nil || single != nil || (!hands.isEmpty && repEndpoints(variant) == nil) {
                     if firstInSection || y + 75 + (panel?.height ?? 0) > 730 {
                         begin("Strength progress", subtitle: "")
                     }
@@ -492,11 +506,18 @@ struct AvatarReport: Transferable {
                     }
                     if let single { paragraph(single, size: 11, color: green) }
                     if let panel { drawLegPanel(panel, exercise: variant.name) }
+                    if repEndpoints(variant) == nil { drawHandLoadSections(hands, exercise: chartHeading(variant)) }
                     y += 12
                 } else { continue }
                 firstInSection = false
             }
             drawRepComparisons(charts.filter { $0.points.isEmpty }.map(\.variant))
+        }
+
+        private func repEndpoints(_ variant: StrengthProgress.ExerciseHistory) -> (StrengthProgress.SessionTotals, StrengthProgress.SessionTotals)? {
+            let complete = variant.sessions.lazy.filter { !$0.totals.missingReps && $0.totals.reps > 0 }
+            guard let first = complete.first, let last = complete.last, first.sessionID != last.sessionID else { return nil }
+            return (first, last)
         }
 
         private func drawRepComparisons(_ variants: [StrengthProgress.ExerciseHistory]) {
@@ -510,10 +531,10 @@ struct AvatarReport: Transferable {
 
             var started = false
             for variant in variants {
-                let complete = variant.sessions.filter { !$0.totals.missingReps && $0.totals.reps > 0 }
-                guard let first = complete.first, let last = complete.last, first.sessionID != last.sessionID else { continue }
+                guard let (first, last) = repEndpoints(variant) else { continue }
+                let hands = handLoadSections(variant)
                 let title = wrapped(chartHeading(variant), width: 270, size: 15, weight: .bold)
-                let height = CGFloat(title.count) * 19 + 28
+                let height = CGFloat(title.count) * 19 + 28 + pushUpHeight(hands)
                 if !started || y + height > 730 { heading() }
                 started = true
                 line(38, y, 574, y, color: rule)
@@ -529,7 +550,171 @@ struct AvatarReport: Transferable {
                 }
                 label(language.text(variant.familyRegion.rawValue), 38, y + 2, 270, size: 11, color: green)
                 y += 22
+                drawHandLoadSections(hands, exercise: chartHeading(variant))
             }
+        }
+
+        private struct HandLoadCard {
+            let session: UUID
+            let date: String
+            let fromBodyKG: Double?
+            let bodyKG: Double?
+            let addedKG: Double?
+            let estimateKG: Double?
+            let atCurrentMass: Bool
+            let position: StrengthProgress.PushUpLoadGuide.Position
+        }
+
+        private struct HandMetric {
+            var text: String
+            var size: CGFloat = 11
+            var weight: UIFont.Weight = .regular
+        }
+
+        private struct HandSection {
+            var title: String
+            var columns: [[HandMetric]]
+        }
+
+        private func approximateWeight(_ kg: Double) -> String {
+            "≈ " + number(report.unit.value(fromKilograms: kg).rounded()) + " " + report.unit.suffix
+        }
+
+        private func handLoadSections(_ variant: StrengthProgress.ExerciseHistory) -> [HandSection] {
+            guard let guide = StrengthProgress.PushUpLoadGuide.shared else { return [] }
+            let rows: [HandLoadCard] = variant.sessions.compactMap { row in
+                guard let set = row.pushUp else { return nil }
+                let historical = report.bodyweightBySession[row.sessionID]
+                let body = historical ?? report.currentBodyweight
+                let kg = body.flatMap { mass -> Double? in
+                    guard set.position == .floor || set.position == .levelFloorReference,
+                          (10...500).contains(mass), (set.addedKG ?? 0) <= guide.maxStudiedAddedKg else { return nil }
+                    return mass * guide.bodyweightFraction + (set.addedKG ?? 0) * guide.addedWeightFraction
+                }
+                return HandLoadCard(session: row.sessionID, date: row.date, fromBodyKG: body.map { $0 * guide.bodyweightFraction },
+                                    bodyKG: body, addedKG: set.addedKG, estimateKG: kg,
+                                    atCurrentMass: historical == nil && body != nil, position: set.position)
+            }
+            guard let last = rows.last else { return [] }
+            typealias Stage = (name: String, card: HandLoadCard)
+            func endpoints(_ values: [HandLoadCard]) -> [Stage] {
+                guard let first = values.first, let last = values.last else { return [] }
+                return (first.session == last.session ? [] : [(language.text("First"), first)]) + [(language.text("Latest"), last)]
+            }
+            func bodyLabel(_ card: HandLoadCard) -> String? {
+                card.bodyKG.map { language.text(card.atCurrentMass ? "At current bodyweight" : "Bodyweight") + " · " + weight($0) }
+            }
+            func stamp(_ stage: Stage) -> HandMetric {
+                HandMetric(text: stage.name + " · " + language.dateKey(stage.card.date), size: 12, weight: .semibold)
+            }
+            func heights(_ refs: [StrengthProgress.PushUpLoadGuide.Elevation], _ body: Double, added: Double = 0) -> [String] {
+                refs.map { number($0.heightCm.rounded()) + " cm · " + approximateWeight(body * $0.bodyweightFraction + added * guide.addedWeightFraction) }
+
+            }
+            var sections: [HandSection] = []
+            if rows.contains(where: { $0.estimateKG != nil }) {
+                var stages = endpoints(rows)
+                let best = rows.filter { !$0.atCurrentMass && $0.position == .floor && $0.addedKG != nil && $0.estimateKG != nil }
+                    .max { ($0.estimateKG ?? 0) < ($1.estimateKG ?? 0) }
+                if let best {
+                    if let index = stages.firstIndex(where: { $0.card.session == best.session }) {
+                        stages[index].name += " · " + language.text("Personal record")
+                    } else { stages.append((language.text("Personal record"), best)) }
+                }
+                let columns = stages.map { stage -> [HandMetric] in
+                    let card = stage.card
+                    let hasBackpack = (card.addedKG ?? 0) > 0
+                    var lines = [stamp(stage),
+                                 HandMetric(text: language.text(hasBackpack ? "With backpack" : "Without backpack"), size: 13, weight: .semibold),
+                                 HandMetric(text: card.estimateKG.map(approximateWeight) ?? "—", size: 21, weight: .bold)]
+                    if let body = bodyLabel(card) { lines.append(HandMetric(text: body)) }
+                    if hasBackpack, let fromBody = card.fromBodyKG {
+                        lines.append(HandMetric(text: language.text("Without backpack") + " · " + approximateWeight(fromBody), size: 12, weight: .semibold))
+                    }
+                    let addedLabel = card.addedKG.map { kg in
+                        kg == 0 ? language.text("Bodyweight only") : language.text("Added weight") + " · " + weight(kg)
+                    } ?? language.text("Added weight not recorded")
+                    lines.append(HandMetric(text: addedLabel))
+                    return lines
+                }
+                sections.append(HandSection(title: last.position == .levelFloorReference ? language.text("Level-floor reference") : "", columns: columns))
+            }
+            let references = rows.filter { $0.position != .floor && $0.bodyKG != nil }
+            let narrow = last.position == .narrowGrip
+            let baseColumns = endpoints(references).compactMap { stage -> [HandMetric]? in
+                guard let body = stage.card.bodyKG, let label = bodyLabel(stage.card) else { return nil }
+                let values = narrow ? [approximateWeight(body * guide.narrowGripBodyweightFraction)] : heights(guide.feetElevatedReferences, body)
+                return [stamp(stage), HandMetric(text: label)] + values.map { HandMetric(text: $0, size: 14, weight: .semibold) }
+            }
+            if !baseColumns.isEmpty {
+                let title = language.text(narrow ? "Narrow-grip reference · Half shoulder width" : "Feet elevated · Peak load from bodyweight")
+                let setup = narrow ? "" : " · " + language.text("Reference heights")
+                sections.append(HandSection(title: title + " · " + language.text("Without backpack") + setup, columns: baseColumns))
+            }
+            let loaded = references.filter { ($0.addedKG ?? 0) > 0 && ($0.addedKG ?? 0) <= guide.maxStudiedAddedKg }
+            let modelColumns = endpoints(loaded).compactMap { stage -> [HandMetric]? in
+                guard let body = stage.card.bodyKG, let added = stage.card.addedKG, let label = bodyLabel(stage.card) else { return nil }
+                let values = narrow ? [approximateWeight(body * guide.narrowGripBodyweightFraction + added * guide.addedWeightFraction)]
+                    : heights(guide.feetElevatedStaticReferences, body, added: added)
+                return [stamp(stage), HandMetric(text: label + " · " + language.text("Added weight") + " · " + weight(added))]
+                    + values.map { HandMetric(text: $0, size: 14, weight: .bold) }
+            }
+            if !modelColumns.isEmpty {
+                sections.append(HandSection(title: language.text("With backpack"), columns: modelColumns))
+            }
+            let bodyweightSets = variant.sessions.reduce(0) { $0 + $1.bodyweightPushUpSets }
+            if bodyweightSets > 0 {
+                let count = variant.sessions.reduce(0) { $0 + $1.bodyweightPushUpReps }
+                let details = language.text("Sets") + " · " + number(Double(bodyweightSets)) + "     " + language.format("%d reps", count)
+                sections.append(HandSection(title: language.text("Bodyweight only"), columns: [[HandMetric(text: details, size: 13, weight: .semibold)]]))
+            }
+            return sections
+        }
+
+        private func handLoadContent(_ sections: [HandSection], top: CGFloat?, draw: Bool) -> CGFloat {
+            var cursor = top ?? 0
+            let start = cursor
+            for section in sections {
+                if !section.title.isEmpty {
+                    for part in wrapped(section.title, width: 512, size: 12, weight: .bold) {
+                        if draw { label(part, 50, cursor, 512, size: 12, weight: .bold, color: green) }
+                        cursor += 16
+                    }
+                }
+                let width = 512 / CGFloat(section.columns.count)
+                var bottom = cursor
+                for (index, column) in section.columns.enumerated() {
+                    var lineTop = cursor
+                    for metric in column {
+                        for part in wrapped(metric.text, width: width - 5, size: metric.size, weight: metric.weight) {
+                            if draw { label(part, 50 + CGFloat(index) * width, lineTop, width - 5,
+                                            size: metric.size, weight: metric.weight, color: metric.size >= 14 ? green : ink) }
+                            lineTop += metric.size + 4
+                        }
+                    }
+                    bottom = max(bottom, lineTop)
+                }
+                cursor = bottom + 7
+            }
+            return cursor - start
+        }
+
+        private func pushUpHeight(_ sections: [HandSection]) -> CGFloat {
+            sections.isEmpty ? 0 : 46 + handLoadContent(sections, top: nil, draw: false)
+        }
+
+        private func drawHandLoadSections(_ sections: [HandSection], exercise: String) {
+            let height = pushUpHeight(sections)
+            guard height > 0 else { return }
+            if y + height > 738 { begin(exercise, subtitle: "") }
+            let frame = CGRect(x: 38, y: y + 4, width: 536, height: height - 10)
+            UIColor(red: 0.92, green: 0.97, blue: 0.95, alpha: 1).setFill()
+            UIBezierPath(roundedRect: frame, cornerRadius: 12).fill()
+            let onlyCounts = sections.count == 1 && sections[0].title == language.text("Bodyweight only")
+            label(language.text(onlyCounts ? "Recorded reps" : "Estimated load at the hands"),
+                  50, frame.minY + 8, 512, size: 17, weight: .bold)
+            _ = handLoadContent(sections, top: frame.minY + 33, draw: true)
+            y += height
         }
 
         private enum LegSupport: String, Decodable { case rearFootElevated, singleSupport, sharedSupport, externalOnly }

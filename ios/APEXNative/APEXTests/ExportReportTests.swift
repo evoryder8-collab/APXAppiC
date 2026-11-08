@@ -351,7 +351,8 @@ final class ExportReportTests: XCTestCase {
         XCTAssertTrue(charts.contains(language.text("Added weight")))
         XCTAssertTrue(charts.contains(language.text("Before").uppercased(with: language.language.locale)))
         XCTAssertTrue(charts.contains(language.text("After").uppercased(with: language.language.locale)))
-        XCTAssertFalse(charts.contains(language.text("Push-Up")))
+        XCTAssertTrue(charts.contains(language.text("Estimated load at the hands")))
+        XCTAssertTrue(charts.contains(language.text("Added weight not recorded")))
         XCTAssertFalse(charts.contains(language.text("Dumbbell Curl")))
         for (reps, kg) in [(18, 292), (30, 332)] {
             XCTAssertTrue(charts.contains(language.text("Recorded reps") + " " + String(reps)))
@@ -471,6 +472,79 @@ final class ExportReportTests: XCTestCase {
         XCTAssertTrue(reps.contains(language.dateKey("2026-01-05")) && reps.contains(language.dateKey(second.date)))
         XCTAssertFalse(reps.contains("Hammer"))
         XCTAssertFalse(pages.contains { $0.contains(language.text("Strength progress")) })
+    }
+
+    @MainActor
+    func testEstimatedPushUpHandLoadUsesDatedBodyweightAndExplicitAddedLoad() throws {
+        let dates = ["2026-01-05", "2026-01-12", "2026-01-19"]
+        let sessions = dates.map { date in
+            WorkoutSession(id: UUID(), userID: user, date: date, programDayID: dayID, isLite: false,
+                           isDeload: false, isEventRecovery: false, completed: true, qualityScore: 1,
+                           startedAt: nil, completedAt: nil, notes: "")
+        }
+        let loads: [Double?] = [nil, 10, 0]
+        let logs = sessions.enumerated().map { i, session in
+            WorkoutLog(id: UUID(), userID: user, sessionID: session.id, exerciseID: nil,
+                       exerciseName: "Strict Push-Up", setNumber: 1, weightKG: loads[i], reps: 8,
+                       rir: nil, movementID: "push_up", skipped: false, overrideFlag: false, createdAt: "")
+        }
+        var report = AvatarReport(ownerID: user, displayName: "Sample", snapshots: [], partialScores: [:],
+                                  sessions: sessions, logs: logs, unit: .kilograms,
+                                  bodyweightBySession: [sessions[1].id: 41, sessions[2].id: 43], currentBodyweight: 50)
+        let mixed = WorkoutLog(id: UUID(), userID: user, sessionID: sessions[1].id, exerciseID: nil,
+                               exerciseName: "Strict Push-Up", setNumber: 2, weightKG: 0, reps: 7,
+                               rir: nil, movementID: "push_up", skipped: false, overrideFlag: false, createdAt: "")
+        report = AvatarReport(ownerID: user, displayName: "Sample", snapshots: [], partialScores: [:],
+                              sessions: sessions, logs: logs + [mixed], unit: .kilograms,
+                              bodyweightBySession: report.bodyweightBySession, currentBodyweight: report.currentBodyweight)
+        let pdf = report.pdfData()
+        let language = LanguageState.shared
+        let text = try XCTUnwrap(PDFDocument(data: pdf)?.string)
+        XCTAssertTrue(text.contains(language.text("Sets") + " · 2") && text.contains(language.format("%d reps", 15)))
+        XCTAssertTrue(text.contains(language.text("Added weight not recorded")))
+        XCTAssertTrue(text.contains(language.text("Estimated load at the hands")))
+        XCTAssertTrue(text.contains(language.text("Without backpack") + " · ≈ 26 kg"))
+        XCTAssertTrue(text.contains(language.text("Added weight") + " · 10 kg"))
+        XCTAssertTrue(text.contains("≈ 33 kg") && text.contains("≈ 27 kg"))
+        XCTAssertTrue(text.contains(language.text("Personal record")))
+        XCTAssertTrue(text.contains(language.text("At current bodyweight") + " · 50 kg"))
+        XCTAssertTrue(text.contains(language.text("Bodyweight only")))
+        XCTAssertTrue(text.contains("80 kg"))
+        let sample = XCTAttachment(data: pdf, uniformTypeIdentifier: "com.adobe.pdf")
+        sample.name = "Estimated push-up hand loads.pdf"
+        sample.lifetime = .keepAlways
+        add(sample)
+
+        func single(_ name: String, _ movement: String, _ added: Double?) throws -> String {
+            var row = logs[0]
+            row.exerciseName = name
+            row.movementID = movement
+            row.weightKG = added
+            report = AvatarReport(ownerID: user, displayName: "Sample", snapshots: [], partialScores: [:],
+                                  sessions: [sessions[0]], logs: [row], unit: .kilograms,
+                                  bodyweightBySession: [row.sessionID: 41])
+            return try XCTUnwrap(PDFDocument(data: report.pdfData())?.string)
+        }
+        let ambiguous = try single("Weighted or Feet-Elevated Push-Up", "weighted_push_up", 10)
+        XCTAssertTrue(ambiguous.contains(language.text("Level-floor reference")))
+        XCTAssertTrue(ambiguous.contains("≈ 33 kg"))
+        XCTAssertFalse(ambiguous.contains(language.text("Personal record")))
+        XCTAssertTrue(ambiguous.contains("0 cm · ≈ 26 kg") && ambiguous.contains(language.text("Without backpack")))
+        XCTAssertTrue(ambiguous.contains("30 cm · ≈ 29 kg") && ambiguous.contains("61 cm · ≈ 30 kg"))
+        let elevated = try single("Feet-Elevated Push-Up", "feet_elevated_push_up", 10)
+        XCTAssertTrue(elevated.contains(language.text("Feet elevated · Peak load from bodyweight")))
+        XCTAssertTrue(elevated.contains(language.text("With backpack")))
+        XCTAssertTrue(elevated.contains("30 cm · ≈ 37 kg") && elevated.contains("61 cm · ≈ 37 kg"))
+        XCTAssertFalse(elevated.contains("≈ 33 kg"))
+        let narrow = try single("Diamond or Close-Grip Push-Up", "diamond_push_up", 10)
+        XCTAssertTrue(narrow.contains(language.text("Narrow-grip reference · Half shoulder width")))
+        XCTAssertTrue(narrow.contains("≈ 27 kg") && narrow.contains("≈ 34 kg"))
+        XCTAssertFalse(narrow.contains(language.text("Personal record")))
+        for (name, id, added) in [("Weighted Push-Up", "weighted_push_up", 35.0),
+                                  ("Strict Push-Up", "knee_push_up", 10.0),
+                                  ("Feet-Elevated Push-Up", "weighted_push_up", 10.0)] {
+            XCTAssertFalse(try single(name, id, added).contains(language.text("Estimated load at the hands")))
+        }
     }
 
     @MainActor

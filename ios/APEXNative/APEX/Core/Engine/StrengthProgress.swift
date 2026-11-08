@@ -100,6 +100,62 @@ enum StrengthProgress {
         }
     }
 
+    struct PushUpLoadGuide: Decodable {
+        let bodyweightFraction: Double
+        let addedWeightFraction: Double
+        let maxStudiedAddedKg: Double
+        let floorNames: [String]
+        let floorReferenceNames: [String]
+        let floorMovementIDs: [String]
+        let feetElevatedNames: [String]
+        let feetElevatedMovementIDs: [String]
+        struct Elevation: Decodable {
+            let heightCm: Double
+            let bodyweightFraction: Double
+        }
+        let feetElevatedReferences: [Elevation]
+        let feetElevatedStaticReferences: [Elevation]
+        let narrowGripNames: [String]
+        let narrowGripMovementIDs: [String]
+        let narrowGripBodyweightFraction: Double
+
+        enum Position: Sendable { case floor, levelFloorReference, elevated, narrowGrip }
+
+        static let shared: Self? = {
+            guard let url = Bundle.main.url(forResource: "push-up-load-guide", withExtension: "json"),
+                  let data = try? Data(contentsOf: url) else { return nil }
+            return try? JSONDecoder().decode(Self.self, from: data)
+        }()
+
+        private static func normalized(_ name: String) -> String {
+            name.lowercased().filter { $0.isLetter || $0.isNumber }
+        }
+
+        private static let positionsByName: [String: Position] = {
+            guard let guide = shared else { return [:] }
+            var names: [String: Position] = [:]
+            for name in guide.floorNames { names[normalized(name)] = .floor }
+            for name in guide.floorReferenceNames { names[normalized(name)] = .levelFloorReference }
+            for name in guide.feetElevatedNames { names[normalized(name)] = .elevated }
+            for name in guide.narrowGripNames { names[normalized(name)] = .narrowGrip }
+            return names
+        }()
+
+        func position(for log: WorkoutLog) -> Position? {
+            guard let position = Self.positionsByName[Self.normalized(log.exerciseName)] else { return nil }
+            if let id = log.movementID {
+                let allowed: [String]
+                switch position {
+                case .floor, .levelFloorReference: allowed = floorMovementIDs
+                case .elevated: allowed = feetElevatedMovementIDs
+                case .narrowGrip: allowed = narrowGripMovementIDs
+                }
+                guard allowed.contains(id) else { return nil }
+            }
+            return position
+        }
+    }
+
     struct SessionTotals: Sendable {
         let sessionID: UUID
         let date: String
@@ -107,6 +163,9 @@ enum StrengthProgress {
         var totals = LifetimeTotals()
         var heaviestSet: (kg: Double, reps: Int)?
         var bestSingleKG: Double?
+        var pushUp: (addedKG: Double?, position: PushUpLoadGuide.Position)?
+        var bodyweightPushUpSets = 0
+        var bodyweightPushUpReps = 0
 
         init(_ session: WorkoutSession) {
             sessionID = session.id
@@ -444,8 +503,9 @@ enum StrengthProgress {
             let measuresReps = !episode && descriptor.fields.contains(.reps) && treadmill == nil
                 && [storedUnit, catalogUnit].compactMap { $0 }.allSatisfy { $0 == "reps" || $0 == "max" }
             // A recorded mass still measures a same-implement set when the log leaves its stance unspecified.
+            let pushPosition = PushUpLoadGuide.shared?.position(for: log)
             let loadedPushUp = log.movementID == "weighted_push_up" && aliasFamily?.id == "push_up"
-            let comparableMass = !isComposite || loadedPushUp || ["hip_thrust", "biceps_curl", "calf_raise"].contains(aliasFamily?.id ?? "")
+            let comparableMass = !isComposite || loadedPushUp || pushPosition == .narrowGrip || ["hip_thrust", "biceps_curl", "calf_raise"].contains(aliasFamily?.id ?? "")
             let assisted = (normalized + " " + (movement?.id ?? "")).split(whereSeparator: { !$0.isLetter })
                 .contains { ["assisted", "counterweight", "counterweighted"].contains($0) }
             let recordsExternalWeight = measuresReps && comparableMass && !substitute && !assisted
@@ -478,6 +538,17 @@ enum StrengthProgress {
             groups[key]?.sessions[session.id, default: SessionTotals(session)].totals.record(
                 log, measuresReps: measuresReps, measuresLoad: measuresExternalLoad
             )
+            if measuresReps, (log.reps ?? 0) > 0, log.weightKG.map({ $0.isFinite && $0 >= 0 }) ?? true,
+               let position = pushPosition {
+                if log.weightKG == 0, let reps = log.reps {
+                    groups[key]?.sessions[session.id]?.bodyweightPushUpSets += 1
+                    groups[key]?.sessions[session.id]?.bodyweightPushUpReps += reps
+                }
+                let existing = groups[key]?.sessions[session.id]?.pushUp
+                if existing == nil || (log.weightKG ?? -1) > (existing?.addedKG ?? -1) {
+                    groups[key]?.sessions[session.id]?.pushUp = (log.weightKG, position)
+                }
+            }
             if recordsExternalWeight,
                let kg = log.weightKG, kg.isFinite, kg >= 0, let reps = log.reps, reps > 0 {
                 if let previous = groups[key]?.sessions[session.id]?.heaviestSet {

@@ -1,0 +1,93 @@
+{
+  "bodyweightFraction": 0.626,
+  "addedWeightFraction": 0.72,
+  "maxStudiedAddedKg": 30,
+  "sourceURL": "https://johk.pl/wp-content/uploads/2023/03/10078-73-2020-v73-2020-01.pdf",
+  "floorMovementIDs": [
+    "push_up",
+    "weighted_push_up"
+  ],
+  "floorNames": [
+    "push-up",
+    "push-ups",
+    "strict push-up",
+    "strict push-ups",
+    "strict bodyweight push-up",
+    "tempo push-up",
+    "standard push-up",
+    "weighted push-up",
+    "weighted push-ups",
+    "weighted backpack push-up",
+    "strict push-up max test",
+    "strict push-up back-off at 60–70%",
+    "weighted push-up back-off",
+    "weighted push-up on handles",
+    "weighted pushups (handles, backpack)",
+    "backpack push-up",
+    "backpack push-ups",
+    "weighted backpack push-ups",
+    "push-up with backpack",
+    "push-ups with backpack",
+    "push-up with a backpack",
+    "push-ups with a backpack",
+    "weighted vest push-up",
+    "weighted vest push-ups"
+  ],
+  "floorReferenceNames": [
+    "weighted or feet-elevated push-up",
+    "weighted/feet-elevated push-up"
+  ],
+  "feetElevatedSourceURL": "https://pubmed.ncbi.nlm.nih.gov/21873902/",
+  "feetElevatedReferences": [
+    {
+      "heightCm": 0,
+      "bodyweightFraction": 0.64
+    },
+    {
+      "heightCm": 30.48,
+      "bodyweightFraction": 0.7
+    },
+    {
+      "heightCm": 60.96,
+      "bodyweightFraction": 0.74
+    }
+  ],
+  "feetElevatedMovementIDs": [
+    "feet_elevated_push_up",
+    "decline_push_up_high_feet"
+  ],
+  "feetElevatedNames": [
+    "Feet-Elevated Push-Up",
+    "Feet-Elevated Push-Ups",
+    "Decline Push-Up",
+    "Decline Push-Ups",
+    "Decline Push-up (High Feet)"
+  ],
+  "narrowGripSourceURL": "https://doi.org/10.1519/00124278-200502000-00025",
+  "narrowGripBodyweightFraction": 0.65,
+  "narrowGripMovementIDs": [
+    "diamond_push_up",
+    "close_grip_push_up"
+  ],
+  "narrowGripNames": [
+    "Diamond Push-Up",
+    "Diamond Push-Ups",
+    "Close-Grip Push-Up",
+    "Close-Grip Push-Ups",
+    "Narrow-Grip Push-Up",
+    "Narrow-Grip Push-Ups",
+    "Diamond or Close-Grip Push-Up",
+    "Diamond/Close-Grip Push-Up"
+  ],
+  "feetElevatedStaticSourceURL": "https://doi.org/10.1097/00005768-200305001-00328",
+  "feetElevatedStaticReferences": [
+    {
+      "heightCm": 30.48,
+      "bodyweightFraction": 0.724
+    },
+    {
+      "heightCm": 61,
+      "bodyweightFraction": 0.739
+    }
+  ]
+}
