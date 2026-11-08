@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { avatarReportHTML, downloadableAvatarReport, reportBodyweight, reportSessionBodyweights } from '../src/lib/avatarReport.ts'
+import { avatarReportHTML, downloadableAvatarReport, reportBodyweight, reportExerciseRecords, reportSessionBodyweights } from '../src/lib/avatarReport.ts'
 import { avatarReportRange } from '../src/lib/avatarReportRange.ts'
 import { exerciseChartTitle } from '../src/lib/strengthProgress.ts'
 import { EMPTY_DATA } from '../src/lib/types.ts'
@@ -114,7 +114,7 @@ test('download fetches only the selected object and embeds its WebP next to the 
   assert.equal(fetchImage.mock.callCount(),before)
 })
 
-test('unilateral estimates distinguish recorded load, combined mass and support for the actual variation', () => {
+test('an unconfirmed default profile mass cannot supply bodyweight in a report', () => {
   const profile = seedProfile('user')
   profile.weight_kg = 70
   const data = { ...EMPTY_DATA, profile, health_metrics: [
@@ -124,31 +124,55 @@ test('unilateral estimates distinguish recorded load, combined mass and support 
   assert.equal(reportBodyweight(data, input.today),null)
   data.health_metrics.push({ ...data.health_metrics[0], id:'known', date:'2026-11-07' })
   assert.equal(reportBodyweight(data, input.today),70)
-  const make = (key: string, name: string, currentBodyweight: number | null = 70) => {
-    const points = [{date:'2026-11-01',topWeight:20,topReps:5},{date:'2026-11-02',topWeight:20,topReps:8}]
-    return avatarReportHTML({ ...input, currentBodyweight, families:[{ key:'family:split_squat', name:'Split Squat',
-      work:noWork, sessionCount:2, variants:[{ key, name, points, work:noWork, sessionCount:2 }] }] })
-  }
-  const rfess = make('movement:bulgarian_split_squat','Bulgarian Split Squat')
-  assert.match(rfess, /<h3>Split Squat<\/h3><p class="variation">Bulgarian<\/p>/)
-  assert.match(rfess, /<title>#1 · Nov 1, 2026 · 5 reps × 20 kg<\/title>/)
-  assert.match(rfess, /<title>#2 · Nov 2, 2026 · 8 reps × 20 kg<\/title>/)
-  assert.match(rfess, /Personal best · <strong>8 reps × 20 kg/)
-  assert.match(rfess, /<span>Front foot · estimated<\/span><strong>≈ 76 kg/)
-  assert.match(rfess, /Current bodyweight 70 \+ 20 kg/)
-  assert.match(make('name:bulgarian split squat','Bulgarian Split Squat'), /Front foot · estimated/)
-  assert.match(make('movement:single_leg_romanian_deadlift','Single-Leg Romanian Deadlift'), /Standing foot · estimated/)
-  const lunge = make('movement:reverse_lunge','Reverse Lunge',41)
-  assert.match(lunge, /<span>Added weight<\/span><strong>20 kg/)
-  assert.match(lunge, /<span>Body \+ load<\/span><strong>61 kg/)
-  assert.doesNotMatch(lunge,/≈/)
-  for (const html of [make('movement:smith_split_squat','Smith Split Squat'),
-    make('movement:bulgarian_split_squat','Bulgarian Split Squat (hand-supported)'),
-    make('movement:bulgarian_split_squat','Bulgarian Split Squat',null)]) {
-    assert.match(html, /<span>Added weight<\/span><strong>20 kg/)
-    assert.doesNotMatch(html,/Body \+ load|≈/)
-  }
-  assert.doesNotMatch(make('name:custom','Custom split squat variation'), /Working leg/)
+})
+
+function recordedHistory() {
+  const profile = seedProfile('user')
+  const session = (id, date) => ({id, date, user_id:'user', completed:true})
+  const log = (session_id, exercise_name, movement_id, set_no, weight_kg, reps, changes = {}) => ({
+    id:[session_id,movement_id,set_no].join('-'), user_id:'user', exercise_id:null, exercise_name, movement_id,
+    session_id, set_no, weight_kg, reps, skipped:false, ...changes,
+  })
+  const lunge = (day, set, weight, reps, changes = {}) => log(day,'Reverse Lunge','reverse_lunge',set,weight,reps,changes)
+  return {...EMPTY_DATA,profile,workout_sessions:[session('s0','2026-01-01'),session('s1','2026-11-01'),session('s2','2026-11-02'),session('s3','2026-11-07')],
+    workout_logs:[lunge('s0',1,0,8),lunge('s0',2,10,8),lunge('s1',2,24,1),lunge('s1',1,25,6),lunge('s2',1,12,10),
+      lunge('s3',1,100,1),lunge('s2',2,1000,1,{skipped:true}), log('s2','Bench Press','barbell_bench_press',1,35,1),
+      log('s2','Bench Press','barbell_bench_press',2,40,3),
+      log('s2','Bench Press','barbell_bench_press',3,1000,1,{user_id:'another'})]}
+}
+
+const period = {from:'2026-11-01',to:'2026-11-06',allTime:false}
+function exampleReport() {
+  const data = recordedHistory()
+  const exerciseRecords = reportExerciseRecords(data, period)
+  const key = 'movement:reverse_lunge'
+  const points = exerciseRecords.get(key).sessions.map(set => ({
+    sessionId:set.sessionId,date:set.date,topWeight:set.weight,topReps:set.reps,
+  }))
+  return {...input,joined:'2025-08-05',range:period,currentBodyweight:88,exerciseRecords,
+    sessionBodyweights:new Map([['s0',39],['s1',42],['s2',41]]),
+    families:[{key:'family:lunge',name:'Lunge',work:noWork,sessionCount:2,variants:[{key,name:'Reverse Lunge',points,work:noWork,sessionCount:2}]},
+      {name:'Bench Press',work:noWork,sessionCount:1,variants:[{key:'movement:barbell_bench_press',name:'Bench Press',points:[],work:noWork,sessionCount:1}]}]}
+}
+test('split records keep lifetime first, current in-range work, mid-period best and a lighter real single', () => {
+  const html = avatarReportHTML(exampleReport())
+  assert.match(html, /<h5>Before<\/h5>[\s\S]*?Joined FITR MAX · Aug 5, 2025[\s\S]*?First recorded · Jan 1, 2026[\s\S]*?Added weight<\/dt><dd>0 kg[\s\S]*?Body \+ load<\/dt><dd>39 kg/)
+  assert.match(html, /<h5>After<\/h5>[\s\S]*?Latest · Nov 2, 2026[\s\S]*?Added weight<\/dt><dd>12 kg[\s\S]*?Body \+ load<\/dt><dd>53 kg/)
+  assert.match(html, /Personal record<\/b>\s*<strong>67 kg<\/strong><small>Body \+ load · 6 reps · Nov 1, 2026/)
+  assert.match(html, /Best single<\/b> · 1 rep × 24 kg · Nov 1, 2026/)
+  assert.match(html, /Best single<\/b> · 1 rep × 35 kg · Nov 2, 2026/)
+  assert.doesNotMatch(html,/1RM|1000 kg|Nov 7, 2026/)
+})
+
+test('an unrecorded starting weight stays unknown and old sessions do not borrow current profile mass', () => {
+  const data = recordedHistory()
+  data.workout_logs[0].weight_kg = null
+  const exerciseRecords = reportExerciseRecords(data,period)
+  assert.equal(exerciseRecords.get('movement:reverse_lunge').before.weight,null)
+  const html=avatarReportHTML({...exampleReport(),exerciseRecords,joined:undefined,sessionBodyweights:new Map()})
+  assert.match(html,/First recorded · Jan 1, 2026[\s\S]*?Added weight<\/dt><dd>—<\/dd>[\s\S]*?Body \+ load<\/dt><dd>—<\/dd>/)
+  assert.match(html,/Personal record<\/b>\s*<strong>25 kg<\/strong><small>Added weight/)
+  assert.doesNotMatch(html,/Joined FITR MAX|88 kg/)
 })
 
 test('strength headings show variant modifiers once and keep custom names intact', () => {
@@ -173,36 +197,16 @@ test('report periods use inclusive calendar boundaries, clamped months, and reje
   assert.deepEqual(custom('2026-07-01','2026-07-01'),{from:'2026-07-01',to:'2026-07-01',allTime:false})
   for (const dates of [['2026-02-30','2026-03-01'],['2026-05-03','2026-05-02'],['2026-10-01','2026-11-09']]) assert.equal(custom(...dates),null)
 })
-test('download embeds each chart anatomy once per movement fetch and retains the tiles when offline', async t => {
+test('download embeds the same exercise illustration in both columns and keeps values when offline', async t => {
   const webp = 'UklGRiIAAABXRUJQVlA4IBYAAAAwAQCdASoBAAEAAUAmJaQAA3AA/v89WAAAAA=='
-  const points = [{date:'2026-11-01', topWeight:10,topReps:5},{date:'2026-11-02',topWeight:20,topReps:10}]
-  const variant = { key:'movement:bulgarian_split_squat',name:'Bulgarian Split Squat',points,work:noWork,sessionCount:2 }
-  const options = { ...input, currentBodyweight:70, families:[{name:'Split Squat',work:noWork,sessionCount:2,variants:[variant,variant]}] }
   const fetchImage = t.mock.method(globalThis,'fetch',async () => new Response(Buffer.from(webp,'base64')))
-  const html = await downloadableAvatarReport(options,'/app/')
-  assert.deepEqual(fetchImage.mock.calls.map(call=>call.arguments[0]),['/app/leg-anatomy/bulgarian_split_squat.webp'])
+  const html = await downloadableAvatarReport(exampleReport(),'/app/')
+  assert.deepEqual(fetchImage.mock.calls.map(call=>call.arguments[0]),['/app/leg-anatomy/reverse_lunge.webp'])
   assert.equal((html.match(/<img alt="" src="data:image\/webp;base64,/g) ?? []).length,2)
   fetchImage.mock.mockImplementation(async () => new Response('missing',{status:404}))
-  const offline = await downloadableAvatarReport(options,'/app/')
+  const offline = await downloadableAvatarReport(exampleReport(),'/app/')
   assert.doesNotMatch(offline,/<img/)
-  assert.match(offline,/Front foot · estimated/)
-})
-
-test('the latest single-leg card uses that session’s dated bodyweight and keeps unknown mass out of historical reports', () => {
-  const points = [[16,1],[20,2],[30,3]].map(([weight,i])=>({sessionId:'s'+i,date:'2026-11-0'+i,topWeight:weight,topReps:8}))
-  const variant = { key:'movement:bulgarian_split_squat',name:'Bulgarian Split Squat',points,work:noWork,sessionCount:3 }
-  const options = {...input,currentBodyweight:80,families:[{key:'family:split_squat',name:'Split Squat',work:noWork,sessionCount:3,variants:[variant]}]}
-  const masses = new Map([['s1',70],['s2',80],['s3',60]])
-  const html = avatarReportHTML({...options,sessionBodyweights:masses})
-  assert.match(html,/<span>Front foot · estimated<\/span><strong>≈ 76 kg/)
-  assert.match(html,/<span>Body \+ load<\/span><strong>90 kg<\/strong><small>60 \+ 30 kg/)
-  assert.match(html,/Personal best · <strong>8 reps × 30 kg/)
-  assert.doesNotMatch(html,/Current bodyweight|Peak<\/span>/)
-  const incomplete = avatarReportHTML({...options,sessionBodyweights:new Map([['s2',100]])})
-  assert.match(incomplete, /<span>Added weight<\/span><strong>30 kg/)
-  assert.doesNotMatch(incomplete,/Body \+ load|≈/)
-  const historical = avatarReportHTML({...options,range:{from:'2026-11-01',to:'2026-11-03',allTime:false}})
-  assert.doesNotMatch(historical,/Current bodyweight used as a reference|≈/)
+  assert.match(offline,/53 kg/)
 })
 
 test('session bodyweights exclude other accounts, superseded data, unsupported values and later weigh-ins', () => {

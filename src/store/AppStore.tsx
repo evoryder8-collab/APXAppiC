@@ -172,6 +172,7 @@ interface StoreValue {
   appAccess: AccountAccessResolution
   ready: boolean
   authed: boolean
+  accountCreatedAt?: string
   syncStatus: SyncStatus
   snapshots: RpgSnapshot[]
   avatarDomainScores: Partial<StatBlock>
@@ -1626,6 +1627,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     appAccess,
     ready,
     authed: isLocalMode || !!session,
+    accountCreatedAt: session && session.user.id === data.profile?.user_id ? session.user.created_at : undefined,
     syncStatus,
     snapshots,
     avatarDomainScores,

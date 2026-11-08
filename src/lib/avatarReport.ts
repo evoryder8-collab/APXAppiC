@@ -1,7 +1,7 @@
 // A standalone document: the downloaded report needs neither a login nor a network connection.
 import { athleteTitle, type TrainingProfile } from './trainingProfile.ts'
 import { datedChartAxis, distinctSessionPositions } from './datedChartAxis.ts'
-import { exerciseChartTitle, totalRecordedWork, type ExerciseFrequencyFamily, type RecordedWork, type RankedExerciseHistory } from './strengthProgress.ts'
+import { exerciseChartTitle, performedWorkoutObservations, totalRecordedWork, type ExerciseFrequencyFamily, type RecordedWork, type RankedExerciseHistory } from './strengthProgress.ts'
 import { formattedMass, heroLiftCaption, liftedMassCaption } from './liftedMassComparison.ts'
 import guide from '../../shared/unilateral-load-guide.json' with { type: 'json' }
 import { MOVEMENT_ALIASES, MOVEMENTS } from '../data/movements.ts'
@@ -17,9 +17,11 @@ type ReportFamily = ReportWorkRow & {
   key?: string
   variants: Array<ReportWorkRow & { key?: string } & Pick<RankedExerciseHistory, 'points'>>
 }
+type WorkingSet = { sessionId: string; date: string; weight: number | null; reps: number | null }
+type ExerciseRecord = { before: WorkingSet; sessions: WorkingSet[]; bestSingle?: WorkingSet }
 type ReportInput = {
   name: string; locale: string; today: string; snapshots: RpgSnapshot[]; currentBodyweight?: number | null; range?: AvatarReportRange
-  sessionBodyweights?: ReadonlyMap<string, number>
+  sessionBodyweights?: ReadonlyMap<string, number>; exerciseRecords?: ReadonlyMap<string, ExerciseRecord>; joined?: string
   observed: Partial<StatBlock>; training: TrainingProfile; families: ReportFamily[]; translate: (text: string) => string
 }
 type Illustration = { filename: string; dataURL: string }
@@ -92,6 +94,30 @@ export function reportSessionBodyweights(data: AppData, through: string): Map<st
   return result
 }
 
+export function reportExerciseRecords(data: AppData, range: { from: string; to: string }): Map<string, ExerciseRecord> {
+  const observations = [...performedWorkoutObservations(data, { from: '0001-01-01', to: range.to })]
+    .filter(o => o.repBased && o.movement.measuresExternalWeight && !/[+/]|\bor\b/i.test(o.name))
+    .sort((a,b) => a.session.date.localeCompare(b.session.date)
+      || (a.session.started_at ?? a.session.completed_at ?? '').localeCompare(b.session.started_at ?? b.session.completed_at ?? '')
+      || a.session.id.localeCompare(b.session.id) || a.log.set_no - b.log.set_no || a.log.id.localeCompare(b.log.id))
+  const records = new Map<string, ExerciseRecord>()
+  for (const { movement, session, log, reps } of observations) {
+    const weight = log.weight_kg
+    const set: WorkingSet = { sessionId: session.id, date: session.date, reps,
+      weight: weight != null && Number.isFinite(weight) && weight >= 0 ? weight : null }
+    const record: ExerciseRecord = records.get(movement.key) ?? { before: set, sessions: [] }
+    records.set(movement.key, record)
+    if (session.date < range.from) continue
+    const last = record.sessions.at(-1)
+    if (last?.sessionId !== session.id) record.sessions.push(set)
+    else if ((set.weight ?? -1) > (last.weight ?? -1) || (set.weight === last.weight && (reps ?? 0) > (last.reps ?? 0))) {
+      record.sessions[record.sessions.length - 1] = set
+    }
+    if (reps === 1 && set.weight != null && set.weight > (record.bestSingle?.weight ?? 0)) record.bestSingle = set
+  }
+  return records
+}
+
 export function reportBodyweight(data: AppData, today: string): number | null {
   const profile = data.profile
   if (!profile || !validMass(profile.weight_kg)) return null
@@ -122,7 +148,8 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
   const fmt = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 })
   const dates = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })
   const stamp = (d: string) => dates.format(new Date(d + 'T12:00:00Z'))
-  const metric = (p: ReportPoint, unit: string) => (p.reps != null && p.reps > 0 ? fmt.format(p.reps) + ' ' + t('reps') + ' × ' : '') + fmt.format(p.value) + unit
+  const repCount = (n: number) => fmt.format(n) + ' ' + t(n === 1 ? 'rep' : 'reps')
+  const metric = (p: ReportPoint, unit: string) => (p.reps != null && p.reps > 0 ? repCount(p.reps) + ' × ' : '') + fmt.format(p.value) + unit
   const chart = (series: ReportPoint[], unit: string, label: string, perSession = false) => {
     if (series.length < 2) return ''
     const max = unit ? series.reduce((peak, p) => Math.max(peak, p.value), 0) : 100
@@ -156,41 +183,63 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
   function volumeTotal(work: RecordedWork) {
     return work.liftedKg == null ? null : formattedMass(work.liftedKg, locale) + (work.missingVolume ? '*' : '')
   }
-  function workingLeg(variant: ReportFamily['variants'][number]) {
+  function setLabel(set: WorkingSet) {
+    return [set.reps != null && repCount(set.reps), set.weight != null && fmt.format(set.weight) + ' kg'].filter(Boolean).join(' × ')
+  }
+  function singleRecord(set?: WorkingSet) {
+    return set ? `<p class="single-record"><b>${t('Best single')}</b> · ${setLabel(set)} · ${stamp(set.date)}</p>` : ''
+  }
+  function workingLeg(variant: ReportFamily['variants'][number], record: ExerciseRecord) {
     const load = loadGuide(variant)
-    if (!load) return ''
-    const latest = variant.points.at(-1)!
-    const external = latest.topWeight
-    const datedBody = options.sessionBodyweights?.get(latest.sessionId)
-    const canUseCurrent = (options.range?.to ?? today) === today
-      && !variant.points.some(point => validMass(options.sessionBodyweights?.get(point.sessionId)))
-    const body = validMass(datedBody) ? datedBody : canUseCurrent && validMass(options.currentBodyweight) ? options.currentBodyweight : null
-    const combined = body != null && load.kind !== 'externalOnly' ? body + external : null
-    const tiles: Array<[string, string, string?]> = []
-    let note = ''
-    if (combined != null) {
-      if (load.kind === 'rearFootElevated') {
-        tiles.push(['Front foot · estimated', '≈ ' + fmt.format(Math.round(combined * 0.8436))])
-      } else if (load.kind === 'singleSupport') {
-        tiles.push(['Standing foot · estimated', '≈ ' + fmt.format(Math.round(combined))])
-      } else {
-        note = t('The share on each foot varies with stance and support.')
-      }
+    const latest = record.sessions.at(-1)
+    if (!load || !latest) return ''
+    const kind = load.kind
+    function bodyFor(set: WorkingSet) {
+      const mass = options.sessionBodyweights?.get(set.sessionId)
+      if (validMass(mass)) return mass
+      return set.date === today && validMass(options.currentBodyweight) ? options.currentBodyweight : null
     }
-    tiles.push(['Added weight', fmt.format(external)])
-    if (combined != null && body != null) {
-      const reference = validMass(datedBody) ? '' : t('Current bodyweight') + ' '
-      tiles.push(['Body + load', fmt.format(combined), reference + fmt.format(body) + ' + ' + fmt.format(external) + ' kg'])
+    function combined(set: WorkingSet) {
+      const body = bodyFor(set)
+      return kind !== 'externalOnly' && body != null && set.weight != null ? body + set.weight : null
     }
+    const comparable = record.sessions.filter(set => set.weight != null && set.reps != null && set.reps > 0)
+    const measured = comparable.filter(set => combined(set) != null)
+    const best = (measured.length ? measured : comparable).reduce<WorkingSet | undefined>((peak, current) => {
+      const value = combined(current) ?? current.weight!
+      const previous = peak && (combined(peak) ?? peak.weight!)
+      return previous == null || value > previous || (value === previous && current.reps! > peak!.reps!) ? current : peak
+    }, undefined)
     const art = legArt.get(load.id)
     const image = art?.startsWith('data:image/webp;base64,') ? `<img alt="" src="${escape(art)}">` : ''
-    return `<aside class="leg-load">${image}<div class="leg-content"><h4>${t('Working leg')}</h4><div class="leg-tiles">
-      ${tiles.map(([label,value,detail]) => `<div class="leg-tile"><span>${t(label)}</span><strong>${value} kg</strong>${detail ? `<small>${detail}</small>` : ''}</div>`).join('')}</div>
-      ${note ? `<p>${note}</p>` : ''}</div></aside>`
+    function stage(label: 'Before' | 'After', set: WorkingSet) {
+      const total = combined(set)
+      const body = bodyFor(set)
+      const added = set.weight
+      const values: [string,number | null,string?][] = [['Added weight', added]]
+      if (kind !== 'externalOnly') {
+        const breakdown = total != null && body != null && added != null ? fmt.format(body) + ' + ' + fmt.format(added) + ' kg' : undefined
+        values.push(['Body + load', total, breakdown])
+      }
+      const peakTotal = best && combined(best)
+      const recordDisplay = label === 'After' && best ? `<p class="leg-record"><b>${t('Personal record')}</b>
+        <strong>${fmt.format(peakTotal ?? best.weight!)} kg</strong><small>${t(peakTotal != null ? 'Body + load' : 'Added weight')} · ${repCount(best.reps!)} · ${stamp(best.date)}</small></p>` : ''
+      return `<div class="leg-stage"><div class="leg-dates"><h5>${t(label)}</h5>
+        ${label === 'Before' && isIsoDate(options.joined) ? `<small>${t('Joined FITR MAX')} · ${stamp(options.joined)}</small>` : ''}
+        <small>${t(label === 'Before' ? 'First recorded' : 'Latest')} · ${stamp(set.date)}</small></div>
+        ${image}<dl>${values.map(([key,value,detail]) =>
+          `<div><dt>${t(key)}</dt><dd>${value == null ? '—' : fmt.format(value) + ' kg'}</dd>${detail ? `<small>${detail}</small>` : ''}</div>`).join('')}</dl>${label === 'After' ? `<div class="leg-bests">${recordDisplay}${singleRecord(record.bestSingle)}</div>` : ''}</div>`
+    }
+    return `<aside class="leg-load"><h4>${t('Working leg')}</h4><div class="leg-stages">${stage('Before',record.before)}${stage('After',latest)}</div>
+      ${load.kind === 'sharedSupport' ? `<p class="leg-note">${t('The share on each foot varies with stance and support.')}</p>` : ''}</aside>`
   }
-  const lifts = families.flatMap(family => family.variants.filter(variant => variant.points.length >= 2).map(variant => {
+  const lifts = families.flatMap(family => family.variants.flatMap(variant => {
     const points = variant.points.map(p => ({ date: p.date, value: p.topWeight, reps: p.topReps }))
-    const best = points.reduce((peak, p) => p.value > peak.value || (p.value === peak.value && (p.reps ?? 0) > (peak.reps ?? 0)) ? p : peak)
+    const record = options.exerciseRecords?.get(variant.key ?? '')
+    const leg = record ? workingLeg(variant, record) : ''
+    const single = leg ? '' : singleRecord(record?.bestSingle)
+    if (points.length < 2 && !leg && !single) return []
+    const best = points.reduce<ReportPoint | undefined>((peak, p) => !peak || p.value > peak.value || (p.value === peak.value && (p.reps ?? 0) > (peak.reps ?? 0)) ? p : peak, undefined)
     const { title, subtitle } = exerciseChartTitle(family, variant.name, t)
     const reps = repsTotal(variant.work)
     const volume = volumeTotal(variant.work)
@@ -198,10 +247,10 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
       reps && `<div><dt>${t('Recorded reps')}</dt><dd>${reps}</dd></div>`,
       volume && `<div><dt>${t('Lifted volume')}</dt><dd>${volume}</dd></div>`,
     ].join('')
-    return `<article><h3>${title}</h3>${subtitle ? `<p class="variation">${subtitle}</p>` : ''}
+    return [`<article><h3>${title}</h3>${subtitle ? `<p class="variation">${subtitle}</p>` : ''}
       ${chart(points, ' kg', t(variant.name), true)}
-      <p class="best-set">${t(options.range && !options.range.allTime ? 'Best in range' : 'Personal best')} · <strong>${metric(best, ' kg')}</strong></p>
-      ${stats ? `<dl>${stats}</dl>` : ''}${workingLeg(variant)}</article>`
+      ${best && points.length >= 2 ? `<p class="best-set">${t(options.range && !options.range.allTime ? 'Best in range' : 'Personal best')} · <strong>${metric(best, ' kg')}</strong></p>` : ''}
+      ${stats ? `<dl>${stats}</dl>` : ''}${leg}${single}</article>`]
   }))
   const total = totalRecordedWork(families)
   const object = liftedMassCaption(total.liftedKg ?? 0, locale, translate)
@@ -252,8 +301,8 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
 .lifts dl{display:flex;flex-wrap:wrap;gap:4px 22px;margin:10px 0 0;padding-top:8px;border-top:1px solid #e6e0ed}
 .lifts dl div{display:flex;gap:6px;align-items:baseline}.lifts dt{color:#584d69;font-size:.82em}.lifts dd{font-weight:700;margin:0}
 .lifts>p{margin-bottom:8px}.variation{font-weight:600}.best-set{margin-top:18px}.lifts dl{margin:14px 0 0;padding:12px 0 0;gap:8px 28px}
-.leg-load{display:flex;align-items:center;gap:12px;background:#edf5f1;border-radius:14px;margin-top:16px;padding:12px}.leg-load img{width:18%;height:110px;object-fit:contain}.leg-content{flex:1;min-width:0}.leg-load h4{margin:0 0 6px;font-size:1.05em}.leg-tiles{display:flex;flex-wrap:wrap;gap:6px}.leg-tile{flex:1 1 78px;border-radius:8px;padding:8px;background:#fff}.leg-tile:first-child{background:#cdeee3}.leg-tile span,.leg-tile small{display:block;font-size:.75em;overflow-wrap:anywhere}.leg-tile strong{display:block;font-size:clamp(17px,2.5vw,25px);font-variant-numeric:tabular-nums}.leg-load p{font-size:.76em;margin:.4em 0 0}
-@media print{.award-art{height:27mm}.leg-load img{height:25mm}}
+.leg-load{background:#edf5f1;border-radius:14px;margin-top:16px;padding:12px}.leg-load h4{margin:0 0 8px}.leg-stages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.leg-stage{display:grid;grid-template-rows:subgrid;grid-row:span 4;row-gap:0;border-radius:12px;background:#fff;padding:12px}.leg-stage .leg-dates{grid-row:1}.leg-stage img{grid-row:2}.leg-stage dl{grid-row:3}.leg-bests{grid-row:4}.leg-stage+.leg-stage{background:#d9efe6}.leg-dates{min-height:4.3em}.leg-stage h5{margin:0 0 5px;text-transform:uppercase;letter-spacing:.09em}.leg-stage small{display:block;font-size:.76em;color:#425e55}.leg-stage img{display:block;width:100%;height:116px;object-fit:contain;margin:8px 0}.leg-stage dl{margin:8px 0 0;border:0;padding:0;gap:6px 14px}.leg-stage dl div{display:block}.leg-stage dd,.leg-record strong{font-size:1.2em;font-weight:700}.leg-record{border-top:1px solid #b8d2c4;margin:10px 0 0;padding-top:8px}.leg-record b,.leg-record strong{display:block;color:#174e3c}.leg-note,.single-record{font-size:.8em;margin:8px 0}.single-record{margin-top:12px}
+@media print{.award-art{height:27mm}.leg-stage img{height:24mm}}
 @media screen and (max-width:600px){svg text{font-size:17px}.profile p:not(.period){font-size:.9em}.lifts article{padding:14px}.ends{gap:2px 10px}}
 @media print{.profile{padding:14px 20px}.profile h1{font-size:29pt}.totals{display:flex;columns:auto;align-items:flex-start}.totals article{flex:1;min-width:0}}
 </style><main><div class="masthead"><strong>FITR MAX · ${t('Avatar report')}</strong><p>${escape(name)} · ${stamp(today)}</p></div>
@@ -285,7 +334,7 @@ export async function downloadableAvatarReport(options: ReportInput, baseURL: st
   const kg = totalRecordedWork(options.families).liftedKg
   const filename = kg == null ? undefined : liftedMassCaption(kg, options.locale, options.translate)?.artwork
   const ids = new Set(options.families.flatMap(family => family.variants.flatMap(variant => {
-    const load = variant.points.length >= 2 ? loadGuide(variant) : null
+    const load = options.exerciseRecords?.get(variant.key ?? '')?.sessions.length ? loadGuide(variant) : null
     return load ? [load.id] : []
   })))
   const [award, anatomy] = await Promise.all([
