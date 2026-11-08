@@ -416,7 +416,7 @@ actor SupabaseService {
 
     func loadDashboard() async throws -> DashboardData {
         guard let client else { throw APEXServiceError.configurationMissing }
-        let foodOwnerID = try await client.auth.session.user.id
+        let ownerID = try await client.auth.session.user.id
 
         async let profile: [Profile] = client.from("profile").select().limit(1).execute().value
         async let settings: [UserSettings] = client.from("settings").select().limit(1).execute().value
@@ -427,8 +427,8 @@ actor SupabaseService {
         async let programs: [Program] = client.from("programs").select().execute().value
         async let programDays: [ProgramDay] = client.from("program_days").select().order("sort_order").execute().value
         async let exercises: [Exercise] = client.from("exercises").select().order("sort_order").execute().value
-        async let workoutSessions = loadAllWorkoutSessions(client: client)
-        async let workoutLogs = loadAllWorkoutLogs(client: client)
+        async let workoutSessions = loadAllWorkoutSessions(client: client, ownerID: ownerID)
+        async let workoutLogs = loadAllWorkoutLogs(client: client, ownerID: ownerID)
         async let deloadMarks: [DeloadMark] = client.from("deload_marks").select().order("date", ascending: false).limit(180).execute().value
         async let activityTypes: [ActivityType] = client.from("activity_types").select().execute().value
         async let activityLogs: [ActivityLog] = client.from("activity_logs").select().order("date", ascending: false).limit(360).execute().value
@@ -444,11 +444,11 @@ actor SupabaseService {
         }
         async let events: [EventRecord] = client.from("events").select().order("start_date", ascending: false).limit(180).execute().value
         async let recentFoods: [Food] = client.from("foods").select().order("updated_at", ascending: false).order("id").limit(250).execute().value
-        async let foodPreferences: [FoodPreference] = loadOwnedFoodRows(client: client, table: "food_preferences", ownerID: foodOwnerID)
-        async let mealPresets: [MealPreset] = loadOwnedFoodRows(client: client, table: "meal_presets", ownerID: foodOwnerID)
-        async let mealPresetItems: [MealPresetItem] = loadOwnedFoodRows(client: client, table: "meal_preset_items", ownerID: foodOwnerID)
-        async let loggedMeals: [LoggedMeal] = loadOwnedFoodRows(client: client, table: "logged_meals", ownerID: foodOwnerID)
-        async let loggedFoodEntries: [LoggedFoodEntry] = loadOwnedFoodRows(client: client, table: "logged_food_entries", ownerID: foodOwnerID)
+        async let foodPreferences: [FoodPreference] = loadOwnedFoodRows(client: client, table: "food_preferences", ownerID: ownerID)
+        async let mealPresets: [MealPreset] = loadOwnedFoodRows(client: client, table: "meal_presets", ownerID: ownerID)
+        async let mealPresetItems: [MealPresetItem] = loadOwnedFoodRows(client: client, table: "meal_preset_items", ownerID: ownerID)
+        async let loggedMeals: [LoggedMeal] = loadOwnedFoodRows(client: client, table: "logged_meals", ownerID: ownerID)
+        async let loggedFoodEntries: [LoggedFoodEntry] = loadOwnedFoodRows(client: client, table: "logged_food_entries", ownerID: ownerID)
         async let snapshots: [RPGSnapshot] = client.from("rpg_snapshots").select().order("date", ascending: false).limit(180).execute().value
         async let healthMetrics: [HealthMetric] = client.from("health_metrics").select().order("date", ascending: false).limit(180).execute().value
         async let fitnessEvidence: [FitnessEvidenceRecord] = optionalSchemaRows {
@@ -486,12 +486,12 @@ actor SupabaseService {
         let presetItems = try await mealPresetItems
         let foodEntries = try await loggedFoodEntries
         let requiredFoodIDs = Set(
-            preferences.filter { $0.userID == foodOwnerID }.map(\.foodID)
-                + presetItems.filter { $0.userID == foodOwnerID }.map(\.foodID)
-                + foodEntries.filter { $0.userID == foodOwnerID }.compactMap(\.foodID)
+            preferences.filter { $0.userID == ownerID }.map(\.foodID)
+                + presetItems.filter { $0.userID == ownerID }.map(\.foodID)
+                + foodEntries.filter { $0.userID == ownerID }.compactMap(\.foodID)
         )
         let foods = try await FoodLibraryHydration.complete(
-            initial: recentFoods, ownerID: foodOwnerID, referencedIDs: requiredFoodIDs
+            initial: recentFoods, ownerID: ownerID, referencedIDs: requiredFoodIDs
         ) { request in
             let query = switch request.scope {
             case .owned:
@@ -563,11 +563,12 @@ actor SupabaseService {
         }
     }
 
-    private func loadAllWorkoutSessions(client: SupabaseClient) async throws -> [WorkoutSession] {
+    private func loadAllWorkoutSessions(client: SupabaseClient, ownerID: UUID) async throws -> [WorkoutSession] {
         try await Self.collectPaginatedRows { range in
             try await client
                 .from("workout_sessions")
                 .select()
+                .eq("user_id", value: ownerID)
                 .order("date", ascending: false)
                 .order("id", ascending: false)
                 .range(from: range.lowerBound, to: range.upperBound)
@@ -576,11 +577,12 @@ actor SupabaseService {
         }
     }
 
-    private func loadAllWorkoutLogs(client: SupabaseClient) async throws -> [WorkoutLog] {
+    private func loadAllWorkoutLogs(client: SupabaseClient, ownerID: UUID) async throws -> [WorkoutLog] {
         try await Self.collectPaginatedRows { range in
             try await client
                 .from("workout_logs")
                 .select()
+                .eq("user_id", value: ownerID)
                 .order("created_at", ascending: false)
                 .order("id", ascending: false)
                 .range(from: range.lowerBound, to: range.upperBound)

@@ -7,7 +7,7 @@ import { useStore } from '../../store/AppStore'
 import { todayIso } from '../../lib/plan'
 import {
   assessJointCheckin,
-  buildStrengthSeries,
+  buildRankedExerciseHistory,
   checkinDue,
   type DeloadState,
   type JointRegion,
@@ -16,26 +16,30 @@ import {
 import type { IntroLanguage } from '../../lib/introLanguage'
 import type { JointCheckin } from '../../lib/types'
 
-type RangeChoice = 30 | 60 | 90 | 'months'
+type RangeChoice = 30 | 60 | 90 | 'months' | 'all'
+const STRENGTH_REGIONS = ['lower', 'upper', 'core', 'other'] as const
 
 const COPY = {
   en: {
-    eyebrow: 'STRENGTH HISTORY', title: 'Progress you can actually see', subtitle: 'Every curve comes from the loads and reps logged during your workouts.',
-    exercise: 'Exercise', noData: 'Your first weighted workout will create this curve automatically.', bestLoad: 'Best working load', estimated: 'Estimated strength', change: 'Range change', sessions: 'Sessions',
+    eyebrow: 'STRENGTH HISTORY',
+    lower: 'Lower body', upper: 'Upper body', other: 'Other', noPoints: 'No working load recorded in this period.',
+    exercise: 'Exercise', bestLoad: 'Best working load', change: 'Range change', sessions: 'Sessions',
     months: 'Months', window: 'History window', weekly: 'WEEKLY LOAD-TOLERANCE CHECK', weeklyTitle: 'How are your joints this week?', weeklyBody: 'Rate fatigue or pain, not normal muscle soreness. One minute now can prevent a bad load decision later.',
     arms: 'Arms', armsDetail: 'shoulders · elbows · wrists', core: 'Core', coreDetail: 'lower/middle back · hips', legs: 'Legs', legsDetail: 'knees · ankles',
     save: 'Save weekly check-in', due: 'Due now', current: 'Current guidance', update: 'Update now', nextWeek: 'Recorded this week', method: 'FITR MAX combines your trend with the actual training load. This is training guidance, not a diagnosis.',
   },
   ro: {
-    eyebrow: 'ISTORICUL FORȚEI', title: 'Progres pe care chiar îl poți vedea', subtitle: 'Fiecare curbă provine din greutățile și repetările înregistrate în antrenamente.',
-    exercise: 'Exercițiu', noData: 'Primul antrenament cu greutăți va crea automat această curbă.', bestLoad: 'Cea mai bună greutate de lucru', estimated: 'Forță estimată', change: 'Schimbare în interval', sessions: 'Sesiuni',
+    eyebrow: 'ISTORICUL FORȚEI',
+    lower: 'Partea inferioară a corpului', upper: 'Partea superioară a corpului', other: 'Altele', noPoints: 'Nicio greutate de lucru înregistrată în acest interval.',
+    exercise: 'Exercițiu', bestLoad: 'Cea mai bună greutate de lucru', change: 'Schimbare în interval', sessions: 'Sesiuni',
     months: 'Luni', window: 'Interval istoric', weekly: 'VERIFICARE SĂPTĂMÂNALĂ A TOLERANȚEI', weeklyTitle: 'Cum se simt articulațiile săptămâna aceasta?', weeklyBody: 'Evaluează oboseala sau durerea, nu febra musculară normală. Un minut acum poate preveni o decizie proastă de încărcare.',
     arms: 'Brațe', armsDetail: 'umeri · coate · încheieturi', core: 'Trunchi', coreDetail: 'spate inferior/mediu · șolduri', legs: 'Picioare', legsDetail: 'genunchi · glezne',
     save: 'Salvează verificarea săptămânală', due: 'De completat acum', current: 'Recomandarea actuală', update: 'Actualizează acum', nextWeek: 'Înregistrat săptămâna aceasta', method: 'FITR MAX combină tendința ta cu încărcarea reală. Este ghidaj de antrenament, nu un diagnostic.',
   },
   th: {
-    eyebrow: 'ประวัติความแข็งแรง', title: 'เห็นพัฒนาการได้จริง', subtitle: 'ทุกเส้นโค้งมาจากน้ำหนักและจำนวนครั้งที่บันทึกระหว่างการฝึก',
-    exercise: 'ท่าออกกำลังกาย', noData: 'การฝึกด้วยน้ำหนักครั้งแรกจะสร้างเส้นโค้งนี้ให้อัตโนมัติ', bestLoad: 'น้ำหนักฝึกที่ดีที่สุด', estimated: 'ความแข็งแรงโดยประมาณ', change: 'การเปลี่ยนแปลงในช่วง', sessions: 'เซสชัน',
+    eyebrow: 'ประวัติความแข็งแรง',
+    lower: 'ร่างกายส่วนล่าง', upper: 'ร่างกายส่วนบน', other: 'อื่น ๆ', noPoints: 'ไม่มีการบันทึกน้ำหนักฝึกในช่วงนี้',
+    exercise: 'ท่าออกกำลังกาย', bestLoad: 'น้ำหนักฝึกที่ดีที่สุด', change: 'การเปลี่ยนแปลงในช่วง', sessions: 'เซสชัน',
     months: 'เดือน', window: 'ช่วงประวัติ', weekly: 'ตรวจความทนต่อโหลดประจำสัปดาห์', weeklyTitle: 'สัปดาห์นี้ข้อต่อเป็นอย่างไร?', weeklyBody: 'ให้คะแนนความล้าหรือความเจ็บ ไม่ใช่อาการปวดกล้ามเนื้อปกติ ใช้เวลาเพียงหนึ่งนาทีเพื่อช่วยเลี่ยงการเพิ่มโหลดที่ไม่เหมาะสม',
     arms: 'แขน', armsDetail: 'ไหล่ · ศอก · ข้อมือ', core: 'แกนกลาง', coreDetail: 'หลังล่าง/กลาง · สะโพก', legs: 'ขา', legsDetail: 'เข่า · ข้อเท้า',
     save: 'บันทึกการตรวจประจำสัปดาห์', due: 'ถึงเวลาตรวจ', current: 'คำแนะนำปัจจุบัน', update: 'อัปเดตตอนนี้', nextWeek: 'บันทึกแล้วในสัปดาห์นี้', method: 'FITR MAX ใช้ทั้งแนวโน้มของคุณและโหลดการฝึกจริง นี่คือคำแนะนำการฝึก ไม่ใช่การวินิจฉัยโรค',
@@ -79,7 +83,7 @@ function filteredPoints(points: StrengthPoint[], days: number): StrengthPoint[] 
 function curveGeometry(points: StrengthPoint[]) {
   const width = 640
   const height = 230
-  const padX = 34
+  const padX = 60
   const padY = 34
   const values = points.map((point) => point.topWeight)
   const min = Math.min(...values)
@@ -87,50 +91,45 @@ function curveGeometry(points: StrengthPoint[]) {
   const spread = Math.max(2.5, max - min)
   const low = Math.max(0, min - spread * 0.24)
   const high = max + spread * 0.24
-  const firstTime = toTimestamp(points[0]?.date ?? todayIso())
-  const lastTime = toTimestamp(points.at(-1)?.date ?? todayIso())
-  const timeSpread = Math.max(1, lastTime - firstTime)
   const coords = points.map((point, index) => ({
-    x: points.length === 1 ? width / 2 : padX + ((toTimestamp(point.date) - firstTime) / timeSpread) * (width - padX * 2),
+    x: points.length === 1 ? width / 2 : padX + (index / (points.length - 1)) * (width - padX * 2),
     y: height - padY - ((point.topWeight - low) / Math.max(1, high - low)) * (height - padY * 2),
     point,
     index,
   }))
-  if (coords.length === 0) return { width, height, coords, line: '', area: '' }
+  const ticks = [...new Set([min, max])].map((weight) => ({
+    weight, y: height - padY - ((weight - low) / Math.max(1, high - low)) * (height - padY * 2),
+  }))
+  if (coords.length === 0) return { width, height, coords, ticks, line: '', area: '' }
   if (coords.length === 1) {
     const line = `M ${coords[0].x} ${coords[0].y}`
-    return { width, height, coords, line, area: `${line} L ${coords[0].x} ${height - padY} Z` }
+    return { width, height, coords, ticks, line, area: `${line} L ${coords[0].x} ${height - padY} Z` }
   }
-  let line = `M ${coords[0].x} ${coords[0].y}`
-  for (let i = 0; i < coords.length - 1; i++) {
-    const p0 = coords[Math.max(0, i - 1)]
-    const p1 = coords[i]
-    const p2 = coords[i + 1]
-    const p3 = coords[Math.min(coords.length - 1, i + 2)]
-    const c1x = p1.x + (p2.x - p0.x) / 6
-    const c1y = p1.y + (p2.y - p0.y) / 6
-    const c2x = p2.x - (p3.x - p1.x) / 6
-    const c2y = p2.y - (p3.y - p1.y) / 6
-    line += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2.x} ${p2.y}`
-  }
-  return { width, height, coords, line, area: `${line} L ${coords.at(-1)!.x} ${height - padY} L ${coords[0].x} ${height - padY} Z` }
+  const line = coords.map(({ x, y }, index) => `${index === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ')
+  return { width, height, coords, ticks, line, area: `${line} L ${coords.at(-1)!.x} ${height - padY} L ${coords[0].x} ${height - padY} Z` }
 }
 
 function StrengthCurve({ points }: { points: StrengthPoint[] }) {
   const id = useId().replace(/:/g, '')
+  const { language } = useLanguage()
+  const axisLabel = translateInterfaceText('Working load (kg)', language)
   const graph = curveGeometry(points)
   return (
-    <svg viewBox={`0 0 ${graph.width} ${graph.height}`} className="h-auto w-full overflow-visible" role="img" aria-label="Strength progress curve">
+    <svg viewBox={`0 0 ${graph.width} ${graph.height}`} className="h-auto w-full overflow-visible" role="img" aria-label={axisLabel}>
       <defs>
         <linearGradient id={`strength-line-${id}`} x1="0" y1="0" x2="1" y2="0"><stop stopColor="#8b5cf6" /><stop offset=".48" stopColor="#22d3ee" /><stop offset="1" stopColor="#34d399" /></linearGradient>
         <linearGradient id={`strength-area-${id}`} x1="0" y1="0" x2="0" y2="1"><stop stopColor="#8b5cf6" stopOpacity=".34" /><stop offset="1" stopColor="#22d3ee" stopOpacity="0" /></linearGradient>
         <filter id={`strength-glow-${id}`} x="-30%" y="-60%" width="160%" height="220%"><feGaussianBlur stdDeviation="5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
       </defs>
-      {[0.22, 0.5, 0.78].map((ratio) => <line key={ratio} x1="28" x2={graph.width - 28} y1={graph.height * ratio} y2={graph.height * ratio} stroke="rgba(26,26,34,.075)" strokeDasharray="4 9" />)}
+      <text x="30" y="14" className="fill-ink-faint font-mono text-[16px]">{axisLabel}</text>
+      {graph.ticks.map(({ weight, y }) => <g key={weight}>
+        <text x="48" y={y} textAnchor="end" dominantBaseline="middle" className="fill-ink-soft font-mono text-[16px]">{weight}</text>
+        <line x1="60" x2={graph.width - 60} y1={y} y2={y} stroke="rgba(26,26,34,.16)" strokeDasharray="4 9" />
+      </g>)}
       {graph.area && <motion.path initial={{ opacity: 0 }} animate={{ opacity: 1 }} d={graph.area} fill={`url(#strength-area-${id})`} />}
       {graph.line && <motion.path key={graph.line} initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }} d={graph.line} fill="none" stroke={`url(#strength-line-${id})`} strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" filter={`url(#strength-glow-${id})`} />}
       {graph.coords.map(({ x, y, point, index }) => <g key={`${point.sessionId}:${index}`}><circle cx={x} cy={y} r="8" fill="rgba(255,255,255,.92)" stroke={index === graph.coords.length - 1 ? '#10b981' : '#8b5cf6'} strokeWidth="4"><title>{point.date}: {point.topWeight} kg</title></circle></g>)}
-      {graph.coords.length > 0 && <><text x="30" y={graph.height - 7} className="fill-ink-faint font-mono text-[12px]">{graph.coords[0].point.date.slice(5)}</text><text x={graph.width - 30} y={graph.height - 7} textAnchor="end" className="fill-ink-faint font-mono text-[12px]">{graph.coords.at(-1)!.point.date.slice(5)}</text></>}
+      {graph.coords.length > 0 && <><text x="30" y={graph.height - 7} className="fill-ink-faint font-mono text-[16px]">{graph.coords[0].point.date}</text><text x={graph.width - 30} y={graph.height - 7} textAnchor="end" className="fill-ink-faint font-mono text-[16px]">{graph.coords.at(-1)!.point.date}</text></>}
     </svg>
   )
 }
@@ -145,9 +144,11 @@ export function StrengthProgressPanel() {
   const { language } = useLanguage()
   const copy = COPY[language]
   const t = (value: string): string => translateInterfaceText(value, language)
-  const series = useMemo(() => buildStrengthSeries(data), [data])
-  const [selectedKey, setSelectedKey] = useState(series[0]?.key ?? '')
-  const [range, setRange] = useState<RangeChoice>(90)
+  const history = useMemo(() => buildRankedExerciseHistory(data), [data])
+  const series = history.filter((item) => item.points.length > 0)
+  const [showAll, setShowAll] = useState(false)
+  const [selectedKey, setSelectedKey] = useState('')
+  const [range, setRange] = useState<RangeChoice>('all')
   const [months, setMonths] = useState(6)
   const checkins = data.settings?.addons.joint_checkins ?? []
   const latest = [...checkins].sort((a, b) => b.date.localeCompare(a.date))[0] ?? null
@@ -158,18 +159,14 @@ export function StrengthProgressPanel() {
     ? { arms: latest.arms, core: latest.core, legs: latest.legs }
     : { arms: 3, core: 3, legs: 3 })
 
-  useEffect(() => {
-    if (!series.some((item) => item.key === selectedKey)) setSelectedKey(series[0]?.key ?? '')
-  }, [selectedKey, series])
   useEffect(() => { if (due) setShowCheckin(true) }, [due])
 
   const active = series.find((item) => item.key === selectedKey) ?? series[0] ?? null
   const windowDays = range === 'months' ? months * 30 : range
-  const points = active ? filteredPoints(active.points, windowDays) : []
-  const visible = points.length > 0 ? points : active?.points.slice(-1) ?? []
+  const visible = active ? (windowDays === 'all' ? active.points : filteredPoints(active.points, windowDays)) : []
   const start = visible[0]
   const end = visible.at(-1)
-  const change = start && end ? Math.round((end.topWeight - start.topWeight) * 10) / 10 : 0
+  const change = visible.length > 1 && end ? Math.round((end.topWeight - start.topWeight) * 10) / 10 : null
   const assessment = latest ? assessJointCheckin(latest, previous) : null
 
   const saveCheckin = () => {
@@ -188,23 +185,51 @@ export function StrengthProgressPanel() {
       <div className="relative bg-[radial-gradient(circle_at_85%_0%,rgba(139,92,246,.18),transparent_32%),radial-gradient(circle_at_5%_80%,rgba(34,211,238,.14),transparent_32%)] p-5 sm:p-6">
         <p className="font-mono text-[9px] font-black tracking-[0.2em] text-violet-700 uppercase">{copy.eyebrow}</p>
         <div className="mt-1 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
-          <div><h2 className="font-display text-xl font-black text-ink">{copy.title}</h2><p className="mt-1 max-w-xl text-xs leading-relaxed font-medium text-ink-soft">{copy.subtitle}</p></div>
-          {series.length > 0 && <label className="shrink-0"><span className="sr-only">{copy.exercise}</span><select value={active?.key ?? ''} onChange={(event) => setSelectedKey(event.target.value)} className="max-w-full rounded-2xl border border-white/80 bg-white/75 px-3 py-2.5 text-xs font-bold text-ink shadow-sm outline-none"><option value="" disabled>{copy.exercise}</option>{series.map((item) => <option key={item.key} value={item.key}>{t(item.name)}</option>)}</select></label>}
+          <div><h2 className="font-display text-xl font-black text-ink">{t('Progressive overload')}</h2><p className="mt-1 max-w-xl text-xs leading-relaxed font-medium text-ink-soft">{t('Heaviest recorded working load in each completed session.')}</p></div>
+          {active && <label className="min-w-0 sm:max-w-[50%]">
+            <span className="sr-only">{copy.exercise}</span>
+            <select value={active.key} onChange={(event) => setSelectedKey(event.target.value)} className="max-w-full rounded-2xl border border-white/80 bg-white/75 px-3 py-2.5 text-xs font-bold text-ink shadow-sm outline-none">
+              {STRENGTH_REGIONS.map((region) => {
+                const options = series.filter((item) => item.region === region)
+                return options.length > 0 && <optgroup key={region} label={copy[region]}>
+                  {options.map((item) => <option key={item.key} value={item.key}>{t(item.name)} · {item.sessionCount}</option>)}
+                </optgroup>
+              })}
+            </select>
+          </label>}
         </div>
 
-        {active && visible.length > 0 ? <>
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {active ? <>
+          {start && end ? <>
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
             <Metric label={copy.bestLoad} value={`${Math.max(...visible.map((point) => point.topWeight))} kg`} />
-            <Metric label={copy.estimated} value={`${Math.max(...visible.map((point) => point.estimated1rm)).toFixed(1)} kg`} />
-            <Metric label={copy.change} value={`${change > 0 ? '+' : ''}${change} kg`} positive={change > 0} />
+            <Metric label={t('First load')} value={`${start.topWeight} kg`} />
+            <Metric label={t('Latest load')} value={`${end.topWeight} kg`} />
+            <Metric label={copy.change} value={change == null ? '—' : `${change > 0 ? '+' : ''}${change} kg`} positive={change != null && change > 0} />
             <Metric label={copy.sessions} value={String(visible.length)} />
           </div>
           <div className="mt-3 rounded-[1.75rem] border border-white/85 bg-white/58 px-2 pt-4 pb-1 shadow-[inset_0_1px_0_rgba(255,255,255,.9)]"><StrengthCurve points={visible} /></div>
+          </> : <p className="mt-4 rounded-2xl bg-white/55 px-4 py-5 text-center text-sm font-bold text-ink-soft">{copy.noPoints}</p>}
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex rounded-full bg-white/65 p-1 shadow-sm">{([30, 60, 90] as const).map((days) => <button key={days} type="button" onClick={() => setRange(days)} className={`rounded-full px-3 py-1.5 font-mono text-[9px] font-black transition ${range === days ? 'bg-violet-600 text-white shadow' : 'text-ink-soft'}`}>{days}D</button>)}<button type="button" onClick={() => setRange('months')} className={`rounded-full px-3 py-1.5 font-mono text-[9px] font-black transition ${range === 'months' ? 'bg-violet-600 text-white shadow' : 'text-ink-soft'}`}>{copy.months}</button></div>
+            <div className="flex flex-wrap rounded-2xl bg-white/65 p-1 shadow-sm"><button type="button" onClick={() => setRange('all')} className={`rounded-full px-3 py-1.5 font-mono text-[9px] font-black transition ${range === 'all' ? 'bg-violet-600 text-white shadow' : 'text-ink-soft'}`}>{t('All time')}</button>{([30, 60, 90] as const).map((days) => <button key={days} type="button" onClick={() => setRange(days)} className={`rounded-full px-3 py-1.5 font-mono text-[9px] font-black transition ${range === days ? 'bg-violet-600 text-white shadow' : 'text-ink-soft'}`}>{days}D</button>)}<button type="button" onClick={() => setRange('months')} className={`rounded-full px-3 py-1.5 font-mono text-[9px] font-black transition ${range === 'months' ? 'bg-violet-600 text-white shadow' : 'text-ink-soft'}`}>{copy.months}</button></div>
             {range === 'months' && <label className="flex min-w-[180px] flex-1 items-center gap-3 sm:max-w-xs"><span className="whitespace-nowrap font-mono text-[9px] font-black text-ink-soft">{copy.window}</span><input type="range" min="3" max="12" step="1" value={months} onChange={(event) => setMonths(Number(event.target.value))} className="min-w-0 flex-1 accent-violet-600" /><span className="w-10 rounded-full bg-white/75 px-2 py-1 text-center font-mono text-[9px] font-black text-violet-700">{months}M</span></label>}
           </div>
-        </> : <div className="mt-4 rounded-[1.75rem] border border-dashed border-violet-200 bg-white/55 px-5 py-9 text-center"><p className="text-sm font-bold text-ink">{copy.noData}</p><p className="mt-1 text-[11px] text-ink-soft">{copy.subtitle}</p></div>}
+        </> : <div className="mt-4 rounded-[1.75rem] border border-dashed border-violet-200 bg-white/55 px-5 py-9 text-center"><p className="text-sm font-bold text-ink">{t('Record a working load in a completed workout to see your progress.')}</p></div>}
+
+        <section className="mt-5 border-t border-white/85 pt-4">
+          <h3 className="font-display text-base font-black text-ink">{t('Most performed exercises')}</h3>
+          <p className="mt-1 text-xs text-ink-soft">{t('Each completed workout counts once per exercise.')}</p>
+          {history.length > 0 ? <>
+            <table className="mt-3 w-full text-left text-xs">
+              <thead className="text-ink-faint"><tr><th scope="col">{copy.exercise}</th><th scope="col" className="text-right">{copy.sessions}</th></tr></thead>
+              <tbody>{history.slice(0, showAll ? history.length : 5).map((item) => <tr key={item.key} className="border-b border-white/65">
+                <th scope="row" className="py-2 font-medium text-ink">{t(item.name)}</th>
+                <td className="text-right font-mono font-bold">{item.sessionCount}</td>
+              </tr>)}</tbody>
+            </table>
+            {history.length > 5 && <button type="button" aria-expanded={showAll} onClick={() => setShowAll(!showAll)} className="mt-2 py-2 text-xs font-bold text-violet-700">{t(showAll ? 'Show fewer exercises' : 'Show all exercises')}</button>}
+          </> : <p className="mt-3 text-sm text-ink-soft">{t('No recorded exercises yet.')}</p>}
+        </section>
 
         <div className="mt-5 rounded-[1.75rem] border border-white/85 bg-[#08111d] p-4 text-white shadow-[0_24px_50px_-32px_rgba(76,29,149,.9)] sm:p-5">
           <div className="flex items-start justify-between gap-3"><div><p className="font-mono text-[8px] font-black tracking-[0.18em] text-cyan-200/70 uppercase">{copy.weekly}</p><h3 className="mt-1 font-display text-base font-black">{copy.weeklyTitle}</h3><p className="mt-1 max-w-xl text-[11px] leading-relaxed text-white/55">{copy.weeklyBody}</p></div><span className={`shrink-0 rounded-full px-2.5 py-1 font-mono text-[8px] font-black ${due ? 'bg-amber-300 text-amber-950' : 'bg-emerald-300/15 text-emerald-200'}`}>{due ? copy.due : copy.nextWeek}</span></div>

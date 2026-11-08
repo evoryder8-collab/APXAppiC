@@ -1,12 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { assessJointCheckin, buildStrengthSeries, checkinDue, distinctInsightTexts, sessionStrengthInsights } from '../src/lib/strengthProgress.ts'
+import { assessJointCheckin, buildRankedExerciseHistory, buildStrengthSeries, checkinDue, distinctInsightTexts, sessionStrengthInsights } from '../src/lib/strengthProgress.ts'
+import { seedProfile } from '../src/data/seed.ts'
 import { recommendLoad } from '../src/lib/progression.ts'
 import { EMPTY_DATA, type AppData, type Exercise, type JointCheckin } from '../src/lib/types.ts'
 
 function strengthData(): AppData {
   return {
     ...EMPTY_DATA,
+    profile: seedProfile('u'),
     workout_sessions: [
       { id: 's1', user_id: 'u', date: '2026-04-15', program_day_id: 'd', is_lite: false, is_deload: false, is_event_recovery: false, completed: true, quality_score: 1, started_at: null, completed_at: null, notes: '' },
       { id: 's2', user_id: 'u', date: '2026-07-14', program_day_id: 'd', is_lite: false, is_deload: false, is_event_recovery: false, completed: true, quality_score: 1, started_at: null, completed_at: null, notes: '' },
@@ -129,4 +131,73 @@ test('joint check-in becomes due once a full week has elapsed', () => {
   const latest: JointCheckin = { id: 'a', date: '2026-07-08', arms: 2, core: 2, legs: 2 }
   assert.equal(checkinDue([latest], '2026-07-14'), false)
   assert.equal(checkinDue([latest], '2026-07-15'), true)
+})
+
+test('rank all performed sessions, including reps-only sessions, independently of weighted points', () => {
+  const data = strengthData()
+  const receipt = data.workout_sessions[0]
+  const set = data.workout_logs[0]
+  data.workout_sessions.push(
+    { ...receipt, id: 'old', date: '2020-01-01' },
+    { ...receipt, id: 'foreign', user_id: 'other' },
+    { ...receipt, id: 'draft', completed: false },
+  )
+  const press = { ...set, exercise_name: 'Leg Press', movement_id: 'leg_press' }
+  const row = { ...set, exercise_name: 'Machine Row', movement_id: 'machine_row' }
+  data.workout_logs = [
+    { ...row, session_id: 's2', weight_kg: 70 },
+    { ...row, session_id: 's1', weight_kg: 65 },
+    { ...press, session_id: 'old', weight_kg: 60, reps: 5 },
+    { ...press, session_id: 'old', weight_kg: 60, reps: 8, set_no: 2 },
+    { ...press, session_id: 's1', weight_kg: null },
+    { ...press, session_id: 's2', weight_kg: null },
+    { ...set, exercise_name: 'Band or DB Curls', movement_id: 'dumbbell_curl', weight_kg: 80 },
+    { ...set, exercise_name: 'Dumbbell Curl', movement_id: 'dumbbell_curl', weight_kg: 8 },
+    { ...set, exercise_name: 'Dead Hang', movement_id: 'dead_hang', weight_kg: 85, duration_seconds: 30, reps: null },
+    { ...set, exercise_name: 'Custom band exercise', weight_kg: 90 },
+    { ...set, exercise_name: 'Skipped', skipped: true },
+    { ...set, exercise_name: 'Empty', weight_kg: null, reps: null },
+    { ...set, exercise_name: 'Unfinished', session_id: 'draft' },
+    { ...set, exercise_name: 'Orphan', session_id: 'missing' },
+    { ...set, exercise_name: 'Wrong owner', user_id: 'other' },
+    { ...set, exercise_name: 'Wrong receipt owner', session_id: 'foreign' },
+    { ...set, exercise_name: 'Invalid load', weight_kg: Infinity, reps: null },
+  ]
+  const ranked = buildRankedExerciseHistory(data)
+  assert.deepEqual(ranked.map((item) => [item.name, item.sessionCount]), [
+    ['Leg Press', 3], ['Machine Row', 2], ['Band or DB Curls', 1],
+    ['Custom band exercise', 1], ['Dead Hang', 1], ['Dumbbell Curl', 1],
+  ])
+  const weighted = buildStrengthSeries(data)
+  assert.deepEqual(weighted.map((item) => [item.name, item.region, item.points.length]), [
+    ['Leg Press', 'lower', 1], ['Machine Row', 'upper', 2], ['Dumbbell Curl', 'upper', 1],
+  ])
+  assert.deepEqual([weighted[0].points[0].date, weighted[0].points[0].topWeight, weighted[0].points[0].topReps], ['2020-01-01', 60, 8])
+  assert.equal(weighted[2].points[0].topWeight, 8)
+  assert.deepEqual(buildRankedExerciseHistory({ ...data, profile: null, settings: null }), [])
+})
+
+test('legacy treadmill distances count as one movement and never produce a weight curve', () => {
+  const data = strengthData()
+  const set = data.workout_logs[0]
+  data.workout_logs = [
+    { ...set, session_id: 's1', exercise_name: 'Treadmill Run · 3 km · 2° · 20 min', weight_kg: null, reps: null },
+    { ...set, session_id: 's2', exercise_name: 'Treadmill Run · 5 km · 1° · 30 min', weight_kg: null, reps: null },
+  ]
+  const history = buildRankedExerciseHistory(data)
+  assert.deepEqual(history.map((item) => [item.name, item.sessionCount, item.points.length]), [['Treadmill Run', 2, 0]])
+})
+
+test('substitute catalog IDs keep different equipment in distinct load curves', () => {
+  const data = strengthData()
+  const set = data.workout_logs[0]
+  data.workout_logs = [
+    { ...set, exercise_name: 'Dumbbell Curl', movement_id: 'dumbbell_curl', weight_kg: 12 },
+    { ...set, exercise_name: 'Barbell Curl', movement_id: 'dumbbell_curl', weight_kg: 35, session_id: 's2' },
+    { ...set, exercise_name: 'Cable Hip Adduction', movement_id: 'hip_adduction', weight_kg: 10 },
+    { ...set, exercise_name: 'Hip Adduction Machine', movement_id: 'hip_adduction', weight_kg: 50, session_id: 's2' },
+  ]
+  assert.deepEqual(buildStrengthSeries(data).map(({ name, points }) => [name, points.map((point) => point.topWeight)]), [
+    ['Barbell Curl', [35]], ['Hip Adduction Machine', [50]], ['Cable Hip Adduction', [10]], ['Dumbbell Curl', [12]],
+  ])
 })

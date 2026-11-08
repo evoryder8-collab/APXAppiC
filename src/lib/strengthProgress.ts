@@ -1,5 +1,8 @@
-import type { AppData, JointCheckin, WorkoutLog } from './types'
-import { descriptorForExercise } from './exerciseLogging.ts'
+import type { AppData, JointCheckin } from './types'
+import { MOVEMENTS } from '../data/movements.ts'
+import { catalogExerciseByName } from '../data/exerciseCatalog.ts'
+import { descriptorForExercise, isValidExerciseFacts } from './exerciseLogging.ts'
+import { parseTreadmillLog } from './manualWorkout.ts'
 
 export type JointRegion = 'arms' | 'core' | 'legs'
 export type DeloadState = 'clear' | 'watch' | 'regional_deload' | 'whole_deload' | 'stop_and_review'
@@ -8,6 +11,7 @@ export interface StrengthPoint {
   sessionId: string
   date: string
   topWeight: number
+  topReps: number | null
   estimated1rm: number
   volume: number
   setWeights: Record<number, number>
@@ -18,6 +22,14 @@ export interface ExerciseStrengthSeries {
   exerciseId: string | null
   name: string
   points: StrengthPoint[]
+}
+
+export type StrengthRegion = 'lower' | 'upper' | 'core' | 'other'
+
+export interface RankedExerciseHistory extends ExerciseStrengthSeries {
+  region: StrengthRegion
+  sessionCount: number
+  lastPerformedDate: string
 }
 
 export interface SessionStrengthInsight {
@@ -39,10 +51,40 @@ export interface JointAssessment {
   rising: JointRegion[]
 }
 
-function exerciseKey(log: Pick<WorkoutLog, 'exercise_name'>, movementId: string | null): string {
-  return movementId
-    ? `movement:${movementId.toLocaleLowerCase('en')}`
-    : `name:${log.exercise_name.trim().toLocaleLowerCase('en')}`
+const movementsById = new Map(MOVEMENTS.map((movement) => [movement.id, movement]))
+const lowerMuscles = new Set(['adductors', 'ankle_stabilisers', 'calves', 'foot_intrinsics', 'glute_medius', 'glutes', 'hamstrings', 'hip_flexors', 'hips', 'quadriceps', 'soleus', 'tibialis'])
+const upperMuscles = new Set(['biceps', 'chest', 'deep_neck_flexors', 'forearms', 'front_delts', 'lats', 'lower_traps', 'mid_traps', 'neck', 'rear_delts', 'rotator_cuff', 'side_delts', 'traps', 'triceps', 'upper_back'])
+const coreMuscles = new Set(['core', 'erectors', 'obliques', 'spinal_erectors'])
+
+function strengthRegion(primary = ''): StrengthRegion {
+  if (lowerMuscles.has(primary)) return 'lower'
+  if (upperMuscles.has(primary)) return 'upper'
+  if (coreMuscles.has(primary)) return 'core'
+  return 'other'
+}
+
+function historyMovement(name: string, movementId: string | null) {
+  let descriptor = descriptorForExercise({ name, movement_id: movementId })
+  if (!descriptor.movementId) {
+    const catalog = catalogExerciseByName(name)
+    if (catalog) descriptor = descriptorForExercise({ name, movement_id: catalog.movementID })
+  }
+  const movement = movementsById.get(descriptor.movementId ?? '')
+  const bandEquipment = movement?.equipment.includes('bands') === true
+  const bandLabel = /\b(?:bands?|banded)\b/i.test(name)
+  const equipmentWords = name.toLowerCase().replace(/\bdbs?\b/g, 'dumbbell')
+    .replace(/\bbbs?\b/g, 'barbell').replace(/\bkbs?\b/g, 'kettlebell')
+    .match(/\b(?:barbell|dumbbell|kettlebell|cable|machine|backpack|smith)s?\b/g) ?? []
+  const canonicalEquipment = movement && `${movement.name} ${movement.id}`.toLowerCase()
+  const differentEquipment = canonicalEquipment && equipmentWords.some((word) => !canonicalEquipment.includes(word.replace(/s$/, '')))
+  // The training catalogue also uses substitute IDs, e.g. Barbell Curl maps to Dumbbell Curl.
+  const key = descriptor.movementId && !differentEquipment && (!bandLabel || bandEquipment)
+    ? `movement:${descriptor.movementId.toLowerCase()}`
+    : `name:${name.toLowerCase().replace(/\s+/g, ' ')}`
+  return {
+    descriptor, key, region: strengthRegion(movement?.primaryMuscles[0]),
+    comparableLoad: descriptor.kind === 'strength' && !bandEquipment && !bandLabel,
+  }
 }
 
 function daysBetween(earlier: string, later: string): number {
@@ -63,45 +105,87 @@ export function estimatedOneRepMax(weight: number, reps: number | null): number 
   return Math.round(weight * (1 + boundedReps / 30) * 10) / 10
 }
 
-export function buildStrengthSeries(data: AppData): ExerciseStrengthSeries[] {
-  const sessions = new Map(data.workout_sessions.filter((session) => session.completed).map((session) => [session.id, session]))
-  const grouped = new Map<string, {
-    exerciseId: string | null
-    name: string
-    sessions: Map<string, WorkoutLog[]>
+export function buildRankedExerciseHistory(data: AppData): RankedExerciseHistory[] {
+  const owner = data.profile?.user_id ?? data.settings?.user_id
+  if (!owner) return []
+  const sessions = new Map(data.workout_sessions
+    .filter((session) => session.user_id === owner && session.completed)
+    .map((session) => [session.id, session]))
+  const movements = new Map<string, ReturnType<typeof historyMovement>>()
+  const groups = new Map<string, {
+    history: Omit<RankedExerciseHistory, 'sessionCount' | 'points'>
+    performed: Set<string>
+    points: Map<string, StrengthPoint>
   }>()
 
   for (const log of data.workout_logs) {
-    const descriptor = descriptorForExercise({ name: log.exercise_name, movement_id: log.movement_id })
-    if (descriptor.kind !== 'strength' || log.skipped || log.weight_kg == null
-      || log.weight_kg <= 0 || !sessions.has(log.session_id)) continue
-    const key = exerciseKey(log, descriptor.movementId)
-    const group = grouped.get(key) ?? {
-      exerciseId: log.exercise_id,
-      name: log.exercise_name,
-      sessions: new Map<string, WorkoutLog[]>(),
+    const session = sessions.get(log.session_id)
+    if (!session || log.user_id !== owner || log.skipped) continue
+    const treadmill = parseTreadmillLog(log.exercise_name)
+    const name = (treadmill?.name ?? log.exercise_name).trim()
+    if (!name) continue
+    const lookup = JSON.stringify([log.movement_id ?? null, name])
+    const movement = movements.get(lookup) ?? historyMovement(name, log.movement_id ?? null)
+    movements.set(lookup, movement)
+    const weight = log.weight_kg
+    const loaded = !treadmill && movement.comparableLoad && weight != null && Number.isFinite(weight) && weight > 0
+    const reps = log.reps != null && Number.isFinite(log.reps) && log.reps > 0 ? log.reps : null
+    const performed = isValidExerciseFacts({
+      weight, reps, rir: log.rir, contacts: log.contacts, rounds: log.rounds,
+      workSeconds: log.work_seconds, recoverySeconds: log.recovery_seconds,
+      durationSeconds: log.duration_seconds ?? (treadmill && treadmill.metrics.durationMin * 60),
+      distanceMeters: log.distance_meters ?? (treadmill && treadmill.metrics.distanceKm * 1_000),
+    }, movement.descriptor)
+    // Old strength receipts sometimes recorded a working load without reps.
+    if (!performed && !(loaded && log.reps == null)) continue
+
+    const group = groups.get(movement.key) ?? {
+      history: {
+        key: movement.key, exerciseId: log.exercise_id, name, region: movement.region,
+        lastPerformedDate: session.date,
+      },
+      performed: new Set<string>(), points: new Map<string, StrengthPoint>(),
     }
-    const logs = group.sessions.get(log.session_id) ?? []
-    logs.push(log)
-    group.sessions.set(log.session_id, logs)
-    grouped.set(key, group)
+    groups.set(movement.key, group)
+    group.performed.add(session.id)
+    if (session.date > group.history.lastPerformedDate
+      || (session.date === group.history.lastPerformedDate && name.localeCompare(group.history.name, 'en') < 0)) {
+      group.history.lastPerformedDate = session.date
+      group.history.name = name
+      group.history.exerciseId = log.exercise_id
+    }
+
+    if (!loaded) continue
+    const point = group.points.get(session.id) ?? {
+      sessionId: session.id, date: session.date, topWeight: 0, topReps: null,
+      estimated1rm: 0, volume: 0, setWeights: {},
+    }
+    if (weight > point.topWeight || (weight === point.topWeight && (reps ?? 0) > (point.topReps ?? 0))) {
+      point.topWeight = weight
+      point.topReps = reps
+    }
+    point.estimated1rm = Math.max(point.estimated1rm, estimatedOneRepMax(weight, reps))
+    point.volume += weight * (reps ?? 0)
+    point.setWeights[log.set_no] = weight
+    group.points.set(session.id, point)
   }
 
-  return [...grouped.entries()]
-    .map(([key, group]) => {
-      const points = [...group.sessions.entries()].map(([sessionId, logs]) => {
-        const session = sessions.get(sessionId)!
-        const usable = logs.filter((log) => log.weight_kg != null && log.weight_kg > 0)
-        const topWeight = Math.max(...usable.map((log) => Number(log.weight_kg)))
-        const estimated1rm = Math.max(...usable.map((log) => estimatedOneRepMax(Number(log.weight_kg), log.reps)))
-        const volume = usable.reduce((sum, log) => sum + Number(log.weight_kg) * Math.max(0, log.reps ?? 0), 0)
-        const setWeights = Object.fromEntries(usable.map((log) => [log.set_no, Number(log.weight_kg)]))
-        return { sessionId, date: session.date, topWeight, estimated1rm, volume, setWeights }
-      }).sort((a, b) => a.date.localeCompare(b.date) || a.sessionId.localeCompare(b.sessionId))
-      return { key, exerciseId: group.exerciseId, name: group.name, points }
-    })
-    .filter((series) => series.points.length > 0)
-    .sort((a, b) => a.name.localeCompare(b.name))
+  const sessionTime = (id: string) => {
+    const session = sessions.get(id)
+    return session?.started_at ?? session?.completed_at ?? ''
+  }
+  return [...groups.values()].map(({ history, performed, points }) => ({
+    ...history, sessionCount: performed.size,
+    points: [...points.values()].sort((a, b) => a.date.localeCompare(b.date)
+      || sessionTime(a.sessionId).localeCompare(sessionTime(b.sessionId))
+      || a.sessionId.localeCompare(b.sessionId)),
+  })).sort((a, b) => b.sessionCount - a.sessionCount
+    || b.lastPerformedDate.localeCompare(a.lastPerformedDate)
+    || a.name.localeCompare(b.name, 'en') || a.key.localeCompare(b.key, 'en'))
+}
+
+export function buildStrengthSeries(data: AppData): RankedExerciseHistory[] {
+  return buildRankedExerciseHistory(data).filter((series) => series.points.length > 0)
 }
 
 export function sessionStrengthInsights(data: AppData, sessionId: string): SessionStrengthInsight[] {

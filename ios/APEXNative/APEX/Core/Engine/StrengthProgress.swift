@@ -27,6 +27,7 @@ enum StrengthProgress {
         let estimated1RM: Double
         let volume: Double
         let setWeights: [Int: Double]
+        var topReps: Int? = nil
     }
 
     struct Series: Hashable, Sendable {
@@ -34,6 +35,43 @@ enum StrengthProgress {
         let exerciseID: UUID?
         let name: String
         let points: [Point]
+    }
+
+    enum BodyRegion: String, CaseIterable, Sendable {
+        case lower = "Lower body"
+        case upper = "Upper body"
+        case core = "Core"
+        case other = "Other"
+
+        init(primaryMuscle: String?) {
+            switch primaryMuscle {
+            case "adductors", "ankle_stabilisers", "calves", "foot_intrinsics", "glute_medius",
+                 "glutes", "hamstrings", "hip_flexors", "hips", "quadriceps", "soleus", "tibialis":
+                self = .lower
+            case "biceps", "chest", "deep_neck_flexors", "forearms", "front_delts", "lats",
+                 "lower_traps", "mid_traps", "neck", "rear_delts", "rotator_cuff", "side_delts",
+                 "traps", "triceps", "upper_back":
+                self = .upper
+            case "core", "erectors", "obliques", "spinal_erectors":
+                self = .core
+            default:
+                self = .other
+            }
+        }
+    }
+
+    struct ExerciseHistory: Sendable {
+        let key: String
+        let name: String
+        let region: BodyRegion
+        let sessionCount: Int
+        let lastPerformed: String
+        let points: [Point]
+
+        var loadGain: Double? {
+            guard points.count >= 2, let first = points.first, let last = points.last else { return nil }
+            return round1(last.topWeight - first.topWeight)
+        }
     }
 
     struct SessionInsight: Hashable, Sendable {
@@ -147,17 +185,7 @@ enum StrengthProgress {
             guard let group = grouped[key] else { return nil }
             let points = group.order.compactMap { sessionID -> Point? in
                 guard let session = sessions[sessionID], let logs = group.sessions[sessionID] else { return nil }
-                let usable = logs.filter { ($0.weightKG ?? 0) > 0 }
-                guard !usable.isEmpty else { return nil }
-                let topWeight = usable.compactMap(\.weightKG).max() ?? 0
-                let best = usable.map { estimatedOneRepMax(weight: $0.weightKG ?? 0, reps: $0.reps) }.max() ?? 0
-                let volume = usable.reduce(0.0) { $0 + ($1.weightKG ?? 0) * Double(max(0, $1.reps ?? 0)) }
-                var setWeights: [Int: Double] = [:]
-                for log in usable { setWeights[log.setNumber] = log.weightKG ?? 0 }
-                return Point(
-                    sessionID: sessionID, date: session.date, topWeight: topWeight,
-                    estimated1RM: best, volume: volume, setWeights: setWeights
-                )
+                return loadPoint(session: session, logs: logs)
             }.sorted {
                 $0.date == $1.date
                     ? $0.sessionID.uuidString.lowercased() < $1.sessionID.uuidString.lowercased()
@@ -166,6 +194,104 @@ enum StrengthProgress {
             guard !points.isEmpty else { return nil }
             return Series(key: key, exerciseID: group.exerciseID, name: group.name, points: points)
         }.sorted { $0.name < $1.name }
+    }
+
+    private static func loadPoint(session: WorkoutSession, logs: [WorkoutLog]) -> Point? {
+        guard let top = logs.compactMap(\.weightKG).max() else { return nil }
+        let best = logs.map { estimatedOneRepMax(weight: $0.weightKG ?? 0, reps: $0.reps) }.max() ?? top
+        let volume = logs.reduce(0.0) { $0 + ($1.weightKG ?? 0) * Double(max(0, $1.reps ?? 0)) }
+        var setWeights: [Int: Double] = [:]
+        for log in logs { setWeights[log.setNumber] = log.weightKG }
+        return Point(
+            sessionID: session.id, date: session.date, topWeight: top, estimated1RM: best,
+            volume: volume, setWeights: setWeights,
+            topReps: logs.filter { $0.weightKG == top }.compactMap(\.reps).filter { $0 > 0 }.max()
+        )
+    }
+
+    private static func equipment(in label: String) -> Set<String> {
+        Set(label.lowercased().split(whereSeparator: { !$0.isLetter }).compactMap { word in
+            switch word {
+            case "barbell", "barbells", "bb", "bbs": "barbell"
+            case "dumbbell", "dumbbells", "db", "dbs": "dumbbell"
+            case "kettlebell", "kettlebells", "kb", "kbs": "kettlebell"
+            case "cable", "cables": "cable"
+            case "machine", "machines": "machine"
+            case "backpack", "backpacks": "backpack"
+            case "smith": "smith"
+            case "band", "bands", "banded": "band"
+            default: nil
+            }
+        })
+    }
+
+    static func exerciseHistory(ownerID: UUID, sessions: [WorkoutSession], logs: [WorkoutLog]) -> [ExerciseHistory] {
+        let completed = sessions.filter { $0.completed && $0.userID == ownerID }
+        let sessionByID = Dictionary(completed.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
+        struct Group {
+            var name: String
+            let region: BodyRegion
+            var sessionIDs: Set<UUID> = []
+            var lastPerformed = ""
+            var loads: [UUID: [WorkoutLog]] = [:]
+        }
+        var groups: [String: Group] = [:]
+        for log in logs where log.userID == ownerID && !log.skipped {
+            guard let session = sessionByID[log.sessionID] else { continue }
+            let treadmill = log.exerciseName.contains(" · ") ? ManualWorkout.parseTreadmill(log.exerciseName) : nil
+            let name = (treadmill?.name ?? log.exerciseName).trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !name.isEmpty else { continue }
+            let movement = MovementTiming.movement(named: name, movementID: log.movementID)
+                ?? ExerciseCatalog.movementID(matchingName: name).flatMap { MovementTiming.movement(named: name, movementID: $0) }
+            let descriptor = ExerciseLogging.descriptor(for: movement)
+            let normalized = name.lowercased().split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+            let loggedEquipment = equipment(in: name)
+            let canonicalEquipment = movement.map { equipment(in: $0.name + " " + $0.id) } ?? []
+            let hasLoad = descriptor.kind == .strength && !loggedEquipment.contains("band")
+                && !canonicalEquipment.contains("band") && treadmill == nil
+                && log.weightKG?.isFinite == true && (log.weightKG ?? 0) > 0
+            var facts = WorkoutReceipt.editInput(log)
+            if let treadmill {
+                facts.distanceMeters = facts.distanceMeters ?? treadmill.metrics.distanceKM * 1_000
+                facts.durationSeconds = facts.durationSeconds ?? treadmill.metrics.durationMinutes * 60
+            }
+            guard ExerciseLogging.isValid(facts, descriptor: descriptor) || (hasLoad && log.reps == nil) else { continue }
+            // Historical aliases sometimes point different implements at the same movement ID.
+            let key = movement.flatMap { loggedEquipment.isSubset(of: canonicalEquipment) ? "movement:" + $0.id : nil }
+                ?? "name:" + normalized
+            if groups[key] == nil {
+                groups[key] = Group(name: name, region: BodyRegion(primaryMuscle: movement?.primaryMuscles?.first))
+            }
+            groups[key]?.sessionIDs.insert(session.id)
+            if let current = groups[key], session.date > current.lastPerformed
+                || (session.date == current.lastPerformed && name < current.name) {
+                groups[key]?.lastPerformed = session.date
+                groups[key]?.name = name
+            }
+            if hasLoad {
+                groups[key]?.loads[session.id, default: []].append(log)
+            }
+        }
+
+        return groups.map { key, group in
+            let points = group.loads.compactMap { id, rows in
+                sessionByID[id].flatMap { loadPoint(session: $0, logs: rows) }
+            }.sorted { lhs, rhs in
+                if lhs.date != rhs.date { return lhs.date < rhs.date }
+                let left = sessionByID[lhs.sessionID], right = sessionByID[rhs.sessionID]
+                let leftTime = left?.startedAt ?? left?.completedAt ?? ""
+                let rightTime = right?.startedAt ?? right?.completedAt ?? ""
+                if leftTime != rightTime { return leftTime < rightTime }
+                return lhs.sessionID.uuidString < rhs.sessionID.uuidString
+            }
+            return ExerciseHistory(key: key, name: group.name, region: group.region,
+                                   sessionCount: group.sessionIDs.count, lastPerformed: group.lastPerformed, points: points)
+        }.sorted {
+            if $0.sessionCount != $1.sessionCount { return $0.sessionCount > $1.sessionCount }
+            if $0.lastPerformed != $1.lastPerformed { return $0.lastPerformed > $1.lastPerformed }
+            if $0.name.lowercased() != $1.name.lowercased() { return $0.name.lowercased() < $1.name.lowercased() }
+            return $0.key < $1.key
+        }
     }
 
     // MARK: - Session insights

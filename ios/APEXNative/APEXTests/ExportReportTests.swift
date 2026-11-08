@@ -1,3 +1,4 @@
+import PDFKit
 import XCTest
 @testable import APEX
 
@@ -116,5 +117,63 @@ final class ExportReportTests: XCTestCase {
         let report = ExportReport.build(data(), slug: "main", from: "2026-02-01", to: "2026-02-28")
         XCTAssertFalse(report.contains("2026-01-05"))
         XCTAssertTrue(report.contains("No closed-day meal verdicts were available in this range."))
+    }
+
+    @MainActor
+    func testAvatarPDFPaginatesRankingsAndShowsRecordedLoadInTheChosenUnit() throws {
+        let secondID = UUID()
+        let second = WorkoutSession(
+            id: secondID, userID: user, date: "2026-03-05", programDayID: dayID,
+            isLite: false, isDeload: false, isEventRecovery: false, completed: true,
+            qualityScore: 1, startedAt: nil, completedAt: nil, notes: ""
+        )
+        let repeated = WorkoutLog(
+            id: UUID(), userID: user, sessionID: secondID, exerciseID: nil, exerciseName: "Bench Press",
+            setNumber: 1, weightKG: 30, reps: 6, rir: nil, skipped: false, overrideFlag: false, createdAt: ""
+        )
+        let longName = String(repeating: "Custom training variation ", count: 8) + "last word"
+        let once = (1...24).map { log("Accessory \($0)", set: 1, weight: nil, reps: 8, at: "") }
+            + [log(longName, set: 1, weight: nil, reps: 8, at: "")]
+        let recorded = [log("Bench Press", set: 1, weight: 20, reps: 5, at: ""),
+                        log("Squat", set: 1, weight: 40, reps: 4, at: ""), repeated]
+        let otherOwner = RPGSnapshot(id: UUID(), userID: UUID(), date: "2020-01-01", overall: 99,
+                                     health: 99, joint: 99, flexibility: 99, endurance: 99,
+                                     strength: 99, strengthUpper: 99, strengthLower: 99)
+        let scores = [("2026-01-05", 45.0), ("2026-02-05", 60.0), ("2026-03-05", 63.0)].map { day, value in
+            RPGSnapshot(id: UUID(), userID: user, date: day, overall: value, health: value, joint: value,
+                        flexibility: value, endurance: value, strength: value, strengthUpper: value, strengthLower: value)
+        }
+        let pdf = AvatarReport(ownerID: user, displayName: "Sample", snapshots: scores + [otherOwner], partialScores: [:],
+                               sessions: data().workoutSessions + [second], logs: once + recorded, unit: .pounds).pdfData()
+        let document = try XCTUnwrap(PDFDocument(data: pdf))
+        XCTAssertEqual(document.pageCount, 4)
+        let firstPage = try XCTUnwrap(document.page(at: 0)?.string)
+        XCTAssertTrue(firstPage.contains("63 / 100"))
+        XCTAssertTrue(firstPage.contains("2026-01-05"))
+        XCTAssertFalse(firstPage.contains("99 / 100"))
+        XCTAssertTrue(document.string?.contains("last word") == true)
+        let charts = try XCTUnwrap(document.page(at: 3)?.string)
+        let localizedLatest = 66.1.formatted(.number.locale(LanguageState.shared.language.locale))
+        XCTAssertTrue(charts.contains(localizedLatest + " lb"))
+        XCTAssertTrue(charts.contains("+22 lb"))
+        XCTAssertTrue(charts.contains("6 " + LanguageState.shared.text("reps")))
+        XCTAssertTrue(charts.contains(LanguageState.shared.text("One recorded session")))
+        let attachment = XCTAttachment(data: pdf, uniformTypeIdentifier: "com.adobe.pdf")
+        attachment.name = "Avatar report.pdf"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
+    func testEmptyAvatarPDFReportsMissingEvidence() throws {
+        let pdf = AvatarReport(ownerID: user, displayName: "Sample", snapshots: [], partialScores: ["health": 51],
+                               sessions: [], logs: [], unit: .kilograms).pdfData()
+        let document = try XCTUnwrap(PDFDocument(data: pdf))
+        let text = try XCTUnwrap(document.string)
+        XCTAssertEqual(document.pageCount, 2)
+        XCTAssertTrue(text.contains(LanguageState.shared.text("Building your baseline")))
+        XCTAssertTrue(text.contains("51 / 100"))
+        XCTAssertTrue(text.contains(LanguageState.shared.text("No exercises recorded yet.")))
+        XCTAssertTrue(text.contains(LanguageState.shared.text("No loaded sessions recorded yet.")))
     }
 }

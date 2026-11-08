@@ -526,6 +526,21 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertEqual(app.staticTexts["settings-active-identity-name"].label, "Constantine")
     }
 
+    func testAvatarOffersExportAndSelectsPerformedExerciseInsteadOfPlan() {
+        let app = configuredApp()
+        app.launch()
+        let avatar = app.buttons["portal.avatar"]
+        XCTAssertTrue(avatar.waitForExistence(timeout: 5))
+        avatar.tap()
+        XCTAssertTrue(app.buttons["avatar.share-report"].waitForExistence(timeout: 4))
+        let picker = app.buttons["avatar.load-picker"]
+        XCTAssertTrue(scrollUntilVisible(picker, in: app, attempts: 24))
+        XCTAssertTrue([picker.label, picker.value as? String ?? ""].joined().localizedCaseInsensitiveContains("Goblet squats"))
+        picker.tap()
+        XCTAssertTrue(app.buttons.containing(NSPredicate(format: "label CONTAINS[c] %@", "Goblet squats")).firstMatch.waitForExistence(timeout: 3))
+        XCTAssertFalse(app.buttons["Chest-supported rows"].exists)
+    }
+
     func testAvatarCalibrationControlSitsAboveStatsAndResumesProgress() {
         let app = configuredApp()
         app.launch()

@@ -175,6 +175,70 @@ final class StrengthProgressParityTests: XCTestCase {
         XCTAssertEqual(series.first?.points.map(\.volume), [480, 600])
     }
 
+    func testAvatarRanksOwnedCompletedSessionsAndKeepsOnlyComparableLoads() throws {
+        let owner = UUID(), other = UUID()
+        func session(_ date: String, ownerID: UUID? = nil, completed: Bool = true) -> WorkoutSession {
+            WorkoutSession(
+                id: UUID(), userID: ownerID ?? owner, date: date, programDayID: UUID(),
+                isLite: false, isDeload: false, isEventRecovery: false, completed: completed,
+                qualityScore: 1, startedAt: nil, completedAt: nil, notes: ""
+            )
+        }
+        func set(_ session: WorkoutSession, _ name: String, _ movement: String?, _ kg: Double? = nil,
+                 reps: Int? = 8, seconds: Int? = nil, skipped: Bool = false, ownerID: UUID? = nil) -> WorkoutLog {
+            WorkoutLog(
+                id: UUID(), userID: ownerID ?? session.userID, sessionID: session.id, exerciseID: UUID(),
+                exerciseName: name, setNumber: 1, weightKG: kg, reps: reps, rir: nil, movementID: movement,
+                durationSeconds: seconds, skipped: skipped, overrideFlag: false, createdAt: session.date
+            )
+        }
+        let old = session("2024-01-10"), recent = session("2026-09-06"), today = session("2026-09-07")
+        let unfinished = session("2026-09-08", completed: false), foreign = session("2026-09-01", ownerID: other)
+        let rows = [
+            set(old, "Leg press", "leg_press", 60, reps: 12),
+            set(old, "Leg press", "leg_press", 80, reps: 6),
+            set(old, "Leg press", "leg_press", 80, reps: 7),
+            set(recent, "Leg press", "leg_press"), set(today, "Leg press", "leg_press", 70),
+            set(recent, "Bench press", "barbell_bench_press", 40, reps: nil),
+            set(today, "Bench press", "barbell_bench_press", 50),
+            set(today, "Dead hang", "dead_hang", 20, reps: nil, seconds: 40),
+            set(today, "Band Abduction", "hip_abduction", 10),
+            set(today, "Hip Abduction", "hip_abduction", 45),
+            set(today, "Treadmill · 2 km · 0° · 15 min", nil, reps: nil),
+            set(today, "Cable Crunch", "cable_crunch", 30),
+            set(today, "Cable Crunch", "cable_crunch", 90, skipped: true),
+            set(today, "Empty row", nil, reps: nil), set(foreign, "Foreign session", nil, 15),
+            set(today, "Foreign set", nil, 20, ownerID: other), set(unfinished, "Unfinished", nil, 50),
+            set(today, "Pending", nil, .infinity, reps: nil),
+        ]
+        let history = StrengthProgress.exerciseHistory(ownerID: owner,
+            sessions: [today, unfinished, foreign, old, recent], logs: Array(rows.reversed()))
+        XCTAssertEqual(history.map(\.name), ["Leg press", "Bench press", "Band Abduction", "Cable Crunch", "Dead hang", "Hip Abduction", "Treadmill"])
+        let leg = try XCTUnwrap(history.first)
+        XCTAssertEqual(leg.region, .lower)
+        XCTAssertEqual(leg.sessionCount, 3)
+        XCTAssertEqual(leg.points.map(\.topWeight), [80, 70])
+        XCTAssertEqual(leg.points.map(\.topReps), [7, 8])
+        XCTAssertEqual(leg.loadGain, -10)
+        let bench = try XCTUnwrap(history.first { $0.name == "Bench press" })
+        XCTAssertEqual(bench.region, .upper)
+        XCTAssertEqual(bench.loadGain, 10)
+        XCTAssertNil(bench.points.first?.topReps)
+        let crunch = try XCTUnwrap(history.first { $0.name == "Cable Crunch" })
+        XCTAssertEqual(crunch.region, .core)
+        XCTAssertEqual(crunch.points.map(\.topWeight), [30])
+        XCTAssertNil(crunch.loadGain)
+        XCTAssertEqual(history.filter { $0.points.isEmpty }.map(\.name), ["Band Abduction", "Dead hang", "Treadmill"])
+        XCTAssertTrue(StrengthProgress.exerciseHistory(ownerID: owner, sessions: [today], logs: []).isEmpty)
+
+        let curls = StrengthProgress.exerciseHistory(ownerID: owner, sessions: [old, recent, today], logs: [
+            set(old, "Dumbbell Curl", "dumbbell_curl", 12), set(recent, "DB Curl", "dumbbell_curl", 15),
+            set(today, "Barbell Curl", "dumbbell_curl", 40),
+        ])
+        XCTAssertEqual(curls.map(\.key), ["movement:dumbbell_curl", "name:barbell curl"])
+        XCTAssertEqual(curls.map { $0.points.map(\.topWeight) }, [[12, 15], [40]])
+    }
+
     func testSessionInsightsMatchTheWeb() {
         for scenario in Self.fixture.insights {
             let rows = StrengthProgress.sessionInsights(

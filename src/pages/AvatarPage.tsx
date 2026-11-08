@@ -18,6 +18,7 @@ import { ageFrom } from '../lib/nutrition'
 import { bodyFatBaselineClause } from '../lib/profilePolicy'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { CameraIcon } from '../components/Icons'
+import { AvatarReportButton } from '../components/avatar/AvatarReportButton'
 import { AvatarPortraitHero } from '../components/avatar/AvatarPortraitHero'
 import { StrengthProgressPanel } from '../components/avatar/StrengthProgressPanel'
 import { MetabolicRhythmPanel } from '../components/avatar/MetabolicRhythmPanel'
@@ -99,6 +100,7 @@ export function AvatarPage() {
   if (!now) return (
     <div className="mx-auto w-full max-w-3xl space-y-4">
       <SectionHeader accent={emerald} title="Avatar" subtitle="Your body, as a living stat sheet" />
+      <div className="mb-3 flex justify-end"><AvatarReportButton /></div>
       {data.profile && <AvatarPortraitHero profile={data.profile} />}
       {coachPolicy.can_view_visual_progress && <button type="button" className="font-semibold" onClick={() => navigate('/progress', { state: { from: '/avatar' } })}>{t('Private Visual Progress')}</button>}
       <GlassCard accent={emerald} className="p-5">
@@ -110,7 +112,7 @@ export function AvatarPage() {
         </dl>
         {data.profile && <button type="button" className="mt-4 font-bold text-emerald" onClick={() => setShowCalibration(true)}>{t('Calibrate my baseline')}</button>}
       </GlassCard>
-      <MetabolicRhythmPanel /><RecoveryTrendPanel /><StrengthProgressPanel />
+      <MetabolicRhythmPanel /><RecoveryTrendPanel /><StrengthProgressPanel key={data.profile?.user_id} />
       {data.profile && showCalibration && <BaselineCalibrationDialog profile={data.profile} onClose={() => setShowCalibration(false)} />}
     </div>
   )
@@ -150,6 +152,7 @@ export function AvatarPage() {
   return (
     <div className="mx-auto w-full max-w-3xl">
       <SectionHeader accent={emerald} title="Avatar" subtitle="Your body, as a living stat sheet" />
+      <div className="mb-3 flex justify-end"><AvatarReportButton /></div>
 
       <div className="space-y-5">
         {profile && <AvatarPortraitHero profile={profile} />}
@@ -405,7 +408,7 @@ export function AvatarPage() {
         </GlassCard>
 
         {/* Load history follows the at-a-glance body index and fitness scores. */}
-        <StrengthProgressPanel />
+        <StrengthProgressPanel key={data.profile?.user_id} />
 
         {/* Baseline reasoning */}
         <GlassCard accent={emerald} className="p-5">

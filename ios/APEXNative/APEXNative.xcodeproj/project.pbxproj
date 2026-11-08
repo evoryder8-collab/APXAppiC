@@ -272,6 +272,7 @@
 		EAFA91F57435A9F15CE0B6C3 /* WorkoutInsights.swift in Sources */ = {isa = PBXBuildFile; fileRef = E720093C6B25710EDC8C094C /* WorkoutInsights.swift */; };
 		EBF350EC7ADE89A83BCF504D /* TrainingAdjustmentEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3512C30BD201A945F5BD6E98 /* TrainingAdjustmentEngineTests.swift */; };
 		ECAE31EE99259A0B5213F4C4 /* WorkoutReceipt.swift in Sources */ = {isa = PBXBuildFile; fileRef = F157DA36D6E0607A3DCC9A61 /* WorkoutReceipt.swift */; };
+		C301EDCBA3E46B36B3641448 /* AvatarReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7E2A52117B44D139BED9982 /* AvatarReport.swift */; };
 		ECD3432C01771AC92976B664 /* AvatarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7822CACCCE4EE7AA91EB3DC /* AvatarView.swift */; };
 		ECF677C2717A29BAC1997232 /* CustomWorkoutBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49C75403495643D96C069C21 /* CustomWorkoutBuilder.swift */; };
 		EF5C68317487D825DD5D6C33 /* WatchSupplementState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A512021FED5AA88F3040334B /* WatchSupplementState.swift */; };
@@ -600,6 +601,7 @@
 		C60B17BD340219024A2F7711 /* ProgressPhotoEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressPhotoEngine.swift; sourceTree = "<group>"; };
 		C76E2757FE379C6EA33A59F5 /* WorkoutLogOrder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLogOrder.swift; sourceTree = "<group>"; };
 		C77F288CA899F60184984193 /* MealSlotDefaultTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealSlotDefaultTests.swift; sourceTree = "<group>"; };
+		A7E2A52117B44D139BED9982 /* AvatarReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarReport.swift; sourceTree = "<group>"; };
 		C7822CACCCE4EE7AA91EB3DC /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
 		C8E4463683E46A0209E86AAB /* ManualWorkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualWorkout.swift; sourceTree = "<group>"; };
 		CA3D7D71971D9F075B4CA57C /* SupplementMutationQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupplementMutationQueue.swift; sourceTree = "<group>"; };
@@ -686,6 +688,7 @@
 		1780C2A1F3BC9B129F9C6DB1 /* Avatar */ = {
 			isa = PBXGroup;
 			children = (
+				A7E2A52117B44D139BED9982 /* AvatarReport.swift */,
 				C7822CACCCE4EE7AA91EB3DC /* AvatarView.swift */,
 				FF0D79C568111493DA4AB174 /* BaselineCalibrationSheet.swift */,
 				667FD05A1B3F81CA1699019E /* ProgressCameraView.swift */,
@@ -1490,6 +1493,7 @@
 				803AB91282B418FFB9B7300C /* AppRoute.swift in Sources */,
 				5179CE96D30A5E7676A5D37C /* AppSession.swift in Sources */,
 				8D333D944FA594ACEF54CCEC /* AvatarImage.swift in Sources */,
+				C301EDCBA3E46B36B3641448 /* AvatarReport.swift in Sources */,
 				ECD3432C01771AC92976B664 /* AvatarView.swift in Sources */,
 				37B855D4508C3A104F80E28C /* BarcodeScannerView.swift in Sources */,
 				708B604AC686EDF5B222B5B9 /* BaselineCalibration.swift in Sources */,
@@ -1955,7 +1959,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 404;
+				CURRENT_PROJECT_VERSION = 405;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1970,7 +1974,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -2019,7 +2023,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 404;
+				CURRENT_PROJECT_VERSION = 405;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -2040,7 +2044,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.0.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;

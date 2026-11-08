@@ -75,6 +75,27 @@ enum ExerciseCatalog {
     static var all: [ExerciseCatalogItem] { payload.exercises }
     static var categories: [ExerciseCatalogCategory] { payload.categories }
 
+    private static let movementIDsByName: [String: String] = {
+        var names: [String: String] = [:]
+        for item in all {
+            let labels = [item.id, item.movementID, item.name] + Array(item.names.values) + item.aliases.values.flatMap { $0 }
+            for label in labels {
+                let key = lookupKey(label)
+                if names[key] == nil { names[key] = item.movementID }
+            }
+        }
+        return names
+    }()
+
+    static func movementID(matchingName name: String) -> String? {
+        movementIDsByName[lookupKey(name)]
+    }
+
+    private static func lookupKey(_ text: String) -> String {
+        text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en"))
+            .split(whereSeparator: { !$0.isLetter && !$0.isNumber }).joined(separator: " ")
+    }
+
     static func search(_ query: String, category: String, language: AppLanguage) -> [ExerciseCatalogItem] {
         let matches = all.filter { item in
             (category == "all" || item.categories.contains(category)) && item.matches(query, language: language)
