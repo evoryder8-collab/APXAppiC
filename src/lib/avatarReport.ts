@@ -15,7 +15,8 @@ type ReportPoint = { date: string; value: number; reps?: number | null }
 type ReportWorkRow = Pick<ExerciseFrequencyFamily, 'name' | 'sessionCount' | 'work'>
 type ReportFamily = ReportWorkRow & {
   key?: string
-  variants: Array<ReportWorkRow & { key?: string } & Pick<RankedExerciseHistory, 'points'>>
+  region?: ExerciseFrequencyFamily['region']
+  variants: Array<ReportWorkRow & { key?: string } & Pick<RankedExerciseHistory, 'points'> & Partial<Pick<RankedExerciseHistory, 'sessions'>>>
 }
 type WorkingSet = { sessionId: string; date: string; weight: number | null; reps: number | null }
 type ExerciseRecord = { before: WorkingSet; firstSessionReps: number | null; sets: WorkingSet[]; bestSingle?: WorkingSet }
@@ -44,6 +45,23 @@ function loadGuide(variant: ReportFamily['variants'][number]) {
   const supportQualifier = /[+/]|\b(?:or|support(?:ed)?|assisted|smith|cable|machine|counterweight(?:ed)?)\b/i
   const supported = variant.points.some(point => supportQualifier.test(point.topSetName ?? variant.name))
   return { id, kind: supported ? 'externalOnly' : kind }
+}
+
+function reportLoadSeries(variant: ReportFamily['variants'][number], record?: ExerciseRecord): ReportPoint[] {
+  if (!record) {
+    return variant.points.some(p => p.topWeight > 0)
+      ? variant.points.map(p => ({ date: p.date, value: p.topWeight, reps: p.topReps })) : []
+  }
+  const best = new Map<string, ReportPoint>()
+  for (const set of record.sets) {
+    if (set.weight == null || (set.weight === 0 && set.reps == null)) continue
+    const previous = best.get(set.sessionId)
+    if (!previous || set.weight > previous.value || (set.weight === previous.value && (set.reps ?? 0) > (previous.reps ?? 0))) {
+      best.set(set.sessionId, { date: set.date, value: set.weight, reps: set.reps })
+    }
+  }
+  const points = [...best.values()]
+  return points.some(p => p.value > 0) ? points : []
 }
 
 function validMass(kg: unknown): kg is number {
@@ -95,10 +113,13 @@ export function reportSessionBodyweights(data: AppData, through: string): Map<st
 }
 
 export function reportExerciseRecords(data: AppData, range: { from: string; to: string }): Map<string, ExerciseRecord> {
+  const sessionTime = (session: AppData['workout_sessions'][number]) =>
+    Date.parse(session.started_at ?? session.completed_at ?? '') || 0
   const observations = [...performedWorkoutObservations(data, { from: '0001-01-01', to: range.to })]
-    .filter(o => o.repBased && o.movement.measuresExternalWeight)
+    .filter(o => o.repBased && o.movement.measuresExternalWeight
+      && (o.movement.descriptor.kind === 'strength' || o.movement.descriptor.kind === 'bodyweight'))
     .sort((a,b) => a.session.date.localeCompare(b.session.date)
-      || (a.session.started_at ?? a.session.completed_at ?? '').localeCompare(b.session.started_at ?? b.session.completed_at ?? '')
+      || sessionTime(a.session) - sessionTime(b.session)
       || a.session.id.localeCompare(b.session.id) || a.log.set_no - b.log.set_no || a.log.id.localeCompare(b.log.id))
   const records = new Map<string, ExerciseRecord>()
   for (const { movement, session, log, reps } of observations) {
@@ -249,27 +270,44 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
       ${load.kind === 'sharedSupport' ? `<p class="leg-note">${t('The share on each foot varies with stance and support.')}</p>` : ''}
       ${best ? personalRecord(best, kind === 'externalOnly' ? undefined : combined(best), record.bestSingle) : ''}</aside>`
   }
+  const regionNames = { lower: 'Lower body', upper: 'Upper body', core: 'Core', other: 'Other' }
+  const repRows: string[] = []
   const lifts = families.flatMap(family => family.variants.flatMap(variant => {
-    const points = variant.points.map(p => ({ date: p.date, value: p.topWeight, reps: p.topReps }))
     const record = options.exerciseRecords?.get(variant.key ?? '')
+    const points = reportLoadSeries(variant, record)
+    const { title, subtitle } = exerciseChartTitle(family, variant.name, t)
+    const bodyRegion = family.region ? `<p class="body-region">${t(regionNames[family.region])}</p>` : ''
+    const heading = [title, subtitle].filter(Boolean).join(' · ')
+    if (points.length < 2) {
+      const sessions = variant.sessions?.filter(({work}) => !work.missingReps && (work.recordedReps ?? 0) > 0) ?? []
+      if (sessions.length >= 2) {
+        const cells = [sessions[0], sessions[sessions.length - 1]].map(({work, date}) =>
+          `<td><b>${fmt.format(work.recordedReps!)}</b><time datetime="${escape(date)}">${stamp(date)}</time></td>`)
+        repRows.push(`<tr><th scope="row">${bodyRegion}${heading}</th>${cells.join('')}</tr>`)
+      }
+    }
     const leg = record ? workingLeg(variant, record) : ''
     if (points.length < 2 && !leg && !record?.bestSingle) return []
     const best = !leg && record && heaviestSet(record.sets, set => set.weight != null && set.weight > 0 ? set.weight : null)
     const card = leg || (best ? personalRecord(best, undefined, record?.bestSingle) : '')
     const chartBest = !card && points.reduce<ReportPoint | undefined>((peak, p) =>
       !peak || p.value > peak.value || (p.value === peak.value && (p.reps ?? 0) > (peak.reps ?? 0)) ? p : peak, undefined)
-    const { title, subtitle } = exerciseChartTitle(family, variant.name, t)
     const reps = repsTotal(variant.work)
     const volume = volumeTotal(variant.work)
     const stats = [
       reps && `<div><dt>${t('Recorded reps')}</dt><dd>${reps}</dd></div>`,
       volume && `<div><dt>${t('Lifted volume')}</dt><dd>${volume}</dd></div>`,
     ].join('')
-    return [`<article><h3>${title}</h3>${subtitle ? `<p class="variation">${subtitle}</p>` : ''}
+    const change = points.length >= 2 ? points[points.length - 1].value - points[0].value : null
+    return [{ change, name: variant.name, html: `<article>${bodyRegion}<h3>${heading}</h3>
       ${chart(points, ' kg', t(variant.name), true)}
+      ${change == null ? '' : `<p class="load-change">${t('Change')} · <strong>${change > 0 ? '+' : ''}${fmt.format(change)} kg</strong></p>`}
       ${chartBest ? `<p>${t(options.range && !options.range.allTime ? 'Best in range' : 'Personal best')} · <strong>${metric(chartBest, ' kg')}</strong></p>` : ''}
-      ${stats ? `<dl>${stats}</dl>` : ''}${card}</article>`]
-  }))
+      ${stats ? `<dl>${stats}</dl>` : ''}${card}</article>` }]
+  })).sort((a,b) => {
+    if (a.change === null || b.change === null) return Number(a.change === null) - Number(b.change === null) || a.name.localeCompare(b.name, locale)
+    return Math.abs(b.change) - Math.abs(a.change) || b.change - a.change || a.name.localeCompare(b.name, locale)
+  })
   const total = totalRecordedWork(families)
   const object = liftedMassCaption(total.liftedKg ?? 0, locale, translate)
   const hero = heroLiftCaption(total.liftedKg ?? 0, locale, translate)
@@ -321,7 +359,7 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
 .masthead strong{letter-spacing:.12em}.masthead p{font-size:.88em}
 .lifts dl{display:flex;flex-wrap:wrap;gap:4px 22px;margin:10px 0 0;padding-top:8px;border-top:1px solid #e6e0ed}
 .lifts dl div{display:flex;gap:6px;align-items:baseline}.lifts dt{color:#584d69;font-size:.82em}.lifts dd{font-weight:700;margin:0}
-.lifts>p{margin-bottom:8px}.variation{font-weight:600}.lifts dl{margin:14px 0 0;padding:12px 0 0;gap:8px 28px}
+.lifts>p{margin-bottom:8px}.body-region{font-size:.9em;font-weight:650;color:#563280}.rep-progress th,.rep-progress td{text-align:start;vertical-align:top}.rep-progress time{display:block;font-size:.85em;color:#584d69}.lifts h3{font-size:1.35em;line-height:1.25}.lifts dl{margin:14px 0 0;padding:12px 0 0;gap:8px 28px}
 .leg-load{background:#edf5f1;border-radius:14px;margin-top:16px;padding:12px}.leg-load h4{margin:4px 0 18px;font-size:1.8rem;line-height:1.2;font-weight:800}.leg-stages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.leg-stage{display:grid;grid-template-rows:subgrid;grid-row:span 3;row-gap:0;border-radius:12px;background:#fff;padding:12px}.leg-stage .leg-dates{grid-row:1}.leg-stage img{grid-row:2}.leg-stage dl{grid-row:3}.leg-stage+.leg-stage{background:#d9efe6}.leg-dates{min-height:4.3em}.leg-stage h5{margin:0 0 8px;font-size:1.45rem;line-height:1.1;font-weight:850;text-transform:uppercase;letter-spacing:.04em}.leg-dates time{display:block;font-size:1.1rem;line-height:1.3;font-weight:650;margin-bottom:6px;color:#122729}.leg-stage small{display:block;font-size:.76em;color:#425e55}.leg-stage img{display:block;width:100%;height:116px;object-fit:contain;margin:8px 0}.leg-stage dl{display:grid;align-content:start;margin:8px 0 0;border:0;padding:0;gap:12px}.leg-stage dl div{display:block}.leg-stage dt{font-size:1rem;line-height:1.25;font-weight:650;color:#183633}.leg-stage dd{font-size:1.25rem;font-weight:700}.leg-stage dl div:nth-child(2) dd{font-size:1.5rem;color:#00695c}.leg-note{font-size:.8em;margin:8px 0}
 .personal-record{margin-top:14px;padding:clamp(14px,3vw,24px);background:#ecf7f2;color:#183633;border-radius:12px;break-inside:avoid;overflow-wrap:anywhere}
 .personal-record h4{margin:0;font-size:clamp(1.5rem,4vw,2.2rem);line-height:1.1;letter-spacing:.025em;text-transform:uppercase}.personal-record p,.personal-record dt{color:#35584e}
@@ -336,7 +374,8 @@ ${range && (range.allTime || profileStart !== range.from) ? `<p class="report-ra
 ${volumePanel || totalTiles.length ? `<section class="totals-section"><h2>${t(range && !range.allTime ? 'Training totals' : 'All-time training totals')}</h2>${volumePanel}${totalTiles.length ? `<div class="grid totals">${totalTiles.join('')}</div>` : ''}</section>` : ''}
 ${profileDetails ? `<p class="profile-details">${profileDetails}</p>` : ''}
 ${total.missingReps || total.missingVolume ? `<p class="work-note">* ${t('Incomplete records')}</p>` : ''}
-${lifts.length ? `<section class="lifts"><h2>${t('Recorded load')}</h2><p>${t('Heaviest recorded set per session, in kilograms.')}</p>${lifts.join('')}</section>` : ''}
+${lifts.length ? `<section class="lifts"><h2>${t('Recorded load')}</h2><p>${t('Heaviest recorded set per session, in kilograms.')}</p>${lifts.map(lift => lift.html).join('')}</section>` : ''}
+${repRows.length ? `<section class="rep-progress"><h2>${t('Reps per session')}</h2><table><thead><tr><th>${t('Exercise')}</th><th>${t('First')}</th><th>${t('Latest')}</th></tr></thead><tbody>${repRows.join('')}</tbody></table></section>` : ''}
 ${tiles.length ? `<section><h2>${t('Stats')}</h2><p>${t('Legacy game scores. Not medical measurements.')}</p><div class="grid">${tiles.join('')}</div></section>` : ''}
 ${rankings.length ? `<section><h2>${t('Most trained exercises')}</h2><p>${t('Each completed workout counts once per exercise family.')}</p><table class="work"><thead><tr><th>${t('Exercise')}</th>${headers.map(label => `<th>${label}</th>`).join('')}</tr></thead>${rankings.join('')}</table></section>` : ''}</main></html>`
 }

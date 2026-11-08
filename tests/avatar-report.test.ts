@@ -52,7 +52,7 @@ test('family frequency keeps each variation while charts require comparable sess
   assert.match(html, /data-label="Load per rep">15 kg\*</)
   assert.match(html, /data-label="Lifted volume" title="300 kg">at least 300 kg</)
   assert.equal((html.match(/<tr class="variant">/g) ?? []).length, 2)
-  assert.match(html, /<h3>Hip Thrust<\/h3><p class="variation">Dumbbell<\/p>/)
+  assert.match(html, /<h3>Hip Thrust · With Dumbbells<\/h3>/)
   assert.doesNotMatch(html, /<h3>Single-Leg Hip Thrust<\/h3>/)
   assert.match(html, /<dt>Recorded reps<\/dt><dd>83<\/dd>/)
   assert.match(html, /<dt>Lifted volume<\/dt><dd>1.2 tons<\/dd>/)
@@ -80,6 +80,61 @@ test('report leads with the athlete category, totals and comparison before secon
   assert.match(html, /#2 · Nov 7, 2026 · 14 kg/)
   assert.equal(new Set([...html.matchAll(/<circle cx="([^"]+)"/g)].map(match => match[1])).size,2)
   assert.match(html, /<\/svg>[\s\S]*?<dl><div><dt>Recorded reps<\/dt><dd>28\*<\/dd><\/div><div><dt>Lifted volume<\/dt><dd>at least 160 kg<\/dd>/)
+})
+
+test('strength pages lead with the greatest load change across regions, including logged push-up weight', () => {
+  const data = recordedHistory()
+  const log = (session_id: string, exercise_name: string, movement_id: string, weight_kg: number | null, reps: number | null = 10) => ({
+    session_id, exercise_name, movement_id, weight_kg, reps, id: session_id + movement_id,
+    user_id:'user', exercise_id:null, set_no:1, skipped:false,
+  })
+  data.workout_logs = [
+    log('s0','Dumbbell Hip Thrust','hip_thrust_dumbbell',10), log('s1','Dumbbell Hip Thrust','hip_thrust_dumbbell',15),
+    log('s0','Strict Push-Up','push_up',0), log('s1','Strict Push-Up','push_up',16),
+    log('s2','Strict Push-Up','push_up',null),
+    log('s0','Dumbbell Romanian Deadlift','dumbbell_romanian_deadlift',16),
+    log('s1','Dumbbell Romanian Deadlift','dumbbell_romanian_deadlift',16,null),
+    log('s0','Reverse Lunge','reverse_lunge',30), log('s1','Reverse Lunge','reverse_lunge',14),
+    log('s0','Incline Push-Up','incline_push_up',0), log('s1','Incline Push-Up','incline_push_up',0),
+    log('s0','Bench Press','barbell_bench_press',20,1),
+  ]
+  const range = {from:'2026-01-01',to:'2026-11-07',allTime:true}
+  const families = buildExerciseFamilies(data, range)
+  const html = avatarReportHTML({...input, families, range, exerciseRecords:reportExerciseRecords(data, range)})
+  const progress = html.split('<section class="lifts">')[1].split('</article></section>')[0]
+  assert.deepEqual([...progress.matchAll(/<article>.*?<h3>(.*?)<\/h3>/g)].map(match => match[1]), [
+    'Push-Up · Strict', 'Lunge · Reverse', 'Hip Thrust · With Dumbbells', 'Romanian Deadlift · With Dumbbells', 'Bench Press',
+  ])
+  assert.match(progress, /Upper body<\/p><h3>Push-Up · Strict<\/h3>/)
+  assert.match(progress, /#1 · Jan 1, 2026 · 10 reps × 0 kg/)
+  assert.match(progress, /#2 · Nov 1, 2026 · 10 reps × 16 kg/)
+  assert.match(progress, /#2 · Nov 1, 2026 · 16 kg/)
+  assert.doesNotMatch(progress, /Incline Push-Up|Nov 2, 2026|NaN/)
+})
+
+test('rep-only progress compares complete sessions per variation once, including equipment without comparable kg', () => {
+  const data = recordedHistory()
+  const log = (day, name, movement, reps, setNo = 1, weight = null) => ({
+    session_id:day, exercise_name:name, movement_id:movement, weight_kg:weight, reps, id:[day,name,setNo].join('-'),
+    user_id:'user', exercise_id:null, set_no:setNo, skipped:false,
+  })
+  data.workout_logs = [
+    log('s0','Strict Push-Up','push_up',10), log('s0','Strict Push-Up','push_up',8,2),
+    log('s1','Strict Push-Up','push_up',24), log('s2','Incline Push-Up','incline_push_up',40),
+    log('s0','Incline Push-Up','incline_push_up',35),
+    log('s2','Knee Push-Up','knee_push_up',2),
+    log('s1','Band Row','band_row',12), log('s2','Band Row','band_row',22),
+    log('s0','Reverse Lunge','reverse_lunge',8,1,4), log('s1','Reverse Lunge','reverse_lunge',8,1,6),
+  ]
+  const range = {from:'2026-01-01',to:'2026-11-07',allTime:true}
+  const families = buildExerciseFamilies(data, range)
+  const html = avatarReportHTML({...input, families, range, exerciseRecords:reportExerciseRecords(data,range)})
+  const section = html.split('<section class="rep-progress">')[1].split('</section>')[0]
+  assert.match(section, /Upper body<\/p>Push-Up · Strict<\/th><td><b>18<\/b>.*?Jan 1, 2026.*?<td><b>24<\/b>/)
+  assert.match(section, /Push-Up · Incline<\/th><td><b>35<\/b>.*?<td><b>40<\/b>/)
+  assert.match(section, /Row · Band<\/th><td><b>12<\/b>.*?<td><b>22<\/b>/)
+  assert.doesNotMatch(section, /Knee|Lunge|<svg/)
+  assert.ok(html.indexOf('<section class="lifts">') < html.indexOf('<section class="rep-progress">'))
 })
 
 test('the cover distinguishes zero volume from unrecorded volume', () => {
@@ -230,7 +285,7 @@ test('a mixed-era hip thrust history keeps the earliest reps, chart and actual r
 test('strength headings show variant modifiers once and keep custom names intact', () => {
   const family = { key:'family:hip_thrust', name:'Hip Thrust' }
   assert.deepEqual(exerciseChartTitle(family, 'Weighted Dumbbell Hip Thrusts', s => s),
-    { title:'Hip Thrust', subtitle:'Weighted Dumbbell' })
+    { title:'Hip Thrust', subtitle:'With Dumbbells' })
   assert.deepEqual(exerciseChartTitle(family, 'Hip Thrust', s => s), { title:'Hip Thrust', subtitle:'' })
   assert.deepEqual(exerciseChartTitle({ key:'name:custom', name:'Personal lift' }, 'My Lift', s => s),
     { title:'My Lift', subtitle:'' })

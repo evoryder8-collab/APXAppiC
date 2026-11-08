@@ -303,7 +303,7 @@ final class StrengthProgressParityTests: XCTestCase {
             row(0, "Weighted Dumbbell Hip Thrust", nil, 20), row(0, "Weighted Dumbbell Hip Thrust", nil, 25),
             row(0, "Machine Hip Thrust", "machine_hip_thrust", 70), row(1, "Machine Hip Thrust", "machine_hip_thrust", 75),
             row(2, "B-Stance Hip Thrust", "b_stance_hip_thrust", 30),
-            row(3, "Weighted Dumbbell Hip Thrust", nil, 26),
+            row(3, "Dumbbell Hip Thrust", "hip_thrust_dumbbell", 26),
             row(0, "Leg Press", "leg_press", 100), row(1, "Leg Press", "leg_press", 110), row(2, "Leg Press", "leg_press", 120),
             row(0, "Strict Push-Up", nil), row(0, "Diamond or Close-Grip Push-Up", nil),
             row(1, "Strict Push-Up", nil), row(2, "Incline Push-Up", "incline_push_up"),
@@ -319,7 +319,7 @@ final class StrengthProgressParityTests: XCTestCase {
         XCTAssertEqual(hip.sessionCount, 4)
         XCTAssertEqual(hip.variants.count, 3)
         XCTAssertEqual(hip.variants.map(\.sessionCount).sorted(), [1, 2, 2])
-        XCTAssertEqual(hip.variants.first { $0.name == "Weighted Dumbbell Hip Thrust" }?.points.map(\.topWeight), [25, 26])
+        XCTAssertEqual(hip.variants.first { $0.key == "movement:hip_thrust_dumbbell" && $0.name == "Dumbbell Hip Thrust" }?.points.map(\.topWeight), [25, 26])
         XCTAssertEqual(hip.variants.first { $0.name == "Machine Hip Thrust" }?.points.map(\.topWeight), [70, 75])
         let pushUp = try XCTUnwrap(families.first { $0.key == "family:push_up" })
         XCTAssertEqual(pushUp.region, .upper)

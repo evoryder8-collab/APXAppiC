@@ -440,44 +440,95 @@ struct AvatarReport: Transferable {
         }
 
         private struct ChartPoint {
-            let sessionID: UUID
             let date: Date
             let value: Double
             let reps: Int?
+        }
 
-            init?(_ point: StrengthProgress.Point) {
-                guard let date = APEXDateMath.date(from: point.date), point.topWeight.isFinite, point.topWeight > 0 else { return nil }
-                sessionID = point.sessionID
-                self.date = date
-                value = point.topWeight
-                reps = point.topReps
+        private func chartPoints(_ variant: StrengthProgress.ExerciseHistory) -> [ChartPoint] {
+            let loaded = Dictionary(uniqueKeysWithValues: variant.points.map { ($0.sessionID, $0) })
+            let points: [ChartPoint] = variant.sessions.compactMap { session in
+                guard let date = APEXDateMath.date(from: session.date) else { return nil }
+                let point = loaded[session.sessionID]
+                if let set = session.heaviestSet, set.kg >= (point?.topWeight ?? 0) {
+                    return ChartPoint(date: date, value: set.kg, reps: set.reps)
+                }
+                return point.map { ChartPoint(date: date, value: $0.topWeight, reps: $0.topReps) }
             }
+            return points.count >= 2 && points.contains { $0.value > 0 } ? points : []
         }
 
         func drawCharts(_ families: [StrengthProgress.RankedFamily]) {
+            let charts = families.flatMap(\.variants).map { variant in
+                let points = chartPoints(variant)
+                let change = points.first.flatMap { first in points.last.map { $0.value - first.value } }
+                return (variant: variant, points: points, change: change)
+            }.sorted { lhs, rhs in
+                let a = lhs.change.map(abs) ?? -1
+                let b = rhs.change.map(abs) ?? -1
+                if a != b { return a > b }
+                if let left = lhs.change, let right = rhs.change, left != right { return left > right }
+                let order = lhs.variant.name.compare(rhs.variant.name, options: .caseInsensitive, range: nil, locale: language.language.locale)
+                return order == .orderedSame ? lhs.variant.key < rhs.variant.key : order == .orderedAscending
+            }
+
             var firstInSection = true
-            for family in families {
-                for variant in family.variants {
-                    let points = variant.points.compactMap(ChartPoint.init)
-                    let panel = legPanel(variant)
-                    let best = variant.sessions.filter { $0.bestSingleKG != nil }
-                        .max { ($0.bestSingleKG ?? 0) < ($1.bestSingleKG ?? 0) }
-                    let single: String? = best.flatMap { row in
-                        row.bestSingleKG.map { [language.text("Best single"), weight($0), language.dateKey(row.date)].joined(separator: " · ") }
-                    }
-                    if points.count >= 2 {
-                        drawChart(variant, points: points, panel: panel, single: single, firstInSection: firstInSection)
-                    } else if panel != nil || single != nil {
-                        if firstInSection || y + 75 + (panel?.height ?? 0) > 730 {
-                            begin("Strength progress", subtitle: "")
-                        }
-                        paragraph(language.text(variant.name), size: 17)
-                        if let single { paragraph(single, size: 11, color: green) }
-                        if let panel { drawLegPanel(panel, exercise: variant.name) }
-                        y += 12
-                    } else { continue }
-                    firstInSection = false
+            for (variant, points, _) in charts {
+                let panel = legPanel(variant)
+                let best = variant.sessions.filter { $0.bestSingleKG != nil }
+                    .max { ($0.bestSingleKG ?? 0) < ($1.bestSingleKG ?? 0) }
+                let single = best.flatMap { row in
+                    row.bestSingleKG.map { [language.text("Best single"), weight($0), language.dateKey(row.date)].joined(separator: " · ") }
                 }
+                if !points.isEmpty {
+                    drawChart(variant, points: points, panel: panel, single: single, firstInSection: firstInSection)
+                } else if panel != nil || single != nil {
+                    if firstInSection || y + 75 + (panel?.height ?? 0) > 730 {
+                        begin("Strength progress", subtitle: "")
+                    }
+                    for part in wrapped(chartHeading(variant), width: 536, size: 21, weight: .bold) {
+                        label(part, 38, y, 536, size: 21, weight: .bold)
+                        y += 27
+                    }
+                    if let single { paragraph(single, size: 11, color: green) }
+                    if let panel { drawLegPanel(panel, exercise: variant.name) }
+                    y += 12
+                } else { continue }
+                firstInSection = false
+            }
+            drawRepComparisons(charts.filter { $0.points.isEmpty }.map(\.variant))
+        }
+
+        private func drawRepComparisons(_ variants: [StrengthProgress.ExerciseHistory]) {
+            func heading() {
+                begin("Reps per session", subtitle: "")
+                for (key, x, width) in [("Exercise", 38, 270), ("First", 318, 123), ("Latest", 451, 123)] {
+                    label(language.text(key), CGFloat(x), y, CGFloat(width), size: 12, weight: .semibold, color: muted)
+                }
+                y += 21
+            }
+
+            var started = false
+            for variant in variants {
+                let complete = variant.sessions.filter { !$0.totals.missingReps && $0.totals.reps > 0 }
+                guard let first = complete.first, let last = complete.last, first.sessionID != last.sessionID else { continue }
+                let title = wrapped(chartHeading(variant), width: 270, size: 15, weight: .bold)
+                let height = CGFloat(title.count) * 19 + 28
+                if !started || y + height > 730 { heading() }
+                started = true
+                line(38, y, 574, y, color: rule)
+                y += 6
+                for (session, x) in [(first, CGFloat(318)), (last, CGFloat(451))] {
+                    label(number(Double(session.totals.reps)), x, y, 123, size: 17, weight: .bold)
+                    label(language.dateKey(session.date), x, y + 21, 123, size: 11, color: muted)
+                }
+                for part in title {
+                    if y + 20 > 730 { heading() }
+                    label(part, 38, y, 270, size: 15, weight: .bold)
+                    y += 19
+                }
+                label(language.text(variant.familyRegion.rawValue), 38, y + 2, 270, size: 11, color: green)
+                y += 22
             }
         }
 
@@ -613,33 +664,45 @@ struct AvatarReport: Transferable {
             y = frame.maxY + 4
         }
 
+        private func chartHeading(_ variant: StrengthProgress.ExerciseHistory) -> String {
+            let parts = variant.titleParts(language)
+            if let family = variant.familyName {
+                let full = variant.name.lowercased()
+                let equipmentName = full.hasPrefix("weighted ") ? String(full.dropFirst("weighted ".count)) : full
+                for (equipment, label) in [("dumbbell", "With Dumbbells"), ("barbell", "With a Barbell"), ("kettlebell", "With a Kettlebell")] {
+                    let name = equipment + " " + family.lowercased()
+                    if equipmentName == name || equipmentName == name + "s" {
+                        return language.text(family) + " · " + language.text(label)
+                    }
+                }
+            }
+            let full = language.text(variant.name)
+            return parts.variation.map { $0 == full ? full : parts.main + " · " + $0 } ?? parts.main
+        }
+
         private func drawChart(_ variant: StrengthProgress.ExerciseHistory, points: [ChartPoint], panel: LegPanel?, single: String?, firstInSection: Bool) {
             guard let first = points.first, let last = points.last,
                   let peak = points.max(by: { $0.value < $1.value }) else { return }
             let highest = peak.value
             let calendar = WorkoutChartCalendar(first: first.date, last: last.date)
-            let parts = variant.titleParts(language)
-            let title = wrapped(parts.main, width: 530, size: 19, weight: .bold)
-            let subtitle = parts.variation.map { wrapped($0, width: 530, size: 12) } ?? []
+            let title = wrapped(chartHeading(variant), width: 536, size: 21, weight: .bold)
             let totals = [(language.text("Recorded reps"), recordedReps(variant.totals)),
                           (language.text("Lifted volume"), liftedVolume(variant.totals))]
                 .compactMap { key, value in value.map { key + " " + $0 } }
             let totalLines = totals.isEmpty ? [] : wrapped(language.text(report.period.rawValue) + "   ·   " + totals.joined(separator: "   ·   "),
                                                          width: 536, size: 11, weight: .semibold)
-            let height = 268 + CGFloat(title.count - 1) * 24 + CGFloat(subtitle.count + totalLines.count) * 16
+            let height = 288 + CGFloat(title.count - 1) * 27 + CGFloat(totalLines.count) * 16
                 + (panel.map { $0.height + 12 } ?? 0) + (single == nil ? 0 : 16)
             func heading() {
                 begin("Strength progress", subtitle: language.text("Heaviest recorded working load in each completed session."))
             }
             if firstInSection || y + height > 730 { heading() }
+            label(language.text(variant.familyRegion.rawValue), 38, y, 536, size: 12, weight: .semibold, color: green)
+            y += 17
             for titleLine in title {
                 if y + 28 > 730 { heading() }
-                label(titleLine, 38, y, 536, size: 19, weight: .bold)
-                y += 24
-            }
-            for part in subtitle {
-                label(part, 38, y, 530, size: 12, color: muted)
-                y += 16
+                label(titleLine, 38, y, 536, size: 21, weight: .bold)
+                y += 27
             }
             y -= 24
             let chartReduction: CGFloat = panel.map {

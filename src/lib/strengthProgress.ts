@@ -63,6 +63,7 @@ interface SessionWork {
 }
 
 export interface RankedExerciseHistory extends ExerciseStrengthSeries {
+  sessions: SessionWork[]
   region: StrengthRegion
   work: RecordedWork
   sessionCount: number
@@ -83,6 +84,11 @@ export interface ExerciseFrequencyFamily {
 export function exerciseChartTitle(family: { key?: string; name: string }, name: string, translate: (text: string) => string) {
   const variant = translate(name)
   const title = family.key?.startsWith('family:') ? translate(family.name) : variant
+  const equipmentLabels: Record<string, string> = { dumbbell: 'With Dumbbells', barbell: 'With a Barbell', kettlebell: 'With a Kettlebell' }
+  const equipment = name.trim().match(/^(?:weighted )?(dumbbell|barbell|kettlebell) (.+)$/i)
+  if (family.key?.startsWith('family:') && equipment && [family.name.toLowerCase(), family.name.toLowerCase() + 's'].includes(equipment[2].toLowerCase())) {
+    return { title, subtitle: translate(equipmentLabels[equipment[1].toLowerCase()]) }
+  }
   const folded = variant.trim().toLocaleLowerCase()
   const familyName = title.trim().toLocaleLowerCase()
   if (folded === familyName) return { title, subtitle: '' }
@@ -94,6 +100,8 @@ export function exerciseChartTitle(family: { key?: string; name: string }, name:
 
 const familyByMovement = new Map(frequencyFamilies.flatMap(family => family.movementIDs.map(id => [id, family] as const)))
 const familyAlias = (name: string) => name.toLowerCase().replace(/[^a-z0-9]/g, '')
+const equivalentMovementByLabel = new Map(frequencyFamilies.flatMap(family =>
+  Object.entries(family.equivalentLabels ?? {}).flatMap(([id, labels]) => labels.map(label => [label.toLowerCase(), id] as const))))
 const familyByAlias = new Map(frequencyFamilies.flatMap(family => family.aliases.map(name => [familyAlias(name), family] as const)))
 
 function frequencyOrder(a: Pick<RankedExerciseHistory, 'key' | 'name' | 'sessionCount' | 'lastPerformedDate'>, b: typeof a) {
@@ -133,7 +141,8 @@ function strengthRegion(primary = ''): StrengthRegion {
 }
 
 function historyMovement(name: string, movementId: string | null) {
-  let descriptor = descriptorForExercise({ name, movement_id: movementId })
+  const equivalentId = equivalentMovementByLabel.get(name.trim().toLowerCase().replace(/\s+/g, ' '))
+  let descriptor = descriptorForExercise({ name, movement_id: movementId ?? equivalentId })
   if (!descriptor.movementId) {
     const catalog = catalogExerciseByName(name)
     if (catalog) descriptor = descriptorForExercise({ name, movement_id: catalog.movementID })
@@ -165,6 +174,7 @@ function historyMovement(name: string, movementId: string | null) {
   const measuresExternalWeight = sameExternalLoad && !substitute && !assisted && !bandLabel && !bandEquipment
   return {
     descriptor, key, family, hasRepField, bodyweight, measuresExternalWeight, entityType: movement?.entityType,
+    displayName: movement && movement.id === equivalentId ? movement.name : name,
     catalogUnit: movement?.repUnit,
     region: region === 'lower' || region === 'upper' || region === 'core' || region === 'other'
       ? region : strengthRegion(movement?.primaryMuscles[0]),
@@ -246,20 +256,20 @@ export function* performedWorkoutObservations(data: WorkoutHistoryInput, range?:
     // Old strength receipts sometimes recorded a working load without reps.
     if (!performed && !(loaded && log.reps == null)) continue
 
-    yield { session, log, movement, name, loadedWeight: loaded ? weight : null, reps, repBased }
+    yield { session, log, movement, name: movement.displayName, loadedWeight: loaded ? weight : null, reps, repBased }
   }
 }
 
 export function buildExerciseFamilies(data: WorkoutHistoryInput, range?: { from: string; to: string }): ExerciseFrequencyFamily[] {
-  const sessionTimes = new Map<string, string>()
+  const sessionTimes = new Map<string, number>()
   function sessionOrder(a: Pick<SessionWork, 'sessionId' | 'date'>, b: typeof a) {
     return a.date.localeCompare(b.date)
-      || (sessionTimes.get(a.sessionId) ?? '').localeCompare(sessionTimes.get(b.sessionId) ?? '')
+      || (sessionTimes.get(a.sessionId) ?? 0) - (sessionTimes.get(b.sessionId) ?? 0)
       || a.sessionId.localeCompare(b.sessionId)
   }
   const groups = new Map<string, {
     family: (typeof frequencyFamilies)[number] | undefined
-    history: Omit<RankedExerciseHistory, 'sessionCount' | 'points'>
+    history: Omit<RankedExerciseHistory, 'sessionCount' | 'points' | 'sessions'>
     performed: Map<string, SessionWork>
     points: Map<string, StrengthPoint>
   }>()
@@ -274,7 +284,7 @@ export function buildExerciseFamilies(data: WorkoutHistoryInput, range?: { from:
       performed: new Map<string, SessionWork>(), points: new Map<string, StrengthPoint>(),
     }
     groups.set(movement.key, group)
-    sessionTimes.set(session.id, session.started_at ?? session.completed_at ?? '')
+    sessionTimes.set(session.id, Date.parse(session.started_at ?? session.completed_at ?? '') || 0)
     const sessionWork = group.performed.get(session.id) ?? { sessionId: session.id, date: session.date, work: emptyWork() }
     group.performed.set(session.id, sessionWork)
     if (session.date > group.history.lastPerformedDate
@@ -318,7 +328,7 @@ export function buildExerciseFamilies(data: WorkoutHistoryInput, range?: { from:
   const families = new Map<string, { row: ExerciseFrequencyFamily; sessions: Map<string, SessionWork> }>()
   for (const { history, performed, points, family } of groups.values()) {
     const variant = {
-      ...history, sessionCount: performed.size,
+      ...history, sessionCount: performed.size, sessions: [...performed.values()].sort(sessionOrder),
       points: [...points.values()].sort(sessionOrder),
     }
     const key = family ? `family:${family.id}` : variant.key
@@ -330,7 +340,7 @@ export function buildExerciseFamilies(data: WorkoutHistoryInput, range?: { from:
     for (const [id, observation] of performed) {
       const previous = entry.sessions.get(id)
       if (previous) accumulateWork(previous.work, observation.work)
-      else entry.sessions.set(id, observation)
+      else entry.sessions.set(id, { ...observation, work: { ...observation.work } })
     }
     entry.row.sessionCount = entry.sessions.size
     accumulateWork(entry.row.work, variant.work)

@@ -174,6 +174,7 @@ enum StrengthProgress {
         let name: String
         let movementIDs: [String]
         let aliases: [String]
+        let equivalentLabels: [String: [String]]?
         let region: String
 
         var bodyRegion: BodyRegion {
@@ -189,16 +190,20 @@ enum StrengthProgress {
             text.lowercased().filter { $0.isLetter || $0.isNumber }
         }
 
-        static let index: (movement: [String: Self], alias: [String: Self]) = {
+        static let index: (movement: [String: Self], alias: [String: Self], equivalentMovement: [String: String]) = {
             guard let url = Bundle.main.url(forResource: "exercise-frequency-families", withExtension: "json"),
                   let data = try? Data(contentsOf: url),
-                  let families = try? JSONDecoder().decode([Self].self, from: data) else { return ([:], [:]) }
+                  let families = try? JSONDecoder().decode([Self].self, from: data) else { return ([:], [:], [:]) }
             var movements: [String: Self] = [:], aliases: [String: Self] = [:]
+            var equivalentMovement: [String: String] = [:]
             for family in families {
+                for (id, labels) in family.equivalentLabels ?? [:] {
+                    for label in labels { equivalentMovement[label.lowercased()] = id }
+                }
                 for id in family.movementIDs { movements[id] = family }
                 for label in family.aliases { aliases[normalized(label)] = family }
             }
-            return (movements, aliases)
+            return (movements, aliases, equivalentMovement)
         }()
 
     }
@@ -415,10 +420,12 @@ enum StrengthProgress {
             let treadmill = log.exerciseName.contains(" · ") ? ManualWorkout.parseTreadmill(log.exerciseName) : nil
             let name = (treadmill?.name ?? log.exerciseName).trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty else { continue }
-            let movement = MovementTiming.movement(named: name, movementID: log.movementID)
-                ?? ExerciseCatalog.movementID(matchingName: name).flatMap { MovementTiming.movement(named: name, movementID: $0) }
-            let descriptor = ExerciseLogging.descriptor(for: movement)
             let normalized = name.lowercased().split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+            let equivalentID = FamilyDefinition.index.equivalentMovement[normalized]
+            let movement = MovementTiming.movement(named: name, movementID: log.movementID ?? equivalentID)
+                ?? ExerciseCatalog.movementID(matchingName: name).flatMap { MovementTiming.movement(named: name, movementID: $0) }
+            let displayName = movement.flatMap { $0.id == equivalentID ? $0.name : nil } ?? name
+            let descriptor = ExerciseLogging.descriptor(for: movement)
             let isComposite = normalized.contains("+") || normalized.contains("/")
                 || normalized.split(whereSeparator: { !$0.isLetter }).contains("or")
             let loggedEquipment = equipment(in: name)
@@ -437,7 +444,7 @@ enum StrengthProgress {
             let measuresReps = !episode && descriptor.fields.contains(.reps) && treadmill == nil
                 && [storedUnit, catalogUnit].compactMap { $0 }.allSatisfy { $0 == "reps" || $0 == "max" }
             // A recorded mass still measures a same-implement set when the log leaves its stance unspecified.
-            let loadedPushUp = log.movementID == "weighted_push_up" && aliasFamily?.id == "push_up" && explicitLoad
+            let loadedPushUp = log.movementID == "weighted_push_up" && aliasFamily?.id == "push_up"
             let comparableMass = !isComposite || loadedPushUp || ["hip_thrust", "biceps_curl", "calf_raise"].contains(aliasFamily?.id ?? "")
             let assisted = (normalized + " " + (movement?.id ?? "")).split(whereSeparator: { !$0.isLetter })
                 .contains { ["assisted", "counterweight", "counterweighted"].contains($0) }
@@ -465,7 +472,7 @@ enum StrengthProgress {
                 ?? "name:" + normalized
             if groups[key] == nil {
                 let region = BodyRegion(primaryMuscle: movement?.primaryMuscles?.first)
-                groups[key] = Group(name: name, region: region == .other ? family?.bodyRegion ?? region : region,
+                groups[key] = Group(name: displayName, region: region == .other ? family?.bodyRegion ?? region : region,
                                     family: family)
             }
             groups[key]?.sessions[session.id, default: SessionTotals(session)].totals.record(
@@ -486,9 +493,9 @@ enum StrengthProgress {
                 }
             }
             if let current = groups[key], session.date > current.lastPerformed
-                || (session.date == current.lastPerformed && name < current.name) {
+                || (session.date == current.lastPerformed && displayName < current.name) {
                 groups[key]?.lastPerformed = session.date
-                groups[key]?.name = name
+                groups[key]?.name = displayName
             }
             if hasLoad {
                 groups[key]?.loads[session.id, default: []].append(log)

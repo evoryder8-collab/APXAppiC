@@ -207,6 +207,7 @@ test('June’s exercise families count distinct receipts across aliases and morn
   const set = data.workout_logs[0]
   data.workout_sessions = ['morning','evening','other'].map((id, index) => ({
     ...data.workout_sessions[0], id, date: index === 2 ? '2026-07-15' : '2026-07-14',
+    started_at: index === 0 ? '2026-07-14T08:00:00Z' : index === 1 ? '2026-07-14T18:00:00Z' : '2026-07-15T08:00:00Z',
   }))
   const performed = (name: string, session_id: string, movement_id: string | null, weight_kg: number | null) =>
     ({ ...set, session_id, exercise_name: name, movement_id, weight_kg })
@@ -228,11 +229,11 @@ test('June’s exercise families count distinct receipts across aliases and morn
   ].map((log, index) => ({ ...log, id: 'set-' + index }))
   const families = buildExerciseFamilies(data)
   assert.deepEqual(families.slice(0,2).map(f => [f.key,f.region,f.sessionCount,f.variants.length]), [
-    ['family:hip_thrust','lower',3,3], ['family:push_up','upper',2,3],
+    ['family:hip_thrust','lower',3,2], ['family:push_up','upper',2,3],
   ])
   assert.deepEqual(families[0].variants.map(v => [v.name, v.points.map(p => p.topWeight)]), [
     ['B-Stance or Single-Leg Hip Thrust', [10,12]],
-    ['Dumbbell Hip Thrust', [22]], ['Weighted Dumbbell Hip Thrust', [24]],
+    ['Dumbbell Hip Thrust', [24,22]],
   ])
   assert.ok(families.some(f => f.name === 'Glute Bridge'))
   assert.equal(families.find(f => f.name === 'Gimbal Front Hold')?.sessionCount, 1)
@@ -279,7 +280,7 @@ test('lifetime work sums actual external kg × measured reps from each eligible 
   assert.equal(hip.sessionCount,1)
   assert.deepEqual(hip.work,{sets:5, recordedReps:23, liftedKg:880, loadedReps:19, missingReps:true, missingVolume:true})
   assert.deepEqual(hip.variants.find(v => v.name === 'Dumbbell Hip Thrust')?.work,
-    {sets:2, recordedReps:13, liftedKg:700, loadedReps:13, missingReps:false, missingVolume:false})
+    {sets:4, recordedReps:17, liftedKg:700, loadedReps:13, missingReps:true, missingVolume:true})
   const unilateral = hip.variants.find(v => v.name.startsWith('B-Stance'))!
   assert.equal(unilateral.work.liftedKg,180)
   assert.deepEqual(unilateral.points.map(p => p.topWeight),[30])

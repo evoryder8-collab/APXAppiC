@@ -2,6 +2,9 @@
 export const interfaceLocales = ["en", "de", "de-CH", "it", "es", "pt", "ja", "ro", "th"] as const
 
 export const productInterfaceCopy: Array<readonly [string, string, string, string, string, string, string, string, string]> = [
+  ["With Dumbbells","Mit Kurzhanteln","Mit Churzhantle","Con manubri","Con mancuernas","Com halteres","ダンベル使用","Cu gantere","ใช้ดัมเบล"],
+  ["With a Barbell","Mit einer Langhantel","Mit ere Langhantle","Con bilanciere","Con barra","Com barra","バーベル使用","Cu haltera","ใช้บาร์เบล"],
+  ["With a Kettlebell","Mit einer Kettlebell","Mit ere Kettlebell","Con kettlebell","Con una pesa rusa","Com um kettlebell","ケトルベル使用","Cu un kettlebell","ใช้เคตเทิลเบล"],
   ["Peak","Höchstwert","Höchschtwärt","Massimo","Máximo","Máximo","最高","Maxim","สูงสุด"],
   ["External load during single-leg sets","Zusatzgewicht bei einbeinigen Sätzen","Zuesatzgwicht bi eibeinige Sätz","Carico esterno nelle serie su una gamba","Carga externa en series a una pierna","Carga externa nas séries com uma perna","片脚セットの追加重量","Greutate externă în seriile pe un picior","น้ำหนักเสริมในเซตที่ฝึกทีละขา"],
   ["Current bodyweight used as a reference for every set.","Für alle Sätze dient dein aktuelles Körpergewicht als Referenz.","Für alli Sätz gilt dis aktuells Körpergwicht als Referenz.","Per tutte le serie si usa il peso corporeo attuale come riferimento.","Se usa tu peso corporal actual como referencia en todas las series.","O peso corporal atual serve de referência para todas as séries.","全セットで現在の体重を基準にしています。","Greutatea corporală actuală este folosită ca referință pentru toate seriile.","ใช้น้ำหนักตัวปัจจุบันเป็นค่าอ้างอิงสำหรับทุกเซต"],

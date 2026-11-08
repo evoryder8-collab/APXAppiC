@@ -402,6 +402,78 @@ final class ExportReportTests: XCTestCase {
     }
 
     @MainActor
+    func testPDFOrdersUpperAndLowerBodyChartsByRecordedLoadChange() throws {
+        var fixture = data()
+        let movements: [(String, String, [Double?])] = [
+            ("Weighted or Feet-Elevated Push-Up", "weighted_push_up", [0, nil, 12]),
+            ("Reverse Lunge", "reverse_lunge", [18, 14, 10]),
+            ("Dumbbell Romanian Deadlift", "dumbbell_romanian_deadlift", [16, 16, 16]),
+            ("Incline Push-Up", "incline_push_up", [0, 0, 0]),
+        ]
+        fixture.workoutSessions = []
+        for (day, date) in ["2026-01-05", "2026-01-12", "2026-01-19"].enumerated() {
+            let session = WorkoutSession(id: UUID(), userID: user, date: date, programDayID: dayID,
+                                         isLite: false, isDeload: false, isEventRecovery: false, completed: true,
+                                         qualityScore: 1, startedAt: nil, completedAt: nil, notes: "")
+            fixture.workoutSessions.append(session)
+            for (name, movement, loads) in movements {
+                fixture.workoutLogs.append(WorkoutLog(id: UUID(), userID: user, sessionID: session.id,
+                    exerciseID: nil, exerciseName: name, setNumber: 1, weightKG: loads[day], reps: 10, rir: nil,
+                    movementID: movement, skipped: false, overrideFlag: false, createdAt: ""))
+            }
+        }
+        let pdf = AvatarReport.scoped(ownerID: user, data: fixture, partialScores: [:], period: .allTime,
+                                      dates: "2026-01-05"..."2026-01-19", today: "2026-01-19").pdfData()
+        let document = try XCTUnwrap(PDFDocument(data: pdf))
+        let language = LanguageState.shared
+        let charts = (0..<document.pageCount).compactMap { document.page(at: $0)?.string }
+            .filter { $0.contains(language.text("Strength progress")) }.joined(separator: "\n")
+        let push = try XCTUnwrap(charts.range(of: language.text("Upper body")))
+        let lunge = try XCTUnwrap(charts.range(of: language.text("Lunge") + " · Reverse"))
+        let deadlift = try XCTUnwrap(charts.range(of: language.text("Romanian Deadlift") + " · " + language.text("With Dumbbells")))
+        XCTAssertLessThan(push.lowerBound, lunge.lowerBound)
+        XCTAssertLessThan(lunge.lowerBound, deadlift.lowerBound)
+        let pushChart = charts[push.lowerBound..<lunge.lowerBound]
+        XCTAssertTrue(pushChart.contains("+12 kg"))
+        XCTAssertTrue(pushChart.contains(language.format("%d reps", 10) + " × 0 kg"))
+        XCTAssertTrue(pushChart.contains("#2"))
+        XCTAssertFalse(pushChart.contains("#3"))
+        XCTAssertFalse(charts.contains("Incline"))
+        let sample = XCTAttachment(data: pdf, uniformTypeIdentifier: "com.adobe.pdf")
+        sample.name = "Mixed upper and lower body progress.pdf"
+        sample.lifetime = .keepAlways
+        add(sample)
+    }
+
+    @MainActor
+    func testUnweightedUpperBodyShowsRepeatedSessionRepTotalsWithoutALoadChart() throws {
+        var fixture = data(logs: [
+            log("Strict Push-Up", set: 1, weight: nil, reps: 9, at: ""),
+            log("Strict Push-Up", set: 2, weight: nil, reps: 8, at: ""),
+            log("Hammer Curl", set: 1, weight: 4, reps: 8, at: ""),
+        ])
+        let second = WorkoutSession(id: UUID(), userID: user, date: "2026-01-19", programDayID: dayID,
+                                    isLite: false, isDeload: false, isEventRecovery: false, completed: true,
+                                    qualityScore: 1, startedAt: nil, completedAt: nil, notes: "")
+        fixture.workoutSessions.append(second)
+        fixture.workoutLogs.append(WorkoutLog(id: UUID(), userID: user, sessionID: second.id,
+            exerciseID: nil, exerciseName: "Strict Push-Up", setNumber: 1, weightKG: nil, reps: 21, rir: nil,
+            skipped: false, overrideFlag: false, createdAt: ""))
+        let pdf = AvatarReport.scoped(ownerID: user, data: fixture, partialScores: [:], period: .allTime,
+                                      dates: "2026-01-05"..."2026-01-19", today: "2026-01-19").pdfData()
+        let document = try XCTUnwrap(PDFDocument(data: pdf))
+        let pages = (0..<document.pageCount).compactMap { document.page(at: $0)?.string }
+        let language = LanguageState.shared
+        let reps = try XCTUnwrap(pages.first { $0.contains(language.text("Reps per session")) })
+        XCTAssertTrue(reps.contains(language.text("Upper body")))
+        XCTAssertTrue(reps.contains("Push-Up") && reps.contains("Strict"))
+        XCTAssertTrue(reps.contains("17") && reps.contains("21"))
+        XCTAssertTrue(reps.contains(language.dateKey("2026-01-05")) && reps.contains(language.dateKey(second.date)))
+        XCTAssertFalse(reps.contains("Hammer"))
+        XCTAssertFalse(pages.contains { $0.contains(language.text("Strength progress")) })
+    }
+
+    @MainActor
     func testRecordedHipThrustLoadsSurviveLegacyAndCurrentReceiptNames() throws {
         let dateLoads: [(String, Double?)] = [("2026-08-07", nil), ("2026-08-14", 8), ("2026-11-06", 36)]
         let name = "B-Stance or Single-Leg Hip Thrust"
