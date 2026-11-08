@@ -830,20 +830,14 @@ final class APEXSmokeUITests: XCTestCase {
         let done = app.buttons["Done"].firstMatch
         if done.waitForExistence(timeout: 5) { done.tap() }
 
-        let expand = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "simple-training-expand-")).firstMatch
-        XCTAssertTrue(scrollUntilVisible(expand, in: app, attempts: 35))
-        let exercises = app.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH %@", "simple-training-exercise-"))
-        XCTAssertTrue(app.scrollViews["training-lineup-strip"].firstMatch.exists)
-        let firstExercise = exercises.firstMatch.identifier
-        XCTAssertFalse(firstExercise.isEmpty)
-        tapClearOfDock(expand)
-        XCTAssertEqual(expand.value as? String, "Expanded")
-        let grid = app.descendants(matching: .any)["training-lineup-grid"].firstMatch
-        XCTAssertTrue(grid.exists)
-        XCTAssertTrue(grid.staticTexts[firstExercise].exists)
-        XCTAssertGreaterThanOrEqual(grid.staticTexts.matching(NSPredicate(
-            format: "identifier BEGINSWITH %@", "simple-training-exercise-"
-        )).count, 3)
+        let lineup = app.descendants(matching: .any)["training-lineup-list"].firstMatch
+        let exercises = lineup.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH %@", "simple-training-exercise-"))
+        XCTAssertTrue(scrollUntilVisible(exercises.firstMatch, in: app, attempts: 35))
+        XCTAssertGreaterThanOrEqual(exercises.count, 3)
+        let first = exercises.element(boundBy: 0)
+        let second = exercises.element(boundBy: 1)
+        XCTAssertGreaterThan(second.frame.minY, first.frame.maxY)
+        XCTAssertEqual(first.frame.minX, second.frame.minX, accuracy: 2)
         XCTAssertFalse(app.descendants(matching: .any)["workout-phase-warmup"].exists)
         capture("simple-training-full-exercise-preview")
 
@@ -862,7 +856,7 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(chooser.buttons["Full session"].firstMatch.exists)
         capture("simple-training-chooser-exercise-preview")
         let start = chooser.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "simple-training-start-")).firstMatch
-        XCTAssertTrue(start.exists)
+        XCTAssertTrue(scrollUntilVisible(start, in: app))
         start.tap()
         // A previous run may have an interrupted draft. Continue must restore
         // that phase instead of incorrectly restarting its warm-up.

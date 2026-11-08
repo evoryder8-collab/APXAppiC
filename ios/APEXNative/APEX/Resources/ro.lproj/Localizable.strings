@@ -5841,5 +5841,9 @@
 "Bodyweight history is incomplete. External load is shown for every set." = "Istoricul greutății corporale este incomplet. Se afișează greutatea externă pentru fiecare serie.";
 "Incomplete records" = "Înregistrări incomplete";
 "Joined FITR MAX" = "Pe FITR MAX din";
-"Best single" = "Cea mai grea repetare unică";
+"Best single" = "Cea mai bună repetare unică";
 "Personal record" = "Record personal";
+"rep" = "rep.";
+"First recorded" = "Prima înregistrare";
+"Around %dx %@" = "Cam %dx %@";
+"Avatar report FAQ" = "Întrebări despre raportul avatarului";

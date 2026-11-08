@@ -460,10 +460,10 @@ struct AvatarReport: Transferable {
                 for variant in family.variants {
                     let points = variant.points.compactMap(ChartPoint.init)
                     let panel = legPanel(variant)
-                    let single = variant.sessions.compactMap { session in
-                        session.bestSingleKG.map { (kg: $0, date: session.date) }
-                    }.max { $0.kg < $1.kg }.map {
-                        language.text("Best single") + " · " + weight($0.kg) + " · " + language.dateKey($0.date)
+                    let best = variant.sessions.filter { $0.bestSingleKG != nil }
+                        .max { ($0.bestSingleKG ?? 0) < ($1.bestSingleKG ?? 0) }
+                    let single: String? = best.flatMap { row in
+                        row.bestSingleKG.map { [language.text("Best single"), weight($0), language.dateKey(row.date)].joined(separator: " · ") }
                     }
                     if points.count >= 2 {
                         drawChart(variant, points: points, panel: panel, single: single, firstInSection: firstInSection)

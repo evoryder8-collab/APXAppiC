@@ -163,57 +163,33 @@ struct GuidedPreviewPhoto: View {
 struct GuidedExerciseLineup: View {
     let exercises: [Exercise]
     let accent: Color
-    var expanded = false
     let prescription: (Exercise) -> String
     @State private var language = LanguageState.shared
-    @ScaledMetric(relativeTo: .body) private var cardWidth: CGFloat = 148
-    @Environment(\.dynamicTypeSize) private var dynamicType
 
     var body: some View {
-        if expanded || dynamicType.isAccessibilitySize {
-            let column: GridItem.Size = dynamicType.isAccessibilitySize ? .flexible() : .adaptive(minimum: cardWidth - 22)
-            LazyVGrid(columns: [GridItem(column, spacing: 14, alignment: .topLeading)],
-                      alignment: .leading, spacing: 18) { cards(inRow: false) }
-                .accessibilityElement(children: .contain)
-                .accessibilityIdentifier("training-lineup-grid")
-        } else {
-            ScrollView(.horizontal) {
-                HStack(alignment: .top, spacing: 14) {
-                    cards(inRow: true)
+        VStack(alignment: .leading, spacing: 18) {
+            ForEach(Array(exercises.enumerated()), id: \.element.id) { index, exercise in
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .firstTextBaseline, spacing: 9) {
+                        Text((index + 1).formatted(.number.precision(.integerLength(2...))))
+                            .font(APEXFont.mono(12, weight: .bold))
+                            .foregroundStyle(accent)
+                        Text(language.text(exercise.name))
+                            .font(APEXFont.body(16, weight: .bold))
+                            .foregroundStyle(APEXColor.ink)
+                            .accessibilityIdentifier("simple-training-exercise-\(exercise.id.uuidString.lowercased())")
+                    }
+                    Text(prescription(exercise))
+                        .font(APEXFont.mono(12))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                    GuidedPreviewPhoto(exercise: exercise, height: 150)
                 }
-                .scrollTargetLayout()
+                .frame(maxWidth: .infinity, alignment: .leading)
+                if index < exercises.count - 1 { Divider() }
             }
-            .fixedSize(horizontal: false, vertical: true)
-            .scrollTargetBehavior(.viewAligned)
-            .accessibilityIdentifier("training-lineup-strip")
-            .scrollIndicators(.visible)
-            .scrollBounceBehavior(.basedOnSize)
         }
-    }
-
-    @ViewBuilder private func cards(inRow: Bool) -> some View {
-        ForEach(Array(exercises.enumerated()), id: \.element.id) { index, exercise in
-            VStack(alignment: .leading, spacing: 7) {
-                GuidedPreviewPhoto(exercise: exercise)
-                HStack(spacing: 6) {
-                    Text((index + 1).formatted(.number.precision(.integerLength(2...))))
-                        .font(APEXFont.mono(10, weight: .bold))
-                        .foregroundStyle(accent)
-                    Rectangle().fill(accent.opacity(0.24)).frame(height: 1)
-                }
-                .accessibilityHidden(true)
-                Text(language.text(exercise.name))
-                    .font(APEXFont.body(14, weight: .bold))
-                    .foregroundStyle(APEXColor.ink)
-                    .accessibilityIdentifier("simple-training-exercise-\(exercise.id.uuidString.lowercased())")
-                Text(prescription(exercise))
-                    .font(APEXFont.mono(11))
-                    .foregroundStyle(APEXColor.secondaryInk)
-            }
-            .frame(width: inRow ? cardWidth : nil, alignment: .leading)
-            .fixedSize(horizontal: false, vertical: true)
-            .frame(maxWidth: .infinity, alignment: .topLeading)
-            .accessibilityElement(children: .contain)
-        }
+        .fixedSize(horizontal: false, vertical: true)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("training-lineup-list")
     }
 }

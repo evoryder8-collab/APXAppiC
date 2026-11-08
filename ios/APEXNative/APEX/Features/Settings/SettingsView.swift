@@ -304,7 +304,7 @@ struct SettingsView: View {
 
                         if let guide = URL(string: "https://evoryder8-collab.github.io/APXAppiC/report-guide.html") {
                             Link(destination: guide) {
-                                Label(language.text("Avatar report") + " · FAQ", systemImage: "questionmark.circle")
+                                Label(language.text("Avatar report FAQ"), systemImage: "questionmark.circle")
                             }
                         }
                         if session.coachClientPolicy.canViewVisualProgress {

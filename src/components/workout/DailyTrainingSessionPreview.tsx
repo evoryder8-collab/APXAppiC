@@ -1,5 +1,5 @@
 import { ExercisePreviewPhoto } from './ExercisePreviewPhoto'
-import { useId, useState } from 'react'
+import { useState } from 'react'
 import { guidedSessionPreview, type DailyGuidedSession } from '../../lib/dailyGuidedSessions'
 import type { PlannedDay } from '../../lib/plan'
 
@@ -14,9 +14,7 @@ interface Props {
 }
 
 export function DailyTrainingSessionPreview({ session, lightPlan, completedLite, trainToday, translate: t, exerciseName, onOpen }: Props) {
-  const [expanded, setExpanded] = useState(false)
   const [selectedLite, setSelectedLite] = useState(false)
-  const listID = useId()
   const lite = session.status === 'Continue' ? session.resumeLite === true
     : session.status === 'Completed' ? completedLite === true : selectedLite
   const preview = guidedSessionPreview(lite && lightPlan ? lightPlan : session.plan, t)
@@ -51,25 +49,18 @@ export function DailyTrainingSessionPreview({ session, lightPlan, completedLite,
         </div>
       ) : <p className="mt-2 text-[10px] font-semibold text-ink-faint">{t(lite ? 'Minimum effective' : 'Full session')}</p>}
 
-      <ol id={listID} aria-label={t('Exercises')} tabIndex={!expanded && preview.exercises.length > 1 ? 0 : undefined}
-        className={expanded ? 'mt-3 grid grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-2' : 'mt-3 flex snap-x gap-2 overflow-x-auto pb-2'}>
+      <ol aria-label={t('Exercises')} className="mt-4 flex flex-col divide-y divide-violet-100">
         {preview.exercises.map((exercise, index) => (
-          <li key={exercise.id} className={`relative flex min-w-0 flex-col justify-end rounded-2xl bg-gradient-to-b from-violet-50 to-slate-50 p-3 ${expanded ? '' : 'w-[9rem] max-w-[76%] shrink-0 snap-start'}`}>
-            <span aria-hidden="true" className="absolute left-2.5 top-2 font-mono text-[10px] font-bold text-violet-700">{String(index + 1).padStart(2, '0')}</span>
-            <ExercisePreviewPhoto exercise={exercise} className="my-1 h-[82px] w-full" />
-            <div className="mt-3">
-              <p className="break-words text-xs font-bold leading-snug text-ink">{exerciseName(exercise.name)}</p>
-              <p className="mt-1 break-words font-mono text-[10px] leading-relaxed text-ink-soft">{exercise.prescription}{exercise.optional ? ` · ${t('optional')}` : ''}</p>
+          <li key={exercise.id} className="min-w-0 py-3">
+            <div className="flex items-baseline gap-2.5">
+              <span aria-hidden="true" className="font-mono text-xs font-bold text-violet-700">{String(index + 1).padStart(2, '0')}</span>
+              <p className="break-words text-base font-bold leading-snug text-ink">{exerciseName(exercise.name)}</p>
             </div>
+            <p className="mt-1 font-mono text-xs leading-relaxed text-ink-soft">{exercise.prescription}{exercise.optional ? ` · ${t('optional')}` : ''}</p>
+            <ExercisePreviewPhoto exercise={exercise} className="mt-2 h-[150px] w-full" />
           </li>
         ))}
       </ol>
-      {preview.exercises.length > 2 && (
-        <button type="button" aria-expanded={expanded} aria-controls={listID} onClick={() => setExpanded((value) => !value)}
-          className="mt-1 min-h-10 w-full rounded-xl px-2 py-2 text-left text-[11px] font-bold text-violet-700">
-          {t(expanded ? 'Show fewer exercises' : 'Show all exercises')} <span aria-hidden="true">{expanded ? '−' : '+'}</span>
-        </button>
-      )}
       <button type="button" onClick={() => onOpen(lite)}
         aria-label={`${completed ? t('View workout stats') : actionLabel}: ${title}`}
         className={`mt-3 min-h-11 w-full rounded-xl px-3 py-2.5 text-xs font-bold leading-snug ${completed ? 'bg-emerald-50 text-emerald-800' : 'bg-violet-600 text-white shadow-sm'}`}>

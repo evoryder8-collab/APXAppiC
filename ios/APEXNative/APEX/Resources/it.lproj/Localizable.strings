@@ -5860,5 +5860,9 @@
 "Bodyweight history is incomplete. External load is shown for every set." = "Lo storico del peso corporeo è incompleto. Per ogni serie viene mostrato il carico esterno.";
 "Incomplete records" = "Dati incompleti";
 "Joined FITR MAX" = "Su FITR MAX dal";
-"Best single" = "Migliore singola";
+"Best single" = "Miglior singola";
 "Personal record" = "Record personale";
+"rep" = "rip.";
+"First recorded" = "Prima registrazione";
+"Around %dx %@" = "Circa %dx %@";
+"Avatar report FAQ" = "Domande sul report Avatar";

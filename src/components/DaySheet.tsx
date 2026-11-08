@@ -230,7 +230,7 @@ export function DaySheet({ open, onClose, dateIso, slug, accent, initialLite = f
                       : `${e.rep_min}-${e.rep_max}`
             return (
               <div key={e.id} className="glass flow-root rounded-2xl p-3.5">
-                <ExercisePreviewPhoto exercise={e} className="float-left mr-3 h-[72px] w-[80px] sm:w-28" />
+                <ExercisePreviewPhoto exercise={e} className="mb-2 h-[150px] w-full" />
                 <div className="flex items-baseline justify-between gap-2">
                   <p className="text-[14px] leading-snug font-bold text-ink">
                     {e.name}

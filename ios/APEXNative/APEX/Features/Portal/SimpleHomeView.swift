@@ -2515,7 +2515,7 @@ private struct TrainingQuickSheet: View {
                             .foregroundStyle(APEXColor.green)
                             .padding(.top, 2)
 
-                        GuidedExerciseLineup(exercises: shown, accent: APEXColor.green, expanded: true,
+                        GuidedExerciseLineup(exercises: shown, accent: APEXColor.green,
                                              prescription: prescription)
                     }
                     .padding(.horizontal, 20)
@@ -3282,7 +3282,6 @@ private struct SupplementPickerRow: View {
 }
 
 /// A readable prescription shared by the dashboard and its Training popup.
-/// Expanding the list never starts a session; starting is an explicit action.
 private struct DailyTrainingSessionPreviewCard: View {
     let item: SimpleHomeLogic.DailyGuidedSession
     let fullExercises: [Exercise]
@@ -3290,9 +3289,7 @@ private struct DailyTrainingSessionPreviewCard: View {
     let trainToday: Bool
     let fixedLite: Bool?
     let onOpen: (Bool) -> Void
-    @Environment(\.dynamicTypeSize) private var dynamicType
     @State private var language = LanguageState.shared
-    @State private var expanded = false
     @State private var selectedLite = false
 
     private var lite: Bool { fixedLite ?? selectedLite }
@@ -3354,28 +3351,9 @@ private struct DailyTrainingSessionPreviewCard: View {
                     .foregroundStyle(APEXColor.secondaryInk)
             }
 
-            GuidedExerciseLineup(exercises: exercises, accent: accent, expanded: expanded,
+            GuidedExerciseLineup(exercises: exercises, accent: accent,
                                  prescription: prescription)
                 .id(lite)
-
-            if exercises.count > 3 && !dynamicType.isAccessibilitySize {
-                Button { expanded.toggle() } label: {
-                    HStack(spacing: 8) {
-                        Text(language.text(expanded ? "Show fewer exercises" : "Show all exercises"))
-                            .font(APEXFont.body(12, weight: .bold))
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: 0)
-                        Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 11, weight: .bold))
-                    }
-                    .foregroundStyle(accent)
-                    .frame(minHeight: 44)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityValue(language.text(expanded ? "Expanded" : "Collapsed"))
-                .accessibilityIdentifier("simple-training-expand-\(identifier)")
-            }
 
             Button { onOpen(lite) } label: {
                 HStack(spacing: 8) {

@@ -304,7 +304,7 @@
 "Birthdate" = "生年月日";
 "Brand" = "ブランド";
 "Brand not specified" = "ブランド未指定";
-"Before" = "ビフォー";
+"Before" = "以前";
 "Before and after" = "ビフォーアフター";
 "Blocks" = "ブロック";
 "Build a workout" = "ワークアウトを作成";
@@ -447,7 +447,7 @@
 "1 hour" = "1時間";
 
 /* Chrome: controls, sections, health and capture */
-"After" = "アフター";
+"After" = "現在";
 "Amount" = "量";
 "Arms" = "腕";
 "BACK" = "背中";
@@ -5859,5 +5859,9 @@
 "Bodyweight history is incomplete. External load is shown for every set." = "体重履歴が不足しているため、全セットで追加重量を表示しています。";
 "Incomplete records" = "記録が一部不足";
 "Joined FITR MAX" = "FITR MAX 登録日";
-"Best single" = "1回セットの最高重量";
+"Best single" = "1回の最高記録";
 "Personal record" = "自己ベスト";
+"rep" = "回";
+"First recorded" = "初回記録";
+"Around %dx %@" = "約%d倍・%@";
+"Avatar report FAQ" = "アバターレポートのよくある質問";

@@ -229,7 +229,7 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
         ${label === 'Before' && isIsoDate(options.joined) ? `<small>${t('Joined FITR MAX')} · ${stamp(options.joined)}</small>` : ''}
         <small>${t(label === 'Before' ? 'First recorded' : 'Latest')} · ${stamp(set.date)}</small></div>
         ${image}<dl>${values.map(([key,value,detail]) =>
-          `<div><dt>${t(key)}</dt><dd>${value == null ? '—' : fmt.format(value) + ' kg'}</dd>${detail ? `<small>${detail}</small>` : ''}</div>`).join('')}</dl>${label === 'After' ? `<div class="leg-bests">${recordDisplay}${singleRecord(record.bestSingle)}</div>` : ''}</div>`
+          `<div><dt>${t(key)}</dt><dd>${value == null ? '&ndash;' : fmt.format(value) + ' kg'}</dd>${detail ? `<small>${detail}</small>` : ''}</div>`).join('')}</dl>${label === 'After' ? `<div class="leg-bests">${recordDisplay}${singleRecord(record.bestSingle)}</div>` : ''}</div>`
     }
     return `<aside class="leg-load"><h4>${t('Working leg')}</h4><div class="leg-stages">${stage('Before',record.before)}${stage('After',latest)}</div>
       ${load.kind === 'sharedSupport' ? `<p class="leg-note">${t('The share on each foot varies with stance and support.')}</p>` : ''}</aside>`

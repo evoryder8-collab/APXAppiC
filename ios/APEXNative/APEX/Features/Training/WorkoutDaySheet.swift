@@ -328,7 +328,7 @@ struct WorkoutDaySheet: View {
             : nil
         return GlassCard(radius: 20, padding: 14) {
             VStack(alignment: .leading, spacing: 6) {
-                GuidedPreviewPhoto(exercise: exercise, height: 124)
+                GuidedPreviewPhoto(exercise: exercise, height: 150)
                 HStack(alignment: .firstTextBaseline, spacing: 8) {
                     Text(language.text(exercise.name))
                         .font(APEXFont.body(14, weight: .bold))

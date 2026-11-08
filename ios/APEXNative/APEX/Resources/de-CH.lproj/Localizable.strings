@@ -5859,5 +5859,9 @@
 "Bodyweight history is incomplete. External load is shown for every set." = "De Gwichtsverlauf isch unvollständig. Für alli Sätz zeigt d App s Zuesatzgwicht.";
 "Incomplete records" = "Unvollständigi Iiträg";
 "Joined FITR MAX" = "Bi FITR MAX sit";
-"Best single" = "Beschte Einzelversuech";
+"Best single" = "Bescht Einzelwiederholig";
 "Personal record" = "Persönliche Rekord";
+"rep" = "Wdh.";
+"First recorded" = "S erscht Mal erfasst";
+"Around %dx %@" = "Öppe %dx %@";
+"Avatar report FAQ" = "Frage zum Avatarbricht";

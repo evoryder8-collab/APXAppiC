@@ -80,7 +80,7 @@ enum LiftedMassComparison {
                 }
             } else if language.language == .english {
                 guard let plural = match.plural else { return nil }
-                caption = "Around \(count)x " + plural.prefix(1).uppercased() + plural.dropFirst()
+                caption = language.format("Around %dx %@", count, plural.prefix(1).uppercased() + plural.dropFirst())
             } else {
                 caption = name + " · " + language.format("About %d of these", count)
             }

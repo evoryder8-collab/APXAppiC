@@ -1519,7 +1519,7 @@ struct WorkoutDayView: View {
                     let exercise = planned.exercise
                     GlassCard(radius: 24, padding: 16) {
                         VStack(alignment: .leading, spacing: 12) {
-                            GuidedPreviewPhoto(exercise: exercise, height: 124)
+                            GuidedPreviewPhoto(exercise: exercise, height: 150)
                             HStack(alignment: .top) {
                                 VStack(alignment: .leading, spacing: 6) {
                                     HStack(spacing: 7) {

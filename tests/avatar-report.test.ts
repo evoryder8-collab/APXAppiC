@@ -170,7 +170,7 @@ test('an unrecorded starting weight stays unknown and old sessions do not borrow
   const exerciseRecords = reportExerciseRecords(data,period)
   assert.equal(exerciseRecords.get('movement:reverse_lunge').before.weight,null)
   const html=avatarReportHTML({...exampleReport(),exerciseRecords,joined:undefined,sessionBodyweights:new Map()})
-  assert.match(html,/First recorded · Jan 1, 2026[\s\S]*?Added weight<\/dt><dd>—<\/dd>[\s\S]*?Body \+ load<\/dt><dd>—<\/dd>/)
+  assert.match(html,/First recorded · Jan 1, 2026[\s\S]*?Added weight<\/dt><dd>&ndash;<\/dd>[\s\S]*?Body \+ load<\/dt><dd>&ndash;<\/dd>/)
   assert.match(html,/Personal record<\/b>\s*<strong>25 kg<\/strong><small>Added weight/)
   assert.doesNotMatch(html,/Joined FITR MAX|88 kg/)
 })
