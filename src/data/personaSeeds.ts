@@ -77,14 +77,14 @@ export const LEGACY_JUNE_DAYS: DaySpec[] = [
     warmup: '8 bodyweight split squats per side, 10 slow hinges and 10 ankle rocks per side',
     full: [
       { name: 'Bulgarian Split Squat', sets: 3, reps: [8, 12], perSide: true, rest: 120, increment: 2, note: 'Partner-sync block 1 of 3.' },
-      { name: 'Dumbbell Romanian Deadlift', sets: 3, reps: [8, 12], rest: 120, increment: 2, note: 'Partner-sync block 2 of 3.' },
+      { name: 'Single-Leg Romanian Deadlift', sets: 3, reps: [8, 12], perSide: true, rest: 120, increment: 2, note: 'Partner-sync block 2 of 3.' },
       { name: 'Sliding Leg Curl', sets: 2, reps: [10, 15], rest: 90, down: 3, note: 'Partner-sync block 3 of 3.' },
       { name: 'Dumbbell Hip Thrust', sets: 3, reps: [8, 12], rest: 120, pause: 2, increment: 2, tempo: 'Hold the top for 2 seconds', note: 'June-only glute hypertrophy block after the shared work.' },
       { name: 'Band Abduction', sets: 2, reps: [15, 25], rest: 60 },
     ],
     lite: [
       { name: 'Bulgarian Split Squat', sets: 2, reps: [8, 12], perSide: true, rest: 120, increment: 2 },
-      { name: 'Dumbbell Romanian Deadlift', sets: 2, reps: [8, 12], rest: 120, increment: 2 },
+      { name: 'Single-Leg Romanian Deadlift', sets: 2, reps: [8, 12], perSide: true, rest: 120, increment: 2 },
       { name: 'Dumbbell Hip Thrust', sets: 2, reps: [8, 12], rest: 120, pause: 2, increment: 2 },
     ],
   },
@@ -230,13 +230,13 @@ const JUNE_V84_DAYS: DaySpec[] = [
     full: [
       { name: 'Dumbbell Hip Thrust', sets: 4, reps: [6, 10], rest: 120, pause: 2, increment: 2 },
       { name: 'Bulgarian Split Squat', sets: 3, reps: [8, 12], perSide: true, rest: 120, increment: 2 },
-      { name: 'Dumbbell Romanian Deadlift', sets: 3, reps: [8, 12], rest: 120, increment: 2 },
+      { name: 'Single-Leg Romanian Deadlift', sets: 3, reps: [8, 12], perSide: true, rest: 120, increment: 2 },
       { name: 'Band Abduction', sets: 2, reps: [15, 25], rest: 60 },
     ],
     lite: [
       { name: 'Dumbbell Hip Thrust', sets: 2, reps: [6, 10], rest: 120, pause: 2, increment: 2 },
       { name: 'Bulgarian Split Squat', sets: 2, reps: [8, 12], perSide: true, rest: 120, increment: 2 },
-      { name: 'Dumbbell Romanian Deadlift', sets: 2, reps: [8, 12], rest: 120, increment: 2 },
+      { name: 'Single-Leg Romanian Deadlift', sets: 2, reps: [8, 12], perSide: true, rest: 120, increment: 2 },
     ],
   },
   juneMorning(2, 5),

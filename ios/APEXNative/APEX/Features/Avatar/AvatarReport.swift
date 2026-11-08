@@ -247,7 +247,7 @@ struct AvatarReport: Transferable {
                 let (title, path, value) = metric
                 let x: CGFloat = index.isMultiple(of: 2) ? 38 : 315
                 let top = y + CGFloat(index / 2) * 139
-                let card = CGRect(x: x, y: top, width: 259, height: 121)
+                let card = CGRect(x: x, y: top, width: 259, height: 148)
                 UIColor(white: 0.965, alpha: 1).setFill()
                 UIBezierPath(roundedRect: card, cornerRadius: 10).fill()
                 label(language.text(title), x + 13, top + 12, 233, size: 13, weight: .semibold)
@@ -501,7 +501,7 @@ struct AvatarReport: Transferable {
             let after: Entry
             let estimateLabel: String
             let record: [String]
-            var height: CGFloat { 166 + CGFloat(max(1, record.count)) * 15 }
+            var height: CGFloat { 193 + CGFloat(max(1, record.count)) * 15 }
         }
 
         private func legPanel(_ variant: StrengthProgress.ExerciseHistory) -> LegPanel? {
@@ -557,34 +557,35 @@ struct AvatarReport: Transferable {
                 .flatMap { UIImage(contentsOfFile: $0.path) }
             for (i, entry) in [panel.before, panel.after].enumerated() {
                 let x: CGFloat = i == 0 ? 50 : 311
-                let tile = CGRect(x: x, y: top + 35, width: 251, height: 121)
+                let tile = CGRect(x: x, y: top + 35, width: 251, height: 148)
                 (i == 0 ? UIColor.white : UIColor(red: 0.81, green: 0.94, blue: 0.90, alpha: 1)).setFill()
                 UIBezierPath(roundedRect: tile, cornerRadius: 9).fill()
-                let title = language.text(i == 0 ? "Before" : "After") + " · " + entry.date
-                label(title, x + 8, tile.minY + 6, 234, size: 11, weight: .semibold)
+                let title = language.text(i == 0 ? "Before" : "After").uppercased(with: language.language.locale)
+                label(title, x + 10, tile.minY + 7, 230, size: 20, weight: .heavy)
+                label(entry.date, x + 10, tile.minY + 34, 230, size: 10, color: muted)
                 if let illustration {
                     let scale = min(68 / illustration.size.width, 90 / illustration.size.height)
                     let size = CGSize(width: illustration.size.width * scale, height: illustration.size.height * scale)
-                    illustration.draw(in: CGRect(x: x + 40 - size.width / 2, y: tile.minY + 71 - size.height / 2,
+                    illustration.draw(in: CGRect(x: x + 40 - size.width / 2, y: tile.minY + 98 - size.height / 2,
                                                  width: size.width, height: size.height))
                 }
                 let textX = x + 81
-                label(language.text("Added weight"), textX, tile.minY + 27, 163, size: 9, color: muted)
-                label(entry.load, textX, tile.minY + 39, 163, size: 16, weight: .bold)
+                label(language.text("Added weight"), textX, tile.minY + 54, 163, size: 9, color: muted)
+                label(entry.load, textX, tile.minY + 66, 163, size: 16, weight: .bold)
                 if let combined = entry.combined {
-                    label(language.text("Body + load"), textX, tile.minY + 63, 163, size: 9, color: muted)
-                    label(combined, textX, tile.minY + 75, 163, size: 17, weight: .bold, color: green)
+                    label(language.text("Body + load"), textX, tile.minY + 90, 163, size: 9, color: muted)
+                    label(combined, textX, tile.minY + 102, 163, size: 17, weight: .bold, color: green)
                 }
                 if let estimate = entry.estimate {
-                    label(panel.estimateLabel + " " + estimate, textX, tile.minY + 101, 163, size: 9, color: muted)
+                    label(panel.estimateLabel + " " + estimate, textX, tile.minY + 128, 163, size: 9, color: muted)
                 }
             }
             if let joined = report.joinedDate {
                 label(language.text("Joined FITR MAX") + " · " + language.dateKey(joined),
-                      59, top + 160, 237, size: 10, color: muted)
+                      59, top + 187, 237, size: 10, color: muted)
             }
             for (i, part) in panel.record.enumerated() {
-                label(part, 320, top + 161 + CGFloat(i) * 15, 239, size: 10, weight: .semibold, color: green)
+                label(part, 320, top + 188 + CGFloat(i) * 15, 239, size: 10, weight: .semibold, color: green)
             }
             y = frame.maxY + 4
         }

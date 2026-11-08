@@ -134,8 +134,10 @@ test('June Full is never silently replaced by Light and follows the V8.4 exercis
   const juneFridayLight = planForDate(june, 'main', '2026-07-31', true)
 
   assert.deepEqual(juneMonday.exercises.slice(0, 3).map((exercise) => exercise.name), [
-    'Dumbbell Hip Thrust', 'Bulgarian Split Squat', 'Dumbbell Romanian Deadlift',
+    'Dumbbell Hip Thrust', 'Bulgarian Split Squat', 'Single-Leg Romanian Deadlift',
   ])
+  const hinges = june.exercises.filter(row => /romanian deadlift/i.test(row.name))
+  assert.ok(hinges.length > 0 && hinges.every(row => row.name === 'Single-Leg Romanian Deadlift' && row.per_side))
   assert.deepEqual(juneFriday.exercises.slice(0, 3).map((exercise) => exercise.name), [
     'Reverse Lunge', 'B-Stance or Single-Leg Hip Thrust', 'Sliding Leg Curl',
   ])

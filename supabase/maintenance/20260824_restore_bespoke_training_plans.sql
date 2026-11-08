@@ -202,7 +202,7 @@ begin
   from (values
     ('5243eb0d-ad88-45e8-b7dd-7f98a2f9f339'::uuid, 'Dumbbell Hip Thrust', 4, 6, 10, 'reps', false, 120, 'V8: use 90-120 seconds rest; finish with a controlled lockout.', 2::numeric, 0, 'hip_thrust_dumbbell'),
     ('0b86e50d-6d21-4d8a-afd5-ec44ae45d13a'::uuid, 'Bulgarian Split Squat', 3, 8, 12, 'reps', true, 120, 'V8: use 90-120 seconds rest per leg; keep a stable front foot.', 2::numeric, 1, 'bulgarian_split_squat'),
-    ('70f50bae-8f27-49b9-b18c-fa6f8f4fca13'::uuid, 'Dumbbell Romanian Deadlift', 3, 8, 12, 'reps', false, 120, 'V8: use 90-120 seconds rest; stop where hamstrings, not the lower back, limit range.', 2::numeric, 2, 'dumbbell_romanian_deadlift'),
+    ('70f50bae-8f27-49b9-b18c-fa6f8f4fca13'::uuid, 'Single-Leg Romanian Deadlift', 3, 8, 12, 'reps', true, 120, 'V8: use 90-120 seconds rest; stop where hamstrings, not the lower back, limit range.', 2::numeric, 2, 'single_leg_romanian_deadlift'),
     ('29936504-1b6b-4b1c-96fe-473067453c1a'::uuid, 'Band Abduction', 2, 15, 25, 'reps', false, 60, 'V8: use 45-60 seconds rest.', 0::numeric, 3, 'hip_abduction'),
     ('0b2a8b8b-f0d5-4450-af17-f8488c80640b'::uuid, 'Strict Push-Up', 3, 10, 15, 'reps', false, 90, 'Stop with 1-2 clean repetitions in reserve.', 0::numeric, 0, 'push_up'),
     ('55797d5e-050c-4cc2-ad8c-a2c859e69cfe'::uuid, 'Diamond or Close-Grip Push-Up', 2, 8, 15, 'reps', false, 90, 'V8 prescribes 1-2 sets; use knees or an incline before full-range quality breaks.', 0::numeric, 1, 'diamond_push_up'),
