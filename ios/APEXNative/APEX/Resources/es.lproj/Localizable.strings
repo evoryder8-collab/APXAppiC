@@ -5798,3 +5798,9 @@
 "Best session" = "Mejor sesión";
 "No recorded reps or working loads yet." = "Aún no hay repeticiones ni cargas registradas.";
 "Fictional one-lift benchmark · {hero} · {mass}" = "Un levantamiento en la ficción · {hero} · {mass}";
+"About the same weight" = "Aproximadamente el mismo peso";
+"About %d of these" = "Unas %d unidades";
+"Milestone passed" = "Hito superado";
+"Next milestone" = "Próximo hito";
+"About the weight of %@" = "Aproximadamente el peso de %@";
+"About %@ %@" = "Aproximadamente %@ %@";

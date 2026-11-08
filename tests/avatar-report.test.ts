@@ -59,7 +59,8 @@ test('report shows lifetime work once and plots measured session reps and unilat
   assert.match(html, /Performed sets<\/h3><b class="score">3<\/b>/)
   assert.match(html, /Recorded reps<\/h3><b class="score">28<\/b>/)
   assert.match(html, /Lifted volume<\/h3><b class="score">160 kg\*<\/b>/)
-  assert.match(html, /≈/)
+  assert.doesNotMatch(html, /≈| × [\w ]+ \([\d.,]+ kg\)/)
+  assert.ok(html.includes(liftedMassCaption(160, 'en')!.caption))
   const reps = html.split('<h2>Reps per session</h2>')[1].split('</section>')[0]
   assert.match(reps, /#1 · Nov 7, 2026 · 16 reps/)
   assert.match(reps, /#2 · Nov 7, 2026 · 12 reps/)

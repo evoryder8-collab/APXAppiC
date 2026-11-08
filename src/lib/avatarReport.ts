@@ -65,7 +65,7 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
   const lifts = families.flatMap(family => family.variants.filter(variant => variant.points.length))
     .map(variant => ({ name: variant.name, points: variant.points.map(p => ({ date: p.date, value: p.topWeight, reps: p.topReps })) }))
   const total = totalRecordedWork(families)
-  const object = liftedMassCaption(total.liftedKg ?? 0, locale)
+  const object = liftedMassCaption(total.liftedKg ?? 0, locale, translate)
   const hero = heroLiftCaption(total.liftedKg ?? 0, locale, translate)
   const picture = object && illustration?.filename === object.artwork && illustration.dataURL.startsWith('data:image/webp;base64,')
     ? `<img class="award-art" alt="" src="${escape(illustration.dataURL)}">` : ''
@@ -123,7 +123,7 @@ ${lifts.length ? `<section class="lifts"><h2>${t('Recorded load')}</h2><p>${t('H
 
 export async function downloadableAvatarReport(options: ReportInput, baseURL: string) {
   const kg = totalRecordedWork(options.families).liftedKg
-  const filename = kg == null ? undefined : liftedMassCaption(kg, options.locale)?.artwork
+  const filename = kg == null ? undefined : liftedMassCaption(kg, options.locale, options.translate)?.artwork
   let illustration: Illustration | undefined
   if (filename && /^[a-z0-9-]+\.webp$/.test(filename)) {
     try {

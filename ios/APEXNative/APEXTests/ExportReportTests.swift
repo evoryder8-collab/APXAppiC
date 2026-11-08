@@ -214,6 +214,33 @@ final class ExportReportTests: XCTestCase {
         }
     }
 
+    @MainActor
+    func testObjectComparisonsPreferASingleThenWholeCopiesThenAMilestone() throws {
+        let language = LanguageState.shared
+        let previous = language.language
+        defer { language.language = previous }
+        language.language = .english
+
+        let engine = try XCTUnwrap(LiftedMassComparison.caption(kilograms: 37_833))
+        XCTAssertEqual(engine.caption, "About the weight of a fully loaded airport fire engine")
+        let pianos = try XCTUnwrap(LiftedMassComparison.caption(kilograms: 708))
+        XCTAssertEqual(pianos.caption, "About three upright pianos")
+        XCTAssertTrue(pianos.fact?.contains("Yamaha") == true)
+        XCTAssertEqual(pianos.artworkURL?.lastPathComponent, "upright-piano.webp")
+        XCTAssertEqual(LiftedMassComparison.caption(kilograms: .leastNonzeroMagnitude)?.caption,
+                       "Table tennis ball · Next milestone")
+        XCTAssertEqual(LiftedMassComparison.caption(kilograms: .greatestFiniteMagnitude)?.caption,
+                       "The Sun · Milestone passed")
+        XCTAssertNil(LiftedMassComparison.caption(kilograms: 0))
+        XCTAssertNil(LiftedMassComparison.caption(kilograms: .infinity))
+
+        language.language = .german
+        let localizedPianos = try XCTUnwrap(LiftedMassComparison.caption(kilograms: 708))
+        XCTAssertTrue(localizedPianos.caption.hasSuffix(language.format("About %d of these", 3)))
+        XCTAssertEqual(localizedPianos.source, pianos.source)
+        XCTAssertEqual(localizedPianos.artworkURL, pianos.artworkURL)
+    }
+
     func testEachObjectComparisonHasADecodableBundledIllustration() throws {
         struct ObjectArtwork: Decodable { let artwork: String }
         let catalog = try XCTUnwrap(Bundle.main.url(forResource: "lifted-mass-landmarks", withExtension: "json"))

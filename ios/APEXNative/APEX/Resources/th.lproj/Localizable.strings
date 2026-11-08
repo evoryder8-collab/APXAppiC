@@ -5779,3 +5779,9 @@
 "Best session" = "การฝึกที่ทำได้สูงสุด";
 "No recorded reps or working loads yet." = "ยังไม่มีการบันทึกจำนวนครั้งหรือน้ำหนักที่ใช้";
 "Fictional one-lift benchmark · {hero} · {mass}" = "เกณฑ์การยกครั้งเดียวของตัวละคร · {hero} · {mass}";
+"About the same weight" = "น้ำหนักใกล้เคียงกัน";
+"About %d of these" = "ประมาณ %d เท่าของน้ำหนักนี้";
+"Milestone passed" = "ผ่านน้ำหนักนี้แล้ว";
+"Next milestone" = "เป้าหมายถัดไป";
+"About the weight of %@" = "น้ำหนักพอ ๆ กับ%@";
+"About %@ %@" = "ประมาณ %@ %@";

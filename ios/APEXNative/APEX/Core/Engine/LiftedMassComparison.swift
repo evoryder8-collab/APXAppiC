@@ -3,6 +3,8 @@ import Foundation
 enum LiftedMassComparison {
     private struct Landmark: Decodable {
         let name: String
+        let singular: String?
+        let plural: String?
         let kg: Double
         let source: URL
         let artwork: String?
@@ -45,23 +47,47 @@ enum LiftedMassComparison {
         return matches[Int(kilograms.rounded(.down).truncatingRemainder(dividingBy: Double(matches.count)))]
     }
 
+    private static func objectMatch(kilograms: Double) -> (landmark: Landmark, count: Int?)? {
+        for count in 1...6 {
+            let candidates = count == 1 ? objects : objects.filter { $0.plural != nil }
+            func difference(_ landmark: Landmark) -> Double {
+                abs(kilograms - Double(count) * landmark.kg)
+            }
+            if let best = candidates.min(by: { difference($0) < difference($1) }),
+               difference(best) / kilograms <= (count == 1 ? 0.12 : 0.08) {
+                return (best, count)
+            }
+        }
+        // The catalogue is ordered by mass. A gap still has a real milestone on either side.
+        guard let milestone = objects.last(where: { $0.kg <= kilograms }) ?? objects.first else { return nil }
+        return (milestone, nil)
+    }
+
     @MainActor
     static func caption(kilograms: Double) -> Comparison? {
-        guard kilograms.isFinite, kilograms > 0 else { return nil }
-        func distance(_ mass: Double) -> Double { abs(log(kilograms / mass)) }
-        let catalog = objects.filter { kilograms / $0.kg >= 0.1 }
-        let close = catalog.filter { distance($0.kg) <= log(1.1) }
-        let multiples = catalog.filter { $0.kg <= kilograms && $0.kg * 8 >= kilograms }
-        let preferClose = kilograms.rounded(.down).truncatingRemainder(dividingBy: 3) == 0 && !close.isEmpty
-        guard let match = pick(preferClose ? close : multiples, kilograms: kilograms) ?? catalog.min(by: { distance($0.kg) < distance($1.kg) })
-        else { return nil }
-        let ratio = kilograms / match.kg
+        guard kilograms.isFinite, kilograms > 0, let (match, count) = objectMatch(kilograms: kilograms) else { return nil }
         let language = LanguageState.shared
-        let multiplier = ratio.formatted(.number.locale(language.language.locale).precision(.significantDigits(1...3)))
-        let reference = formattedMass(match.kg, locale: language.language.locale)
         let words = match.translations?[language.language.rawValue]
         let name = words?.first ?? match.name
-        let caption = "≈ " + multiplier + " × " + name + " (" + reference + ")"
+        let caption: String
+        if let count {
+            if count == 1 {
+                if language.language == .english {
+                    guard let singular = match.singular else { return nil }
+                    caption = language.format("About the weight of %@", singular)
+                } else {
+                    caption = name + " · " + language.text("About the same weight")
+                }
+            } else if language.language == .english {
+                guard let plural = match.plural else { return nil }
+                let amounts = ["two", "three", "four", "five", "six"]
+                caption = language.format("About %@ %@", amounts[count - 2], plural)
+            } else {
+                caption = name + " · " + language.format("About %d of these", count)
+            }
+        } else {
+            caption = name + " · " + language.text(match.kg <= kilograms ? "Milestone passed" : "Next milestone")
+        }
         return Comparison(caption: caption, source: match.source, fact: words?.last ?? match.fact,
                           factSource: match.factSource ?? match.source,
                           artworkURL: match.artwork.flatMap { Bundle.main.url(forResource: $0, withExtension: nil, subdirectory: "award-objects") })

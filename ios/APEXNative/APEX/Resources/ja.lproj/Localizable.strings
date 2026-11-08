@@ -5797,3 +5797,9 @@
 "Best session" = "最高のセッション";
 "No recorded reps or working loads yet." = "反復回数やトレーニング重量の記録はまだありません。";
 "Fictional one-lift benchmark · {hero} · {mass}" = "フィクションでの1回の挙上目安 · {hero} · {mass}";
+"About the same weight" = "ほぼ同じ重さ";
+"About %d of these" = "およそ%d個分";
+"Milestone passed" = "この重さを超えました";
+"Next milestone" = "次の目安";
+"About the weight of %@" = "%@とほぼ同じ重さ";
+"About %@ %@" = "およそ%2$@%1$@個分";

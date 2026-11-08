@@ -5779,3 +5779,9 @@
 "Best session" = "Cea mai bună sesiune";
 "No recorded reps or working loads yet." = "Nu există încă repetări sau greutăți de lucru înregistrate.";
 "Fictional one-lift benchmark · {hero} · {mass}" = "O ridicare în ficțiune · {hero} · {mass}";
+"About the same weight" = "Cam aceeași greutate";
+"About %d of these" = "Cam %d în total";
+"Milestone passed" = "Reper depășit";
+"Next milestone" = "Următorul reper";
+"About the weight of %@" = "Cam cât greutatea următorului reper: %@";
+"About %@ %@" = "Cam %@ %@";

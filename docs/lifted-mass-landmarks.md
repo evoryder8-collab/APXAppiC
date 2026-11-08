@@ -1,6 +1,6 @@
 # Lifted mass comparisons
 
-The Avatar report compares recorded external training volume with a familiar object. Select an object name to see its generated illustration. The table identifies the model, portion, or rated configuration used for its mass. A metric tonne is 1,000 kg. Each step from t to kt, Mt, Gt, Tt, Pt, Et, Zt, Yt, Rt and Qt is a factor of 1,000. These are mass comparisons; a megatonne here is a million metric tonnes. [SI prefixes](https://www.bipm.org/en/measurement-units/si-prefixes)
+The Avatar report first looks for one object within 12% of the recorded volume. If there is no close single object, it tries two through six whole copies of an everyday object within 8%. When neither fits, the report names a milestone already reached or the first one ahead. Select an object name to see its generated illustration. The table identifies the model, portion, or rated configuration used for its mass. A metric tonne is 1,000 kg. Each step from t to kt, Mt, Gt, Tt, Pt, Et, Zt, Yt, Rt and Qt is a factor of 1,000. These are mass comparisons; a megatonne here is a million metric tonnes. [SI prefixes](https://www.bipm.org/en/measurement-units/si-prefixes)
 
 | Object | Reference mass | Example and fact | Sources |
 | --- | ---: | --- | --- |
