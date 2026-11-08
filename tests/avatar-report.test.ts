@@ -156,8 +156,8 @@ function exampleReport() {
 }
 test('split records keep lifetime first, current in-range work, mid-period best and a lighter real single', () => {
   const html = avatarReportHTML(exampleReport())
-  assert.match(html, /<h5>Before<\/h5>[\s\S]*?Joined FITR MAX · Aug 5, 2025[\s\S]*?First recorded · Jan 1, 2026[\s\S]*?Added weight<\/dt><dd>0 kg[\s\S]*?Body \+ load<\/dt><dd>39 kg/)
-  assert.match(html, /<h5>After<\/h5>[\s\S]*?Latest · Nov 2, 2026[\s\S]*?Added weight<\/dt><dd>12 kg[\s\S]*?Body \+ load<\/dt><dd>53 kg/)
+  assert.match(html, /<h5>Before<\/h5>[\s\S]*?Jan 1, 2026<\/time>[\s\S]*?Joined FITR MAX · Aug 5, 2025[\s\S]*?Added weight<\/dt><dd>0 kg[\s\S]*?Body \+ load<\/dt><dd>39 kg/)
+  assert.match(html, /<h5>After<\/h5>[\s\S]*?Nov 2, 2026<\/time>[\s\S]*?Added weight<\/dt><dd>12 kg[\s\S]*?Body \+ load<\/dt><dd>53 kg/)
   assert.match(html, /Personal record<\/b>\s*<strong>67 kg<\/strong><small>Body \+ load · 6 reps · Nov 1, 2026/)
   assert.match(html, /Best single<\/b> · 1 rep × 24 kg · Nov 1, 2026/)
   assert.match(html, /Best single<\/b> · 1 rep × 35 kg · Nov 2, 2026/)
@@ -170,7 +170,7 @@ test('an unrecorded starting weight stays unknown and old sessions do not borrow
   const exerciseRecords = reportExerciseRecords(data,period)
   assert.equal(exerciseRecords.get('movement:reverse_lunge').before.weight,null)
   const html=avatarReportHTML({...exampleReport(),exerciseRecords,joined:undefined,sessionBodyweights:new Map()})
-  assert.match(html,/First recorded · Jan 1, 2026[\s\S]*?Added weight<\/dt><dd>&ndash;<\/dd>[\s\S]*?Body \+ load<\/dt><dd>&ndash;<\/dd>/)
+  assert.match(html,/Jan 1, 2026<\/time>[\s\S]*?Added weight<\/dt><dd>&ndash;<\/dd>[\s\S]*?Body \+ load<\/dt><dd>&ndash;<\/dd>/)
   assert.match(html,/Personal record<\/b>\s*<strong>25 kg<\/strong><small>Added weight/)
   assert.doesNotMatch(html,/Joined FITR MAX|88 kg/)
 })
