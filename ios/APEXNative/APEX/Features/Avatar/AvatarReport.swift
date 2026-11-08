@@ -309,23 +309,25 @@ struct AvatarReport: Transferable {
             let totals = rows.reduce(into: StrengthProgress.LifetimeTotals()) { $0.add($1.totals) }
             if page == 0 || y > 420 { beginPage() }
             label(language.text(report.period == .allTime ? "All-time training totals" : "Training totals"), 38, y, 536, size: 21, weight: .bold)
-            y += 31
-            let metrics: [(String, String?)] = [
-                ("Performed sets", String(totals.sets)),
-                ("Recorded reps", recordedReps(totals)),
-                ("Lifted volume", liftedVolume(totals))
-            ]
-            for (index, metric) in metrics.enumerated() {
-                guard let value = metric.1 else { continue }
-                let x = 38 + CGFloat(index) * 182
-                label(language.text(metric.0), x, y, 175, size: 11, color: muted)
-                label(value, x, y + 16, 175, size: 18, weight: .bold)
-            }
-            y += 46
-            if let kg = totals.liftedVolumeKG {
+            y += 35
+            if let kg = totals.liftedVolumeKG, let total = liftedVolume(totals) {
+                let top = y
+                label(language.text("Lifted volume"), 52, y, 522, size: 18, weight: .bold)
+                label(total, 52, y + 24, 522, size: 34, weight: .bold, color: green)
+                y += 72
                 drawComparisons(object: LiftedMassComparison.caption(kilograms: kg),
                                 hero: LiftedMassComparison.heroCaption(kilograms: kg))
+                line(39, top, 39, y - 8, color: green)
+                y += 10
             }
+            let metrics = [("Performed sets", String(totals.sets)), ("Recorded reps", recordedReps(totals))]
+            for (index, metric) in metrics.enumerated() {
+                guard let value = metric.1 else { continue }
+                let x = 38 + CGFloat(index) * 274
+                label(language.text(metric.0), x, y, 260, size: 13, weight: .semibold)
+                label(value, x, y + 19, 260, size: 19, weight: .bold)
+            }
+            y += 50
             if totals.missingVolume || totals.missingReps {
                 paragraph("* " + language.text("Incomplete records"), size: 10, color: muted)
             }
@@ -334,7 +336,7 @@ struct AvatarReport: Transferable {
         private func drawComparisons(object: LiftedMassComparison.Comparison?, hero: LiftedMassComparison.Comparison?) {
             guard object != nil || hero != nil else { return }
             let image = object?.artworkURL.flatMap { UIImage(contentsOfFile: $0.path) }
-            let textX: CGFloat = image == nil ? 38 : 174
+            let textX: CGFloat = image == nil ? 52 : 190
             let width = 574 - textX
             let start = y
             func linked(_ text: String, to source: URL, size: CGFloat, weight: UIFont.Weight, color: UIColor) {
@@ -343,7 +345,7 @@ struct AvatarReport: Transferable {
                     label(part, textX, y, width, size: size, weight: weight, color: color)
                     y += size + 4
                 }
-                context.setURL(source, for: CGRect(x: textX, y: top, width: width, height: y - top))
+                context.setURL(source, for: context.cgContext.convertToDeviceSpace(CGRect(x: textX, y: top, width: width, height: y - top)))
             }
             if let object {
                 linked(object.caption, to: object.source, size: 13, weight: .semibold, color: green)
@@ -361,10 +363,10 @@ struct AvatarReport: Transferable {
                 let height = max(side, y - start)
                 let scale = min(side / image.size.width, side / image.size.height)
                 let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-                let frame = CGRect(x: 38 + (side - size.width) / 2, y: start + (height - size.height) / 2,
+                let frame = CGRect(x: 52 + (side - size.width) / 2, y: start + (height - size.height) / 2,
                                    width: size.width, height: size.height)
                 image.draw(in: frame)
-                context.setURL(object.source, for: frame)
+                context.setURL(object.source, for: context.cgContext.convertToDeviceSpace(frame))
                 y = start + height
             }
             y += 12

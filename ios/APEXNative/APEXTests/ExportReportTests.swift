@@ -121,6 +121,32 @@ final class ExportReportTests: XCTestCase {
     }
 
     @MainActor
+    func testCoverPlacesLiftedVolumeAboveItsIllustrationAndSetsBelow() throws {
+        let fixture = data(logs: (1...37).map { log("Squat", set: $0, weight: 100, reps: 10, at: "") })
+        let pdf = AvatarReport.scoped(ownerID: user, data: fixture, partialScores: [:], period: .allTime,
+                                     dates: "2026-01-05"..."2026-01-05", today: "2026-01-05").pdfData()
+        let doc = try XCTUnwrap(PDFDocument(data: pdf))
+        let page = try XCTUnwrap(doc.page(at: 0))
+        let language = LanguageState.shared
+        func bounds(_ text: String) throws -> CGRect {
+            try XCTUnwrap(doc.findString(text, withOptions: []).first { $0.pages.first == page }).bounds(for: page)
+        }
+        let mass = try XCTUnwrap(LiftedMassComparison.caption(kilograms: 37000))
+        let art = try XCTUnwrap(page.annotations.first {
+            ($0.action as? PDFActionURL)?.url == mass.source && $0.bounds.height > 50 && $0.bounds.minX < 100
+        }).bounds
+        let value = try bounds(LiftedMassComparison.formattedMass(37000, locale: language.language.locale))
+        XCTAssertGreaterThan(try bounds(language.text("Lifted volume")).minY, value.maxY - 2)
+        XCTAssertGreaterThan(value.minY, art.maxY)
+        XCTAssertLessThan(abs(value.minX - art.minX), 16)
+        XCTAssertGreaterThan(art.minY, try bounds(language.text("Performed sets")).maxY)
+        let attachment = XCTAttachment(data: pdf, uniformTypeIdentifier: "com.adobe.pdf")
+        attachment.name = "Lifted volume cover.pdf"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
     func testAvatarPDFPaginatesRankingsAndShowsRecordedLoadInTheChosenUnit() throws {
         let secondID = UUID()
         let second = WorkoutSession(
