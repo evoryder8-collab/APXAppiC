@@ -178,11 +178,12 @@ struct GuidedExerciseLineup: View {
                 .accessibilityIdentifier("training-lineup-grid")
         } else {
             ScrollView(.horizontal) {
-                LazyHStack(alignment: .top, spacing: 14) {
+                HStack(alignment: .top, spacing: 14) {
                     cards(inRow: true)
                 }
                 .scrollTargetLayout()
             }
+            .fixedSize(horizontal: false, vertical: true)
             .scrollTargetBehavior(.viewAligned)
             .accessibilityIdentifier("training-lineup-strip")
             .scrollIndicators(.visible)

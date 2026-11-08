@@ -78,6 +78,7 @@ export function NeutralEntry({ onLogin }: { onLogin: () => void }) {
               </button>
             ))}
           </div>
+          <a className="mt-4 px-3 py-2 text-xs font-semibold text-white/70 underline underline-offset-4" href={import.meta.env.BASE_URL + 'report-guide.html'}>{language === 'th' ? 'คำถามเกี่ยวกับรายงาน Avatar' : language === 'ro' ? 'Întrebări despre raportul Avatar' : 'Avatar report FAQ'}</a>
         </motion.div>
       </main>
     </div>

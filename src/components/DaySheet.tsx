@@ -13,6 +13,7 @@ import { useStore } from '../store/AppStore'
 import { AccentChip, Sheet, Stepper } from './ui'
 import { DropletIcon } from './Icons'
 import { dailyLogId } from '../lib/ids'
+import { ExercisePreviewPhoto } from './workout/ExercisePreviewPhoto'
 import { WorkoutStatsSheet } from './workout/WorkoutStatsSheet'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { workoutLogsInPerformedOrder } from '../lib/workoutLogOrder'
@@ -228,7 +229,8 @@ export function DaySheet({ open, onClose, dateIso, slug, accent, initialLite = f
                       ? `${e.rep_min}`
                       : `${e.rep_min}-${e.rep_max}`
             return (
-              <div key={e.id} className="glass rounded-2xl p-3.5">
+              <div key={e.id} className="glass flow-root rounded-2xl p-3.5">
+                <ExercisePreviewPhoto exercise={e} className="float-left mr-3 h-[72px] w-[80px] sm:w-28" />
                 <div className="flex items-baseline justify-between gap-2">
                   <p className="text-[14px] leading-snug font-bold text-ink">
                     {e.name}

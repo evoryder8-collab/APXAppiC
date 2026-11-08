@@ -302,6 +302,11 @@ struct SettingsView: View {
                             value: addonBool("allow_front_camera_scanning", default: false)
                         ) { setAddon("allow_front_camera_scanning", .bool($0)) }
 
+                        if let guide = URL(string: "https://evoryder8-collab.github.io/APXAppiC/report-guide.html") {
+                            Link(destination: guide) {
+                                Label(language.text("Avatar report") + " · FAQ", systemImage: "questionmark.circle")
+                            }
+                        }
                         if session.coachClientPolicy.canViewVisualProgress {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(language.text("Comparison export stats"))

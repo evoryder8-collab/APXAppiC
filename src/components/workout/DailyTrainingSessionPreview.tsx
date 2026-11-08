@@ -1,3 +1,4 @@
+import { ExercisePreviewPhoto } from './ExercisePreviewPhoto'
 import { useId, useState } from 'react'
 import { guidedSessionPreview, type DailyGuidedSession } from '../../lib/dailyGuidedSessions'
 import type { PlannedDay } from '../../lib/plan'
@@ -22,7 +23,6 @@ export function DailyTrainingSessionPreview({ session, lightPlan, completedLite,
   const title = t(session.plan.programDay!.name)
   const completed = session.status === 'Completed'
   const actionLabel = t(session.status) + (!completed && trainToday ? ' · ' + t('Today') : '')
-  const shownExercises = expanded ? preview.exercises : preview.exercises.slice(0, 3)
 
   return (
     <section data-testid={`simple-training-session-${session.plan.programDay!.id}`}
@@ -51,20 +51,22 @@ export function DailyTrainingSessionPreview({ session, lightPlan, completedLite,
         </div>
       ) : <p className="mt-2 text-[10px] font-semibold text-ink-faint">{t(lite ? 'Minimum effective' : 'Full session')}</p>}
 
-      <ol id={listID} className="mt-3 space-y-2.5">
-        {shownExercises.map((exercise, index) => (
-          <li key={exercise.id} className="flex min-w-0 items-start gap-2.5">
-            <span aria-hidden="true" className="mt-0.5 min-w-4 text-right font-mono text-[10px] text-violet-500">{index + 1}</span>
-            <div className="min-w-0 flex-1">
-              <p className="break-words text-xs font-semibold leading-snug text-ink">{exerciseName(exercise.name)}</p>
-              <p className="mt-0.5 break-words font-mono text-[10px] leading-relaxed text-ink-soft">{exercise.prescription}{exercise.optional ? ` · ${t('optional')}` : ''}</p>
+      <ol id={listID} aria-label={t('Exercises')} tabIndex={!expanded && preview.exercises.length > 1 ? 0 : undefined}
+        className={expanded ? 'mt-3 grid grid-cols-[repeat(auto-fit,minmax(min(100%,9rem),1fr))] gap-2' : 'mt-3 flex snap-x gap-2 overflow-x-auto pb-2'}>
+        {preview.exercises.map((exercise, index) => (
+          <li key={exercise.id} className={`relative flex min-w-0 flex-col justify-end rounded-2xl bg-gradient-to-b from-violet-50 to-slate-50 p-3 ${expanded ? '' : 'w-[9rem] max-w-[76%] shrink-0 snap-start'}`}>
+            <span aria-hidden="true" className="absolute left-2.5 top-2 font-mono text-[10px] font-bold text-violet-700">{String(index + 1).padStart(2, '0')}</span>
+            <ExercisePreviewPhoto exercise={exercise} className="my-1 h-[82px] w-full" />
+            <div className="mt-3">
+              <p className="break-words text-xs font-bold leading-snug text-ink">{exerciseName(exercise.name)}</p>
+              <p className="mt-1 break-words font-mono text-[10px] leading-relaxed text-ink-soft">{exercise.prescription}{exercise.optional ? ` · ${t('optional')}` : ''}</p>
             </div>
           </li>
         ))}
       </ol>
-      {preview.exercises.length > 3 && (
+      {preview.exercises.length > 2 && (
         <button type="button" aria-expanded={expanded} aria-controls={listID} onClick={() => setExpanded((value) => !value)}
-          className="mt-2 min-h-10 w-full rounded-xl px-2 py-2 text-left text-[11px] font-bold text-violet-700">
+          className="mt-1 min-h-10 w-full rounded-xl px-2 py-2 text-left text-[11px] font-bold text-violet-700">
           {t(expanded ? 'Show fewer exercises' : 'Show all exercises')} <span aria-hidden="true">{expanded ? '−' : '+'}</span>
         </button>
       )}

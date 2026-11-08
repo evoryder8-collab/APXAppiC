@@ -44,7 +44,7 @@ test('Simple Mode shortcuts use the requested order and preview training locally
   assert.match(simple, /workoutPlanRoute\(data, item\.plan, guidedProgramSlug, selectedDate, lite\)/)
   assert.match(preview, /mode \? 'Minimum effective' : 'Full session'/)
   assert.match(preview, /onClick=\{\(\) => setSelectedLite\(mode\)\}/)
-  assert.match(preview, /shownExercises\.map/)
+  assert.match(preview, /preview\.exercises\.map/)
   assert.match(preview, /exerciseName\(exercise\.name\)/)
   assert.match(preview, /onOpen\(lite\)/)
   assert.match(simple, /FloatingActiveDate label=\{selectedDateLabel\} onClick=\{\(\) => window\.scrollTo/)

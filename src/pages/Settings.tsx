@@ -909,6 +909,7 @@ export function Settings() {
                 ? 'Minimal exports show only FITR MAX, Before/After, and each photo’s date and time.'
                 : 'Detailed exports add elapsed days, completed workouts, and strength/load stats.'}
             </p>
+            <a className="mt-3 inline-block text-xs font-bold text-violet-700 underline" href={import.meta.env.BASE_URL + 'report-guide.html'}>{t('Avatar report')} · FAQ</a>
           </div>
         </GlassCard>
 

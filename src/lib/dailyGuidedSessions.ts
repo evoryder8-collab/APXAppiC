@@ -20,7 +20,7 @@ export function guidedSessionPreview(plan: PlannedDay, translate: (key: string) 
         : exercise.rep_unit === 'max' ? translate('Max')
           : `${range} ${translate(exercise.rep_unit)}`
       return {
-        id: exercise.id, name: exercise.name, optional: exercise.optional,
+        id: exercise.id, name: exercise.name, movement_id: exercise.movement_id, optional: exercise.optional,
         prescription: `${exercise.planned_sets} × ${target}${exercise.per_side ? ` · ${translate('per side')}` : ''}`,
       }
     }),

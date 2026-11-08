@@ -96,6 +96,20 @@ enum ExerciseCatalog {
             .split(whereSeparator: { !$0.isLetter && !$0.isNumber }).joined(separator: " ")
     }
 
+    private struct ArtworkRules: Decodable {
+        let aliases: [String: String]
+        let excluded: [String]
+    }
+
+    private static let artworkRules: ArtworkRules = {
+        guard let url = Bundle.main.url(forResource: "lookup", withExtension: "json", subdirectory: GuidedArtwork.directory),
+              let data = try? Data(contentsOf: url),
+              let rules = try? JSONDecoder().decode(ArtworkRules.self, from: data) else {
+            return ArtworkRules(aliases: [:], excluded: [])
+        }
+        return rules
+    }()
+
     private static let artworkIDs = Set(all.map(\.movementID))
 
     // Search aliases include substitutions like “Any 10-min HIIT video” → Burpee.
@@ -107,25 +121,7 @@ enum ExerciseCatalog {
                 names[lookupKey(label), default: []].insert(item.movementID)
             }
         }
-        for (name, id) in [
-            "Weighted backpack push-up": "weighted_push_up",
-            "Strict Bodyweight Push-Up": "push_up",
-            "Strict Push-Up": "push_up",
-            "Strict Push-Up Max Test": "push_up",
-            "Strict Push-Up Back-Off at 60–70%": "push_up",
-            "Weighted Push-Up Back-Off": "weighted_push_up",
-            "Weighted Dumbbell Hip Thrust": "hip_thrust_dumbbell",
-            "Dumbbell Overhead Press": "dumbbell_overhead_press",
-            "Dumbbell lateral raise": "lateral_raise",
-            "Backpack RDL": "backpack_rdl",
-            "Band Pull-Aparts (finisher if fresh)": "band_pull_apart",
-            "Band Pull-Aparts (posture closer)": "band_pull_apart",
-            "Diamond Pushups": "diamond_push_up",
-            "Weighted Pushups": "weighted_push_up",
-            "Thoracic Extension over chair edge": "thoracic_extension",
-            "One-Arm Supported Dumbbell Row": "one_arm_dumbbell_row",
-            "Front Lunge": "forward_lunge",
-        ] {
+        for (name, id) in artworkRules.aliases {
             names[lookupKey(name), default: []].insert(id)
         }
         return names
@@ -133,16 +129,7 @@ enum ExerciseCatalog {
 
     // Some historical programme rows use a logging substitute or offer a choice.
     // The single photo on that ID would prescribe a different variant or apparatus.
-    private static let unillustratedPrescriptions = Set([
-        "Band Abduction", "Band-Assisted Chin-Up", "Gimbal Front Hold", "Posture and Wrist Circuit",
-        "B-Stance or Single-Leg Hip Thrust", "Single-Leg or B-Stance Hip Thrust",
-        "Weighted or Feet-Elevated Push-Up", "Diamond or Close-Grip Push-Up", "Suitcase Hold or March",
-        "Any 10-min HIIT video", "FocusT25 session (Shaun T), Alpha or Beta cycle",
-        "Functional stretch flow (saved YouTube favorite)", "Band or DB Curls", "Hammer or Incline DB Curls",
-        "Bulgarian Split Squat (backpack)", "Calf Raises (backpack, off a step)", "Calf Raises (single-leg or backpack)",
-        "Heel-Elevated Goblet Squat (backpack)", "Pike Pushups (feet on chair)", "Pull-Ups (different grip than Wed)",
-        "Walking Lunges (backpack)", "Weighted Pushups (handles, backpack)", "Sliding Leg Curl (towel)",
-    ].map(lookupKey))
+    private static let unillustratedPrescriptions = Set(artworkRules.excluded.map(lookupKey))
 
     static func artworkMovementID(for exercise: Exercise) -> String? {
         if let id = exercise.movementID {
