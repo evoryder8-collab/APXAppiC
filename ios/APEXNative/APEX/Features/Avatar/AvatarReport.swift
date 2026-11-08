@@ -497,13 +497,19 @@ struct AvatarReport: Transferable {
                 let load: String
                 let combined: String?
                 let estimate: String?
+                let recordedReps: String?
             }
             let movement: String
             let before: Entry
             let after: Entry
             let estimateLabel: String
-            let record: [String]
-            var height: CGFloat { 244 + CGFloat(max(1, record.count)) * 15 }
+            struct Record {
+                let added: String
+                let combined: String?
+                let performance: String
+            }
+            let record: Record?
+            var height: CGFloat { record == nil ? 250 : 310 }
         }
 
         private func legPanel(_ variant: StrengthProgress.ExerciseHistory) -> LegPanel? {
@@ -525,7 +531,8 @@ struct AvatarReport: Transferable {
                     return "≈ " + number(units.rounded()) + " " + report.unit.suffix
                 }
                 return .init(date: language.dateKey(row.date), load: row.heaviestSet.map { weight($0.kg) } ?? language.text("Not recorded"),
-                             combined: total.map(weight), estimate: estimate)
+                             combined: total.map(weight), estimate: estimate,
+                             recordedReps: row.heaviestSet == nil ? row.totals.recordedReps.map { language.format("%d reps", $0) } : nil)
             }
             let eligible = variant.sessions.filter { $0.heaviestSet != nil }
             let withBody = eligible.filter { combined($0) != nil }
@@ -535,17 +542,10 @@ struct AvatarReport: Transferable {
                 let rhs = (useBody ? combined($1) : $1.heaviestSet?.kg) ?? 0
                 return (lhs, $0.heaviestSet?.reps ?? 0) < (rhs, $1.heaviestSet?.reps ?? 0)
             }
-            var record: [String] = []
-            if let peak, let set = peak.heaviestSet {
-                let metric = language.text(useBody ? "Body + load" : "Added weight")
-                let title = language.text("Personal record") + " · " + metric
-                record = wrapped(title, width: 237, size: 11, weight: .semibold)
-                let details = language.format("%d reps", set.reps) + " × " + weight(combined(peak) ?? set.kg)
-                    + " · " + language.dateKey(peak.date)
-                record += wrapped(details, width: 237, size: 11, weight: .semibold)
-                if useBody {
-                    record += wrapped(language.text("Added weight") + " · " + weight(set.kg),
-                                      width: 237, size: 11, weight: .semibold)
+            let record = peak.flatMap { row in
+                row.heaviestSet.map { set in
+                    LegPanel.Record(added: weight(set.kg), combined: combined(row).map(weight),
+                                    performance: language.format("%d reps", set.reps) + " · " + language.dateKey(row.date))
                 }
             }
             return LegPanel(movement: id, before: entry(earliest), after: entry(latest),
@@ -564,12 +564,16 @@ struct AvatarReport: Transferable {
                 .flatMap { UIImage(contentsOfFile: $0.path) }
             for (i, entry) in [panel.before, panel.after].enumerated() {
                 let x: CGFloat = i == 0 ? 50 : 311
-                let tile = CGRect(x: x, y: top + 56, width: 251, height: 176)
+                let tile = CGRect(x: x, y: top + 56, width: 251, height: 182)
                 (i == 0 ? UIColor.white : UIColor(red: 0.81, green: 0.94, blue: 0.90, alpha: 1)).setFill()
                 UIBezierPath(roundedRect: tile, cornerRadius: 9).fill()
                 let title = language.text(i == 0 ? "Before" : "After").uppercased(with: language.language.locale)
                 label(title, x + 10, tile.minY + 7, 230, size: 20, weight: .heavy)
                 label(entry.date, x + 10, tile.minY + 34, 230, size: 16, weight: .semibold)
+                if i == 0, let joined = report.joinedDate {
+                    label(language.text("Joined FITR MAX") + " · " + language.dateKey(joined),
+                          x + 10, tile.minY + 55, 230, size: 9, color: muted)
+                }
                 if let illustration {
                     let scale = min(68 / illustration.size.width, 90 / illustration.size.height)
                     let size = CGSize(width: illustration.size.width * scale, height: illustration.size.height * scale)
@@ -577,22 +581,36 @@ struct AvatarReport: Transferable {
                                                  width: size.width, height: size.height))
                 }
                 let textX = x + 81
-                label(language.text("Added weight"), textX, tile.minY + 63, 163, size: 13, weight: .semibold)
-                label(entry.load, textX, tile.minY + 82, 163, size: 18, weight: .bold)
+                label(language.text("Added weight"), textX, tile.minY + 70, 163, size: 13, weight: .semibold)
+                label(entry.load, textX, tile.minY + 88, 163, size: 18, weight: .bold)
                 if let combined = entry.combined {
-                    label(language.text("Body + load"), textX, tile.minY + 111, 163, size: 13, weight: .semibold)
-                    label(combined, textX, tile.minY + 130, 163, size: 22, weight: .bold, color: green)
+                    label(language.text("Body + load"), textX, tile.minY + 118, 163, size: 13, weight: .semibold)
+                    label(combined, textX, tile.minY + 137, 163, size: 22, weight: .bold, color: green)
+                }
+                if let reps = entry.recordedReps {
+                    label(language.text("Recorded reps") + " · " + reps, textX, tile.minY + 122, 163, size: 11, weight: .semibold)
                 }
                 if let estimate = entry.estimate {
-                    label(panel.estimateLabel + " " + estimate, textX, tile.minY + 157, 163, size: 9, color: muted)
+                    label(panel.estimateLabel + " " + estimate, textX, tile.minY + 166, 163, size: 9, color: muted)
                 }
             }
-            if let joined = report.joinedDate {
-                label(language.text("Joined FITR MAX") + " · " + language.dateKey(joined),
-                      59, top + 237, 237, size: 10, color: muted)
-            }
-            for (i, part) in panel.record.enumerated() {
-                label(part, 320, top + 237 + CGFloat(i) * 15, 239, size: 11, weight: .semibold, color: green)
+            if let record = panel.record {
+                let card = CGRect(x: 50, y: top + 245, width: 512, height: 55)
+                ink.setFill()
+                UIBezierPath(roundedRect: card, cornerRadius: 9).fill()
+                let heading = language.text("Personal record").uppercased(with: language.language.locale)
+                let headingLines = wrapped(heading, width: 189, size: 16, weight: .heavy)
+                for (i, part) in headingLines.enumerated() {
+                    label(part, 61, card.minY + 5 + CGFloat(i) * 17, 189, size: 16, weight: .heavy, color: .white)
+                }
+                label(record.performance, 61, card.minY + (headingLines.count > 1 ? 39 : 30), 189, size: 11, color: .white)
+                let metrics = [(language.text("Added weight"), Optional(record.added)), (language.text("Body + load"), record.combined)]
+                for (i, metric) in metrics.enumerated() {
+                    guard let value = metric.1 else { continue }
+                    let x: CGFloat = 257 + CGFloat(i) * 152
+                    label(metric.0, x, card.minY + 6, 145, size: 12, weight: .semibold, color: .white)
+                    label(value, x, card.minY + 23, 145, size: 20, weight: .bold, color: .white)
+                }
             }
             y = frame.maxY + 4
         }
@@ -628,7 +646,7 @@ struct AvatarReport: Transferable {
             y -= 24
             let chartReduction: CGFloat = panel.map {
                 let panelBottom = y + 268 + CGFloat(totalLines.count) * 16 + (single == nil ? 0 : 16) + 8 + $0.height
-                return min(32, max(0, panelBottom - 738))
+                return min(45, max(0, panelBottom - 738))
             } ?? 0
             let field = CGRect(x: 38, y: y + 33, width: 536, height: 141 - chartReduction)
             UIColor(red: 0.96, green: 0.95, blue: 0.99, alpha: 1).setFill()

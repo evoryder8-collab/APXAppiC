@@ -441,10 +441,12 @@ enum StrengthProgress {
             let comparableMass = !isComposite || loadedPushUp || ["hip_thrust", "biceps_curl", "calf_raise"].contains(aliasFamily?.id ?? "")
             let assisted = (normalized + " " + (movement?.id ?? "")).split(whereSeparator: { !$0.isLetter })
                 .contains { ["assisted", "counterweight", "counterweighted"].contains($0) }
-            let measuresExternalLoad = measuresReps && comparableMass && !substitute && !assisted
+            let recordsExternalWeight = measuresReps && comparableMass && !substitute && !assisted
                 && !loggedEquipment.contains("band") && !canonicalEquipment.contains("band")
-                && (usesBodyweight ? explicitLoad : descriptor.kind == .strength && log.weightKG != 0 && (log.weightKG ?? 0) >= 0)
-            let hasLoad = measuresExternalLoad && !isComposite && !usesBodyweight && explicitLoad
+                && (descriptor.kind == .strength || descriptor.kind == .bodyweight)
+            let measuresExternalLoad = recordsExternalWeight
+                && (usesBodyweight ? explicitLoad : log.weightKG != 0 && (log.weightKG ?? 0) >= 0)
+            let hasLoad = measuresExternalLoad && !usesBodyweight && explicitLoad
             var facts = WorkoutReceipt.editInput(log)
             if let treadmill {
                 facts.distanceMeters = facts.distanceMeters ?? treadmill.metrics.distanceKM * 1_000
@@ -469,9 +471,7 @@ enum StrengthProgress {
             groups[key]?.sessions[session.id, default: SessionTotals(session)].totals.record(
                 log, measuresReps: measuresReps, measuresLoad: measuresExternalLoad
             )
-            if measuresReps, !isComposite, !substitute, !assisted,
-               !loggedEquipment.contains("band"), !canonicalEquipment.contains("band"),
-               descriptor.kind == .strength || descriptor.kind == .bodyweight,
+            if recordsExternalWeight,
                let kg = log.weightKG, kg.isFinite, kg >= 0, let reps = log.reps, reps > 0 {
                 if let previous = groups[key]?.sessions[session.id]?.heaviestSet {
                     if (kg, reps) > (previous.kg, previous.reps) {

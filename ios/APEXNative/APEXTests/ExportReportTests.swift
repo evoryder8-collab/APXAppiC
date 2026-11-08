@@ -393,6 +393,43 @@ final class ExportReportTests: XCTestCase {
     }
 
     @MainActor
+    func testRecordedHipThrustLoadsSurviveLegacyAndCurrentReceiptNames() throws {
+        let dateLoads: [(String, Double?)] = [("2026-08-07", nil), ("2026-08-14", 8), ("2026-11-06", 36)]
+        let name = "B-Stance or Single-Leg Hip Thrust"
+        var fixture = data()
+        fixture.workoutSessions = []
+        for (date, kg) in dateLoads {
+            let session = WorkoutSession(id: UUID(), userID: user, date: date, programDayID: dayID, isLite: false,
+                                         isDeload: false, isEventRecovery: false, completed: true, qualityScore: 1,
+                                         startedAt: nil, completedAt: nil, notes: "")
+            fixture.workoutSessions.append(session)
+            fixture.workoutLogs += (1...(kg == nil ? 2 : 3)).map { index in
+                WorkoutLog(id: UUID(), userID: user, sessionID: session.id, exerciseID: nil, exerciseName: name,
+                           setNumber: index, weightKG: kg, reps: 10, rir: nil,
+                           movementID: date == "2026-11-06" ? "b_stance_hip_thrust" : nil,
+                           skipped: false, overrideFlag: false, createdAt: "")
+            }
+        }
+        let history = StrengthProgress.exerciseHistory(ownerID: user, sessions: fixture.workoutSessions, logs: fixture.workoutLogs)
+        let exercise = try XCTUnwrap(history.first)
+        XCTAssertEqual(history.count, 1)
+        XCTAssertEqual(exercise.sessions.map { $0.heaviestSet?.kg }, [nil, 8, 36])
+        XCTAssertEqual(exercise.points.map(\.topWeight), [8, 36])
+        XCTAssertEqual(exercise.totals.recordedReps, 80)
+        let report = AvatarReport.scoped(ownerID: user, data: fixture, partialScores: [:], period: .allTime,
+                                        dates: "2026-08-07"..."2026-11-06", today: "2026-11-08")
+        let pdf = report.pdfData()
+        let text = try XCTUnwrap(PDFDocument(data: pdf)?.string)
+        let language = LanguageState.shared
+        XCTAssertTrue(text.contains(language.format("%d reps", 10) + " × 36 kg"))
+        XCTAssertTrue(text.contains(language.text("Recorded reps") + " · " + language.format("%d reps", 20)))
+        let sample = XCTAttachment(data: pdf, uniformTypeIdentifier: "com.adobe.pdf")
+        sample.name = "Hip thrust receipt example.pdf"
+        sample.lifetime = .keepAlways
+        add(sample)
+    }
+
+    @MainActor
     func testWorkingLegPDFUsesLatestInRangeLoadAndDatedBodyweight() throws {
         var fixture = data()
         let language = LanguageState.shared
@@ -432,8 +469,8 @@ final class ExportReportTests: XCTestCase {
         XCTAssertTrue(text.contains("0 kg"))
         XCTAssertTrue(text.contains("BEFORE") && text.contains(language.dateKey("2026-02-01")))
         XCTAssertTrue(text.contains("AFTER") && text.contains(language.dateKey("2026-03-31")))
-        XCTAssertTrue(text.contains("Added weight · 20 kg"))
-        XCTAssertTrue(text.contains("8 reps × 90 kg · " + language.dateKey("2026-03-17")))
+        XCTAssertTrue(text.contains("PERSONAL RECORD") && text.contains("20 kg") && text.contains("90 kg"))
+        XCTAssertTrue(text.contains("8 reps · " + language.dateKey("2026-03-17")))
         XCTAssertTrue(try XCTUnwrap(document.string).contains("Joined FITR MAX"))
         XCTAssertFalse(text.contains("200 kg"))
         let cover = try XCTUnwrap(document.page(at: 0))
