@@ -1,22 +1,31 @@
 import objects from '../../shared/lifted-mass-landmarks.json' with { type: 'json' }
 import heroes from '../../shared/hero-lift-landmarks.json' with { type: 'json' }
 
+import massWords from '../../shared/lifted-mass-units.json' with { type: 'json' }
+
 type Landmark = { name: string; kg: number; source: string }
 type ObjectLandmark = Landmark & { singular: string; plural?: string; artwork: string; fact: string; factSource?: string; translations: Record<string, string[]> }
 type Comparison = { caption: string; source: string }
 type ObjectComparison = Comparison & { artwork: string; fact: string; factSource: string }
 type Translate = (value: string) => string
 
-const massUnits = ['kg', 't', 'kt', 'Mt', 'Gt', 'Tt', 'Pt', 'Et', 'Zt', 'Yt', 'Rt', 'Qt']
+type MassWords = { one: string[]; other?: string[]; atLeast: string }
+const massScales = [1, 1e3, 1e6, 1e9, 1e12, 1e15, 1e18, 1e21, 1e24, 1e27, 1e30, 1e33]
+const unitsByLocale: Record<string, MassWords> = massWords
 
-export function formattedMass(kilograms: number, locale: string): string {
-  let value = kilograms
+export function formattedMass(kilograms: number, locale: string, partial = false): string {
+  const tag = new Intl.Locale(locale)
+  const words = unitsByLocale[tag.baseName] ?? unitsByLocale[tag.language] ?? massWords.en
   let unit = 0
-  while (value >= 1000 && unit + 1 < massUnits.length) {
-    value /= 1000
-    unit++
-  }
-  return new Intl.NumberFormat(locale, { maximumSignificantDigits: 5 }).format(value) + ' ' + massUnits[unit]
+  while (unit + 1 < massScales.length && kilograms >= massScales[unit + 1]) unit++
+  const amount = kilograms / massScales[unit]
+  const precision = { maximumSignificantDigits: 5, roundingMode: partial ? 'floor' : 'halfExpand' } as const
+  const number = new Intl.NumberFormat(locale, precision).format(amount)
+  const category = new Intl.PluralRules(locale === 'pt' ? 'pt-PT' : locale, precision).select(amount)
+  const forms = category === 'one' ? words.one : words.other ?? words.one
+  const separator = unit && tag.language === 'ja' ? '' : unit && tag.language === 'ro' && category === 'other' ? ' de ' : ' '
+  const mass = number + separator + (unit ? forms[unit - 1] : 'kg')
+  return partial ? words.atLeast.replace('{}', mass) : mass
 }
 
 // Stable for a re-export. A new total can surface another comparable landmark.

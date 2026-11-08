@@ -31,15 +31,40 @@ enum LiftedMassComparison {
         return values
     }
 
-    static func formattedMass(_ kilograms: Double, locale: Locale) -> String {
-        let units = ["kg", "t", "kt", "Mt", "Gt", "Tt", "Pt", "Et", "Zt", "Yt", "Rt", "Qt"]
-        var index = 0
-        var amount = kilograms
-        while amount >= 1000 && index + 1 < units.count {
-            amount /= 1000
-            index += 1
+    private struct MassWords: Decodable {
+        let one: [String]
+        let other: [String]?
+        let atLeast: String
+    }
+
+    private static let massWords: [String: MassWords] = {
+        guard let url = Bundle.main.url(forResource: "lifted-mass-units", withExtension: "json"),
+              let data = try? Data(contentsOf: url) else { return [:] }
+        return (try? JSONDecoder().decode([String: MassWords].self, from: data)) ?? [:]
+    }()
+
+    static func formattedMass(_ kilograms: Double, locale: Locale, partial: Bool = false) -> String {
+        let language = locale.language.languageCode?.identifier ?? "en"
+        let key = language == "de" && locale.region?.identifier == "CH" ? "de-CH" : language
+        let style = FloatingPointFormatStyle<Double>.number.locale(locale)
+            .precision(.significantDigits(1...5)).rounded(rule: partial ? .down : .toNearestOrAwayFromZero)
+        guard let words = massWords[key] ?? massWords["en"] else {
+            return (partial ? "at least " : "") + kilograms.formatted(style) + " kg"
         }
-        return amount.formatted(.number.locale(locale).precision(.significantDigits(1...5))) + " " + units[index]
+        let scales: [Double] = [1, 1e3, 1e6, 1e9, 1e12, 1e15, 1e18, 1e21, 1e24, 1e27, 1e30, 1e33]
+        let unit = scales.lastIndex(where: { kilograms >= $0 }) ?? 0
+        let amount = kilograms / scales[unit]
+        let number = amount.formatted(style)
+        var mass = number + " kg"
+        if unit > 0 {
+            let singular = number == 1.0.formatted(style)
+            let forms = singular ? words.one : words.other ?? words.one
+            let lastTwo = amount.truncatingRemainder(dividingBy: 100)
+            let needsDe = language == "ro" && amount.rounded() == amount && amount >= 20 && (lastTwo == 0 || lastTwo >= 20)
+            let separator = language == "ja" ? "" : needsDe ? " de " : " "
+            mass = number + separator + forms[unit - 1]
+        }
+        return partial ? words.atLeast.replacingOccurrences(of: "{}", with: mass) : mass
     }
 
     private static func pick(_ matches: [Landmark], kilograms: Double) -> Landmark? {

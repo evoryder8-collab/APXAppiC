@@ -53,6 +53,8 @@ targets:
       - path: ../../public/award-objects
         type: folder
         buildPhase: resources
+      - path: ../../shared/lifted-mass-units.json
+        buildPhase: resources
       - path: ../../shared/lifted-mass-landmarks.json
         buildPhase: resources
       - path: ../../shared/hero-lift-landmarks.json

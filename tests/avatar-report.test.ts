@@ -48,14 +48,14 @@ test('family frequency keeps each variation while charts require comparable sess
   assert.equal((html.match(/<tr class="family">/g) ?? []).length, 1)
   assert.match(html, /1\. Hip Thrust<\/th><td data-label="Sessions">3<\/td>/)
   assert.match(html, /data-label="Recorded reps">123</)
-  assert.match(html, /data-label="Lifted volume" title="1,500 kg">1.5 t\*</)
+  assert.match(html, /data-label="Lifted volume" title="1,500 kg">at least 1.5 tons</)
   assert.match(html, /data-label="Load per rep">15 kg\*</)
-  assert.match(html, /data-label="Lifted volume" title="300 kg">300 kg\*</)
+  assert.match(html, /data-label="Lifted volume" title="300 kg">at least 300 kg</)
   assert.equal((html.match(/<tr class="variant">/g) ?? []).length, 2)
   assert.match(html, /<h3>Hip Thrust<\/h3><p class="variation">Dumbbell<\/p>/)
   assert.doesNotMatch(html, /<h3>Single-Leg Hip Thrust<\/h3>/)
   assert.match(html, /<dt>Recorded reps<\/dt><dd>83<\/dd>/)
-  assert.match(html, /<dt>Lifted volume<\/dt><dd>1.2 t<\/dd>/)
+  assert.match(html, /<dt>Lifted volume<\/dt><dd>1.2 tons<\/dd>/)
 })
 
 test('report leads with the athlete category, totals and comparison before secondary detail or charts', () => {
@@ -73,13 +73,13 @@ test('report leads with the athlete category, totals and comparison before secon
   assert.ok(html.indexOf('<h2>Recorded load</h2>') < html.indexOf('<h2>Most trained exercises</h2>'))
   assert.match(html, /Performed sets<\/h3><b class="score">4<\/b>/)
   assert.match(html, /Recorded reps<\/h3><b class="score">28\*<\/b>/)
-  assert.match(html, /Lifted volume<\/h3><b class="score">160 kg\*<\/b>/)
+  assert.match(html, /Lifted volume<\/h3><b class="score">at least 160 kg<\/b>/)
   assert.doesNotMatch(html, /<h2>Reps per session|<h2>Recorded volume per session|≈/)
   assert.ok(html.includes(liftedMassCaption(160, 'en')!.caption))
   assert.match(html, /#1 · Nov 7, 2026 · 8 reps × 10 kg/)
   assert.match(html, /#2 · Nov 7, 2026 · 14 kg/)
   assert.equal(new Set([...html.matchAll(/<circle cx="([^"]+)"/g)].map(match => match[1])).size,2)
-  assert.match(html, /<\/svg>[\s\S]*?<dl><div><dt>Recorded reps<\/dt><dd>28\*<\/dd><\/div><div><dt>Lifted volume<\/dt><dd>160 kg\*<\/dd>/)
+  assert.match(html, /<\/svg>[\s\S]*?<dl><div><dt>Recorded reps<\/dt><dd>28\*<\/dd><\/div><div><dt>Lifted volume<\/dt><dd>at least 160 kg<\/dd>/)
 })
 
 test('the cover distinguishes zero volume from unrecorded volume', () => {

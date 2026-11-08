@@ -178,7 +178,7 @@ export function avatarReportHTML(options: ReportInput, illustration?: Illustrati
     return work.recordedReps == null ? null : fmt.format(work.recordedReps) + (work.missingReps ? '*' : '')
   }
   function volumeTotal(work: RecordedWork) {
-    return work.liftedKg == null ? null : formattedMass(work.liftedKg, locale) + (work.missingVolume ? '*' : '')
+    return work.liftedKg == null ? null : formattedMass(work.liftedKg, locale, work.missingVolume)
   }
   function setLabel(set: WorkingSet) {
     return [set.reps != null && repCount(set.reps), set.weight != null && fmt.format(set.weight) + ' kg'].filter(Boolean).join(' × ')

@@ -127,6 +127,7 @@
 		B12F11DE2026110800000017 /* unilateral-load-guide.json in Resources */ = {isa = PBXBuildFile; fileRef = B12F11DE2026110800000018 /* unilateral-load-guide.json */; };
 		14406EBDAB20261108000005 /* exercise-frequency-families.json in Resources */ = {isa = PBXBuildFile; fileRef = 14406EBDAB20261108000006 /* exercise-frequency-families.json */; };
 		14407EBDAB20261108000005 /* lifted-mass-landmarks.json in Resources */ = {isa = PBXBuildFile; fileRef = 14407EBDAB20261108000006 /* lifted-mass-landmarks.json */; };
+		AA5418AB1199F88000000001 /* lifted-mass-units.json in Resources */ = {isa = PBXBuildFile; fileRef = AA5418AB1199F88000000002 /* lifted-mass-units.json */; };
 		14407EBDAB20261108000011 /* award-objects in Resources */ = {isa = PBXBuildFile; fileRef = 14407EBDAB20261108000012 /* award-objects */; };
 		B12F11DE2026110800000019 /* leg-anatomy in Resources */ = {isa = PBXBuildFile; fileRef = B12F11DE2026110800000020 /* leg-anatomy */; };
 		14407EBDAB20261108000009 /* hero-lift-landmarks.json in Resources */ = {isa = PBXBuildFile; fileRef = 14407EBDAB2026110800000A /* hero-lift-landmarks.json */; };
@@ -439,6 +440,7 @@
 		B12F11DE2026110800000018 /* unilateral-load-guide.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/unilateral-load-guide.json"; sourceTree = SOURCE_ROOT; };
 		14406EBDAB20261108000006 /* exercise-frequency-families.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/exercise-frequency-families.json"; sourceTree = SOURCE_ROOT; };
 		14407EBDAB20261108000006 /* lifted-mass-landmarks.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/lifted-mass-landmarks.json"; sourceTree = SOURCE_ROOT; };
+		AA5418AB1199F88000000002 /* lifted-mass-units.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/lifted-mass-units.json"; sourceTree = SOURCE_ROOT; };
 		14407EBDAB20261108000012 /* award-objects */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "../../public/award-objects"; sourceTree = SOURCE_ROOT; };
 		B12F11DE2026110800000020 /* leg-anatomy */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "../../public/leg-anatomy"; sourceTree = SOURCE_ROOT; };
 		14407EBDAB2026110800000A /* hero-lift-landmarks.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/hero-lift-landmarks.json"; sourceTree = SOURCE_ROOT; };
@@ -1013,6 +1015,7 @@
 				B12F11DE2026110800000018 /* unilateral-load-guide.json */,
 				14406EBDAB20261108000006 /* exercise-frequency-families.json */,
 				14407EBDAB20261108000006 /* lifted-mass-landmarks.json */,
+				AA5418AB1199F88000000002 /* lifted-mass-units.json */,
 				14407EBDAB20261108000012 /* award-objects */,
 				B12F11DE2026110800000020 /* leg-anatomy */,
 				14407EBDAB2026110800000A /* hero-lift-landmarks.json */,
@@ -1426,6 +1429,7 @@
 				B12F11DE2026110800000017 /* unilateral-load-guide.json in Resources */,
 				14406EBDAB20261108000005 /* exercise-frequency-families.json in Resources */,
 				14407EBDAB20261108000005 /* lifted-mass-landmarks.json in Resources */,
+				AA5418AB1199F88000000001 /* lifted-mass-units.json in Resources */,
 				14407EBDAB20261108000011 /* award-objects in Resources */,
 				B12F11DE2026110800000019 /* leg-anatomy in Resources */,
 				14407EBDAB20261108000009 /* hero-lift-landmarks.json in Resources */,

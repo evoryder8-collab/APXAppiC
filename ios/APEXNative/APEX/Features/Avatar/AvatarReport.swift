@@ -301,8 +301,8 @@ struct AvatarReport: Transferable {
             }
         }
 
-        func volume(_ kg: Double) -> String {
-            LiftedMassComparison.formattedMass(kg, locale: language.language.locale)
+        func volume(_ kg: Double, partial: Bool = false) -> String {
+            LiftedMassComparison.formattedMass(kg, locale: language.language.locale, partial: partial)
         }
 
         func drawLifetimeTotals(_ rows: [StrengthProgress.RankedFamily]) {
@@ -436,7 +436,7 @@ struct AvatarReport: Transferable {
         }
 
         private func liftedVolume(_ totals: StrengthProgress.LifetimeTotals) -> String? {
-            totals.liftedVolumeKG.map { volume($0) + (totals.missingVolume ? "*" : "") }
+            totals.liftedVolumeKG.map { volume($0, partial: totals.missingVolume) }
         }
 
         private struct ChartPoint {

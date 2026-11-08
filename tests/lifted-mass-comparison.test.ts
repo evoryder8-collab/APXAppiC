@@ -86,9 +86,10 @@ test('large gaps describe the last milestone passed or the next milestone ahead'
 })
 
 test('large comparisons use metric mass units, with physical references throughout the scale', () => {
-  const scales = [[1e9, 'Mt'], [1e12, 'Gt'], [1e15, 'Tt'], [1e18, 'Pt'], [1e21, 'Et'], [1e24, 'Zt'], [1e27, 'Yt'], [1e30, 'Rt']] as const
-  for (const [kg, symbol] of scales) {
-    assert.equal(formattedMass(kg, 'en'), '1 ' + symbol)
+  const scales = [[1e9, 'megaton'], [1e12, 'gigaton'], [1e15, 'teraton'], [1e18, 'petaton'], [1e21, 'exaton'], [1e24, 'zettaton'], [1e27, 'yottaton'], [1e30, 'ronnaton']] as const
+  for (const [kg, unit] of scales) {
+    assert.equal(formattedMass(kg, 'en'), '1 ' + unit)
+    assert.equal(formattedMass(2 * kg, 'en'), '2 ' + unit + 's')
     assert.ok(objects.some(row => row.kg >= kg && row.kg < kg * 1000))
     assert.ok(liftedMassCaption(kg, 'en')?.fact)
   }
@@ -96,4 +97,18 @@ test('large comparisons use metric mass units, with physical references througho
     const selected = heroLiftCaption(kg, 'en')!
     assert.ok(heroes.some(row => row.kg >= kg && selected.caption.includes(' · ' + row.name + ' · ')))
   }
+})
+
+test('volume spells out metric tons in the report language and qualifies incomplete measurements', () => {
+  for (const [kg, expected] of [[999, '999 kg'], [1000, '1 ton'], [1500, '1.5 tons'], [1e6, '1 kiloton'], [1e33, '1 quettaton']]) {
+    assert.equal(formattedMass(kg, 'en'), expected)
+  }
+  assert.equal(formattedMass(1167.89, 'en', true), 'at least 1.1678 tons')
+  for (const [locale, expected] of [['de','mindestens 2 Tonnen'],['de-CH','mindeschtens 2 Tonne'],
+    ['it','almeno 2 tonnellate'],['es','al menos 2 toneladas'],['pt-PT','pelo menos 2 toneladas'],
+    ['ja','2トン以上'],['ro','cel puțin 2 tone'],['th','อย่างน้อย 2 ตัน']]) {
+    assert.equal(formattedMass(2000, locale, true), expected)
+  }
+  assert.equal(formattedMass(1500, 'pt'), '1,5 toneladas')
+  assert.equal(formattedMass(20000, 'ro'), '20 de tone')
 })

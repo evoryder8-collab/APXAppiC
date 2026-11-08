@@ -14,6 +14,15 @@ final class ExportReportTests: XCTestCase {
     private let dayID = UUID()
     private let sessionID = UUID()
 
+    func testLocalizedMassUnitsAndIncompleteVolume() {
+        let english = Locale(identifier: "en_GB")
+        XCTAssertEqual(LiftedMassComparison.formattedMass(1000, locale: english), "1 ton")
+        XCTAssertEqual(LiftedMassComparison.formattedMass(1167.89, locale: english, partial: true), "at least 1.1678 tons")
+        XCTAssertEqual(LiftedMassComparison.formattedMass(2e33, locale: english), "2 quettatons")
+        XCTAssertEqual(LiftedMassComparison.formattedMass(2000, locale: Locale(identifier: "ja_JP"), partial: true), "2トン以上")
+        XCTAssertEqual(LiftedMassComparison.formattedMass(20000, locale: Locale(identifier: "ro_RO")), "20 de tone")
+    }
+
     private func data(
         completed: Bool = true,
         deload: Bool = false,
@@ -226,8 +235,8 @@ final class ExportReportTests: XCTestCase {
         XCTAssertTrue(text.contains(language.text("Hip Thrust") + " · " + language.text("Lower body")))
         XCTAssertTrue(text.contains(language.text("Barbell Hip Thrust")))
         XCTAssertTrue(text.contains(language.text("Machine Hip Thrust")))
-        XCTAssertTrue(text.contains("1.78 t"))
-        XCTAssertTrue(text.contains("1.48 t"))
+        XCTAssertTrue(text.contains("1.78 tons"))
+        XCTAssertTrue(text.contains("1.48 tons"))
         XCTAssertTrue(text.contains("300 kg"))
         XCTAssertTrue(text.contains("80.9 kg"))
         let expectedRows = [
