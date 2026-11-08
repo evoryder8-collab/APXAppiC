@@ -1518,44 +1518,47 @@ struct WorkoutDayView: View {
                 ForEach(exercises) { planned in
                     let exercise = planned.exercise
                     GlassCard(radius: 24, padding: 16) {
-                        HStack(alignment: .top) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                HStack(spacing: 7) {
-                                    if let groupLabel = workGroupLabels[exercise.id] {
-                                        Text(groupLabel)
-                                            .font(APEXFont.mono(9, weight: .bold))
-                                            .foregroundStyle(accent)
-                                            .padding(.horizontal, 7)
-                                            .padding(.vertical, 4)
-                                            .background(accent.opacity(0.1), in: Capsule())
+                        VStack(alignment: .leading, spacing: 12) {
+                            GuidedPreviewPhoto(exercise: exercise, height: 124)
+                            HStack(alignment: .top) {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack(spacing: 7) {
+                                        if let groupLabel = workGroupLabels[exercise.id] {
+                                            Text(groupLabel)
+                                                .font(APEXFont.mono(9, weight: .bold))
+                                                .foregroundStyle(accent)
+                                                .padding(.horizontal, 7)
+                                                .padding(.vertical, 4)
+                                                .background(accent.opacity(0.1), in: Capsule())
+                                        }
+                                        Text(language.text(exercise.name))
+                                            .font(APEXFont.display(18))
+                                        if planned.swapped {
+                                            Text(language.text("SWAP"))
+                                                .font(APEXFont.mono(8, weight: .bold))
+                                                .foregroundStyle(APEXColor.amberDeep)
+                                        }
+                                        if exercise.optional {
+                                            Text(language.text("OPTIONAL"))
+                                                .font(APEXFont.mono(8, weight: .bold))
+                                                .foregroundStyle(APEXColor.secondaryInk)
+                                        }
                                     }
-                                    Text(language.text(exercise.name))
-                                        .font(APEXFont.display(18))
-                                    if planned.swapped {
-                                        Text(language.text("SWAP"))
-                                            .font(APEXFont.mono(8, weight: .bold))
-                                            .foregroundStyle(APEXColor.amberDeep)
-                                    }
-                                    if exercise.optional {
-                                        Text(language.text("OPTIONAL"))
-                                            .font(APEXFont.mono(8, weight: .bold))
+                                    Text(prescription(planned))
+                                        .font(APEXFont.mono(11))
+                                        .foregroundStyle(accent)
+                                    if !exercise.notes.isEmpty {
+                                        Text(language.text(exercise.notes))
+                                            .font(APEXFont.body(12, weight: .medium))
                                             .foregroundStyle(APEXColor.secondaryInk)
                                     }
                                 }
-                                Text(prescription(planned))
-                                    .font(APEXFont.mono(11))
-                                    .foregroundStyle(accent)
-                                if !exercise.notes.isEmpty {
-                                    Text(language.text(exercise.notes))
-                                        .font(APEXFont.body(12, weight: .medium))
-                                        .foregroundStyle(APEXColor.secondaryInk)
-                                }
+                                Spacer()
+                                Text(language.format("%d s", exercise.restSeconds))
+                                    .font(APEXFont.mono(10))
+                                    .padding(8)
+                                    .background(accent.opacity(0.1), in: Capsule())
                             }
-                            Spacer()
-                            Text(language.format("%d s", exercise.restSeconds))
-                                .font(APEXFont.mono(10))
-                                .padding(8)
-                                .background(accent.opacity(0.1), in: Capsule())
                         }
                     }
                 }

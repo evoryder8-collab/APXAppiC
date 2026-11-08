@@ -833,11 +833,17 @@ final class APEXSmokeUITests: XCTestCase {
         let expand = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "simple-training-expand-")).firstMatch
         XCTAssertTrue(scrollUntilVisible(expand, in: app, attempts: 35))
         let exercises = app.staticTexts.matching(NSPredicate(format: "identifier BEGINSWITH %@", "simple-training-exercise-"))
-        XCTAssertGreaterThanOrEqual(exercises.count, 3, "Exercise names must be available before Start")
-        let before = exercises.count
+        XCTAssertTrue(app.scrollViews["training-lineup-strip"].firstMatch.exists)
+        let firstExercise = exercises.firstMatch.identifier
+        XCTAssertFalse(firstExercise.isEmpty)
         tapClearOfDock(expand)
         XCTAssertEqual(expand.value as? String, "Expanded")
-        XCTAssertGreaterThan(exercises.count, before)
+        let grid = app.descendants(matching: .any)["training-lineup-grid"].firstMatch
+        XCTAssertTrue(grid.exists)
+        XCTAssertTrue(grid.staticTexts[firstExercise].exists)
+        XCTAssertGreaterThanOrEqual(grid.staticTexts.matching(NSPredicate(
+            format: "identifier BEGINSWITH %@", "simple-training-exercise-"
+        )).count, 3)
         XCTAssertFalse(app.descendants(matching: .any)["workout-phase-warmup"].exists)
         capture("simple-training-full-exercise-preview")
 
@@ -850,9 +856,9 @@ final class APEXSmokeUITests: XCTestCase {
         tapClearOfDock(tile)
         let chooser = app.descendants(matching: .any)["simple-training-chooser"].firstMatch
         XCTAssertTrue(chooser.waitForExistence(timeout: 3))
-        XCTAssertGreaterThanOrEqual(chooser.staticTexts.matching(NSPredicate(
+        XCTAssertGreaterThan(chooser.staticTexts.matching(NSPredicate(
             format: "identifier BEGINSWITH %@", "simple-training-exercise-"
-        )).count, 3)
+        )).count, 0)
         XCTAssertTrue(chooser.buttons["Full session"].firstMatch.exists)
         capture("simple-training-chooser-exercise-preview")
         let start = chooser.buttons.matching(NSPredicate(format: "identifier BEGINSWITH %@", "simple-training-start-")).firstMatch

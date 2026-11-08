@@ -144,3 +144,74 @@ struct GuidedArtworkView: View {
         }
     }
 }
+
+/// The overview uses the player's bundled photographs without starting its cadence clock.
+struct GuidedPreviewPhoto: View {
+    let exercise: Exercise
+    var height: CGFloat = 108
+
+    var body: some View {
+        if let artwork = GuidedArtwork.movement(exercise) {
+            GuidedArtworkView(artwork: artwork)
+                .frame(maxWidth: .infinity)
+                .frame(height: height)
+                .accessibilityHidden(true)
+        }
+    }
+}
+
+struct GuidedExerciseLineup: View {
+    let exercises: [Exercise]
+    let accent: Color
+    var expanded = false
+    let prescription: (Exercise) -> String
+    @State private var language = LanguageState.shared
+    @ScaledMetric(relativeTo: .body) private var cardWidth: CGFloat = 148
+    @Environment(\.dynamicTypeSize) private var dynamicType
+
+    var body: some View {
+        if expanded || dynamicType.isAccessibilitySize {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: cardWidth - 22), spacing: 14, alignment: .topLeading)],
+                      alignment: .leading, spacing: 18) { cards(inRow: false) }
+                .accessibilityElement(children: .contain)
+                .accessibilityIdentifier("training-lineup-grid")
+        } else {
+            ScrollView(.horizontal) {
+                LazyHStack(alignment: .top, spacing: 14) {
+                    cards(inRow: true)
+                }
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.viewAligned)
+            .accessibilityIdentifier("training-lineup-strip")
+            .scrollIndicators(.visible)
+            .scrollBounceBehavior(.basedOnSize)
+        }
+    }
+
+    @ViewBuilder private func cards(inRow: Bool) -> some View {
+        ForEach(Array(exercises.enumerated()), id: \.element.id) { index, exercise in
+            VStack(alignment: .leading, spacing: 7) {
+                GuidedPreviewPhoto(exercise: exercise)
+                HStack(spacing: 6) {
+                    Text((index + 1).formatted(.number.precision(.integerLength(2...))))
+                        .font(APEXFont.mono(10, weight: .bold))
+                        .foregroundStyle(accent)
+                    Rectangle().fill(accent.opacity(0.24)).frame(height: 1)
+                }
+                .accessibilityHidden(true)
+                Text(language.text(exercise.name))
+                    .font(APEXFont.body(14, weight: .bold))
+                    .foregroundStyle(APEXColor.ink)
+                    .accessibilityIdentifier("simple-training-exercise-\(exercise.id.uuidString.lowercased())")
+                Text(prescription(exercise))
+                    .font(APEXFont.mono(11))
+                    .foregroundStyle(APEXColor.secondaryInk)
+            }
+            .frame(width: inRow ? cardWidth : nil, alignment: .leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .topLeading)
+            .accessibilityElement(children: .contain)
+        }
+    }
+}

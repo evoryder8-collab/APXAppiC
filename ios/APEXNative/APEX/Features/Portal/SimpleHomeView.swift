@@ -2500,15 +2500,6 @@ private struct TrainingQuickSheet: View {
                             Spacer(minLength: 0)
                         }
 
-                        Text(language.text(lite
-                            ? "The light prescription keeps the primary movements so a short day still counts."
-                            : "This list is the exact Full prescription."))
-                            .font(APEXFont.body(12, weight: .semibold))
-                            .foregroundStyle(APEXColor.green)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(10)
-                            .background(APEXColor.green.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
-
                         if isDeload {
                             Text(language.text("Deload week: one fewer set per exercise, 3 RIR, no tests or burnouts."))
                                 .font(APEXFont.body(11, weight: .semibold))
@@ -2524,26 +2515,8 @@ private struct TrainingQuickSheet: View {
                             .foregroundStyle(APEXColor.green)
                             .padding(.top, 2)
 
-                        ForEach(Array(shown.enumerated()), id: \.element.id) { index, exercise in
-                            HStack(spacing: 11) {
-                                Text("\(index + 1)")
-                                    .font(APEXFont.mono(11, weight: .bold))
-                                    .foregroundStyle(APEXColor.green)
-                                    .frame(width: 22, height: 22)
-                                    .background(APEXColor.green.opacity(0.13), in: Circle())
-                                Text(language.text(exercise.name))
-                                    .font(APEXFont.body(12, weight: .bold))
-                                    .lineLimit(2)
-                                Spacer(minLength: 6)
-                                Text(prescription(exercise))
-                                    .font(APEXFont.mono(11))
-                                    .foregroundStyle(APEXColor.secondaryInk)
-                                    .fixedSize()
-                            }
-                            .padding(.horizontal, 13)
-                            .padding(.vertical, 11)
-                            .background(.white.opacity(0.7), in: RoundedRectangle(cornerRadius: 15))
-                        }
+                        GuidedExerciseLineup(exercises: shown, accent: APEXColor.green, expanded: true,
+                                             prescription: prescription)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 14)
@@ -3323,7 +3296,6 @@ private struct DailyTrainingSessionPreviewCard: View {
 
     private var lite: Bool { fixedLite ?? selectedLite }
     private var exercises: [Exercise] { lite ? lightExercises : fullExercises }
-    private var visibleExercises: [Exercise] { expanded ? exercises : Array(exercises.prefix(3)) }
     private var completed: Bool { item.completedSessionID != nil }
     private var actionTitle: String {
         if trainToday && !completed { return "\(language.text("Start")) · \(language.text("Today"))" }
@@ -3381,29 +3353,9 @@ private struct DailyTrainingSessionPreviewCard: View {
                     .foregroundStyle(APEXColor.secondaryInk)
             }
 
-            VStack(alignment: .leading, spacing: 12) {
-                ForEach(Array(visibleExercises.enumerated()), id: \.element.id) { index, exercise in
-                    HStack(alignment: .top, spacing: 10) {
-                        Text("\(index + 1)")
-                            .font(APEXFont.mono(11, weight: .semibold))
-                            .foregroundStyle(accent)
-                            .frame(minWidth: 16)
-                            .padding(.top, 2)
-                            .accessibilityHidden(true)
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(language.text(exercise.name))
-                                .font(APEXFont.body(14, weight: .semibold))
-                                .foregroundStyle(APEXColor.ink)
-                                .accessibilityIdentifier("simple-training-exercise-\(exercise.id.uuidString.lowercased())")
-                            Text(prescription(exercise))
-                                .font(APEXFont.mono(11, weight: .medium))
-                                .foregroundStyle(APEXColor.secondaryInk)
-                        }
-                        .fixedSize(horizontal: false, vertical: true)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-            }
+            GuidedExerciseLineup(exercises: exercises, accent: accent, expanded: expanded,
+                                 prescription: prescription)
+                .id(lite)
 
             if exercises.count > 3 {
                 Button { expanded.toggle() } label: {

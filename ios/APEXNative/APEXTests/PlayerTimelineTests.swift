@@ -57,8 +57,8 @@ final class PlayerTimelineTests: XCTestCase {
             XCTAssertGreaterThan(pixels.height, 0)
             XCTAssertGreaterThan(pixels.width, 0)
         }
-        func thumbnail(_ artwork: GuidedArtwork, elapsed: Double) throws -> [UInt8] {
-            let playerImage = GuidedArtworkView(artwork: artwork, exercise: pushUp, elapsed: elapsed)
+        func thumbnail(_ content: some View) throws -> [UInt8] {
+            let playerImage = content
                 .frame(width: 200, height: 160)
                 .background(.white)
             let rendered = try XCTUnwrap(ImageRenderer(content: playerImage).cgImage)
@@ -77,10 +77,15 @@ final class PlayerTimelineTests: XCTestCase {
             return samples
         }
         let pushUpArtwork = GuidedArtwork.pair(id, cadence)
-        let raised = try thumbnail(pushUpArtwork, elapsed: 0)
-        let lowered = try thumbnail(pushUpArtwork, elapsed: 1)
+        let raised = try thumbnail(GuidedArtworkView(artwork: pushUpArtwork, exercise: pushUp, elapsed: 0))
+        let lowered = try thumbnail(GuidedArtworkView(artwork: pushUpArtwork, exercise: pushUp, elapsed: 1))
         XCTAssertGreaterThan(zip(raised, lowered).filter { abs(Int($0) - Int($1)) > 25 }.count, 50)
-        _ = try thumbnail(.reference(breakID), elapsed: 0)
+        _ = try thumbnail(GuidedArtworkView(artwork: .reference(breakID)))
+        let preview = try thumbnail(GuidedPreviewPhoto(exercise: pushUp))
+        for half in [0..<32, 32..<64] {
+            XCTAssertGreaterThan(preview.enumerated().filter { half.contains($0.offset % 64) && $0.element < 110 }.count, 10,
+                                 "The overview must show both photographed endpoints before starting the player.")
+        }
         pushUp.movementID = "unknown-custom-id"
         XCTAssertNil(GuidedArtwork.movement(pushUp), "An unresolved stored ID cannot fall back to a different movement.")
         XCTAssertNil(GuidedArtwork.movement(exercise("Any 10-min HIIT video")))
