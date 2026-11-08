@@ -66,7 +66,7 @@ test('report leads with the athlete category, totals and comparison before secon
   const training = { ...input.training, focus:'Resistance-focused' as const, workouts:3, counts:{ Resistance:3, Cardio:0, Mobility:0 }, comparison:{name:'Split Squat', reps:8, previous:10, recent:14} }
   const html = avatarReportHTML({ ...input, training, families:[family] })
   assert.match(html, /<header class="profile">.*<h1>Strength athlete<\/h1>.*<\/header>/)
-  const order = ['</header>', '<h2>All-time training totals</h2>', '<aside class="comparison">', 'Fictional one-lift benchmark', 'Classified workouts 3', '<h2>Recorded load</h2>'].map(value => html.indexOf(value))
+  const order = ['</header>', '<h2>All-time training totals</h2>', '<h3>Lifted volume</h3>', '<div class="comparison">', 'Fictional one-lift benchmark', '<h3>Performed sets</h3>', '<h3>Recorded reps</h3>', 'Classified workouts 3', '<h2>Recorded load</h2>'].map(value => html.indexOf(value))
   assert.ok(order.every((position, i) => position >= 0 && (!i || position > order[i - 1])))
   assert.doesNotMatch(html,/Matched working load|Median session-best|Known external load|Volume sums each/)
   assert.match(html,/\* Incomplete records/)
@@ -80,6 +80,16 @@ test('report leads with the athlete category, totals and comparison before secon
   assert.match(html, /#2 · Nov 7, 2026 · 14 kg/)
   assert.equal(new Set([...html.matchAll(/<circle cx="([^"]+)"/g)].map(match => match[1])).size,2)
   assert.match(html, /<\/svg>[\s\S]*?<dl><div><dt>Recorded reps<\/dt><dd>28\*<\/dd><\/div><div><dt>Lifted volume<\/dt><dd>160 kg\*<\/dd>/)
+})
+
+test('the cover distinguishes zero volume from unrecorded volume', () => {
+  const cover = (liftedKg: number | null) => avatarReportHTML({ ...input, families:[{
+    name:'Squat', work:{ ...noWork, sets:1, liftedKg }, sessionCount:1, variants:[],
+  }] }).split('<section class="totals-section">')[1].split('</section>')[0]
+  assert.match(cover(0), /Lifted volume<\/h3><b class="score">0 kg<\/b>/)
+  assert.doesNotMatch(cover(0), /class="comparison"/)
+  assert.doesNotMatch(cover(null), /Lifted volume/)
+  assert.match(cover(null), /Performed sets/)
 })
 
 test('one observed score snapshot shows its values without drawing any trend', () => {
@@ -102,6 +112,7 @@ test('download fetches only the selected object and embeds its WebP next to the 
   assert.equal(fetchImage.mock.callCount(),1)
   assert.equal(fetchImage.mock.calls[0].arguments[0], '/APXAppiC/award-objects/' + object.artwork)
   assert.deepEqual([...html.matchAll(/<img[^>]+src="([^"]+)"/g)].map(match => match[1]), ['data:image/webp;base64,' + webp])
+  assert.match(html, /<article class="volume-panel"><h3>Lifted volume<\/h3><b class="score">200 kg<\/b><div class="comparison"><img class="award-art"/)
   assert.ok(html.includes(object.fact.replaceAll('&', '&amp;').replaceAll("'", '&#39;')))
 
   const textOnly = avatarReportHTML(options)
