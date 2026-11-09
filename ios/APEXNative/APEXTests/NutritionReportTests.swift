@@ -139,6 +139,8 @@ final class NutritionReportTests: XCTestCase {
             XCTAssertEqual(m.underDays, 1, "\(kind)")
             XCTAssertEqual(m.overDays, 1, "\(kind)")
         }
+        XCTAssertEqual(try macro(report, .calories).metDays, 2)
+        XCTAssertEqual(try macro(report, .protein).metDays, 3)
         XCTAssertEqual(try macro(report, .carbs).onTargetDays, 4)
     }
 
@@ -190,14 +192,18 @@ final class NutritionReportTests: XCTestCase {
         }
     }
 
-    func testProteinHighWhenMostDaysExceedTheCeiling() throws {
+    func testEatingMoreProteinThanTheTargetIsAWinNotAMiss() throws {
         var data = data()
-        data.loggedMeals = mealsAtRatios((0..<10).map { (1.0, $0 < 6 ? 1.3 : 1.0, 1.0, 1.0) })
+        data.loggedMeals = mealsAtRatios((0..<10).map { (1.0, $0 < 6 ? 1.6 : 1.0, 1.0, 1.0) })
 
         let report = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: range))
 
         XCTAssertEqual(try macro(report, .protein).overDays, 6)
-        XCTAssertEqual(report.focus, [.proteinHigh])
+        XCTAssertEqual(try macro(report, .protein).metDays, 10)
+        XCTAssertEqual(report.score, 100)
+        XCTAssertTrue(report.strengths.contains(.protein))
+        XCTAssertEqual(report.focus, [])
+        XCTAssertEqual(report.verdict, .dialedIn)
     }
 
     func testSparseLoggingIsFlaggedAsAGap() throws {
@@ -228,6 +234,161 @@ final class NutritionReportTests: XCTestCase {
 
         XCTAssertEqual(report.waterLitres, 2.25, accuracy: 0.0001)
         XCTAssertEqual(report.waterDays, 2)
+    }
+
+    // MARK: Verdict
+
+    func testEachVerdictIsReachableAndWinsOverTheRulesAfterIt() {
+        typealias Input = NutritionReport.VerdictInput
+        let cases: [(NutritionReport.Verdict, Input)] = [
+            (.baseline, Input(score: nil, proteinRate: 1, trend: 30, weekendGap: 40)),
+            (.dialedIn, Input(score: 92, proteinRate: 1, trend: 30, weekendGap: 40)),
+            (.onTarget, Input(score: 84, proteinRate: 1, trend: 30, weekendGap: 40)),
+            (.proteinPro, Input(score: 70, proteinRate: 0.9, trend: 30, weekendGap: 40)),
+            (.onTheRise, Input(score: 70, proteinRate: 0.5, trend: 15, weekendGap: 40)),
+            (.slippingLately, Input(score: 70, proteinRate: 0.5, trend: -15, weekendGap: 40)),
+            (.weekendDrift, Input(score: 70, proteinRate: 0.5, trend: 5, weekendGap: 25)),
+            (.solidBase, Input(score: 65, proteinRate: 0.5)),
+            (.gettingThere, Input(score: 50, proteinRate: 0.5)),
+            (.findingRhythm, Input(score: 35)),
+            (.needsAttention, Input(score: 34)),
+        ]
+        XCTAssertEqual(cases.map(\.0), NutritionReport.Verdict.allCases)
+        for (expected, input) in cases {
+            XCTAssertEqual(NutritionReport.verdict(input), expected)
+        }
+    }
+
+    func testTheLastTwoWeeksAgainstEarlierDaysDecideRiseAndSlip() throws {
+        // 7 early days with only calories and fat on target (45), then 14 fully on-target days (100).
+        var rising = data()
+        rising.loggedMeals = mealsAtRatios((0..<21).map { $0 < 7 ? (1.0, 0.5, 0.5, 1.0) : (1.0, 1.0, 1.0, 1.0) })
+        var slipping = data()
+        slipping.loggedMeals = mealsAtRatios((0..<21).map { $0 < 7 ? (1.0, 1.0, 1.0, 1.0) : (1.0, 0.5, 1.0, 1.0) })
+        let month = "2026-03-01"..."2026-03-31"
+
+        XCTAssertEqual(try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: rising, dates: month)).score, 82)
+        let rise = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: rising, dates: month))
+        // 82 is already on target, which outranks the trend.
+        XCTAssertEqual(rise.verdict, .onTarget)
+
+        rising.loggedMeals = mealsAtRatios((0..<21).map { $0 < 7 ? (0.5, 0.5, 0.5, 0.5) : (1.0, 0.5, 1.0, 1.0) })
+        let lateRise = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: rising, dates: month))
+        XCTAssertEqual(lateRise.score, 40)
+        XCTAssertEqual(lateRise.verdict, .onTheRise)
+
+        let slip = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: slipping, dates: month))
+        XCTAssertEqual(slip.score, 73)
+        XCTAssertEqual(slip.verdict, .slippingLately)
+    }
+
+    func testWeekendDriftComparesSaturdayAndSundayWithWeekdays() throws {
+        // 2026-03-01 is a Sunday: indexes 0, 6, 7, 13 are weekend days.
+        var data = data()
+        data.loggedMeals = mealsAtRatios((0..<14).map { [0, 6, 7, 13].contains($0) ? (0.5, 0.5, 1.0, 1.0) : (1.0, 1.0, 0.5, 1.0) })
+
+        let report = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: "2026-03-01"..."2026-03-14"))
+
+        XCTAssertEqual(report.verdict, .weekendDrift)
+    }
+
+    // MARK: Creatine
+
+    private func creatineData(
+        taken: [Int], name: String = "Creatine", trainingDaysOnly: Bool = false, extra: [SupplementLog] = []
+    ) -> (DashboardData, UUID) {
+        var data = data()
+        let id = UUID()
+        data.supplements = [
+            Supplement(id: id, userID: owner, name: name, dose: "5 g", timing: "morning", clockTime: nil,
+                       offsetMinutes: nil, groupLabel: "", trainingDaysOnly: trainingDaysOnly, sortOrder: 0),
+            Supplement(id: UUID(), userID: owner, name: "Magnesium", dose: "", timing: "evening", clockTime: nil,
+                       offsetMinutes: nil, groupLabel: "", trainingDaysOnly: false, sortOrder: 1),
+        ]
+        data.supplementLogs = taken.map { creatineLog(id, day: $0) } + extra
+        return (data, id)
+    }
+
+    private func creatineLog(_ supplement: UUID, day index: Int, checkedAt: String? = nil, userID: UUID? = nil) -> SupplementLog {
+        SupplementLog(id: UUID(), userID: userID ?? owner, date: day(index), supplementID: supplement,
+                      checkedAt: checkedAt ?? "\(day(index))T08:00:00Z")
+    }
+
+    private func creatine(taken: [Int], days: Int) throws -> NutritionReport.Creatine {
+        let (data, _) = creatineData(taken: taken)
+        let report = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: day(0)...day(days - 1)))
+        return try XCTUnwrap(report.creatine)
+    }
+
+    func testEachCreatineBadgeIsReachableAndWinsOverTheRulesAfterIt() throws {
+        // Day 0 is a Sunday; Saturdays are 6, 13, 20, 27.
+        let weekends: Set<Int> = [0, 6, 7, 13, 14, 20, 21, 27]
+        let cases: [(NutritionReport.Creatine.Badge, [Int], Int)] = [
+            (.freshStart, Array(0..<10), 10),
+            (.champ, Array(0..<30), 30),
+            (.lockedIn, (0..<30).filter { $0 != 10 && $0 != 20 }, 30),
+            (.onARoll, (0..<30).filter { ![3, 6, 9, 12, 15, 18, 21].contains($0) }, 30),
+            (.comeback, Array(0..<3) + (16..<30).filter { $0 != 25 && $0 != 27 }, 30),
+            (.lapsed, Array(0..<14), 30),
+            (.weekendGaps, (0..<28).filter { !weekends.contains($0) }, 28),
+            (.almostDaily, (0..<28).filter { ![3, 8, 12, 17, 22, 25].contains($0) }, 28),
+            (.stopStart, Array(stride(from: 0, to: 28, by: 2)), 28),
+            (.buildTheStreak, Array(0..<5) + Array(15..<20), 28),
+        ]
+        XCTAssertEqual(cases.map(\.0), NutritionReport.Creatine.Badge.allCases)
+        for (expected, taken, days) in cases {
+            XCTAssertEqual(try creatine(taken: taken, days: days).badge, expected, "\(expected)")
+        }
+    }
+
+    func testCreatineStreaksAndScoreCountDistinctDaysFromTheFirstCheckOff() throws {
+        let result = try creatine(taken: [2, 3, 4, 6, 7, 8, 9], days: 10)
+
+        XCTAssertEqual(result.takenDays, 7)
+        XCTAssertEqual(result.trackedDays, 8)
+        XCTAssertEqual(result.longestStreak, 4)
+        XCTAssertEqual(result.currentStreak, 4)
+        XCTAssertEqual(result.score, 88)
+        // The range's last day still open: the streak ending the day before it is current.
+        XCTAssertEqual(try creatine(taken: [5, 6, 7, 8], days: 10).currentStreak, 4)
+        XCTAssertEqual(try creatine(taken: [5, 6, 7], days: 10).currentStreak, 0)
+    }
+
+    func testABackfilledCheckOffCountsOnTheDayItBelongsTo() throws {
+        let (before, id) = creatineData(taken: (0..<10).filter { $0 != 5 })
+        var after = before
+        after.supplementLogs.append(creatineLog(id, day: 5, checkedAt: "2026-11-09T21:30:00Z"))
+
+        let gap = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: before, dates: range)?.creatine)
+        let filled = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: after, dates: range)?.creatine)
+
+        XCTAssertEqual(gap.longestStreak, 5)
+        XCTAssertEqual(filled.longestStreak, 10)
+        XCTAssertEqual(filled.currentStreak, 10)
+        XCTAssertEqual(filled.score, 100)
+    }
+
+    func testCreatineIgnoresOtherOwnersOutOfRangeDaysDuplicatesAndTrainingDayOnlyStacks() throws {
+        let (base, id) = creatineData(taken: [0, 1])
+        var data = base
+        let second = Supplement(id: UUID(), userID: owner, name: "Creatine Monohydrate", dose: "", timing: "", clockTime: nil,
+                                offsetMinutes: nil, groupLabel: "", trainingDaysOnly: false, sortOrder: 2)
+        data.supplements.append(second)
+        data.supplementLogs += [
+            creatineLog(second.id, day: 1),
+            creatineLog(id, day: 2, userID: UUID()),
+            SupplementLog(id: UUID(), userID: owner, date: "2026-04-01", supplementID: id, checkedAt: "2026-04-01T08:00:00Z"),
+            creatineLog(try XCTUnwrap(data.supplements.first { $0.name == "Magnesium" }).id, day: 3),
+        ]
+
+        let result = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: range)?.creatine)
+        XCTAssertEqual(result.takenDays, 2)
+        XCTAssertEqual(result.trackedDays, 10)
+
+        let (trainingOnly, _) = creatineData(taken: [0, 1], trainingDaysOnly: true)
+        XCTAssertNil(NutritionReport.summarize(ownerID: owner, data: trainingOnly, dates: range)?.creatine)
+        let (japanese, _) = creatineData(taken: [0, 1], name: "クレアチン")
+        XCTAssertEqual(NutritionReport.summarize(ownerID: owner, data: japanese, dates: range)?.creatine?.takenDays, 2)
     }
 
     func testEmptyRangeHasNoReport() {

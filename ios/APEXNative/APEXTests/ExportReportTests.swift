@@ -765,6 +765,86 @@ final class ExportReportTests: XCTestCase {
         XCTAssertTrue(try XCTUnwrap(baseline.string).contains(LanguageState.shared.text("Building your baseline")))
     }
 
+    // MARK: Nutrition page
+
+    private func nutritionFixture(days: Int) -> DashboardData {
+        var data = DashboardData()
+        let profile = Profile(
+            id: user, userID: user, persona: .iulian, profileKind: .standard, bespokeProtocolID: nil,
+            displayName: "Sample", sex: "male", weightKG: 70, bodyFatPercent: 20, bodyFatSource: .dexa,
+            bodyFatMeasuredAt: nil, customBMR: nil, heightCM: 175, birthdate: "1990-01-01",
+            activityLevel: .sedentary, goal: .recomp, targetKcal: nil, targetProteinG: nil,
+            targetFatG: nil, targetCarbsG: nil, trainingTime: "07:00", baselineDate: "2026-01-01",
+            profileNote: "", seedVersion: 1, calibrationK: 1, calibrationHistory: [],
+            updatedAt: "2026-01-01T00:00:00Z"
+        )
+        data.profile = profile
+        let targets = EnergyEngine.targets(profile: profile, logs: [], catalog: [])
+        let creatineID = UUID()
+        data.supplements = [
+            Supplement(id: creatineID, userID: user, name: "Creatine", dose: "5 g", timing: "morning", clockTime: nil,
+                       offsetMinutes: nil, groupLabel: "", trainingDaysOnly: false, sortOrder: 0),
+        ]
+        for index in 0..<days {
+            let date = APEXDateMath.adding(days: index, to: "2026-03-01")
+            let protein = [1.3, 1.1, 1.0, 0.9][index % 4], carbs = [1.0, 0.7, 1.1, 1.3][index % 4], fat = [1.0, 1.1, 0.9, 1.4][index % 4]
+            data.loggedMeals.append(LoggedMeal(
+                id: UUID(), userID: user, localDate: date, mealSlot: "lunch", displayName: "Meal",
+                sourcePresetID: nil, sourcePlannedMealID: nil, loggedAt: "\(date)T12:00:00Z",
+                clientIdempotencyKey: UUID().uuidString, loggedAs: "manual",
+                totalKcal: Double(targets.targetCalories) * (index % 3 == 0 ? 0.85 : 1.02),
+                totalProteinG: Double(targets.proteinG) * protein, totalCarbsG: Double(targets.carbsG) * carbs,
+                totalFatG: Double(targets.fatG) * fat
+            ))
+            if index % 7 != 3 {
+                data.supplementLogs.append(SupplementLog(id: UUID(), userID: user, date: date, supplementID: creatineID,
+                                                         checkedAt: "\(date)T08:00:00Z"))
+            }
+            data.hydrationEvents = (data.hydrationEvents ?? []) + [HydrationEvent(
+                id: UUID(), userID: user, clientIdempotencyKey: UUID().uuidString, localDate: date,
+                occurredAt: "\(date)T08:00:00Z", amountML: 2_400, kind: .water, paletteToken: "water",
+                iconToken: "drop.fill", source: .iPhone, healthKitSampleID: nil,
+                createdAt: "\(date)T08:00:00Z", updatedAt: "\(date)T08:00:00Z"
+            )]
+        }
+        return data
+    }
+
+    @MainActor
+    func testNutritionPageLeadsWithTheScoreAndShowsMacrosCreatineAndWater() throws {
+        let days = 30
+        let dates = "2026-03-01"..."2026-03-30"
+        let data = nutritionFixture(days: days)
+        let report = AvatarReport.scoped(ownerID: user, data: data, partialScores: [:], period: .custom, dates: dates, today: "2026-03-30")
+        let nutrition = try XCTUnwrap(report.nutrition)
+        let score = try XCTUnwrap(nutrition.score)
+        let pdf = report.pdfData()
+        let document = try XCTUnwrap(PDFDocument(data: pdf))
+        let language = LanguageState.shared
+        let page = try XCTUnwrap((0..<document.pageCount).compactMap(document.page(at:)).first {
+            $0.string?.contains(language.text("Nutrition")) == true
+        })
+        let text = try XCTUnwrap(page.string)
+        XCTAssertTrue(text.contains(String(score)), text)
+        for name in ["Protein", "Carbs", "Fat", "Calories", "Creatine"] {
+            XCTAssertTrue(text.contains(language.text(name).uppercased(with: language.language.locale)) || text.contains(language.text(name)), name)
+        }
+        XCTAssertNotNil(nutrition.creatine)
+        let attachment = XCTAttachment(data: pdf, uniformTypeIdentifier: "com.adobe.pdf")
+        attachment.name = "Nutrition page.pdf"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
+    func testANutritionOnlyReportStillGetsItsPage() throws {
+        let report = AvatarReport.scoped(ownerID: user, data: nutritionFixture(days: 3), partialScores: [:], period: .custom,
+                                         dates: "2026-03-01"..."2026-03-03", today: "2026-03-03")
+        let document = try XCTUnwrap(PDFDocument(data: report.pdfData()))
+        XCTAssertEqual(document.pageCount, 1)
+        XCTAssertTrue(try XCTUnwrap(document.string).contains(LanguageState.shared.text("Building your baseline")))
+    }
+
     // MARK: Shared receipt, Insights and report figures
 
     private func session(_ date: String, start: String? = nil, end: String? = nil, day: UUID? = nil) -> WorkoutSession {

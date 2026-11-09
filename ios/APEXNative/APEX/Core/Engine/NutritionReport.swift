@@ -12,9 +12,38 @@ struct NutritionReport: Sendable, Equatable {
         let onTargetDays: Int
         let underDays: Int
         let overDays: Int
+        /// Days that count toward the score. Eating more protein than the target is never a miss.
+        var metDays: Int { kind == .protein ? onTargetDays + overDays : onTargetDays }
     }
 
-    enum Focus: Sendable, Equatable { case proteinLow, proteinHigh, caloriesLow, caloriesHigh, loggingGaps }
+    enum Focus: Sendable, Equatable { case proteinLow, caloriesLow, caloriesHigh, loggingGaps }
+
+    /// One verdict for the score hero. Picked by the first matching rule in `verdictRules`.
+    enum Verdict: String, Sendable, CaseIterable {
+        case baseline, dialedIn, onTarget, proteinPro, onTheRise, slippingLately, weekendDrift
+        case solidBase, gettingThere, findingRhythm, needsAttention
+    }
+
+    /// The facts the verdict rules read; `trend` and `weekendGap` are day-score differences, nil without enough days.
+    struct VerdictInput: Sendable {
+        var score: Int?
+        var proteinRate = 0.0
+        var trend: Double?
+        var weekendGap: Double?
+    }
+
+    struct Creatine: Sendable, Equatable {
+        /// Picked by the first matching rule in `badgeRules`.
+        enum Badge: String, Sendable, CaseIterable {
+            case freshStart, champ, lockedIn, onARoll, comeback, lapsed, weekendGaps, almostDaily, stopStart, buildTheStreak
+        }
+        let takenDays: Int
+        let trackedDays: Int
+        let longestStreak: Int
+        let currentStreak: Int
+        let score: Int
+        let badge: Badge
+    }
 
     let from: String
     let to: String
@@ -27,6 +56,44 @@ struct NutritionReport: Sendable, Equatable {
     let focus: [Focus]
     let waterLitres: Double
     let waterDays: Int
+    let verdict: Verdict
+    let creatine: Creatine?
+
+    private static let verdictRules: [(Verdict, @Sendable (VerdictInput) -> Bool)] = [
+        (.baseline, { $0.score == nil }),
+        (.dialedIn, { ($0.score ?? 0) >= 90 }),
+        (.onTarget, { ($0.score ?? 0) >= 80 }),
+        (.proteinPro, { $0.proteinRate >= 0.9 }),
+        (.onTheRise, { ($0.trend ?? 0) >= 15 }),
+        (.slippingLately, { ($0.trend ?? 0) <= -15 }),
+        (.weekendDrift, { ($0.weekendGap ?? 0) >= 25 }),
+        (.solidBase, { ($0.score ?? 0) >= 65 }),
+        (.gettingThere, { ($0.score ?? 0) >= 50 }),
+        (.findingRhythm, { ($0.score ?? 0) >= 35 }),
+        (.needsAttention, { _ in true }),
+    ]
+
+    static func verdict(_ input: VerdictInput) -> Verdict {
+        verdictRules.first { $0.1(input) }?.0 ?? .needsAttention
+    }
+
+    private struct BadgeInput {
+        let taken, tracked, longest, current, score, lastFortnight: Int
+        let weekendMissShare: Double
+    }
+
+    private static let badgeRules: [(Creatine.Badge, @Sendable (BadgeInput) -> Bool)] = [
+        (.freshStart, { $0.tracked < 14 }),
+        (.champ, { $0.score >= 90 && $0.longest >= 21 }),
+        (.lockedIn, { $0.score >= 85 }),
+        (.onARoll, { $0.current >= 7 }),
+        (.comeback, { $0.lastFortnight >= 12 && $0.score < 70 }),
+        (.lapsed, { $0.lastFortnight == 0 }),
+        (.weekendGaps, { $0.score >= 55 && $0.weekendMissShare >= 0.6 }),
+        (.almostDaily, { $0.score >= 70 }),
+        (.stopStart, { $0.longest <= 3 && $0.taken >= 6 }),
+        (.buildTheStreak, { _ in true }),
+    ]
 
     // Calories (0.90...1.10) and protein's floor (0.95) are the brain engine's hit rules.
     // The protein ceiling and the carbs and fat bands are display rules for this page.
@@ -38,6 +105,7 @@ struct NutritionReport: Sendable, Equatable {
     ]
     private static let scoreWeights: [Kind: Double] = [.protein: 0.40, .calories: 0.30, .carbs: 0.15, .fat: 0.15]
     private static let minimumScoredDays = 7
+    private static let trendWindow = 14
     private static let bandTolerance = 1e-9
 
     private struct Eaten {
@@ -70,6 +138,7 @@ struct NutritionReport: Sendable, Equatable {
         var under: [Kind: Int] = [:]
         var over: [Kind: Int] = [:]
         var loggedDays = 0
+        var dayScores: [(day: String, score: Double)] = []
         var drinkML = 0
         var waterDays = 0
 
@@ -85,6 +154,7 @@ struct NutritionReport: Sendable, Equatable {
 
             guard let eaten = eaten(meals: mealsByDay[day] ?? [], log: logsByDay[day]), eaten.kcal > 0 else { continue }
             loggedDays += 1
+            var dayScore = 0.0
             for kind in Kind.allCases {
                 guard let value = eaten.values[kind] else { continue }
                 sums[kind, default: 0] += value
@@ -95,13 +165,17 @@ struct NutritionReport: Sendable, Equatable {
                     under[kind, default: 0] += 1
                 } else if ratio > band.upperBound + bandTolerance {
                     over[kind, default: 0] += 1
+                    if kind == .protein { dayScore += 100 * (scoreWeights[kind] ?? 0) }
                 } else {
                     onTarget[kind, default: 0] += 1
+                    dayScore += 100 * (scoreWeights[kind] ?? 0)
                 }
             }
+            dayScores.append((day, dayScore))
         }
 
-        guard loggedDays > 0 || drinkML > 0 else { return nil }
+        let creatine = creatine(ownerID: ownerID, data: data, days: days)
+        guard loggedDays > 0 || drinkML > 0 || creatine != nil else { return nil }
 
         let macros = Kind.allCases.map { kind in
             Macro(
@@ -114,7 +188,8 @@ struct NutritionReport: Sendable, Equatable {
             )
         }
         let rate = { (kind: Kind) -> Double in
-            loggedDays > 0 ? Double(onTarget[kind] ?? 0) / Double(loggedDays) : 0
+            guard loggedDays > 0, let macro = macros.first(where: { $0.kind == kind }) else { return 0 }
+            return Double(macro.metDays) / Double(loggedDays)
         }
 
         let score: Int? = targets != nil && loggedDays >= minimumScoredDays
@@ -132,8 +207,76 @@ struct NutritionReport: Sendable, Equatable {
             strengths: targets == nil || loggedDays == 0 ? [] : Kind.allCases.filter { rate($0) >= 0.8 },
             focus: focus(macros: macros, loggedDays: loggedDays, periodDays: days.count),
             waterLitres: Double(drinkML) / 1_000,
-            waterDays: waterDays
+            waterDays: waterDays,
+            verdict: verdict(VerdictInput(
+                score: score,
+                proteinRate: rate(.protein),
+                trend: trend(dayScores.map(\.score)),
+                weekendGap: weekendGap(dayScores)
+            )),
+            creatine: creatine
         )
+    }
+
+    private static func average(_ values: some Collection<Double>) -> Double {
+        values.reduce(0, +) / Double(max(1, values.count))
+    }
+
+    /// The last two weeks of logged days against everything logged before them.
+    private static func trend(_ scores: [Double]) -> Double? {
+        let earlier = scores.dropLast(trendWindow)
+        guard earlier.count >= minimumScoredDays, scores.count - earlier.count >= minimumScoredDays else { return nil }
+        return average(scores.suffix(trendWindow)) - average(earlier)
+    }
+
+    private static func weekendGap(_ scores: [(day: String, score: Double)]) -> Double? {
+        let weekend = scores.filter { isWeekend($0.day) }.map(\.score)
+        let weekdays = scores.filter { !isWeekend($0.day) }.map(\.score)
+        guard weekend.count >= 4, weekdays.count >= 4 else { return nil }
+        return average(weekdays) - average(weekend)
+    }
+
+    private static func isWeekend(_ day: String) -> Bool {
+        let formatter = ISO8601DateFormatter.apexDateOnly
+        guard let date = formatter.date(from: day) else { return false }
+        return [1, 7].contains(formatter.calendar.component(.weekday, from: date))
+    }
+
+    /// Daily creatine, keyed on the day a check-off belongs to, so a past day ticked later still counts.
+    private static func creatine(ownerID: UUID, data: DashboardData, days: [String]) -> Creatine? {
+        let ids = Set(data.supplements.filter {
+            $0.userID == ownerID && !$0.trainingDaysOnly && isCreatine($0.name)
+        }.map(\.id))
+        let inRange = Set(days)
+        let taken = Set(data.supplementLogs.filter {
+            $0.userID == ownerID && ids.contains($0.supplementID) && inRange.contains($0.date)
+        }.map(\.date))
+        guard let first = taken.min() else { return nil }
+        let tracked = days.filter { $0 >= first }
+        var longest = 0, run = 0
+        for day in tracked {
+            run = taken.contains(day) ? run + 1 : 0
+            longest = max(longest, run)
+        }
+        let fromEnd = tracked.reversed().drop { $0 == tracked.last && !taken.contains($0) }
+        let current = fromEnd.prefix { taken.contains($0) }.count
+        let missed = tracked.filter { !taken.contains($0) }
+        let score = Int((100 * Double(taken.count) / Double(tracked.count)).rounded())
+        let input = BadgeInput(
+            taken: taken.count, tracked: tracked.count, longest: longest, current: current, score: score,
+            lastFortnight: days.suffix(trendWindow).filter(taken.contains).count,
+            weekendMissShare: missed.isEmpty ? 0 : Double(missed.filter(isWeekend).count) / Double(missed.count)
+        )
+        return Creatine(
+            takenDays: taken.count, trackedDays: tracked.count, longestStreak: longest, currentStreak: current,
+            score: score, badge: badgeRules.first { $0.1(input) }?.0 ?? .buildTheStreak
+        )
+    }
+
+    private static func isCreatine(_ name: String) -> Bool {
+        // The catalogue has no Japanese or Thai aliases, so those spellings are matched by name.
+        SupplementCatalogue.search(name, limit: 1).first?.id == "creatine_monohydrate"
+            || name.contains("クレアチン") || name.contains("ครีเอทีน")
     }
 
     private static func focus(macros: [Macro], loggedDays: Int, periodDays: Int) -> [Focus] {
@@ -141,10 +284,9 @@ struct NutritionReport: Sendable, Equatable {
         if loggedDays > 0, let protein = macros.first(where: { $0.kind == .protein }),
            let calories = macros.first(where: { $0.kind == .calories }),
            protein.target != nil {
-            let proteinRate = Double(protein.onTargetDays) / Double(loggedDays)
-            let caloriesRate = Double(calories.onTargetDays) / Double(loggedDays)
-            if Double(protein.overDays) >= Double(loggedDays) / 2 { result.append(.proteinHigh) }
-            if proteinRate < 0.7, protein.underDays > protein.overDays { result.append(.proteinLow) }
+            let proteinRate = Double(protein.metDays) / Double(loggedDays)
+            let caloriesRate = Double(calories.metDays) / Double(loggedDays)
+            if proteinRate < 0.7 { result.append(.proteinLow) }
             if caloriesRate < 0.7 { result.append(calories.underDays > calories.overDays ? .caloriesLow : .caloriesHigh) }
         }
         if Double(loggedDays) < 0.6 * Double(periodDays) { result.append(.loggingGaps) }

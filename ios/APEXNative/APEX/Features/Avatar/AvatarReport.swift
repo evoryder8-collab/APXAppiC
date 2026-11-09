@@ -48,6 +48,7 @@ struct AvatarReport: Transferable {
     var reportDates: ClosedRange<String>? = nil
     var identityStages: [IdentityStage] = []
     var laterBodyweightBySession: [UUID: LaterBodyweight] = [:]
+    var nutrition: NutritionReport? = nil
 
     /// The nearest weigh-in after a session that has none on or before it, with its date so the figure stays traceable.
     struct LaterBodyweight {
@@ -154,7 +155,8 @@ struct AvatarReport: Transferable {
                     bodyweightBySession: weights, currentBodyweight: currentMass,
                     earlierFirst: first, joinedDate: joined, period: period, reportDates: dates,
                     identityStages: identityStages(ownerID: ownerID, data: data, dates: dates),
-                    laterBodyweightBySession: laterWeights)
+                    laterBodyweightBySession: laterWeights,
+                    nutrition: NutritionReport.summarize(ownerID: ownerID, data: data, dates: dates))
     }
 
     private static func bodyweights(in data: DashboardData, owner: UUID, through end: String,
@@ -239,6 +241,7 @@ struct AvatarReport: Transferable {
             let pages = Pages(context: context, report: self)
             let profile = trainingProfile.flatMap { $0.classifiedWorkouts > 0 ? $0 : nil }
             if profile != nil || !families.isEmpty { pages.drawCover(families, profile: profile) }
+            if let nutrition { pages.drawNutrition(nutrition) }
             if !families.isEmpty {
                 pages.drawCharts(families)
                 pages.drawRankings(families)
@@ -1534,6 +1537,438 @@ struct AvatarReport: Transferable {
             }
             let full = language.text(variant.name)
             return parts.variation.map { $0 == full ? full : parts.main + " · " + $0 } ?? parts.main
+        }
+
+        // MARK: Nutrition
+
+        private typealias Copy = (title: String, line: String)
+
+        func drawNutrition(_ nutrition: NutritionReport) {
+            begin("Nutrition", subtitle: language.dateKey(nutrition.from) + " – " + language.dateKey(nutrition.to) + "   ·   "
+                  + language.format("%d of %d days logged", nutrition.loggedDays, nutrition.periodDays))
+            let gap: CGFloat = 12
+            drawScoreHero(nutrition)
+            y += gap
+            if nutrition.loggedDays > 0 {
+                drawMacroRings(nutrition)
+                y += gap
+                if let calories = nutrition.macros.first(where: { $0.kind == .calories }) {
+                    drawCaloriesBar(calories, loggedDays: nutrition.loggedDays)
+                    y += gap
+                }
+            }
+            let insights = insightCards(nutrition)
+            if !insights.isEmpty {
+                drawInsights(insights)
+                y += gap
+            }
+            drawSupplementRow(nutrition)
+        }
+
+        private func drawScoreHero(_ nutrition: NutritionReport) {
+            let pad: CGFloat = 22
+            let copy = verdictCopy(nutrition.verdict)
+            let scored = nutrition.score != nil
+            let textX = scored ? left + 262 : left + pad
+            let textWidth = right - pad - textX
+            let lines = Array(wrapped(language.text(copy.line), width: textWidth, size: 10.5).prefix(3))
+            let card = CGRect(x: left, y: y, width: width, height: max(128, 64 + CGFloat(lines.count) * 15))
+            glass(card, radius: 24, opacity: 0.6)
+            let earned = nutrition.stars >= 4
+            let wash = raster(card.size, scale: 2) { cg in
+                UIBezierPath(roundedRect: CGRect(origin: .zero, size: card.size), cornerRadius: 24).addClip()
+                radial(cg, at: CGPoint(x: 40, y: 10), radius: 260, color: glow, alpha: 0.22)
+                radial(cg, at: CGPoint(x: card.width * 0.42, y: card.height + 20), radius: 200, color: earned ? amber : Pages.rgb(0x7CC3F5), alpha: 0.2)
+            }
+            wash.draw(in: card)
+            if let score = nutrition.score {
+                label(language.text("Consistency score").uppercased(with: locale), left + pad, y + 20, 220, size: 9.5, weight: .bold, color: green, kern: 0.6)
+                let big = font(52, .heavy, rounded: true), small = font(15, .semibold, rounded: true)
+                let figure = String(score)
+                label(figure, left + pad, y + 32, 160, size: 52, weight: .heavy, rounded: true)
+                label("/ 100", left + pad + measure(figure, size: 52, weight: .heavy, rounded: true) + 6, y + 32 + big.ascender - small.ascender,
+                      80, size: 15, weight: .semibold, color: muted, rounded: true)
+                for index in 0..<5 {
+                    drawStar(CGRect(x: left + pad + CGFloat(index) * 21, y: y + 98, width: 17, height: 17), earned: index < nutrition.stars)
+                }
+                if earned { drawRosette(CGRect(x: left + 168, y: y + 30, width: 58, height: 72)) }
+                fill(CGRect(x: textX - 22, y: y + 22, width: 0.8, height: card.height - 44), ink.withAlphaComponent(0.09))
+            }
+            let blockHeight = 26 + CGFloat(lines.count) * 15
+            var cursor = card.midY - blockHeight / 2
+            label(language.text(copy.title), textX, cursor, textWidth, size: 18, weight: .bold)
+            cursor += 26
+            for line in lines {
+                label(line, textX, cursor, textWidth, size: 10.5, color: soft)
+                cursor += 15
+            }
+            y = card.maxY
+        }
+
+        private func verdictCopy(_ verdict: NutritionReport.Verdict) -> Copy {
+            switch verdict {
+            case .baseline: return ("Building your baseline", "Log your meals on 7 days with your targets set and your consistency score appears here.")
+            case .dialedIn: return ("Dialled in", "You hit your targets day after day. This is the consistency that turns training into results.")
+            case .onTarget: return ("On target", "Most of your days land right where they should. A few more steady days and you are dialled in.")
+            case .proteinPro: return ("Protein pro", "Your protein is covered almost every day, the part that matters most for muscle. Calories and carbs are your next easy gain.")
+            case .onTheRise: return ("On the rise", "Your last two weeks beat your earlier days by a clear margin. Keep this rhythm and your score keeps climbing.")
+            case .slippingLately: return ("Time for a reset", "Your last two weeks drifted from the rhythm you had before. You have done it already, so getting back is familiar ground.")
+            case .weekendDrift: return ("Weekday strong", "Your weekdays are on point. Bringing weekends a little closer is the quickest way to raise your score.")
+            case .solidBase: return ("Solid base", "You are on target more often than not. Tightening one or two meals a day lifts you into the top tier.")
+            case .gettingThere: return ("Getting there", "About half your days hit the mark. Every extra on-target day moves your score up.")
+            case .findingRhythm: return ("Finding your rhythm", "The habit is forming. Pick one target to hit every day, and protein is a great place to start.")
+            case .needsAttention: return ("Room to grow", "Hitting your targets more often gives your training the fuel it needs to show. Start with protein at every meal.")
+            }
+        }
+
+        private func macroColors(_ kind: NutritionReport.Kind) -> (start: UIColor, end: UIColor, deep: UIColor) {
+            switch kind {
+            case .protein: return (series, glow, Pages.rgb(0x005443))
+            case .carbs: return (Pages.rgb(0x2F7BEA), Pages.rgb(0x7CC8F8), Pages.rgb(0x1A3F98))
+            case .fat: return (amber, Pages.rgb(0xFFCF5C), Pages.rgb(0x9A5B00))
+            case .calories: return (violet, Pages.rgb(0xB7A6FF), Pages.rgb(0x41329E))
+            }
+        }
+
+        private func macroName(_ kind: NutritionReport.Kind) -> String {
+            switch kind {
+            case .calories: return "Calories"
+            case .protein: return "Protein"
+            case .carbs: return "Carbs"
+            case .fat: return "Fat"
+            }
+        }
+
+        private func drawMacroRings(_ nutrition: NutritionReport) {
+            let kinds: [NutritionReport.Kind] = [.protein, .carbs, .fat]
+            let gap: CGFloat = 12, height: CGFloat = 176, diameter: CGFloat = 94
+            let tileWidth = (width - gap * 2) / 3
+            for (index, kind) in kinds.enumerated() {
+                guard let macro = nutrition.macros.first(where: { $0.kind == kind }) else { continue }
+                let tile = CGRect(x: left + CGFloat(index) * (tileWidth + gap), y: y, width: tileWidth, height: height)
+                glass(tile, radius: 22, opacity: 0.6)
+                let ring = CGRect(x: tile.midX - diameter / 2, y: tile.minY + 16, width: diameter, height: diameter)
+                let ratio = macro.target.map { $0 > 0 ? macro.average / $0 : 0 }
+                drawRing(in: ring, ratio: ratio ?? 0, line: 10, colors: macroColors(kind))
+                centered(number(macro.average.rounded()) + " g", in: ring, size: 18, weight: .bold, color: ink, rounded: true)
+                var cursor = ring.maxY + 11
+                centered(language.text(macroName(kind)), in: CGRect(x: tile.minX + 10, y: cursor, width: tile.width - 20, height: 16),
+                         size: 12.5, weight: .bold, color: ink)
+                cursor += 18
+                if let target = macro.target {
+                    centered(language.format("Target %d g", Int(target.rounded())), in: CGRect(x: tile.minX + 10, y: cursor, width: tile.width - 20, height: 13),
+                             size: 9.5, weight: .medium, color: muted)
+                    cursor += 14
+                    let rate = Double(macro.metDays) / Double(max(1, nutrition.loggedDays))
+                    centered(language.format("On target %d of %d days", macro.metDays, nutrition.loggedDays),
+                             in: CGRect(x: tile.minX + 10, y: cursor, width: tile.width - 20, height: 13),
+                             size: 9.5, weight: .semibold, color: rate >= 0.7 ? green : amberInk)
+                }
+            }
+            y += height
+        }
+
+        /// A gradient gauge with a soft glow; a full ring is the target, and anything over it laps again in a deeper tone.
+        private func drawRing(in frame: CGRect, ratio: Double, line: CGFloat, colors: (start: UIColor, end: UIColor, deep: UIColor)) {
+            let pad: CGFloat = 12
+            let canvas = frame.insetBy(dx: -pad, dy: -pad)
+            let image = raster(canvas.size) { cg in
+                guard let space = CGColorSpace(name: CGColorSpace.sRGB) else { return }
+                let center = CGPoint(x: canvas.width / 2, y: canvas.height / 2)
+                let radius = (frame.width - line) / 2
+                func arc(_ fraction: Double) -> CGPath {
+                    UIBezierPath(arcCenter: center, radius: radius, startAngle: -.pi / 2,
+                                 endAngle: -.pi / 2 + 2 * .pi * CGFloat(fraction), clockwise: true).cgPath
+                }
+                cg.setLineCap(.round)
+                cg.setLineWidth(line)
+                cg.setStrokeColor(ink.withAlphaComponent(0.07).cgColor)
+                cg.addPath(UIBezierPath(arcCenter: center, radius: radius, startAngle: 0, endAngle: 2 * .pi, clockwise: true).cgPath)
+                cg.strokePath()
+                let first = min(1, max(0, ratio))
+                guard first > 0.005 else { return }
+                cg.saveGState()
+                cg.setShadow(offset: CGSize(width: 0, height: 2), blur: 9, color: colors.start.withAlphaComponent(0.5).cgColor)
+                cg.setStrokeColor(colors.start.cgColor)
+                cg.addPath(arc(first))
+                cg.strokePath()
+                cg.restoreGState()
+                cg.saveGState()
+                cg.addPath(arc(first))
+                cg.replacePathWithStrokedPath()
+                cg.clip()
+                if let shading = CGGradient(colorsSpace: space, colors: [colors.end.cgColor, colors.start.cgColor] as CFArray, locations: [0, 1]) {
+                    cg.drawLinearGradient(shading, start: CGPoint(x: center.x + radius, y: center.y - radius),
+                                          end: CGPoint(x: center.x - radius, y: center.y + radius), options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
+                }
+                cg.restoreGState()
+                let lap = min(1, ratio - 1)
+                guard lap > 0.005 else { return }
+                cg.saveGState()
+                cg.setShadow(offset: .zero, blur: 4, color: UIColor.black.withAlphaComponent(0.25).cgColor)
+                cg.setStrokeColor(colors.deep.cgColor)
+                cg.setLineWidth(line * 0.62)
+                cg.addPath(arc(lap))
+                cg.strokePath()
+                cg.restoreGState()
+            }
+            image.draw(in: canvas)
+        }
+
+        private func drawCaloriesBar(_ calories: NutritionReport.Macro, loggedDays: Int) {
+            let strip = CGRect(x: left, y: y, width: width, height: 56)
+            glass(strip, radius: 18, opacity: 0.6)
+            let pad: CGFloat = 18
+            label(language.text("Calories"), left + pad, y + 11, 150, size: 12.5, weight: .bold)
+            let value = number(calories.average.rounded()) + " " + language.text("kcal")
+            if let target = calories.target, target > 0 {
+                let rate = Double(calories.metDays) / Double(max(1, loggedDays))
+                label(language.format("On target %d of %d days", calories.metDays, loggedDays), left + pad, y + 30, 150,
+                      size: 9.5, weight: .semibold, color: rate >= 0.7 ? green : amberInk)
+                label(value, right - pad - 150, y + 9, 150, size: 17, weight: .bold, alignment: .right, rounded: true)
+                label(language.format("Target %d kcal", Int(target.rounded())), right - pad - 150, y + 31, 150, size: 9.5,
+                      weight: .medium, color: muted, alignment: .right)
+                let colors = macroColors(.calories)
+                let track = CGRect(x: left + 170, y: strip.midY - 4.5, width: width - 170 - 150 - pad - 18, height: 9)
+                // The track runs to 125 % of the target so going over stays visible instead of clipping.
+                let scale = 1.25, ratio = min(scale, max(0, calories.average / target))
+                let mark = track.minX + track.width / scale
+                fill(track, ink.withAlphaComponent(0.07), radius: 4.5)
+                let reach = track.width * ratio / scale
+                if reach > 0 {
+                    gradient(CGRect(x: track.minX, y: track.minY, width: max(9, min(reach, mark - track.minX)), height: track.height),
+                             [colors.start, colors.end], vertical: false, radius: 4.5)
+                }
+                if ratio > 1 {
+                    fill(CGRect(x: mark - 4.5, y: track.minY, width: track.minX + reach - mark + 4.5, height: track.height), colors.deep, radius: 4.5)
+                }
+                fill(CGRect(x: mark - 0.75, y: track.minY - 4, width: 1.5, height: track.height + 8), ink.withAlphaComponent(0.55), radius: 0.75)
+            } else {
+                label(value, right - pad - 150, y + 18, 150, size: 17, weight: .bold, alignment: .right, rounded: true)
+            }
+            y = strip.maxY
+        }
+
+        private enum Insight {
+            case focus(NutritionReport.Focus)
+            case strength(NutritionReport.Kind, surplus: Bool)
+        }
+
+        private func insightCards(_ nutrition: NutritionReport) -> [Insight] {
+            let protein = nutrition.macros.first { $0.kind == .protein }
+            let surplus = (protein?.overDays ?? 0) * 2 >= max(1, nutrition.loggedDays)
+            let strengths = nutrition.strengths.sorted { ($0 == .protein ? 0 : 1) < ($1 == .protein ? 0 : 1) }
+            return Array((nutrition.focus.map(Insight.focus) + strengths.map { Insight.strength($0, surplus: $0 == .protein && surplus) }).prefix(2))
+        }
+
+        private func insightCopy(_ insight: Insight) -> Copy {
+            switch insight {
+            case .focus(.proteinLow): return ("Protein is your next gain", "Reaching your protein target consistently gives your muscles the material to recover and grow.")
+            case .focus(.caloriesLow): return ("Fuel the work", "Without enough energy, recovery and muscle gain slow down. Eating closer to your target keeps both moving.")
+            case .focus(.caloriesHigh): return ("Steer your calories", "Staying near your calorie target keeps your progress pointed at your goal.")
+            case .focus(.loggingGaps): return ("Log a few more days", "More logged days make your score a truer picture of how you eat.")
+            case .strength(.protein, surplus: true): return ("Protein more than covered", "Your protein is more than covered. Your muscles have everything they need from it.")
+            case .strength(.protein, surplus: false): return ("Protein covered", "Enough protein day after day is what lets your training build muscle.")
+            case .strength(.calories, _): return ("Energy on target", "Your calories match your goal, so your progress stays on course.")
+            case .strength(.carbs, _): return ("Carbs on point", "Steady carbs keep your training fuelled and your sessions strong.")
+            case .strength(.fat, _): return ("Fats covered", "Steady fat intake keeps your meals satisfying and your energy even.")
+            }
+        }
+
+        private func drawInsights(_ insights: [Insight]) {
+            let gap: CGFloat = 12, pad: CGFloat = 16, glyph: CGFloat = 30
+            let cardWidth = insights.count == 1 ? width : (width - gap) / 2
+            let copies = insights.map(insightCopy)
+            let bodies = copies.map { wrapped(language.text($0.line), width: cardWidth - pad * 2, size: 10).prefix(3) }
+            let height = max(92, pad + glyph + 10 + CGFloat(bodies.map(\.count).max() ?? 0) * 14 + pad - 4)
+            for (index, insight) in insights.enumerated() {
+                let card = CGRect(x: left + CGFloat(index) * (cardWidth + gap), y: y, width: cardWidth, height: height)
+                let reward: Bool
+                if case .strength = insight { reward = true } else { reward = false }
+                glass(card, radius: 20, tint: reward ? amberWash : .white, opacity: reward ? 0.82 : 0.6)
+                let badge = CGRect(x: card.minX + pad, y: card.minY + pad, width: glyph, height: glyph)
+                if reward {
+                    gradient(badge, [Pages.rgb(0xFFE7A8), Pages.rgb(0xFFC94D)], radius: glyph / 2)
+                    drawStar(badge.insetBy(dx: 7, dy: 7), earned: true, fill: .white)
+                } else {
+                    gradient(badge, [glow, series], radius: glyph / 2)
+                    drawArrowGlyph(badge.insetBy(dx: 9, dy: 8))
+                }
+                let title = language.text(copies[index].title)
+                label(title, badge.maxX + 11, badge.midY - 9, card.width - glyph - pad * 2 - 11, size: 12.5, weight: .bold,
+                      color: reward ? amberInk : ink)
+                var cursor = badge.maxY + 10
+                for line in bodies[index] {
+                    label(line, card.minX + pad, cursor, card.width - pad * 2, size: 10, color: soft)
+                    cursor += 14
+                }
+            }
+            y += height
+        }
+
+        private func drawSupplementRow(_ nutrition: NutritionReport) {
+            guard let creatine = nutrition.creatine else { return }
+            drawCreatineCard(creatine, in: CGRect(x: left, y: y, width: (width - 12) / 2, height: 0))
+        }
+
+        private func badgeCopy(_ badge: NutritionReport.Creatine.Badge) -> Copy {
+            switch badge {
+            case .freshStart: return ("Fresh start", "Creatine works by keeping your muscle stores topped up, so every daily dose from here counts.")
+            case .champ: return ("Creatine champ", "Your muscle stores stay topped up, exactly how creatine pays off.")
+            case .lockedIn: return ("Locked in", "Taken almost every day, so your muscle stores stay topped up.")
+            case .onARoll: return ("On a roll", "Your current streak keeps your muscle stores topped up. Keep it going.")
+            case .comeback: return ("Comeback", "Your last two weeks are back on track. Creatine pays off when taken every day, so this streak is what counts.")
+            case .lapsed: return ("Ready to restart", "Creatine works by keeping your muscle stores topped up, so a daily dose from today brings it back.")
+            case .weekendGaps: return ("Weekend gaps", "Your weekdays are steady. Taking it at weekends too keeps your muscle stores topped up.")
+            case .almostDaily: return ("Almost daily", "A few more daily doses keep your muscle stores fully topped up.")
+            case .stopStart: return ("Stop and start", "Creatine pays off as a daily habit. Linking a few days in a row keeps your stores topped up.")
+            case .buildTheStreak: return ("Build the streak", "Creatine pays off when taken every day. Pair it with something you already do daily.")
+            }
+        }
+
+        private func drawCreatineCard(_ creatine: NutritionReport.Creatine, in slot: CGRect) {
+            let reward: Set<NutritionReport.Creatine.Badge> = [.champ, .lockedIn, .onARoll, .comeback]
+            let isReward = reward.contains(creatine.badge)
+            let pad: CGFloat = 16, diameter: CGFloat = 58
+            let copy = badgeCopy(creatine.badge)
+            let inner = slot.width - pad * 2
+            let stats = wrapped(language.format("Taken on %d of %d days · longest streak %d days", creatine.takenDays, creatine.trackedDays,
+                                                creatine.longestStreak), width: inner, size: 9.5, weight: .medium)
+            let body = Array(wrapped(language.text(copy.line), width: inner, size: 10).prefix(3))
+            let height = max(132, pad + diameter + 10 + CGFloat(stats.count) * 13 + 6 + CGFloat(body.count) * 14 + pad - 4)
+            let card = CGRect(x: slot.minX, y: slot.minY, width: slot.width, height: height)
+            glass(card, radius: 20, tint: isReward ? amberWash : .white, opacity: isReward ? 0.82 : 0.6)
+            let ring = CGRect(x: card.maxX - pad - diameter, y: card.minY + pad - 2, width: diameter, height: diameter)
+            drawRing(in: ring, ratio: Double(creatine.score) / 100, line: 7,
+                     colors: isReward ? macroColors(.fat) : macroColors(.protein))
+            centered(String(creatine.score), in: ring, size: 17, weight: .bold, color: ink, rounded: true)
+            let textWidth = ring.minX - card.minX - pad - 8
+            label(language.text("Creatine").uppercased(with: locale), card.minX + pad, card.minY + pad, textWidth, size: 9.5, weight: .bold,
+                  color: isReward ? amberInk : green, kern: 0.6)
+            var titleX = card.minX + pad
+            if isReward {
+                drawStar(CGRect(x: titleX, y: card.minY + pad + 19, width: 15, height: 15), earned: true)
+                titleX += 20
+            }
+            label(language.text(copy.title), titleX, card.minY + pad + 15, ring.minX - titleX - 8, size: 15, weight: .bold,
+                  color: isReward ? amberInk : ink)
+            var cursor = card.minY + pad + diameter + 8
+            for line in stats {
+                label(line, card.minX + pad, cursor, inner, size: 9.5, weight: .medium, color: muted)
+                cursor += 13
+            }
+            cursor += 6
+            for line in body {
+                label(line, card.minX + pad, cursor, inner, size: 10, color: soft)
+                cursor += 14
+            }
+            y = card.maxY
+        }
+
+        /// A five-point star as a vector path; earned stars carry the amber gradient, unearned ones a faint ink.
+        private func drawStar(_ frame: CGRect, earned: Bool, fill color: UIColor? = nil) {
+            let path = starPath(center: CGPoint(x: frame.midX, y: frame.midY + frame.height * 0.04), radius: frame.width / 2)
+            if let color {
+                color.setFill()
+                path.fill()
+                return
+            }
+            guard earned else {
+                ink.withAlphaComponent(0.08).setFill()
+                path.fill()
+                return
+            }
+            let cg = context.cgContext
+            cg.saveGState()
+            path.addClip()
+            gradient(frame, [Pages.rgb(0xFFD66B), amber])
+            cg.restoreGState()
+        }
+
+        private func starPath(center: CGPoint, radius outer: CGFloat) -> UIBezierPath {
+            let path = UIBezierPath()
+            for point in 0..<10 {
+                let radius = point.isMultiple(of: 2) ? outer : outer * 0.45
+                let angle = -CGFloat.pi / 2 + CGFloat(point) * .pi / 5
+                let vertex = CGPoint(x: center.x + radius * cos(angle), y: center.y + radius * sin(angle))
+                point == 0 ? path.move(to: vertex) : path.addLine(to: vertex)
+            }
+            path.close()
+            return path
+        }
+
+        private func drawArrowGlyph(_ frame: CGRect) {
+            let path = UIBezierPath()
+            path.move(to: CGPoint(x: frame.midX, y: frame.minY))
+            path.addLine(to: CGPoint(x: frame.maxX, y: frame.minY + frame.height * 0.48))
+            path.addLine(to: CGPoint(x: frame.midX + frame.width * 0.17, y: frame.minY + frame.height * 0.48))
+            path.addLine(to: CGPoint(x: frame.midX + frame.width * 0.17, y: frame.maxY))
+            path.addLine(to: CGPoint(x: frame.midX - frame.width * 0.17, y: frame.maxY))
+            path.addLine(to: CGPoint(x: frame.midX - frame.width * 0.17, y: frame.minY + frame.height * 0.48))
+            path.addLine(to: CGPoint(x: frame.minX, y: frame.minY + frame.height * 0.48))
+            path.close()
+            UIColor.white.setFill()
+            path.fill()
+        }
+
+        /// A reward rosette: a scalloped amber medal with a star, hung from two ribbon tails.
+        private func drawRosette(_ frame: CGRect) {
+            let image = raster(frame.size) { cg in
+                guard let space = CGColorSpace(name: CGColorSpace.sRGB) else { return }
+                let size = frame.size
+                let center = CGPoint(x: size.width / 2, y: size.width / 2 + 2)
+                let outer = size.width / 2 - 4
+                for (dx, tint) in [(-1.0, Pages.rgb(0xD9822B)), (1.0, Pages.rgb(0xC46F1E))] {
+                    let tail = UIBezierPath()
+                    let x = center.x + CGFloat(dx) * outer * 0.38
+                    tail.move(to: CGPoint(x: x - 8, y: center.y + outer * 0.5))
+                    tail.addLine(to: CGPoint(x: x + 8, y: center.y + outer * 0.5))
+                    tail.addLine(to: CGPoint(x: x + 8 + CGFloat(dx) * 4, y: size.height - 2))
+                    tail.addLine(to: CGPoint(x: x + CGFloat(dx) * 4, y: size.height - 8))
+                    tail.addLine(to: CGPoint(x: x - 8 + CGFloat(dx) * 4, y: size.height - 2))
+                    tail.close()
+                    cg.setFillColor(tint.cgColor)
+                    cg.addPath(tail.cgPath)
+                    cg.fillPath()
+                }
+                let scallops = 16
+                let medal = UIBezierPath()
+                for step in 0...(scallops * 2) {
+                    let angle = -CGFloat.pi / 2 + CGFloat(step) * .pi / CGFloat(scallops)
+                    let radius = step.isMultiple(of: 2) ? outer : outer * 0.88
+                    let point = CGPoint(x: center.x + radius * cos(angle), y: center.y + radius * sin(angle))
+                    step == 0 ? medal.move(to: point) : medal.addLine(to: point)
+                }
+                medal.close()
+                cg.saveGState()
+                cg.setShadow(offset: CGSize(width: 0, height: 3), blur: 8, color: amber.withAlphaComponent(0.55).cgColor)
+                cg.setFillColor(amber.cgColor)
+                cg.addPath(medal.cgPath)
+                cg.fillPath()
+                cg.restoreGState()
+                cg.saveGState()
+                cg.addPath(medal.cgPath)
+                cg.clip()
+                if let shading = CGGradient(colorsSpace: space, colors: [Pages.rgb(0xFFE08A).cgColor, amber.cgColor, Pages.rgb(0xC77A00).cgColor] as CFArray,
+                                            locations: [0, 0.55, 1]) {
+                    cg.drawLinearGradient(shading, start: CGPoint(x: center.x - outer, y: center.y - outer),
+                                          end: CGPoint(x: center.x + outer, y: center.y + outer), options: [])
+                }
+                cg.restoreGState()
+                let face = UIBezierPath(arcCenter: center, radius: outer * 0.66, startAngle: 0, endAngle: 2 * .pi, clockwise: true)
+                cg.saveGState()
+                cg.addPath(face.cgPath)
+                cg.clip()
+                if let shading = CGGradient(colorsSpace: space, colors: [Pages.rgb(0xFFF1C4).cgColor, Pages.rgb(0xFFC94D).cgColor] as CFArray, locations: [0, 1]) {
+                    cg.drawLinearGradient(shading, start: CGPoint(x: center.x, y: center.y - outer), end: CGPoint(x: center.x, y: center.y + outer), options: [])
+                }
+                cg.restoreGState()
+                let star = starPath(center: CGPoint(x: center.x, y: center.y + 1), radius: outer * 0.42)
+                cg.setFillColor(Pages.rgb(0xB86E00).cgColor)
+                cg.addPath(star.cgPath)
+                cg.fillPath()
+            }
+            image.draw(in: frame)
         }
 
         // MARK: Avatar scores
