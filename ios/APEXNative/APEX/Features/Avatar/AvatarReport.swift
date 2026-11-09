@@ -453,9 +453,9 @@ struct AvatarReport: Transferable {
             }.joined(separator: "   ·   ")
             label(headline, left + pad, cursor + 6, inner, size: 11.5, weight: .semibold, color: UIColor.white.withAlphaComponent(0.92))
             cursor += 26
-            // Green, blue and amber: three hues that stay apart on the dark panel, even as a 4 pt sliver.
-            let modes: [(TrainingProfile90.Mode, UIColor)] = [(.resistance, Self.rgb(0x6FE0B4)), (.cardio, Self.rgb(0x6CB8FF)),
-                                                             (.mobility, Self.rgb(0xFFC062))]
+            // Green, deep orange and blue: three hues that stay apart on the dark panel, even as a 4 pt sliver.
+            let modes: [(TrainingProfile90.Mode, UIColor)] = [(.resistance, Self.rgb(0x6FE0B4)), (.cardio, Self.rgb(0xFF7A2F)),
+                                                             (.mobility, Self.rgb(0x6CB8FF))]
             let present = modes.filter { profile.counts[$0.0, default: 0] > 0 }
             let sum = present.reduce(0) { $0 + profile.counts[$1.0, default: 0] }
             if sum > 0 {
