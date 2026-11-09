@@ -866,6 +866,18 @@ final class ExportReportTests: XCTestCase {
         XCTAssertEqual(history.first?.sessionCount, 2)
     }
 
+    func testSessionListShowsAtMostNineSpreadAcrossTheWholeHistory() {
+        XCTAssertEqual(AvatarReport.sessionSample(count: 5, limit: 9, keeping: 2), [0, 1, 2, 3, 4])
+        let sample = AvatarReport.sessionSample(count: 20, limit: 9, keeping: 5)
+        XCTAssertEqual(sample.count, 9)
+        XCTAssertEqual(sample.first, 0)
+        XCTAssertEqual(sample.last, 19)
+        XCTAssertTrue(sample.contains(5), "The record session stays in the list")
+        XCTAssertEqual(sample, sample.sorted())
+        XCTAssertEqual(Set(sample).count, 9)
+        XCTAssertEqual(AvatarReport.sessionSample(count: 400, limit: 9, keeping: 399).last, 399)
+    }
+
     func testASessionBeforeTheFirstWeighInUsesTheNextOneInsideTheReport() {
         let early = session("2026-08-14"), recent = session("2026-11-06")
         var fixture = data()

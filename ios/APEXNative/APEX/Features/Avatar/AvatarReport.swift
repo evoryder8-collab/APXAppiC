@@ -55,6 +55,18 @@ struct AvatarReport: Transferable {
         let date: String
     }
 
+    /// Evenly spaced session indexes from first to latest, always including the first, the latest and `keeping` (the record).
+    static func sessionSample(count: Int, limit: Int, keeping: Int) -> [Int] {
+        guard count > limit, limit > 1 else { return Array(0..<max(0, min(count, limit))) }
+        var picks = (0..<limit).map { Int((Double($0) * Double(count - 1) / Double(limit - 1)).rounded()) }
+        if !picks.contains(keeping), limit > 2 {
+            // Swap the nearest interior pick for the record so the first and latest stay.
+            let nearest = (1..<(limit - 1)).min { abs(picks[$0] - keeping) < abs(picks[$1] - keeping) } ?? 1
+            picks[nearest] = keeping
+        }
+        return picks.sorted()
+    }
+
     /// Consecutive months that share one training identity, from the same rules as the 90-day profile.
     struct IdentityStage {
         let from: String
@@ -906,10 +918,10 @@ struct AvatarReport: Transferable {
             let available = bottom - y - 14
             guard available > 100, let bestAt = bestIndex(points) else { return }
             let columns = 3, rowHeight: CGFloat = 46
-            let rows = min(Int((available - 54) / rowHeight), (points.count + columns - 1) / columns)
+            let rows = min(3, Int((available - 54) / rowHeight), (points.count + columns - 1) / columns)
             guard rows > 0 else { return }
-            // When the page cannot hold every session, keep the most recent ones, still in chronological order.
-            let shown = Array(points.enumerated().suffix(rows * columns))
+            // Never more than nine: a longer history is sampled evenly so the list still spans the whole period.
+            let shown = AvatarReport.sessionSample(count: points.count, limit: rows * columns, keeping: bestAt).map { (offset: $0, element: points[$0]) }
             let usedRows = (shown.count + columns - 1) / columns
             let card = CGRect(x: left, y: y + 6, width: width, height: 50 + CGFloat(usedRows) * rowHeight)
             glass(card, radius: 22, opacity: 0.5)
