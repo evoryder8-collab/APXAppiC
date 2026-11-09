@@ -46,6 +46,37 @@ struct AvatarReport: Transferable {
     var joinedDate: String?
     var period: AvatarReportPeriod = .allTime
     var reportDates: ClosedRange<String>? = nil
+    var identityStages: [IdentityStage] = []
+
+    /// Consecutive months that share one training identity, from the same rules as the 90-day profile.
+    struct IdentityStage {
+        let from: String
+        let to: String
+        let title: String
+        let workouts: Int
+    }
+
+    static func identityStages(ownerID: UUID, data: DashboardData, dates: ClosedRange<String>) -> [IdentityStage] {
+        var stages: [IdentityStage] = []
+        var month = String(dates.lowerBound.prefix(7)) + "-01"
+        while month <= dates.upperBound {
+            guard let start = APEXDateMath.date(from: month),
+                  let next = APEXDateMath.calendar.date(byAdding: .month, value: 1, to: start) else { break }
+            let nextMonth = APEXDateMath.key(from: next)
+            let from = max(month, dates.lowerBound), to = min(APEXDateMath.adding(days: -1, to: nextMonth), dates.upperBound)
+            let profile = TrainingProfile90.summarize(ownerID: ownerID, data: data, from: from, through: to)
+            if profile.classifiedWorkouts > 0 {
+                if let last = stages.last, last.title == profile.athleteTitle, APEXDateMath.adding(days: 1, to: last.to) == from {
+                    stages[stages.count - 1] = IdentityStage(from: last.from, to: to, title: last.title,
+                                                             workouts: last.workouts + profile.classifiedWorkouts)
+                } else {
+                    stages.append(IdentityStage(from: from, to: to, title: profile.athleteTitle, workouts: profile.classifiedWorkouts))
+                }
+            }
+            month = nextMonth
+        }
+        return stages
+    }
 
     static func earliestDate(in data: DashboardData, owner: UUID, today: String) -> String {
         let sessions = data.workoutSessions.filter { $0.userID == owner && $0.completed }
@@ -65,12 +96,16 @@ struct AvatarReport: Transferable {
 
     static func scoped(ownerID: UUID, data: DashboardData, partialScores: [String: Double],
                        period: AvatarReportPeriod, dates: ClosedRange<String>, today: String) -> Self {
-        let sessions = data.workoutSessions.filter { $0.userID == ownerID && $0.completed && dates.contains($0.date) }
+        let owned = StrengthProgress.withoutReplays(data.workoutSessions.filter { $0.userID == ownerID && $0.completed })
+        let sessions = owned.filter { dates.contains($0.date) }
         let ids = Set(sessions.map(\.id))
-        let earlier = data.workoutSessions.filter { $0.userID == ownerID && $0.completed && $0.date < dates.lowerBound }
+        let earlier = owned.filter { $0.date < dates.lowerBound }
         let previous = earlier.isEmpty ? [] : StrengthProgress.exerciseHistory(ownerID: ownerID, sessions: earlier,
             logs: data.workoutLogs, exercises: data.exercises)
-        let first = Dictionary(uniqueKeysWithValues: previous.compactMap { item in item.sessions.first.map { (item.key, $0) } })
+        // A lifetime starting point needs a recorded working load, the same rule the chart applies.
+        let first = Dictionary(uniqueKeysWithValues: previous.compactMap { item in
+            item.sessions.first { $0.heaviestSet != nil }.map { (item.key, $0) }
+        })
         let required = Set(first.values.map(\.sessionID))
         let weights = bodyweights(in: data, owner: ownerID, through: dates.upperBound,
                                   sessions: sessions + earlier.filter { required.contains($0.id) })
@@ -98,7 +133,8 @@ struct AvatarReport: Transferable {
                     unit: .current(data.settings?.userID == ownerID ? data.settings : nil),
                     exercises: data.exercises.filter { $0.userID == ownerID }, trainingProfile: profile,
                     bodyweightBySession: weights, currentBodyweight: currentMass,
-                    earlierFirst: first, joinedDate: joined, period: period, reportDates: dates)
+                    earlierFirst: first, joinedDate: joined, period: period, reportDates: dates,
+                    identityStages: identityStages(ownerID: ownerID, data: data, dates: dates))
     }
 
     private static func bodyweights(in data: DashboardData, owner: UUID, through end: String,
@@ -170,16 +206,11 @@ struct AvatarReport: Transferable {
         let scores = snapshots.filter { $0.userID == ownerID }.sorted { $0.date < $1.date }
         let history = StrengthProgress.exerciseHistory(ownerID: ownerID, sessions: sessions, logs: logs, exercises: exercises)
         let families = StrengthProgress.rankedFamilies(history)
-        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: 612, height: 792))
+        let renderer = UIGraphicsPDFRenderer(bounds: CGRect(x: 0, y: 0, width: Self.pageSize.width, height: Self.pageSize.height))
         return renderer.pdfData { context in
             let pages = Pages(context: context, report: self)
-            if let trainingProfile, trainingProfile.classifiedWorkouts > 0 {
-                pages.drawTrainingProfile(trainingProfile)
-            }
-            if !families.isEmpty { pages.drawLifetimeTotals(families) }
-            if let trainingProfile, trainingProfile.classifiedWorkouts > 0 {
-                pages.drawProfileSummary(trainingProfile)
-            }
+            let profile = trainingProfile.flatMap { $0.classifiedWorkouts > 0 ? $0 : nil }
+            if profile != nil || !families.isEmpty { pages.drawCover(families, profile: profile) }
             if !families.isEmpty {
                 pages.drawCharts(families)
                 pages.drawRankings(families)
@@ -191,254 +222,469 @@ struct AvatarReport: Transferable {
         }
     }
 
+    /// ISO A4 in PostScript points.
+    static let pageSize = CGSize(width: 595.28, height: 841.89)
+
+    /// Draws the report on A4 pages: an illustrated cover, one card per strength series,
+    /// the exercise rankings and the Avatar scores. Every figure comes from `StrengthProgress`.
     @MainActor
     private final class Pages {
         let context: UIGraphicsPDFRendererContext
         let report: AvatarReport
         let language = LanguageState.shared
-        let ink = UIColor(red: 0.06, green: 0.14, blue: 0.16, alpha: 1)
-        let green = UIColor(red: 0.00, green: 0.42, blue: 0.34, alpha: 1)
-        let muted = UIColor(white: 0.34, alpha: 1)
-        let rule = UIColor(white: 0.86, alpha: 1)
+
+        static func rgb(_ hex: UInt32, _ alpha: CGFloat = 1) -> UIColor {
+            UIColor(red: CGFloat((hex >> 16) & 0xFF) / 255, green: CGFloat((hex >> 8) & 0xFF) / 255,
+                    blue: CGFloat(hex & 0xFF) / 255, alpha: alpha)
+        }
+        // One ink scale, one brand green for identity and one series green for data; amber marks records.
+        let ink = Pages.rgb(0x0E1A1F), soft = Pages.rgb(0x3C4A51), muted = Pages.rgb(0x6C7A81), rule = Pages.rgb(0xE2E7E9)
+        let canvas = Pages.rgb(0xF4F7F6), green = Pages.rgb(0x00745E), series = Pages.rgb(0x00876C)
+        let mint = Pages.rgb(0xB9F0D8), mintWash = Pages.rgb(0xEAF7F1), amber = Pages.rgb(0xE09A0B), amberInk = Pages.rgb(0x8A5A00)
+        let amberWash = Pages.rgb(0xFFF4DA), night = Pages.rgb(0x05211C)
+        let glow = Pages.rgb(0x34D5A6), violet = Pages.rgb(0x6B5BD6), paper = Pages.rgb(0xF6F9F8)
+
+        let left: CGFloat = 40, right: CGFloat = 555.28, top: CGFloat = 76, bottom: CGFloat = 790
+        var width: CGFloat { right - left }
         var page = 0
         var y: CGFloat = 0
+        private var section: String?
 
         init(context: UIGraphicsPDFRendererContext, report: AvatarReport) {
             self.context = context
             self.report = report
         }
 
-        func beginPage() {
-            context.beginPage()
-            page += 1
-            label(AppBrand.name, 38, 32, 200, size: 13, weight: .heavy, color: green)
-            label(report.displayName, 260, 32, 314, size: 12, alignment: .right)
-            line(38, 61, 574, 61, color: ink)
-            line(38, 748, 574, 748, color: rule)
-            let footer = report.reportDates.map {
+        private var locale: Locale { language.language.locale }
+
+        private var footerText: String {
+            report.reportDates.map {
                 language.text("Avatar report") + "   ·   " + language.text(report.period.rawValue) + "   ·   "
                     + language.dateKey($0.lowerBound) + " – " + language.dateKey($0.upperBound)
             } ?? language.text("Avatar report")
-            label(footer, 38, 758, 462, size: 10, color: muted)
-            label(String(page), 508, 758, 66, size: 10, alignment: .right)
-            y = 83
         }
+
+        // MARK: Pages
+
+        func beginPage(_ section: String? = nil) {
+            context.beginPage()
+            page += 1
+            self.section = section
+            drawAurora()
+            label(AppBrand.name, left, 30, 140, size: 10.5, weight: .heavy, color: green, kern: 1.4)
+            if let section {
+                let brand = measure(AppBrand.name, size: 10.5, weight: .heavy, kern: 1.4)
+                fill(CGRect(x: left + brand + 9, y: 31.5, width: 0.8, height: 11), rule.darker)
+                label(language.text(section), left + brand + 17, 30.5, 280, size: 10, weight: .medium, color: muted)
+            }
+            label(report.displayName, right - 230, 30, 230, size: 10.5, weight: .semibold, color: soft, alignment: .right)
+            fill(CGRect(x: left, y: 51, width: width, height: 0.8), ink.withAlphaComponent(0.1))
+            fill(CGRect(x: left, y: 802, width: width, height: 0.8), ink.withAlphaComponent(0.1))
+            label(footerText, left, 811, width - 60, size: 8.5, color: muted)
+            pageNumber(color: soft, background: canvas)
+            y = top
+        }
+
+        private func pageNumber(color: UIColor, background: UIColor) {
+            let number = String(page)
+            let pill = max(22, measure(number, size: 8.5, weight: .bold) + 12)
+            let frame = CGRect(x: right - pill, y: 808, width: pill, height: 17)
+            glass(frame, radius: 8.5, tint: background == canvas ? .white : background, opacity: 0.7)
+            centered(number, in: frame, size: 8.5, weight: .bold, color: color)
+        }
+
+        func continuePage() { beginPage(section) }
 
         func begin(_ section: String, subtitle: String) {
-            beginPage()
-            label(language.text(section), 38, y, 536, size: 30, weight: .bold)
-            y += 43
-            for part in wrapped(subtitle, width: 536, size: 12) where !part.isEmpty {
-                label(part, 38, y, 536, size: 12, color: muted)
-                y += 17
+            beginPage(section)
+            let size = fittingSize(language.text(section), width: width, sizes: [26, 22], weight: .heavy)
+            for part in wrapped(language.text(section), width: width, size: size, weight: .heavy) {
+                label(part, left, y, width, size: size, weight: .heavy)
+                y += size + 7
             }
-            y += 13
+            for part in wrapped(subtitle, width: width, size: 11.5) where !part.isEmpty {
+                label(part, left, y, width, size: 11.5, color: muted)
+                y += 16
+            }
+            y += 14
         }
 
-        func drawScores(_ rows: [RPGSnapshot]) {
-            let datedRows = rows.compactMap { row in
-                APEXDateMath.date(from: row.date).map { (row: row, time: $0.timeIntervalSinceReferenceDate) }
+        // MARK: Cover
+
+        func drawCover(_ families: [StrengthProgress.RankedFamily], profile: TrainingProfile90?) {
+            context.beginPage()
+            page += 1
+            section = nil
+            drawAurora()
+            label(AppBrand.name, left, 34, 200, size: 12, weight: .heavy, color: green, kern: 2.2)
+            let exported = Date.now.formatted(.dateTime.day().month(.abbreviated).year().locale(locale))
+            label(language.text("Avatar report").uppercased(with: locale) + "  ·  " + exported, right - 260, 35, 260, size: 9,
+                  weight: .semibold, color: muted, alignment: .right, kern: 1.2)
+            fill(CGRect(x: left, y: 56, width: 34, height: 3), green, radius: 1.5)
+            y = 74
+            let name = report.displayName.isEmpty ? language.text("Avatar report") : report.displayName
+            let nameSize = fittingSize(name, width: width, sizes: [44, 38, 32, 28], weight: .heavy, display: true)
+            for part in wrapped(name, width: width, size: nameSize, weight: .heavy, display: true).prefix(2) {
+                label(part, left, y, width, size: nameSize, weight: .heavy, display: true)
+                y += nameSize + 6
             }
-            let start = datedRows.first?.time ?? 0
-            let span = (datedRows.last?.time ?? start) - start
-            let metrics: [(String, String, KeyPath<RPGSnapshot, Double>)] = [
-                ("overall", "Overall Fitness Level", \.overall), ("health", "Health", \.health),
-                ("joint", "Joint Health Balance", \.joint), ("flexibility", "Body Flexibility", \.flexibility),
-                ("endurance", "Endurance & VO₂ max", \.endurance), ("strength", "Strength", \.strength),
-                ("upper", "Upper Body Strength", \.strengthUpper), ("lower", "Lower Body Strength", \.strengthLower),
-            ]
-            let recorded = metrics.compactMap { key, title, path -> (String, KeyPath<RPGSnapshot, Double>, Double)? in
-                guard let value = rows.last?[keyPath: path] ?? report.partialScores[key], value.isFinite else { return nil }
-                return (title, path, value)
+            var lines: [String] = []
+            if let dates = report.reportDates {
+                lines.append(language.text(report.period.rawValue) + "  ·  " + language.dateKey(dates.lowerBound) + " – "
+                               + language.dateKey(dates.upperBound))
             }
-            guard !recorded.isEmpty else { return }
-            let dates = [datedRows.first?.row.date, datedRows.last?.row.date].compactMap { $0 }
-            let subtitle = dates.first == dates.last ? (dates.first ?? "") : dates.joined(separator: " – ")
-            begin("Avatar scores", subtitle: subtitle)
-            for (index, metric) in recorded.enumerated() {
-                let (title, path, value) = metric
-                let x: CGFloat = index.isMultiple(of: 2) ? 38 : 315
-                let top = y + CGFloat(index / 2) * 139
-                let card = CGRect(x: x, y: top, width: 259, height: 187)
-                UIColor(white: 0.965, alpha: 1).setFill()
-                UIBezierPath(roundedRect: card, cornerRadius: 10).fill()
-                label(language.text(title), x + 13, top + 12, 233, size: 13, weight: .semibold)
-                label(number(value) + " / 100", x + 13, top + 32, 233, size: 22, weight: .bold)
-                let bounds = CGRect(x: x + 14, y: top + 68, width: 231, height: 36)
-                let points = datedRows.compactMap { row, time -> CGPoint? in
-                    guard row[keyPath: path].isFinite else { return nil }
-                    let fraction = span > 0 ? (time - start) / span : 0.5
-                    return CGPoint(x: bounds.minX + fraction * bounds.width,
-                                   y: bounds.maxY - min(100, max(0, row[keyPath: path])) / 100 * bounds.height)
+            if let joined = report.joinedDate { lines.append(language.text("Joined FITR MAX") + " · " + language.dateKey(joined)) }
+            for (index, line) in lines.enumerated() {
+                label(line, left, y, width, size: index == 0 ? 12 : 10.5, weight: index == 0 ? .semibold : .regular,
+                      color: index == 0 ? green : muted)
+                y += index == 0 ? 18 : 16
+            }
+            y += 16
+            if let profile { drawIdentityPanel(profile) }
+            if !families.isEmpty {
+                let totals = families.reduce(into: StrengthProgress.LifetimeTotals()) { $0.add($1.totals) }
+                label(language.text(report.period == .allTime ? "All-time training totals" : "Training totals"),
+                      left, y, width, size: 14, weight: .heavy)
+                y += 26
+                if let kg = totals.liftedVolumeKG, let total = liftedVolume(totals) {
+                    drawVolumeCard(kilograms: kg, total: total, stats: coverStats(totals, families: families))
+                } else {
+                    drawCoverStats(totals, families: families)
                 }
-                if points.count >= 2 {
-                    line(bounds.minX, bounds.maxY, bounds.maxX, bounds.maxY, color: rule)
-                    trace(points)
+                if totals.missingReps {
+                    label("* " + language.text("Incomplete records"), left, y, width, size: 9, color: muted)
+                    y += 14
                 }
             }
+            fill(CGRect(x: left, y: 802, width: width, height: 0.8), ink.withAlphaComponent(0.1))
+            label(footerText, left, 811, width - 60, size: 8.5, color: muted)
+            pageNumber(color: soft, background: canvas)
         }
 
-        func drawTrainingProfile(_ profile: TrainingProfile90) {
-            beginPage()
-            let top = y
-            let title = wrapped(language.text(profile.athleteTitle), width: 492, size: 32, weight: .bold)
-            let height = 68 + CGFloat(title.count) * 39
-            ink.setFill()
-            UIBezierPath(roundedRect: CGRect(x: 38, y: top, width: 536, height: height), cornerRadius: 15).fill()
-            let mint = UIColor(red: 0.68, green: 0.93, blue: 0.82, alpha: 1)
-            label(language.text(report.period == .allTime ? "90-day training profile" : "Training profile"), 58, top + 15, 496, size: 12, weight: .semibold, color: mint)
-            y = top + 32
+        /// The current training identity, its mix, and how it changed month by month.
+        private func drawIdentityPanel(_ profile: TrainingProfile90) {
+            let pad: CGFloat = 24
+            let inner = width - pad * 2
+            let titleSize = fittingSize(language.text(profile.athleteTitle), width: inner, sizes: [30, 26, 22], weight: .heavy)
+            let title = wrapped(language.text(profile.athleteTitle), width: inner, size: titleSize, weight: .heavy)
+            let stages = Array(report.identityStages.suffix(6))
+            let chips = stages.count >= 2 ? stageChips(stages, width: inner) : []
+            let chipRows = Set(chips.map(\.row)).count
+            let height = pad + 16 + CGFloat(title.count) * 35 + 18 + 26 + 38 + (chips.isEmpty ? 0 : 12 + CGFloat(chipRows) * 38) + pad - 10
+            let panel = CGRect(x: left, y: y, width: width, height: height)
+            glass(panel, radius: 24, tint: night, opacity: 1, dark: true)
+            // A mesh of light under smoked glass: deep pine into ink blue, lit by emerald, cyan, violet and a warm ember.
+            let mesh = raster(panel.size, scale: 2) { cg in
+                let size = panel.size
+                UIBezierPath(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 24).addClip()
+                guard let space = CGColorSpace(name: CGColorSpace.sRGB) else { return }
+                if let base = CGGradient(colorsSpace: space, colors: [Pages.rgb(0x041F1B).cgColor, Pages.rgb(0x07302A).cgColor,
+                                                                      Pages.rgb(0x0B1E3D).cgColor] as CFArray, locations: [0, 0.5, 1]) {
+                    cg.drawLinearGradient(base, start: .zero, end: CGPoint(x: size.width, y: size.height), options: [])
+                }
+                radial(cg, at: CGPoint(x: size.width * 0.18, y: -size.height * 0.15), radius: size.width * 0.55, color: Pages.rgb(0x12B886), alpha: 0.55)
+                radial(cg, at: CGPoint(x: size.width * 1.02, y: size.height * 0.28), radius: size.width * 0.42, color: Pages.rgb(0x1FA7C9), alpha: 0.5)
+                radial(cg, at: CGPoint(x: size.width * 0.78, y: size.height * 1.08), radius: size.width * 0.5, color: Pages.rgb(0x7B5CF0), alpha: 0.55)
+                radial(cg, at: CGPoint(x: size.width * 0.02, y: size.height * 1.02), radius: size.width * 0.3, color: Pages.rgb(0xF5A524), alpha: 0.28)
+                // A soft diagonal sheen, as if light catches the glass.
+                if let sheen = CGGradient(colorsSpace: space, colors: [UIColor.white.withAlphaComponent(0).cgColor,
+                                                                       UIColor.white.withAlphaComponent(0.09).cgColor,
+                                                                       UIColor.white.withAlphaComponent(0).cgColor] as CFArray, locations: [0.3, 0.5, 0.7]) {
+                    cg.drawLinearGradient(sheen, start: CGPoint(x: size.width * 0.15, y: 0), end: CGPoint(x: size.width * 0.75, y: size.height), options: [])
+                }
+                // Fine grain keeps the large gradients from banding in print.
+                var seed: UInt64 = 0x9E3779B97F4A7C15
+                func next() -> CGFloat {
+                    seed = seed &* 6364136223846793005 &+ 1442695040888963407
+                    return CGFloat(seed >> 40) / CGFloat(1 << 24)
+                }
+                cg.setFillColor(UIColor.white.withAlphaComponent(0.05).cgColor)
+                for _ in 0..<Int(size.width * size.height / 10) {
+                    cg.fill(CGRect(x: next() * size.width, y: next() * size.height, width: 0.5, height: 0.5))
+                }
+            }
+            mesh.draw(in: panel)
+            stroke(panel, UIColor.white.withAlphaComponent(0.2), radius: 24, lineWidth: 1)
+            let faint = UIColor.white.withAlphaComponent(0.64)
+            var cursor = y + pad
+            label(language.text(report.period == .allTime ? "90-day training profile" : "Training profile").uppercased(with: locale),
+                  left + pad, cursor, inner, size: 9.5, weight: .bold, color: mint)
+            cursor += 16
             for part in title {
-                label(part, 58, y, 496, size: 32, weight: .bold, color: .white)
-                y += 39
+                label(part, left + pad, cursor, inner, size: titleSize, weight: .heavy, color: .white)
+                cursor += 35
             }
-            label(language.dateKey(profile.from) + " – " + language.dateKey(profile.to),
-                  58, y + 3, 496, size: 12, color: mint)
-            y = top + height + 16
+            label(language.dateKey(profile.from) + " – " + language.dateKey(profile.to), left + pad, cursor, inner, size: 10.5, color: faint)
+            cursor += 18
+            let values = Dictionary(profile.metrics(language: language).map { ($0.key, $0.value) }, uniquingKeysWith: { first, _ in first })
+            let headline = ["Classified workouts", "Workouts per week"].compactMap { key in
+                values[key].map { language.text(key) + " " + $0 }
+            }.joined(separator: "   ·   ")
+            label(headline, left + pad, cursor + 6, inner, size: 11.5, weight: .semibold, color: UIColor.white.withAlphaComponent(0.92))
+            cursor += 26
+            let modes: [(TrainingProfile90.Mode, UIColor)] = [(.resistance, Self.rgb(0x6FE0B4)), (.cardio, Self.rgb(0x7CC3F5)),
+                                                             (.mobility, Self.rgb(0xC9B8FF))]
+            let present = modes.filter { profile.counts[$0.0, default: 0] > 0 }
+            let sum = present.reduce(0) { $0 + profile.counts[$1.0, default: 0] }
+            if sum > 0 {
+                var x = left + pad
+                let usable = inner - CGFloat(present.count - 1) * 3
+                for (mode, color) in present {
+                    let share = usable * CGFloat(profile.counts[mode, default: 0]) / CGFloat(sum)
+                    fill(CGRect(x: x, y: cursor, width: max(4, share), height: 8), color, radius: 4)
+                    x += share + 3
+                }
+                x = left + pad
+                var legend = present.map { ($0.1, language.text($0.0.rawValue) + " " + String(profile.counts[$0.0, default: 0])) }
+                if profile.runs > 0 { legend.append((UIColor.clear, language.text("Running") + " " + String(profile.runs))) }
+                for (color, text) in legend {
+                    if color != .clear {
+                        fill(CGRect(x: x, y: cursor + 20, width: 7, height: 7), color, radius: 3.5)
+                        x += 11
+                    }
+                    label(text, x, cursor + 16, 160, size: 10.5, weight: .medium, color: UIColor.white.withAlphaComponent(0.82))
+                    x += measure(text, size: 10.5, weight: .medium) + 18
+                }
+            }
+            cursor += 38
+            if !chips.isEmpty {
+                fill(CGRect(x: left + pad, y: cursor, width: inner, height: 0.7), UIColor.white.withAlphaComponent(0.16))
+                cursor += 12
+                for chip in chips {
+                    let frame = chip.frame.offsetBy(dx: left + pad, dy: cursor)
+                    let current = chip.index == stages.count - 1
+                    if current { fill(frame, mint, radius: 10) } else { glass(frame, radius: 10, tint: .white, opacity: 0.1, dark: true) }
+                    label(chip.title, frame.minX + 10, frame.minY + 4, frame.width - 20, size: 10.5, weight: .bold,
+                          color: current ? night : .white)
+                    label(chip.dates, frame.minX + 10, frame.minY + 17.5, frame.width - 16, size: 8, weight: .medium,
+                          color: current ? night.withAlphaComponent(0.7) : faint)
+                    if chip.index < stages.count - 1, chips.first(where: { $0.index == chip.index + 1 })?.row == chip.row {
+                        centered("→", in: CGRect(x: frame.maxX, y: frame.minY, width: 16, height: frame.height), size: 11, weight: .bold, color: mint)
+                    }
+                }
+            }
+            y = panel.maxY + 20
         }
 
-        func drawProfileSummary(_ profile: TrainingProfile90) {
-            let metrics = profile.metrics(language: language).filter {
-                ($0.value != "0" || $0.key == "Workouts per week") && $0.key != "Recent median reps per resistance session"
-            }
-            let summary = metrics.map { language.text($0.key) + " " + $0.value }.joined(separator: "   ·   ")
-            y += 8
-            paragraph(summary, size: 12, color: muted)
+        private struct StageChip {
+            let index: Int
+            let row: Int
+            let frame: CGRect
+            let title: String
+            let dates: String
         }
 
-        private func paragraph(_ text: String, size: CGFloat, color: UIColor? = nil) {
-            for part in wrapped(text, width: 536, size: size) {
-                label(part, 38, y, 536, size: size, color: color)
-                y += size + 5
+        private func stageChips(_ stages: [AvatarReport.IdentityStage], width available: CGFloat) -> [StageChip] {
+            let style = Date.FormatStyle(locale: locale, calendar: APEXDateMath.calendar, timeZone: .gmt).month(.abbreviated).year()
+            func month(_ day: String) -> String { APEXDateMath.date(from: day).map { $0.formatted(style) } ?? day }
+            // Three stages per row, read left to right like a timeline.
+            let arrow: CGFloat = 16
+            let chipWidth = (available - arrow * 2) / 3
+            return stages.enumerated().map { index, stage in
+                let range = month(stage.from) == month(stage.to) ? month(stage.from) : month(stage.from) + " – " + month(stage.to)
+                let full = range + " · " + language.format("%d sessions", stage.workouts)
+                let dates = measure(full, size: 8, weight: .medium) <= chipWidth - 16 ? full : range + " · " + String(stage.workouts)
+                return StageChip(index: index, row: index / 3,
+                                 frame: CGRect(x: CGFloat(index % 3) * (chipWidth + arrow), y: CGFloat(index / 3) * 38, width: chipWidth, height: 31),
+                                 title: language.text(stage.title), dates: dates)
             }
+        }
+
+        private func coverStats(_ totals: StrengthProgress.LifetimeTotals, families: [StrengthProgress.RankedFamily]) -> [(String, String)] {
+            var items: [(String, String)] = [("Performed sets", number(Double(totals.sets)))]
+            if let reps = recordedReps(totals) { items.append(("Recorded reps", reps)) }
+            items.append(("Sessions", number(Double(Set(families.flatMap { $0.sessions.map(\.sessionID) }).count))))
+            return items
+        }
+
+        private func drawVolumeCard(kilograms kg: Double, total: String, stats: [(String, String)]) {
+            let object = LiftedMassComparison.caption(kilograms: kg)
+            let passed = LiftedMassComparison.passedHeroCaption(kilograms: kg)
+            let hero = LiftedMassComparison.heroCaption(kilograms: kg)
+            let image = object?.artworkURL.flatMap { UIImage(contentsOfFile: $0.path) }
+            let pad: CGFloat = 22, tile: CGFloat = 116
+            let inner = left + pad
+            let textX = image == nil ? inner : inner + tile + 20
+            let textWidth = right - pad - textX
+            let valueSize: CGFloat = 36
+            let valueLines = wrapped(total, width: width - pad * 2, size: valueSize, weight: .heavy, rounded: true)
+            typealias Line = (text: String, size: CGFloat, weight: UIFont.Weight, color: UIColor, link: URL, gap: CGFloat)
+            var lines: [Line] = []
+            if let object {
+                lines.append((object.caption, 14.5, .semibold, ink, object.source, 0))
+                if let fact = object.fact { lines.append((fact, 10.5, .regular, muted, object.factSource ?? object.source, 4)) }
+            }
+            if let passed { lines.append(("✓ " + language.text("Milestone passed") + " · " + passed.caption, 10.5, .semibold, soft, passed.source, 12)) }
+            if let hero { lines.append((hero.caption, 10.5, .semibold, green, hero.source, passed == nil ? 12 : 6)) }
+            let blocks = lines.map { line in (line, wrapped(line.text, width: textWidth, size: line.size, weight: line.weight)) }
+            let progress = hero.flatMap { $0.kg }.map { min(1, max(0, kg / $0)) }
+            let textHeight = blocks.reduce(CGFloat(0)) { $0 + $1.0.gap + CGFloat($1.1.count) * ($1.0.size + 4) }
+                + (progress == nil ? 0 : 20)
+            let artHeight = max(image == nil ? 0 : tile, textHeight)
+            let card = CGRect(x: left, y: y, width: width, height: pad + 18 + CGFloat(valueLines.count) * 42 + 10 + artHeight + 18 + 50 + pad - 6)
+            glass(card, radius: 24, opacity: 0.6)
+            var cursor = y + pad
+            label(language.text("Lifted volume"), inner, cursor, width - pad * 2, size: 12.5, weight: .semibold, color: green)
+            cursor += 18
+            for part in valueLines {
+                label(part, inner, cursor, width - pad * 2, size: valueSize, weight: .heavy, color: ink, rounded: true)
+                cursor += 42
+            }
+            cursor += 10
+            let artTop = cursor
+            if let image, let object {
+                let frame = CGRect(x: inner, y: artTop, width: tile, height: tile)
+                glass(frame, radius: 18, opacity: 0.9)
+                let inset = frame.insetBy(dx: 8, dy: 8)
+                let scale = min(inset.width / image.size.width, inset.height / image.size.height)
+                let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+                context.cgContext.saveGState()
+                UIBezierPath(roundedRect: frame, cornerRadius: 18).addClip()
+                image.draw(in: CGRect(x: inset.midX - size.width / 2, y: inset.midY - size.height / 2, width: size.width, height: size.height))
+                context.cgContext.restoreGState()
+                link(object.source, frame)
+            }
+            var textY = artTop + max(0, (artHeight - textHeight) / 2)
+            for (line, parts) in blocks {
+                textY += line.gap
+                let start = textY
+                for part in parts {
+                    label(part, textX, textY, textWidth, size: line.size, weight: line.weight, color: line.color)
+                    textY += line.size + 4
+                }
+                link(line.link, CGRect(x: textX, y: start, width: textWidth, height: textY - start))
+            }
+            if let progress {
+                let track = CGRect(x: textX, y: textY + 6, width: textWidth - 46, height: 7)
+                fill(track, ink.withAlphaComponent(0.07), radius: 3.5)
+                gradient(CGRect(x: track.minX, y: track.minY, width: max(7, track.width * progress), height: track.height),
+                         [series, Self.rgb(0x35C79A)], vertical: false, radius: 3.5)
+                label(progress.formatted(.percent.precision(.fractionLength(0)).locale(locale)), track.maxX + 6, textY + 1.5,
+                      40, size: 10, weight: .bold, color: green, alignment: .right, rounded: true)
+            }
+            let statsTop = artTop + artHeight + 18
+            fill(CGRect(x: inner, y: statsTop - 1, width: width - pad * 2, height: 0.8), ink.withAlphaComponent(0.08))
+            let column = (width - pad * 2) / CGFloat(max(1, stats.count))
+            for (index, item) in stats.enumerated() {
+                let x = inner + CGFloat(index) * column
+                label(language.text(item.0), x, statsTop + 9, column - 10, size: 9.5, weight: .semibold, color: muted)
+                label(item.1, x, statsTop + 23, column - 10, size: 22, weight: .bold, rounded: true)
+            }
+            y = card.maxY + 12
+        }
+
+        private func drawCoverStats(_ totals: StrengthProgress.LifetimeTotals, families: [StrengthProgress.RankedFamily]) {
+            let items = coverStats(totals, families: families)
+            let gap: CGFloat = 10
+            let tileWidth = (width - gap * CGFloat(items.count - 1)) / CGFloat(items.count)
+            for (index, item) in items.enumerated() {
+                let x = left + CGFloat(index) * (tileWidth + gap)
+                glass(CGRect(x: x, y: y, width: tileWidth, height: 64), radius: 16)
+                label(language.text(item.0), x + 15, y + 12, tileWidth - 30, size: 10, weight: .semibold, color: muted)
+                label(item.1, x + 15, y + 27, tileWidth - 30, size: 24, weight: .bold, rounded: true)
+            }
+            y += 72
         }
 
         func volume(_ kg: Double, partial: Bool = false) -> String {
-            LiftedMassComparison.formattedMass(kg, locale: language.language.locale, partial: partial)
+            LiftedMassComparison.formattedMass(kg, locale: locale, partial: partial)
         }
 
-        func drawLifetimeTotals(_ rows: [StrengthProgress.RankedFamily]) {
-            let totals = rows.reduce(into: StrengthProgress.LifetimeTotals()) { $0.add($1.totals) }
-            if page == 0 || y > 420 { beginPage() }
-            label(language.text(report.period == .allTime ? "All-time training totals" : "Training totals"), 38, y, 536, size: 21, weight: .bold)
-            y += 35
-            if let kg = totals.liftedVolumeKG, let total = liftedVolume(totals) {
-                let top = y
-                label(language.text("Lifted volume"), 52, y, 522, size: 18, weight: .bold)
-                label(total, 52, y + 24, 522, size: 34, weight: .bold, color: green)
-                y += 72
-                drawComparisons(object: LiftedMassComparison.caption(kilograms: kg),
-                                hero: LiftedMassComparison.heroCaption(kilograms: kg))
-                line(39, top, 39, y - 8, color: green)
-                y += 10
-            }
-            let metrics = [("Performed sets", String(totals.sets)), ("Recorded reps", recordedReps(totals))]
-            for (index, metric) in metrics.enumerated() {
-                guard let value = metric.1 else { continue }
-                let x = 38 + CGFloat(index) * 274
-                label(language.text(metric.0), x, y, 260, size: 13, weight: .semibold)
-                label(value, x, y + 19, 260, size: 19, weight: .bold)
-            }
-            y += 50
-            if totals.missingVolume || totals.missingReps {
-                paragraph("* " + language.text("Incomplete records"), size: 10, color: muted)
-            }
-        }
-
-        private func drawComparisons(object: LiftedMassComparison.Comparison?, hero: LiftedMassComparison.Comparison?) {
-            guard object != nil || hero != nil else { return }
-            let image = object?.artworkURL.flatMap { UIImage(contentsOfFile: $0.path) }
-            let textX: CGFloat = image == nil ? 52 : 190
-            let width = 574 - textX
-            let start = y
-            func linked(_ text: String, to source: URL, size: CGFloat, weight: UIFont.Weight, color: UIColor) {
-                let top = y
-                for part in wrapped(text, width: width, size: size, weight: weight) {
-                    label(part, textX, y, width, size: size, weight: weight, color: color)
-                    y += size + 4
-                }
-                context.setURL(source, for: context.cgContext.convertToDeviceSpace(CGRect(x: textX, y: top, width: width, height: y - top)))
-            }
-            if let object {
-                linked(object.caption, to: object.source, size: 13, weight: .semibold, color: green)
-                if let fact = object.fact {
-                    y += 3
-                    linked(fact, to: object.factSource ?? object.source, size: 11, weight: .regular, color: muted)
-                }
-            }
-            if let hero {
-                if object != nil { y += 7 }
-                linked(hero.caption, to: hero.source, size: 12, weight: .medium, color: green)
-            }
-            if let image, let object {
-                let side: CGFloat = 121
-                let height = max(side, y - start)
-                let scale = min(side / image.size.width, side / image.size.height)
-                let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-                let frame = CGRect(x: 52 + (side - size.width) / 2, y: start + (height - size.height) / 2,
-                                   width: size.width, height: size.height)
-                image.draw(in: frame)
-                context.setURL(object.source, for: context.cgContext.convertToDeviceSpace(frame))
-                y = start + height
-            }
-            y += 12
-        }
+        // MARK: Rankings
 
         func drawRankings(_ rows: [StrengthProgress.RankedFamily]) {
             let columns: [(title: String, x: CGFloat, width: CGFloat)] = [
-                ("Exercise", 38, 201), ("Sessions", 242, 62), ("Recorded reps", 307, 74),
-                ("Load per rep", 384, 81), ("Lifted volume", 468, 106),
+                ("Exercise", 40, 195), ("Sessions", 238, 58), ("Recorded reps", 299, 70),
+                ("Load per rep", 372, 78), ("Lifted volume", 453, 102.28),
             ]
+            let mostSessions = CGFloat(max(1, rows.map(\.sessionCount).max() ?? 1))
             func heading() {
                 begin("Most trained exercises", subtitle: language.text("Each completed workout counts once per exercise family."))
                 if rows.contains(where: { $0.totals.missingVolume || $0.totals.missingReps }) {
-                    paragraph("* " + language.text("Incomplete records"), size: 10, color: muted)
-                    y += 6
+                    label("* " + language.text("Incomplete records"), left, y - 8, width, size: 9.5, color: muted)
+                    y += 8
                 }
-                var height: CGFloat = 0
-                for (i, column) in columns.enumerated() {
-                    let lines = wrapped(language.text(column.title), width: column.width - 3, size: 10, weight: .bold)
-                    for (j, part) in lines.enumerated() {
-                        label(part, column.x, y + 13 * CGFloat(j), column.width, size: 10, weight: .bold,
-                              color: muted, alignment: i == 0 ? .left : .right)
+                let titles = columns.map { wrapped(language.text($0.title), width: $0.width - 6, size: 9, weight: .bold) }
+                let height = CGFloat(titles.map(\.count).max() ?? 1) * 12 + 14
+                glass(CGRect(x: left, y: y, width: width, height: height), radius: 14, opacity: 0.6)
+                for (index, column) in columns.enumerated() {
+                    for (line, part) in titles[index].enumerated() {
+                        label(part, column.x + (index == 0 ? 14 : 0), y + 7 + CGFloat(line) * 12, column.width - (index == 0 ? 14 : 10),
+                              size: 9, weight: .bold, color: muted, alignment: index == 0 ? .left : .right)
                     }
-                    height = max(height, CGFloat(lines.count) * 13)
                 }
-                y += height + 6
+                y += height + 10
             }
-
-            func row(_ title: String, sessions: Int, totals: StrengthProgress.LifetimeTotals, variant: Bool) {
+            typealias Row = (cells: [[String]], size: CGFloat, variant: Bool, sessions: Int)
+            func layout(_ title: String, sessions: Int, totals: StrengthProgress.LifetimeTotals, variant: Bool) -> Row {
                 let size: CGFloat = variant ? 10 : 12
-                let indent: CGFloat = variant ? 12 : 0
-                let fontWeight: UIFont.Weight = variant ? .regular : .semibold
+                let indent: CGFloat = variant ? 26 : 14
                 let average = totals.averageLoadKG.map { weight($0) + (totals.missingVolume ? "*" : "") }
                 let values = [title, String(sessions), recordedReps(totals) ?? "", average ?? "", liftedVolume(totals) ?? ""]
-                let cells = zip(columns, values).enumerated().map { i, cell in
-                    wrapped(cell.1, width: cell.0.width - (i == 0 ? indent : 0) - 3, size: size, weight: fontWeight)
+                let cells = zip(columns, values).enumerated().map { index, cell in
+                    wrapped(cell.1, width: cell.0.width - (index == 0 ? indent : 10) - 3, size: size, weight: variant ? .regular : .semibold)
                 }
-                let lineCount = cells.map(\.count).max() ?? 1
-                if y + min(500, CGFloat(lineCount) * (size + 3) + 8) > 730 { heading() }
-                if !variant { line(38, y, 574, y, color: rule) }
-                for rowIndex in 0..<lineCount {
-                    if y + size + 6 > 730 { heading() }
-                    for (i, cell) in cells.enumerated() where rowIndex < cell.count {
-                        let inset = i == 0 ? indent : 0
-                        label(cell[rowIndex], columns[i].x + inset, y + 3, columns[i].width - inset, size: size,
-                              weight: fontWeight, color: variant ? muted : ink, alignment: i == 0 ? .left : .right)
-                    }
-                    y += size + 3
-                }
-                y += variant ? 3 : 6
+                return (cells, size, variant, sessions)
+            }
+            func height(_ row: Row) -> CGFloat {
+                let lines = CGFloat(row.cells.map(\.count).max() ?? 1) * (row.size + 3)
+                return row.variant ? lines + 3 : max(lines, CGFloat(row.cells[0].count) * (row.size + 3) + 9) + 6
             }
 
-            heading()
-            for family in rows {
-                row(language.text(family.name) + " · " + language.text(family.region.rawValue),
-                    sessions: family.sessionCount, totals: family.totals, variant: false)
-                if family.showsVariants {
-                    for variant in family.variants {
-                        row(language.text(variant.name), sessions: variant.sessionCount, totals: variant.totals, variant: true)
+            func draw(_ row: Row) {
+                let rowTop = y
+                let indent: CGFloat = row.variant ? 26 : 14
+                if row.variant { fill(CGRect(x: left + 16, y: y + row.size / 2 + 2, width: 4, height: 4), series.withAlphaComponent(0.45), radius: 2) }
+                for (index, cell) in row.cells.enumerated() {
+                    for (line, part) in cell.enumerated() {
+                        let inset = index == 0 ? indent : 0
+                        label(part, columns[index].x + inset, rowTop + CGFloat(line) * (row.size + 3), columns[index].width - inset - (index == 0 ? 0 : 10),
+                              size: row.size, weight: index > 0 && !row.variant ? .bold : (row.variant ? .regular : .semibold),
+                              color: row.variant ? muted : ink, alignment: index == 0 ? .left : .right, rounded: index > 0)
                     }
+                }
+                if !row.variant {
+                    let track = CGRect(x: left + indent, y: rowTop + CGFloat(row.cells[0].count) * (row.size + 3) + 4, width: 150, height: 4)
+                    fill(track, ink.withAlphaComponent(0.06), radius: 2)
+                    gradient(CGRect(x: track.minX, y: track.minY, width: max(4, track.width * CGFloat(row.sessions) / mostSessions), height: 4),
+                             [glow, series], vertical: false, radius: 2)
+                }
+                y = rowTop + height(row)
+            }
+
+            // A family with variants gets its own card; consecutive single-movement families share one.
+            var groups: [[Row]] = []
+            var singles: [Row] = []
+            for family in rows {
+                let head = layout(language.text(family.name) + " · " + language.text(family.region.rawValue),
+                                  sessions: family.sessionCount, totals: family.totals, variant: false)
+                if family.showsVariants {
+                    if !singles.isEmpty { groups.append(singles); singles = [] }
+                    groups.append([head] + family.variants.map {
+                        layout(language.text($0.name), sessions: $0.sessionCount, totals: $0.totals, variant: true)
+                    })
+                } else {
+                    singles.append(head)
+                }
+            }
+            if !singles.isEmpty { groups.append(singles) }
+
+            heading()
+            for group in groups {
+                var start = 0
+                while start < group.count {
+                    var used: CGFloat = 14, end = start
+                    while end < group.count, y + used + height(group[end]) <= bottom {
+                        used += height(group[end])
+                        end += 1
+                    }
+                    if end == start { heading(); continue }
+                    glass(CGRect(x: left, y: y, width: width, height: used), radius: 16, opacity: 0.55)
+                    y += 8
+                    for row in group[start..<end] { draw(row) }
+                    y += 14
+                    start = end
+                    if start < group.count { heading() }
                 }
             }
         }
@@ -451,8 +697,11 @@ struct AvatarReport: Transferable {
             totals.liftedVolumeKG.map { volume($0, partial: totals.missingVolume) }
         }
 
+        // MARK: Strength progress
+
         private struct ChartPoint {
             let date: Date
+            let day: String
             let value: Double
             let reps: Int?
         }
@@ -463,11 +712,16 @@ struct AvatarReport: Transferable {
                 guard let date = APEXDateMath.date(from: session.date) else { return nil }
                 let point = loaded[session.sessionID]
                 if let set = session.heaviestSet, set.kg >= (point?.topWeight ?? 0) {
-                    return ChartPoint(date: date, value: set.kg, reps: set.reps)
+                    return ChartPoint(date: date, day: session.date, value: set.kg, reps: set.reps)
                 }
-                return point.map { ChartPoint(date: date, value: $0.topWeight, reps: $0.topReps) }
+                return point.map { ChartPoint(date: date, day: session.date, value: $0.topWeight, reps: $0.topReps) }
             }
             return points.count >= 2 && points.contains { $0.value > 0 } ? points : []
+        }
+
+        /// The heaviest load, then the most reps at it; the earliest session wins an exact tie.
+        private func bestIndex(_ points: [ChartPoint]) -> Int? {
+            points.indices.max { (points[$0].value, points[$0].reps ?? 0, -$0) < (points[$1].value, points[$1].reps ?? 0, -$1) }
         }
 
         func drawCharts(_ families: [StrengthProgress.RankedFamily]) {
@@ -480,12 +734,12 @@ struct AvatarReport: Transferable {
                 let b = rhs.change.map(abs) ?? -1
                 if a != b { return a > b }
                 if let left = lhs.change, let right = rhs.change, left != right { return left > right }
-                let order = lhs.variant.name.compare(rhs.variant.name, options: .caseInsensitive, range: nil, locale: language.language.locale)
+                let order = lhs.variant.name.compare(rhs.variant.name, options: .caseInsensitive, range: nil, locale: locale)
                 return order == .orderedSame ? lhs.variant.key < rhs.variant.key : order == .orderedAscending
             }
 
-            var firstInSection = true
-            for (variant, points, _) in charts {
+            // Each exercise owns a page: its chart, records and working-leg or hand-load panel stay together.
+            for (variant, points, change) in charts {
                 let panel = legPanel(variant)
                 let best = variant.sessions.filter { $0.bestSingleKG != nil }
                     .max { ($0.bestSingleKG ?? 0) < ($1.bestSingleKG ?? 0) }
@@ -494,24 +748,227 @@ struct AvatarReport: Transferable {
                 }
                 let hands = handLoadSections(variant)
                 if !points.isEmpty {
-                    drawChart(variant, points: points, panel: panel, single: single, firstInSection: firstInSection)
-                    drawHandLoadSections(hands, exercise: chartHeading(variant))
+                    beginPage("Strength progress")
+                    drawExerciseHeader(variant, change: change)
+                    let reserved = (panel.map { $0.height + 14 } ?? 0) + handLoadHeight(hands) + (single == nil ? 0 : 20) + 84
+                    let height = min(280, max(150, bottom - y - reserved))
+                    drawChartCard(points, height: height, single: single)
+                    if let panel { drawLegPanel(panel) }
+                    drawHandLoadSections(hands)
+                    if panel == nil && hands.isEmpty { drawSessionLog(points) }
                 } else if panel != nil || single != nil || (!hands.isEmpty && repEndpoints(variant) == nil) {
-                    if firstInSection || y + 75 + (panel?.height ?? 0) > 730 {
-                        begin("Strength progress", subtitle: "")
+                    beginPage("Strength progress")
+                    drawExerciseHeader(variant, change: nil)
+                    if let single {
+                        label(single, left, y, width, size: 11, weight: .semibold, color: green)
+                        y += 20
                     }
-                    for part in wrapped(chartHeading(variant), width: 536, size: 21, weight: .bold) {
-                        label(part, 38, y, 536, size: 21, weight: .bold)
-                        y += 27
-                    }
-                    if let single { paragraph(single, size: 11, color: green) }
-                    if let panel { drawLegPanel(panel, exercise: variant.name) }
-                    if repEndpoints(variant) == nil { drawHandLoadSections(hands, exercise: chartHeading(variant)) }
-                    y += 12
-                } else { continue }
-                firstInSection = false
+                    if let panel { drawLegPanel(panel) }
+                    if repEndpoints(variant) == nil { drawHandLoadSections(hands) }
+                }
             }
             drawRepComparisons(charts.filter { $0.points.isEmpty }.map(\.variant))
+        }
+
+        private func regionColors(_ region: StrengthProgress.BodyRegion) -> (UIColor, UIColor) {
+            switch region {
+            case .lower: (mintWash, green)
+            case .upper: (Self.rgb(0xEEEBFC), Self.rgb(0x5140B8))
+            case .core: (amberWash, amberInk)
+            case .other: (canvas, soft)
+            }
+        }
+
+        private func regionChip(_ region: StrengthProgress.BodyRegion) {
+            let text = language.text(region.rawValue)
+            let (background, foreground) = regionColors(region)
+            let chip = measure(text, size: 9.5, weight: .semibold) + 18
+            let frame = CGRect(x: left, y: y, width: chip, height: 19)
+            glass(frame, radius: 9.5, tint: background, opacity: 0.85)
+            centered(text, in: frame, size: 9.5, weight: .semibold, color: foreground)
+        }
+
+        private func metaLine(_ variant: StrengthProgress.ExerciseHistory) -> [String] {
+            let totals = [(language.text("Recorded reps"), recordedReps(variant.totals)),
+                          (language.text("Lifted volume"), liftedVolume(variant.totals))]
+                .compactMap { key, value in value.map { key + " " + $0 } }
+            guard !totals.isEmpty else { return [] }
+            let sessions = language.text("Sessions") + " " + String(variant.sessionCount)
+            return wrapped(([language.text(report.period.rawValue), sessions] + totals).joined(separator: "   ·   "),
+                           width: width - 150, size: 10.5, weight: .medium)
+        }
+
+        private func display(_ point: ChartPoint) -> String {
+            let reps = point.reps.map { language.format("%d reps", $0) }
+            guard point.value > 0 else { return ([reps].compactMap { $0 } + [language.text("Bodyweight")]).joined(separator: " · ") }
+            return (reps.map { $0 + " × " } ?? "") + weight(point.value)
+        }
+
+        private func drawExerciseHeader(_ variant: StrengthProgress.ExerciseHistory, change: Double?) {
+            let headerTop = y
+            regionChip(variant.familyRegion)
+            var badgeBottom = headerTop
+            if let change {
+                let delta = (change > 0 ? "+" : "") + weight(change)
+                let badgeWidth = max(96, measure(delta, size: 21, weight: .heavy, rounded: true) + 34)
+                let badge = CGRect(x: right - badgeWidth, y: headerTop, width: badgeWidth, height: 56)
+                glass(badge, radius: 18, tint: change > 0 ? mint : .white, opacity: change > 0 ? 0.55 : 0.6)
+                label(language.text("Change"), badge.minX, badge.minY + 8, badgeWidth, size: 9.5, weight: .semibold, color: muted, alignment: .center)
+                label(delta, badge.minX, badge.minY + 22, badgeWidth, size: 21, weight: .heavy, color: change > 0 ? green : soft,
+                      alignment: .center, rounded: true)
+                badgeBottom = badge.maxY
+            }
+            y += 28
+            let heading = chartHeading(variant)
+            let size = fittingSize(heading, width: width - 150, sizes: [26, 23, 20, 18], weight: .heavy)
+            for part in wrapped(heading, width: width - 150, size: size, weight: .heavy) {
+                label(part, left, y, width - 150, size: size, weight: .heavy)
+                y += size + 6
+            }
+            for part in metaLine(variant) {
+                label(part, left, y, width - 150, size: 10.5, weight: .medium, color: muted)
+                y += 15
+            }
+            y = max(y, badgeBottom) + 14
+        }
+
+        private func drawChartCard(_ points: [ChartPoint], height: CGFloat, single: String?) {
+            guard let first = points.first, let last = points.last, let bestAt = bestIndex(points) else { return }
+            let best = points[bestAt]
+            let calendar = WorkoutChartCalendar(first: first.date, last: last.date)
+            let field = CGRect(x: left, y: y, width: width, height: height)
+            glass(field, radius: 24, opacity: 0.55)
+            drawPlot(points, calendar: calendar, in: field, best: bestAt)
+            y = field.maxY + 12
+            func endpoint(_ title: String, _ index: Int) -> String {
+                language.text(title) + " · #" + String(index + 1) + " · " + calendar.label(points[index].date, locale: locale)
+            }
+            let bestDate = best.date.formatted(Date.FormatStyle(locale: locale, timeZone: .gmt).year().month(.abbreviated).day())
+            let tiles: [(String, String, UIColor, UIColor)] = [
+                (endpoint("First", 0), display(first), .white, ink),
+                (endpoint("Latest", points.count - 1), display(last), .white, ink),
+                ("★ " + language.text("Best working load"), display(best) + "\n" + bestDate, amberWash, amberInk),
+            ]
+            let gap: CGFloat = 10
+            let tileWidth = (width - gap * 2) / 3
+            for (index, tile) in tiles.enumerated() {
+                let x = left + CGFloat(index) * (tileWidth + gap)
+                glass(CGRect(x: x, y: y, width: tileWidth, height: 58), radius: 16, tint: tile.2, opacity: index == 2 ? 0.82 : 0.6)
+                label(tile.0, x + 13, y + 9, tileWidth - 26, size: 8.8, weight: .semibold, color: index == 2 ? amberInk : muted)
+                let parts = tile.1.components(separatedBy: "\n")
+                let fitted: CGFloat = measure(parts[0], size: 14, weight: .bold, rounded: true) > tileWidth - 26 ? 11.5 : 14
+                label(parts[0], x + 13, y + 23 + (14 - fitted) / 2, tileWidth - 26, size: fitted, weight: .bold, color: tile.3, rounded: true)
+                if parts.count > 1 { label(parts[1], x + 13, y + 40, tileWidth - 26, size: 8.8, weight: .medium, color: muted) }
+            }
+            y += 68
+            if let single {
+                label(single, left, y, width, size: 11, weight: .semibold, color: green)
+                y += 20
+            }
+        }
+
+        /// The recorded sessions behind the chart, newest first, so every point maps to a workout.
+        private func drawSessionLog(_ points: [ChartPoint]) {
+            let available = bottom - y - 14
+            guard available > 90, let bestAt = bestIndex(points) else { return }
+            let columns = 3, rowHeight: CGFloat = 34
+            let rows = min(Int((available - 52) / rowHeight), (points.count + columns - 1) / columns)
+            guard rows > 0 else { return }
+            let shown = Array(points.enumerated().reversed().prefix(rows * columns))
+            let card = CGRect(x: left, y: y + 6, width: width, height: 46 + CGFloat(rows) * rowHeight)
+            glass(card, radius: 22, opacity: 0.5)
+            label(language.text("Sessions"), left + 20, card.minY + 14, 200, size: 12, weight: .bold)
+            label(language.format("%d sessions", points.count), right - 220, card.minY + 15, 200, size: 10, color: muted, alignment: .right)
+            let columnWidth = (width - 40) / CGFloat(columns)
+            for (slot, entry) in shown.enumerated() {
+                let x = left + 20 + CGFloat(slot % columns) * columnWidth
+                let top = card.minY + 40 + CGFloat(slot / columns) * rowHeight
+                let isBest = entry.offset == bestAt
+                if isBest { fill(CGRect(x: x - 8, y: top - 3, width: columnWidth - 6, height: rowHeight - 4), amberWash.withAlphaComponent(0.85), radius: 10) }
+                label("#" + String(entry.offset + 1) + " · " + language.dateKey(entry.element.day), x, top, columnWidth - 14, size: 8.8,
+                      weight: .medium, color: isBest ? amberInk : muted)
+                label((isBest ? "★ " : "") + display(entry.element), x, top + 13, columnWidth - 14, size: 11.5, weight: .bold,
+                      color: isBest ? amberInk : ink, rounded: true)
+            }
+            y = card.maxY + 8
+        }
+
+        /// Clean, evenly spaced load ticks in the viewer's unit, with headroom above the heaviest point.
+        private func niceScale(_ peak: Double) -> (step: Double, top: Double) {
+            guard peak > 0 else { return (1, 1) }
+            let rough = peak / 3.5
+            let magnitude = pow(10, floor(log10(rough)))
+            let step = [1, 2, 2.5, 5, 10].first { rough / magnitude <= $0 }.map { $0 * magnitude } ?? 10 * magnitude
+            var top = (peak / step).rounded(.up) * step
+            if peak / top > 0.92 { top += step }
+            return (step, top)
+        }
+
+        private func drawPlot(_ points: [ChartPoint], calendar: WorkoutChartCalendar, in field: CGRect, best: Int) {
+            let plot = CGRect(x: field.minX + 58, y: field.minY + 34, width: field.width - 58 - 30, height: field.height - 34 - 36)
+            let values = points.map { report.unit.value(fromKilograms: $0.value) }
+            let (step, ceiling) = niceScale(values.max() ?? 0)
+            var tick = 0.0
+            while tick <= ceiling + step / 2 {
+                let tickY = plot.maxY - CGFloat(tick / ceiling) * plot.height
+                fill(CGRect(x: plot.minX, y: tickY - 0.35, width: plot.width, height: tick == 0 ? 1 : 0.7), ink.withAlphaComponent(tick == 0 ? 0.14 : 0.06))
+                label(number(tick) + " " + report.unit.suffix, field.minX + 8, tickY - 6.5, 42, size: 8.5, color: muted,
+                      alignment: .right, rounded: true)
+                tick += step
+            }
+            for date in calendar.ticks {
+                let x = plot.minX + calendar.position(date) * plot.width
+                fill(CGRect(x: x - 0.35, y: plot.maxY, width: 0.7, height: 4), ink.withAlphaComponent(0.18))
+                label(calendar.label(date, locale: locale), x - 36, plot.maxY + 10, 72, size: 8.5, color: muted, alignment: .center)
+            }
+            let positions = calendar.positions(for: points.map(\.date))
+            let coordinates = zip(values, positions).map { value, position in
+                CGPoint(x: plot.minX + position * plot.width, y: plot.maxY - CGFloat(value / ceiling) * plot.height)
+            }
+            drawCurve(coordinates, baseline: plot.maxY, in: plot)
+            let latest = coordinates.count - 1
+            let dense = coordinates.count > 30
+            for (index, point) in coordinates.enumerated() where index != best && index != latest {
+                if dense {
+                    dot(point, radius: 2.2, fill: series, ring: 0)
+                } else {
+                    dot(point, radius: 3.8, fill: series, ring: 0)
+                    dot(point, radius: 2.2, fill: .white, ring: 0)
+                }
+            }
+            dot(coordinates[best], radius: 14, fill: amber.withAlphaComponent(0.18), ring: 0)
+            dot(coordinates[best], radius: 6.4, fill: amber, ring: 2.2)
+            if best != latest {
+                dot(coordinates[latest], radius: 11, fill: series.withAlphaComponent(0.16), ring: 0)
+                dot(coordinates[latest], radius: 5, fill: series, ring: 2)
+            }
+            // Label the record and the latest session; everything else lives in the axis, tiles and session list.
+            func pill(_ text: String, at point: CGPoint, fill color: UIColor, below: Bool) -> CGRect {
+                let pillWidth = measure(text, size: 9, weight: .bold, rounded: true) + 16
+                var frame = CGRect(x: point.x - pillWidth / 2, y: below ? point.y + 13 : point.y - 31, width: pillWidth, height: 18)
+                frame.origin.x = min(max(frame.minX, plot.minX - 6), field.maxX - pillWidth - 8)
+                if frame.minY < field.minY + 4 { frame.origin.y = point.y + 13 }
+                glass(frame, radius: 9, tint: color, opacity: 0.95)
+                centered(text, in: frame, size: 9, weight: .bold, color: .white, rounded: true)
+                return frame
+            }
+            let recordText = "★ " + (points[best].value > 0 ? weight(points[best].value) : language.text("Bodyweight"))
+            let record = pill(recordText, at: coordinates[best], fill: amber, below: false)
+            if best != latest {
+                let text = points[latest].value > 0 ? weight(points[latest].value) : language.text("Bodyweight")
+                let probe = CGRect(x: coordinates[latest].x - 40, y: coordinates[latest].y - 31, width: 80, height: 18)
+                _ = pill(text, at: coordinates[latest], fill: ink, below: probe.insetBy(dx: -4, dy: -2).intersects(record))
+            }
+        }
+
+        private func dot(_ point: CGPoint, radius: CGFloat, fill color: UIColor, ring: CGFloat) {
+            if ring > 0 {
+                UIColor.white.setFill()
+                UIBezierPath(ovalIn: CGRect(x: point.x - radius - ring, y: point.y - radius - ring,
+                                            width: (radius + ring) * 2, height: (radius + ring) * 2)).fill()
+            }
+            color.setFill()
+            UIBezierPath(ovalIn: CGRect(x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2)).fill()
         }
 
         private func repEndpoints(_ variant: StrengthProgress.ExerciseHistory) -> (StrengthProgress.SessionTotals, StrengthProgress.SessionTotals)? {
@@ -523,36 +980,52 @@ struct AvatarReport: Transferable {
         private func drawRepComparisons(_ variants: [StrengthProgress.ExerciseHistory]) {
             func heading() {
                 begin("Reps per session", subtitle: "")
-                for (key, x, width) in [("Exercise", 38, 270), ("First", 318, 123), ("Latest", 451, 123)] {
-                    label(language.text(key), CGFloat(x), y, CGFloat(width), size: 12, weight: .semibold, color: muted)
+                glass(CGRect(x: left, y: y, width: width, height: 26), radius: 13, opacity: 0.6)
+                for (key, x, width) in [("Exercise", 50, 240), ("First", 300, 110), ("Latest", 420, 120)] {
+                    label(language.text(key), CGFloat(x), y + 7, CGFloat(width), size: 9.5, weight: .bold, color: muted)
                 }
-                y += 21
+                y += 34
             }
 
             var started = false
             for variant in variants {
                 guard let (first, last) = repEndpoints(variant) else { continue }
                 let hands = handLoadSections(variant)
-                let title = wrapped(chartHeading(variant), width: 270, size: 15, weight: .bold)
-                let height = CGFloat(title.count) * 19 + 28 + pushUpHeight(hands)
-                if !started || y + height > 730 { heading() }
+                let title = wrapped(chartHeading(variant), width: 240, size: 14, weight: .bold)
+                let height = CGFloat(title.count) * 18 + 32 + handLoadHeight(hands)
+                if !started || y + height > bottom { heading() }
                 started = true
-                line(38, y, 574, y, color: rule)
-                y += 6
-                for (session, x) in [(first, CGFloat(318)), (last, CGFloat(451))] {
-                    label(number(Double(session.totals.reps)), x, y, 123, size: 17, weight: .bold)
-                    label(language.dateKey(session.date), x, y + 21, 123, size: 11, color: muted)
+                glass(CGRect(x: left, y: y, width: width, height: max(CGFloat(title.count) * 18 + 24, 46) + 12), radius: 18, opacity: 0.55)
+                y += 10
+                let rowTop = y
+                let change = last.totals.reps - first.totals.reps
+                for (session, x) in [(first, CGFloat(300)), (last, CGFloat(420))] {
+                    label(number(Double(session.totals.reps)), x, y, 70, size: 18, weight: .bold, rounded: true)
+                    label(language.dateKey(session.date), x, y + 23, 110, size: 9.5, color: muted)
+                }
+                if change != 0 {
+                    let text = (change > 0 ? "+" : "") + number(Double(change))
+                    let chip = measure(text, size: 9, weight: .bold, rounded: true) + 12
+                    let latestWidth = measure(number(Double(last.totals.reps)), size: 18, weight: .bold, rounded: true)
+                    let frame = CGRect(x: 420 + latestWidth + 6, y: y + 4, width: chip, height: 15)
+                    glass(frame, radius: 7.5, tint: change > 0 ? mint : .white, opacity: 0.75)
+                    centered(text, in: frame, size: 9, weight: .bold, color: change > 0 ? green : soft, rounded: true)
                 }
                 for part in title {
-                    if y + 20 > 730 { heading() }
-                    label(part, 38, y, 270, size: 15, weight: .bold)
-                    y += 19
+                    if y + 20 > bottom { heading() }
+                    label(part, left + 10, y, 240, size: 14, weight: .bold)
+                    y += 18
                 }
-                label(language.text(variant.familyRegion.rawValue), 38, y + 2, 270, size: 11, color: green)
-                y += 22
-                drawHandLoadSections(hands, exercise: chartHeading(variant))
+                label(language.text(variant.familyRegion.rawValue), left + 10, y + 1, 240, size: 10, weight: .medium,
+                      color: regionColors(variant.familyRegion).1)
+                y = max(y + 18, rowTop + 40)
+                y += 10
+                drawHandLoadSections(hands)
+                y += 8
             }
         }
+
+        // MARK: Push-up hand load
 
         private struct HandLoadCard {
             let session: UUID
@@ -565,23 +1038,37 @@ struct AvatarReport: Transferable {
             let position: StrengthProgress.PushUpLoadGuide.Position
         }
 
-        private struct HandMetric {
-            var text: String
-            var size: CGFloat = 11
-            var weight: UIFont.Weight = .regular
-        }
-
-        private struct HandSection {
-            var title: String
-            var columns: [[HandMetric]]
+        /// One headline estimate per stage, with the reference heights kept to a quiet table beneath.
+        private struct HandLoad {
+            struct Stage {
+                let title: String
+                let card: HandLoadCard
+                let estimate: Double
+                let bodyPart: Double
+                var isRecord = false
+            }
+            struct Table {
+                let title: String
+                let groups: [(title: String, columns: [String])]
+                let rows: [(String, [String])]
+            }
+            var reference = ""
+            var stages: [Stage] = []
+            var tables: [Table] = []
+            var bodyweightSets = 0
+            var bodyweightReps = 0
+            var isEmpty: Bool { stages.isEmpty && tables.isEmpty && bodyweightSets == 0 }
         }
 
         private func approximateWeight(_ kg: Double) -> String {
             "≈ " + number(report.unit.value(fromKilograms: kg).rounded()) + " " + report.unit.suffix
         }
 
-        private func handLoadSections(_ variant: StrengthProgress.ExerciseHistory) -> [HandSection] {
-            guard let guide = StrengthProgress.PushUpLoadGuide.shared else { return [] }
+        private func handLoadSections(_ variant: StrengthProgress.ExerciseHistory) -> HandLoad {
+            var load = HandLoad()
+            load.bodyweightSets = variant.sessions.reduce(0) { $0 + $1.bodyweightPushUpSets }
+            load.bodyweightReps = variant.sessions.reduce(0) { $0 + $1.bodyweightPushUpReps }
+            guard let guide = StrengthProgress.PushUpLoadGuide.shared else { return load }
             let rows: [HandLoadCard] = variant.sessions.compactMap { row in
                 guard let set = row.pushUp else { return nil }
                 let historical = report.bodyweightBySession[row.sessionID]
@@ -595,129 +1082,221 @@ struct AvatarReport: Transferable {
                                     bodyKG: body, addedKG: set.addedKG, estimateKG: kg,
                                     atCurrentMass: historical == nil && body != nil, position: set.position)
             }
-            guard let last = rows.last else { return [] }
-            typealias Stage = (name: String, card: HandLoadCard)
-            func endpoints(_ values: [HandLoadCard]) -> [Stage] {
+            guard let last = rows.last else { return load }
+            func endpoints(_ values: [HandLoadCard]) -> [(String, HandLoadCard)] {
                 guard let first = values.first, let last = values.last else { return [] }
                 return (first.session == last.session ? [] : [(language.text("First"), first)]) + [(language.text("Latest"), last)]
             }
-            func bodyLabel(_ card: HandLoadCard) -> String? {
-                card.bodyKG.map { language.text(card.atCurrentMass ? "At current bodyweight" : "Bodyweight") + " · " + weight($0) }
-            }
-            func stamp(_ stage: Stage) -> HandMetric {
-                HandMetric(text: stage.name + " · " + language.dateKey(stage.card.date), size: 12, weight: .semibold)
-            }
-            func heights(_ refs: [StrengthProgress.PushUpLoadGuide.Elevation], _ body: Double, added: Double = 0) -> [String] {
+            func heights(_ refs: [StrengthProgress.PushUpLoadGuide.Elevation], _ card: HandLoadCard, added: Double = 0) -> [String] {
                 refs.map { reference in
-                    let height = language.format("%@ cm", number(reference.heightCm.rounded()))
-                    return height + " · " + approximateWeight(body * reference.bodyweightFraction + added * guide.addedWeightFraction)
+                    // The level floor uses the same coefficient as the level-floor estimate on this page.
+                    let fraction = reference.heightCm == 0 ? guide.bodyweightFraction : reference.bodyweightFraction
+                    return approximateWeight((card.bodyKG ?? 0) * fraction + added * guide.addedWeightFraction)
                 }
             }
-            var sections: [HandSection] = []
+            func stamp(_ name: String, _ card: HandLoadCard) -> String { name + " · " + language.dateKey(card.date) }
+            let narrow = last.position == .narrowGrip
             if rows.contains(where: { $0.estimateKG != nil }) {
-                var stages = endpoints(rows)
+                var stages = endpoints(rows).compactMap { name, card in
+                    card.estimateKG.map { HandLoad.Stage(title: name, card: card, estimate: $0, bodyPart: card.fromBodyKG ?? $0) }
+                }
                 let best = rows.filter { !$0.atCurrentMass && $0.position == .floor && $0.addedKG != nil && $0.estimateKG != nil }
                     .max { ($0.estimateKG ?? 0) < ($1.estimateKG ?? 0) }
-                if let best {
+                if let best, let estimate = best.estimateKG {
                     if let index = stages.firstIndex(where: { $0.card.session == best.session }) {
-                        stages[index].name += " · " + language.text("Personal record")
-                    } else { stages.append((language.text("Personal record"), best)) }
-                }
-                let columns = stages.map { stage -> [HandMetric] in
-                    let card = stage.card
-                    let hasBackpack = (card.addedKG ?? 0) > 0
-                    var lines = [stamp(stage),
-                                 HandMetric(text: language.text(hasBackpack ? "With backpack" : "Without backpack"), size: 13, weight: .semibold),
-                                 HandMetric(text: card.estimateKG.map(approximateWeight) ?? "—", size: 21, weight: .bold)]
-                    if let body = bodyLabel(card) { lines.append(HandMetric(text: body)) }
-                    if hasBackpack, let fromBody = card.fromBodyKG {
-                        lines.append(HandMetric(text: language.text("Without backpack") + " · " + approximateWeight(fromBody), size: 12, weight: .semibold))
+                        stages[index].isRecord = true
+                    } else {
+                        stages.append(HandLoad.Stage(title: language.text("Personal record"), card: best, estimate: estimate,
+                                                     bodyPart: best.fromBodyKG ?? estimate, isRecord: true))
                     }
-                    let addedLabel = card.addedKG.map { kg in
-                        kg == 0 ? language.text("Bodyweight only") : language.text("Added weight") + " · " + weight(kg)
-                    } ?? language.text("Added weight not recorded")
-                    lines.append(HandMetric(text: addedLabel))
-                    return lines
                 }
-                sections.append(HandSection(title: last.position == .levelFloorReference ? language.text("Level-floor reference") : "", columns: columns))
+                load.stages = stages
+                if last.position == .levelFloorReference { load.reference = language.text("Level-floor reference") }
             }
             let references = rows.filter { $0.position != .floor && $0.bodyKG != nil }
-            let narrow = last.position == .narrowGrip
-            let baseColumns = endpoints(references).compactMap { stage -> [HandMetric]? in
-                guard let body = stage.card.bodyKG, let label = bodyLabel(stage.card) else { return nil }
-                let values = narrow ? [approximateWeight(body * guide.narrowGripBodyweightFraction)] : heights(guide.feetElevatedReferences, body)
-                return [stamp(stage), HandMetric(text: label)] + values.map { HandMetric(text: $0, size: 14, weight: .semibold) }
+            if narrow {
+                load.reference = language.text("Narrow-grip reference · Half shoulder width")
+                load.stages = endpoints(references).map { name, card in
+                    let body = (card.bodyKG ?? 0) * guide.narrowGripBodyweightFraction
+                    let added = (card.addedKG ?? 0) <= guide.maxStudiedAddedKg ? (card.addedKG ?? 0) * guide.addedWeightFraction : 0
+                    return HandLoad.Stage(title: name, card: card, estimate: body + added, bodyPart: body)
+                }
+            } else {
+                let base = endpoints(references)
+                let loaded = endpoints(references.filter { ($0.addedKG ?? 0) > 0 && ($0.addedKG ?? 0) <= guide.maxStudiedAddedKg })
+                if !base.isEmpty {
+                    func cm(_ value: Double) -> Int { Int(value.rounded()) }
+                    let heightsCm = (guide.feetElevatedReferences.map { cm($0.heightCm) } + guide.feetElevatedStaticReferences.map { cm($0.heightCm) })
+                        .reduce(into: [Int]()) { if !$0.contains($1) { $0.append($1) } }.sorted()
+                    var groups = [(title: language.text("Without backpack"), columns: base.map { stamp($0.0, $0.1) })]
+                    if !loaded.isEmpty {
+                        groups.append((language.text("With backpack"),
+                                       loaded.map { stamp($0.0, $0.1) + " · " + language.text("Added weight") + " · " + weight($0.1.addedKG ?? 0) }))
+                    }
+                    let rows = heightsCm.map { height -> (String, [String]) in
+                        let plain = guide.feetElevatedReferences.firstIndex { cm($0.heightCm) == height }
+                        let backpack = guide.feetElevatedStaticReferences.firstIndex { cm($0.heightCm) == height }
+                        let values = base.map { stage in plain.map { heights(guide.feetElevatedReferences, stage.1)[$0] } ?? "—" }
+                            + loaded.map { stage in
+                                backpack.map { heights(guide.feetElevatedStaticReferences, stage.1, added: stage.1.addedKG ?? 0)[$0] } ?? "—"
+                            }
+                        return (language.format("%@ cm", String(height)), values)
+                    }
+                    load.tables.append(HandLoad.Table(
+                        title: language.text("Feet elevated · Peak load from bodyweight") + " · " + language.text("Reference heights"),
+                        groups: groups, rows: rows))
+                }
             }
-            if !baseColumns.isEmpty {
-                let title = language.text(narrow ? "Narrow-grip reference · Half shoulder width" : "Feet elevated · Peak load from bodyweight")
-                let setup = narrow ? "" : " · " + language.text("Reference heights")
-                sections.append(HandSection(title: title + " · " + language.text("Without backpack") + setup, columns: baseColumns))
-            }
-            let loaded = references.filter { ($0.addedKG ?? 0) > 0 && ($0.addedKG ?? 0) <= guide.maxStudiedAddedKg }
-            let modelColumns = endpoints(loaded).compactMap { stage -> [HandMetric]? in
-                guard let body = stage.card.bodyKG, let added = stage.card.addedKG, let label = bodyLabel(stage.card) else { return nil }
-                let values = narrow ? [approximateWeight(body * guide.narrowGripBodyweightFraction + added * guide.addedWeightFraction)]
-                    : heights(guide.feetElevatedStaticReferences, body, added: added)
-                return [stamp(stage), HandMetric(text: label + " · " + language.text("Added weight") + " · " + weight(added))]
-                    + values.map { HandMetric(text: $0, size: 14, weight: .bold) }
-            }
-            if !modelColumns.isEmpty {
-                sections.append(HandSection(title: language.text("With backpack"), columns: modelColumns))
-            }
-            let bodyweightSets = variant.sessions.reduce(0) { $0 + $1.bodyweightPushUpSets }
-            if bodyweightSets > 0 {
-                let count = variant.sessions.reduce(0) { $0 + $1.bodyweightPushUpReps }
-                let details = language.text("Sets") + " · " + number(Double(bodyweightSets)) + "     " + language.format("%d reps", count)
-                sections.append(HandSection(title: language.text("Bodyweight only"), columns: [[HandMetric(text: details, size: 13, weight: .semibold)]]))
-            }
-            return sections
+            return load
         }
 
-        private func handLoadContent(_ sections: [HandSection], top: CGFloat?, draw: Bool) -> CGFloat {
-            var cursor = top ?? 0
-            let start = cursor
-            for section in sections {
-                if !section.title.isEmpty {
-                    for part in wrapped(section.title, width: 512, size: 12, weight: .bold) {
-                        if draw { label(part, 50, cursor, 512, size: 12, weight: .bold, color: green) }
-                        cursor += 16
-                    }
+        private func handLoadHeight(_ load: HandLoad) -> CGFloat {
+            load.isEmpty ? 0 : handLoadContent(load, top: 0, draw: false) + 10
+        }
+
+        /// Lays out (and optionally draws) the hand-load card; returns its height.
+        @discardableResult
+        private func handLoadContent(_ load: HandLoad, top: CGFloat, draw: Bool) -> CGFloat {
+            let pad: CGFloat = 20, inner = width - pad * 2
+            var cursor = top + 18
+            let onlyCounts = load.stages.isEmpty && load.tables.isEmpty
+            if draw {
+                label(language.text(onlyCounts ? "Recorded reps" : "Estimated load at the hands"), left + pad, cursor + 1, inner - 200, size: 13,
+                      weight: .heavy)
+                if !load.reference.isEmpty {
+                    label(load.reference, right - pad - 230, cursor + 3, 230, size: 9.5, weight: .semibold, color: green, alignment: .right)
                 }
-                let width = 512 / CGFloat(section.columns.count)
-                var bottom = cursor
-                for (index, column) in section.columns.enumerated() {
-                    var lineTop = cursor
-                    for metric in column {
-                        for part in wrapped(metric.text, width: width - 5, size: metric.size, weight: metric.weight) {
-                            if draw { label(part, 50 + CGFloat(index) * width, lineTop, width - 5,
-                                            size: metric.size, weight: metric.weight, color: metric.size >= 14 ? green : ink) }
-                            lineTop += metric.size + 4
+            }
+            cursor += 30
+            if !load.stages.isEmpty {
+                let gap: CGFloat = 14
+                let columnWidth = (inner - gap * CGFloat(load.stages.count - 1)) / CGFloat(load.stages.count)
+                let scale = load.stages.map(\.estimate).max() ?? 1
+                var lowest = cursor
+                for (index, stage) in load.stages.enumerated() {
+                    let x = left + pad + CGFloat(index) * (columnWidth + gap)
+                    let card = stage.card
+                    let added = card.addedKG ?? 0
+                    let isLatest = stage.title == language.text("Latest")
+                    let accent = stage.isRecord ? amberInk : isLatest ? green : ink
+                    var line = cursor
+                    if draw {
+                        let title = stage.title + (stage.isRecord && stage.title != language.text("Personal record") ? " · " + language.text("Personal record") : "")
+                        label((stage.isRecord ? "★ " : "") + title + " · " + language.dateKey(card.date), x, line, columnWidth, size: 9,
+                              weight: .bold, color: stage.isRecord ? amberInk : muted)
+                        label(approximateWeight(stage.estimate), x, line + 13, columnWidth, size: 26, weight: .heavy, color: accent, rounded: true)
+                        label(language.text(added > 0 ? "With backpack" : "Without backpack"), x, line + 48, columnWidth, size: 10, weight: .semibold, color: soft)
+                        let track = CGRect(x: x, y: line + 66, width: columnWidth, height: 8)
+                        fill(track, ink.withAlphaComponent(0.06), radius: 4)
+                        let total = track.width * CGFloat(stage.estimate / scale)
+                        let bodyWidth = total * CGFloat(min(1, stage.bodyPart / max(stage.estimate, 0.1)))
+                        gradient(CGRect(x: x, y: track.minY, width: max(8, bodyWidth), height: 8), [glow, series], vertical: false, radius: 4)
+                        if total - bodyWidth > 1 {
+                            gradient(CGRect(x: x + bodyWidth + 1.5, y: track.minY, width: max(4, total - bodyWidth - 1.5), height: 8),
+                                     [Self.rgb(0xFFC53D), amber], vertical: false, radius: 4)
+                        }
+                        if index > 0, load.stages.first?.title == language.text("First"), isLatest {
+                            let change = stage.estimate - load.stages[0].estimate
+                            if abs(report.unit.value(fromKilograms: change)) >= 0.5 {
+                                let text = (change > 0 ? "+" : "−") + approximateWeight(abs(change)).replacingOccurrences(of: "≈ ", with: "")
+                                let chip = measure(text, size: 9.5, weight: .bold, rounded: true) + 14
+                                let valueWidth = measure(approximateWeight(stage.estimate), size: 26, weight: .heavy, rounded: true)
+                                let frame = CGRect(x: x + valueWidth + 8, y: line + 22, width: chip, height: 18)
+                                glass(frame, radius: 9, tint: change > 0 ? mint : .white, opacity: 0.8)
+                                centered(text, in: frame, size: 9.5, weight: .bold, color: change > 0 ? green : soft, rounded: true)
+                            }
                         }
                     }
-                    bottom = max(bottom, lineTop)
+                    line += 82
+                    var notes: [(String, UIColor?)] = []
+                    if added > 0 {
+                        notes.append((language.text("Without backpack") + " · " + approximateWeight(stage.bodyPart), series))
+                        notes.append((language.text("Added weight") + " · " + weight(added), amber))
+                    } else {
+                        notes.append((language.text(card.addedKG == nil ? "Added weight not recorded" : "Bodyweight only"), nil))
+                    }
+                    if let body = card.bodyKG {
+                        notes.append((language.text(card.atCurrentMass ? "At current bodyweight" : "Bodyweight") + " · " + weight(body), nil))
+                    }
+                    for (text, swatch) in notes {
+                        if draw {
+                            if let swatch { fill(CGRect(x: x, y: line + 4, width: 6, height: 6), swatch, radius: 3) }
+                            label(text, x + (swatch == nil ? 0 : 10), line, columnWidth - 10, size: 9, color: soft)
+                        }
+                        line += 13
+                    }
+                    lowest = max(lowest, line)
                 }
-                cursor = bottom + 7
+                cursor = lowest + 8
             }
-            return cursor - start
+            for table in load.tables {
+                if draw { fill(CGRect(x: left + pad, y: cursor, width: inner, height: 0.8), UIColor.white.withAlphaComponent(0.95)) }
+                cursor += 9
+                let titleLines = wrapped(table.title, width: inner, size: 9, weight: .bold)
+                for part in titleLines {
+                    if draw { label(part, left + pad, cursor, inner, size: 9, weight: .bold, color: green) }
+                    cursor += 13
+                }
+                let labelWidth: CGFloat = 54
+                let columnCount = table.groups.reduce(0) { $0 + $1.columns.count }
+                let columnWidth = (inner - labelWidth) / CGFloat(max(1, columnCount))
+                var column = 0
+                var headerHeight: CGFloat = 0
+                for group in table.groups {
+                    let x = left + pad + labelWidth + CGFloat(column) * columnWidth
+                    if draw {
+                        label(group.title, x, cursor, columnWidth * CGFloat(group.columns.count) - 8, size: 9, weight: .bold, color: soft)
+                        fill(CGRect(x: x, y: cursor + 13, width: columnWidth * CGFloat(group.columns.count) - 10, height: 0.8), ink.withAlphaComponent(0.1))
+                    }
+                    for (offset, title) in group.columns.enumerated() {
+                        let lines = wrapped(title, width: columnWidth - 8, size: 8.5, weight: .semibold)
+                        if draw {
+                            for (line, part) in lines.enumerated() {
+                                label(part, x + CGFloat(offset) * columnWidth, cursor + 17 + CGFloat(line) * 11, columnWidth - 8,
+                                      size: 8.5, weight: .semibold, color: muted)
+                            }
+                        }
+                        headerHeight = max(headerHeight, 17 + CGFloat(lines.count) * 11)
+                    }
+                    column += group.columns.count
+                }
+                cursor += headerHeight + 3
+                for (name, values) in table.rows {
+                    if draw {
+                        label(name, left + pad, cursor, labelWidth, size: 10, weight: .semibold, color: soft)
+                        for (index, value) in values.enumerated() {
+                            label(value, left + pad + labelWidth + CGFloat(index) * columnWidth, cursor, columnWidth - 8, size: 10.5,
+                                  weight: .bold, color: ink, rounded: true)
+                        }
+                    }
+                    cursor += 15
+                }
+                cursor += 4
+            }
+            if load.bodyweightSets > 0 {
+                let text = language.text("Bodyweight only") + "   ·   " + language.text("Sets") + " · " + number(Double(load.bodyweightSets))
+                    + "   ·   " + language.format("%d reps", load.bodyweightReps)
+                if draw {
+                    let chip = min(inner, measure(text, size: 10, weight: .semibold) + 24)
+                    glass(CGRect(x: left + pad, y: cursor + 2, width: chip, height: 24), radius: 12, opacity: 0.7)
+                    label(text, left + pad + 12, cursor + 7, chip - 24, size: 10, weight: .semibold, color: soft)
+                }
+                cursor += 32
+            }
+            return cursor + 10 - top
         }
 
-        private func pushUpHeight(_ sections: [HandSection]) -> CGFloat {
-            sections.isEmpty ? 0 : 46 + handLoadContent(sections, top: nil, draw: false)
+        private func drawHandLoadSections(_ load: HandLoad) {
+            guard !load.isEmpty else { return }
+            let height = handLoadContent(load, top: 0, draw: false)
+            if y + 6 + height > bottom { continuePage() }
+            let frame = CGRect(x: left, y: y + 6, width: width, height: height)
+            glass(frame, radius: 24, tint: mint, opacity: 0.28)
+            handLoadContent(load, top: frame.minY, draw: true)
+            y = frame.maxY + 6
         }
 
-        private func drawHandLoadSections(_ sections: [HandSection], exercise: String) {
-            let height = pushUpHeight(sections)
-            guard height > 0 else { return }
-            if y + height > 738 { begin(exercise, subtitle: "") }
-            let frame = CGRect(x: 38, y: y + 4, width: 536, height: height - 10)
-            UIColor(red: 0.92, green: 0.97, blue: 0.95, alpha: 1).setFill()
-            UIBezierPath(roundedRect: frame, cornerRadius: 12).fill()
-            let onlyCounts = sections.count == 1 && sections[0].title == language.text("Bodyweight only")
-            label(language.text(onlyCounts ? "Recorded reps" : "Estimated load at the hands"),
-                  50, frame.minY + 8, 512, size: 17, weight: .bold)
-            _ = handLoadContent(sections, top: frame.minY + 33, draw: true)
-            y += height
-        }
+        // MARK: Working leg
 
         private enum LegSupport: String, Decodable { case rearFootElevated, singleSupport, sharedSupport, externalOnly }
 
@@ -731,6 +1310,7 @@ struct AvatarReport: Transferable {
             struct Entry {
                 let date: String
                 let load: String
+                let loadKG: Double?
                 let combined: String?
                 let estimate: String?
                 let recordedReps: String?
@@ -745,13 +1325,15 @@ struct AvatarReport: Transferable {
                 let performance: String
             }
             let record: Record?
-            var height: CGFloat { record == nil ? 250 : 310 }
+            var height: CGFloat { record == nil ? 222 : 284 }
         }
 
         private func legPanel(_ variant: StrengthProgress.ExerciseHistory) -> LegPanel? {
             let id = variant.key.hasPrefix("movement:") ? String(variant.key.dropFirst(9)) : ExerciseCatalog.movementID(matchingName: variant.name)
-            guard let id, var support = Self.legGuide[id], let earliest = report.earlierFirst[variant.key] ?? variant.sessions.first,
-                  let latest = variant.sessions.last else { return nil }
+            // Before, after and the record all come from sessions with a recorded working load, like the chart.
+            let eligible = variant.sessions.filter { $0.heaviestSet != nil }
+            guard let id, var support = Self.legGuide[id], let earliest = report.earlierFirst[variant.key] ?? eligible.first,
+                  let latest = eligible.last else { return nil }
             let words = Set(variant.name.lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init))
             if !words.isDisjoint(with: ["or", "assisted", "supported", "machine", "smith", "cable", "band"]) { support = .externalOnly }
             func combined(_ row: StrengthProgress.SessionTotals) -> Double? {
@@ -762,21 +1344,19 @@ struct AvatarReport: Transferable {
             func entry(_ row: StrengthProgress.SessionTotals) -> LegPanel.Entry {
                 let total = combined(row)
                 let estimate: String? = total.flatMap { all in
-                    guard support == .rearFootElevated || support == .singleSupport else { return nil }
-                    let units = report.unit.value(fromKilograms: all * (support == .rearFootElevated ? 0.8436 : 1))
+                    guard support == .rearFootElevated else { return nil }
+                    let units = report.unit.value(fromKilograms: all * 0.8436)
                     return "≈ " + number(units.rounded()) + " " + report.unit.suffix
                 }
                 return .init(date: language.dateKey(row.date), load: row.heaviestSet.map { weight($0.kg) } ?? language.text("Not recorded"),
-                             combined: total.map(weight), estimate: estimate,
+                             loadKG: row.heaviestSet?.kg, combined: total.map(weight), estimate: estimate,
                              recordedReps: row.heaviestSet == nil ? row.totals.recordedReps.map { language.format("%d reps", $0) } : nil)
             }
-            let eligible = variant.sessions.filter { $0.heaviestSet != nil }
-            let withBody = eligible.filter { combined($0) != nil }
-            let useBody = !withBody.isEmpty
-            let peak = (useBody ? withBody : eligible).max {
-                let lhs = (useBody ? combined($0) : $0.heaviestSet?.kg) ?? 0
-                let rhs = (useBody ? combined($1) : $1.heaviestSet?.kg) ?? 0
-                return (lhs, $0.heaviestSet?.reps ?? 0) < (rhs, $1.heaviestSet?.reps ?? 0)
+            // A personal record is the heaviest working load (then most reps); bodyweight changes cannot set one.
+            let peak = eligible.max { lhs, rhs in
+                let a = lhs.heaviestSet.map { ($0.kg, $0.reps) } ?? (0, 0)
+                let b = rhs.heaviestSet.map { ($0.kg, $0.reps) } ?? (0, 0)
+                return a < b
             }
             let record = peak.flatMap { row in
                 row.heaviestSet.map { set in
@@ -785,70 +1365,81 @@ struct AvatarReport: Transferable {
                 }
             }
             return LegPanel(movement: id, before: entry(earliest), after: entry(latest),
-                            estimateLabel: language.text(support == .rearFootElevated ? "Front foot · estimated" : "Standing foot · estimated"),
-                            record: record)
+                            estimateLabel: language.text("Front foot · estimated"), record: record)
         }
 
-        private func drawLegPanel(_ panel: LegPanel, exercise: String) {
-            if y + 8 + panel.height > 742 { begin(exercise, subtitle: "") }
-            let top = y + 8
-            let frame = CGRect(x: 38, y: top, width: 536, height: panel.height)
-            UIColor(red: 0.94, green: 0.97, blue: 0.96, alpha: 1).setFill()
-            UIBezierPath(roundedRect: frame, cornerRadius: 14).fill()
-            label(language.text("Working leg"), 52, top + 12, 504, size: 25, weight: .heavy)
+        private func drawLegPanel(_ panel: LegPanel) {
+            if y + 14 + panel.height > bottom { continuePage() }
+            y += 14
+            let frame = CGRect(x: left, y: y, width: width, height: panel.height)
+            glass(frame, radius: 26, tint: mint, opacity: 0.3)
+            label(language.text("Working leg"), left + 18, y + 14, 280, size: 16, weight: .heavy)
+            if let joined = report.joinedDate {
+                label(language.text("Joined FITR MAX") + " · " + language.dateKey(joined), left + 290, y + 18, width - 308,
+                      size: 9, color: muted, alignment: .right)
+            }
             let illustration = Bundle.main.url(forResource: panel.movement, withExtension: "webp", subdirectory: "leg-anatomy")
                 .flatMap { UIImage(contentsOfFile: $0.path) }
-            for (i, entry) in [panel.before, panel.after].enumerated() {
-                let x: CGFloat = i == 0 ? 50 : 311
-                let tile = CGRect(x: x, y: top + 56, width: 251, height: 182)
-                (i == 0 ? UIColor.white : UIColor(red: 0.81, green: 0.94, blue: 0.90, alpha: 1)).setFill()
-                UIBezierPath(roundedRect: tile, cornerRadius: 9).fill()
-                let title = language.text(i == 0 ? "Before" : "After").uppercased(with: language.language.locale)
-                label(title, x + 10, tile.minY + 7, 230, size: 20, weight: .heavy)
-                label(entry.date, x + 10, tile.minY + 34, 230, size: 16, weight: .semibold)
-                if i == 0, let joined = report.joinedDate {
-                    label(language.text("Joined FITR MAX") + " · " + language.dateKey(joined),
-                          x + 10, tile.minY + 55, 230, size: 9, color: muted)
-                }
+            let tileTop = y + 46, tileHeight: CGFloat = 160, arrowGap: CGFloat = 36
+            let tileWidth = (width - 28 - arrowGap) / 2
+            for (index, entry) in [panel.before, panel.after].enumerated() {
+                let x = left + 14 + CGFloat(index) * (tileWidth + arrowGap)
+                let tile = CGRect(x: x, y: tileTop, width: tileWidth, height: tileHeight)
+                glass(tile, radius: 18, tint: index == 0 ? .white : mint, opacity: index == 0 ? 0.74 : 0.62)
+                label(language.text(index == 0 ? "Before" : "After").uppercased(with: locale), x + 14, tile.minY + 12, tileWidth - 28,
+                      size: 11, weight: .heavy, color: green)
+                label(entry.date, x + 14, tile.minY + 28, tileWidth - 28, size: 15, weight: .semibold)
                 if let illustration {
-                    let scale = min(68 / illustration.size.width, 90 / illustration.size.height)
+                    let scale = min(60 / illustration.size.width, 88 / illustration.size.height)
                     let size = CGSize(width: illustration.size.width * scale, height: illustration.size.height * scale)
-                    illustration.draw(in: CGRect(x: x + 40 - size.width / 2, y: tile.minY + 117 - size.height / 2,
+                    illustration.draw(in: CGRect(x: x + 44 - size.width / 2, y: tile.minY + 104 - size.height / 2,
                                                  width: size.width, height: size.height))
                 }
-                let textX = x + 81
-                label(language.text("Added weight"), textX, tile.minY + 70, 163, size: 13, weight: .semibold)
-                label(entry.load, textX, tile.minY + 88, 163, size: 18, weight: .bold)
+                let textX = x + 88, textWidth = tileWidth - 100
+                label(language.text("Added weight"), textX, tile.minY + 52, textWidth, size: 10, weight: .semibold, color: muted)
+                label(entry.load, textX, tile.minY + 65, textWidth, size: 21, weight: .bold, rounded: true)
                 if let combined = entry.combined {
-                    label(language.text("Body + load"), textX, tile.minY + 118, 163, size: 13, weight: .semibold)
-                    label(combined, textX, tile.minY + 137, 163, size: 22, weight: .bold, color: green)
+                    label(language.text("Body + load"), textX, tile.minY + 94, textWidth, size: 10, weight: .semibold, color: muted)
+                    label(combined, textX, tile.minY + 107, textWidth, size: 21, weight: .bold, color: green, rounded: true)
                 }
                 if let reps = entry.recordedReps {
-                    label(language.text("Recorded reps") + " · " + reps, textX, tile.minY + 122, 163, size: 11, weight: .semibold)
+                    label(language.text("Recorded reps") + " · " + reps, textX, tile.minY + 98, textWidth, size: 10.5, weight: .semibold)
                 }
                 if let estimate = entry.estimate {
-                    label(panel.estimateLabel + " " + estimate, textX, tile.minY + 166, 163, size: 9, color: muted)
+                    for (line, part) in wrapped(panel.estimateLabel + " " + estimate, width: textWidth, size: 8.5).prefix(2).enumerated() {
+                        label(part, textX, tile.minY + 135 + CGFloat(line) * 11, textWidth, size: 8.5, color: muted)
+                    }
                 }
+            }
+            let center = CGPoint(x: left + 14 + tileWidth + arrowGap / 2, y: tileTop + tileHeight / 2)
+            let arrow = CGRect(x: center.x - 14, y: center.y - 14, width: 28, height: 28)
+            glass(arrow, radius: 14, opacity: 0.9)
+            centered("→", in: arrow, size: 14, weight: .bold, color: green)
+            if let before = panel.before.loadKG, let after = panel.after.loadKG, after != before {
+                let text = (after > before ? "+" : "") + weight(after - before)
+                let chip = measure(text, size: 8.5, weight: .bold, rounded: true) + 10
+                let frame = CGRect(x: center.x - chip / 2, y: center.y + 17, width: chip, height: 15)
+                glass(frame, radius: 7.5, opacity: 0.9)
+                centered(text, in: frame, size: 8.5, weight: .bold, color: green, rounded: true)
             }
             if let record = panel.record {
-                let card = CGRect(x: 50, y: top + 245, width: 512, height: 55)
-                UIColor(red: 0.905, green: 0.97, blue: 0.95, alpha: 1).setFill()
-                UIBezierPath(roundedRect: card, cornerRadius: 9).fill()
-                let heading = language.text("Personal record").uppercased(with: language.language.locale)
-                let headingLines = wrapped(heading, width: 189, size: 16, weight: .heavy)
-                for (i, part) in headingLines.enumerated() {
-                    label(part, 61, card.minY + 5 + CGFloat(i) * 17, 189, size: 16, weight: .heavy, color: ink)
+                let card = CGRect(x: left + 14, y: tileTop + tileHeight + 12, width: width - 28, height: 52)
+                glass(card, radius: 18, tint: amberWash, opacity: 0.86)
+                let heading = language.text("Personal record").uppercased(with: locale)
+                let headingLines = wrapped(heading, width: 200, size: 13, weight: .heavy)
+                for (line, part) in headingLines.enumerated() {
+                    label(part, card.minX + 18, card.minY + 9 + CGFloat(line) * 15, 200, size: 13, weight: .heavy, color: amberInk)
                 }
-                label(record.performance, 61, card.minY + (headingLines.count > 1 ? 39 : 30), 189, size: 11, color: muted)
-                let metrics = [(language.text("Added weight"), Optional(record.added)), (language.text("Body + load"), record.combined)]
-                for (i, metric) in metrics.enumerated() {
+                label(record.performance, card.minX + 18, card.minY + (headingLines.count > 1 ? 37 : 27), 200, size: 10.5, color: soft)
+                let metrics = [(language.text("Added weight"), Optional(record.added), amberInk), (language.text("Body + load"), record.combined, green)]
+                for (index, metric) in metrics.enumerated() {
                     guard let value = metric.1 else { continue }
-                    let x: CGFloat = 257 + CGFloat(i) * 152
-                    label(metric.0, x, card.minY + 6, 145, size: 12, weight: .semibold, color: ink)
-                    label(value, x, card.minY + 23, 145, size: 20, weight: .bold, color: green)
+                    let x = card.minX + 222 + CGFloat(index) * 132
+                    label(metric.0, x, card.minY + 7, 126, size: 10, weight: .semibold, color: muted)
+                    label(value, x, card.minY + 20, 126, size: 20, weight: .bold, color: metric.2, rounded: true)
                 }
             }
-            y = frame.maxY + 4
+            y = frame.maxY
         }
 
         private func chartHeading(_ variant: StrengthProgress.ExerciseHistory) -> String {
@@ -867,124 +1458,99 @@ struct AvatarReport: Transferable {
             return parts.variation.map { $0 == full ? full : parts.main + " · " + $0 } ?? parts.main
         }
 
-        private func drawChart(_ variant: StrengthProgress.ExerciseHistory, points: [ChartPoint], panel: LegPanel?, single: String?, firstInSection: Bool) {
-            guard let first = points.first, let last = points.last,
-                  let peak = points.max(by: { $0.value < $1.value }) else { return }
-            let highest = peak.value
-            let calendar = WorkoutChartCalendar(first: first.date, last: last.date)
-            let title = wrapped(chartHeading(variant), width: 536, size: 21, weight: .bold)
-            let totals = [(language.text("Recorded reps"), recordedReps(variant.totals)),
-                          (language.text("Lifted volume"), liftedVolume(variant.totals))]
-                .compactMap { key, value in value.map { key + " " + $0 } }
-            let totalLines = totals.isEmpty ? [] : wrapped(language.text(report.period.rawValue) + "   ·   " + totals.joined(separator: "   ·   "),
-                                                         width: 536, size: 11, weight: .semibold)
-            let height = 288 + CGFloat(title.count - 1) * 27 + CGFloat(totalLines.count) * 16
-                + (panel.map { $0.height + 12 } ?? 0) + (single == nil ? 0 : 16)
-            func heading() {
-                begin("Strength progress", subtitle: language.text("Heaviest recorded working load in each completed session."))
+        // MARK: Avatar scores
+
+        func drawScores(_ rows: [RPGSnapshot]) {
+            let datedRows = rows.compactMap { row in
+                APEXDateMath.date(from: row.date).map { (row: row, time: $0.timeIntervalSinceReferenceDate) }
             }
-            if firstInSection || y + height > 730 { heading() }
-            label(language.text(variant.familyRegion.rawValue), 38, y, 536, size: 12, weight: .semibold, color: green)
-            y += 17
-            for titleLine in title {
-                if y + 28 > 730 { heading() }
-                label(titleLine, 38, y, 536, size: 21, weight: .bold)
-                y += 27
+            let start = datedRows.first?.time ?? 0
+            let span = (datedRows.last?.time ?? start) - start
+            let metrics: [(String, String, KeyPath<RPGSnapshot, Double>)] = [
+                ("overall", "Overall Fitness Level", \.overall), ("health", "Health", \.health),
+                ("joint", "Joint Health Balance", \.joint), ("flexibility", "Body Flexibility", \.flexibility),
+                ("endurance", "Endurance & VO₂ max", \.endurance), ("strength", "Strength", \.strength),
+                ("upper", "Upper Body Strength", \.strengthUpper), ("lower", "Lower Body Strength", \.strengthLower),
+            ]
+            let recorded = metrics.compactMap { key, title, path -> (String, KeyPath<RPGSnapshot, Double>, Double)? in
+                guard let value = rows.last?[keyPath: path] ?? report.partialScores[key], value.isFinite else { return nil }
+                return (title, path, value)
             }
-            y -= 24
-            let chartReduction: CGFloat = panel.map {
-                let panelBottom = y + 268 + CGFloat(totalLines.count) * 16 + (single == nil ? 0 : 16) + 8 + $0.height
-                return min(45, max(0, panelBottom - 738))
-            } ?? 0
-            let field = CGRect(x: 38, y: y + 33, width: 536, height: 141 - chartReduction)
-            UIColor(red: 0.96, green: 0.95, blue: 0.99, alpha: 1).setFill()
-            UIBezierPath(roundedRect: field, cornerRadius: 12).fill()
-            let plot = CGRect(x: 102, y: field.minY + 15, width: 436, height: 92 - chartReduction)
-            for tick in [0, highest / 2, highest] {
-                let tickY = plot.maxY - CGFloat(tick / highest) * plot.height
-                label(weight(tick), 40, tickY - 7, 56, size: 10, color: muted, alignment: .right)
-                line(plot.minX, tickY, plot.maxX, tickY, color: rule)
+            guard !recorded.isEmpty else { return }
+            let dates = [datedRows.first?.row.date, datedRows.last?.row.date].compactMap { $0 }.map(language.dateKey)
+            let subtitle = dates.first == dates.last ? (dates.first ?? "") : dates.joined(separator: " – ")
+            begin("Avatar scores", subtitle: subtitle)
+            let gap: CGFloat = 12
+            let cardWidth = (width - gap) / 2
+            let rowsNeeded = CGFloat((recorded.count + 1) / 2)
+            let cardHeight = min(150, (bottom - y - gap * (rowsNeeded - 1)) / rowsNeeded)
+            for (index, metric) in recorded.enumerated() {
+                let (title, path, value) = metric
+                let x = left + CGFloat(index % 2) * (cardWidth + gap)
+                let cardTop = y + CGFloat(index / 2) * (cardHeight + gap)
+                glass(CGRect(x: x, y: cardTop, width: cardWidth, height: cardHeight), radius: 22, opacity: 0.55)
+                label(language.text(title), x + 16, cardTop + 14, cardWidth - 100, size: 11, weight: .semibold, color: soft)
+                label(number(value) + " / 100", x + 16, cardTop + 31, cardWidth - 32, size: 22, weight: .bold, rounded: true)
+                let track = CGRect(x: x + 16, y: cardTop + 64, width: cardWidth - 32, height: 5)
+                fill(track, ink.withAlphaComponent(0.07), radius: 2.5)
+                gradient(CGRect(x: track.minX, y: track.minY, width: max(5, track.width * CGFloat(min(100, max(0, value)) / 100)), height: 5),
+                         [glow, series, violet], vertical: false, radius: 2.5)
+                let series = datedRows.compactMap { row, time -> (Double, Double)? in
+                    let score = row[keyPath: path]
+                    return score.isFinite ? (span > 0 ? (time - start) / span : 0.5, score) : nil
+                }
+                if let first = series.first?.1, let last = series.last?.1, series.count >= 2 {
+                    let change = last - first
+                    let text = (change > 0 ? "+" : "") + number(change)
+                    let chip = measure(text, size: 9.5, weight: .bold, rounded: true) + 14
+                    let frame = CGRect(x: x + cardWidth - 16 - chip, y: cardTop + 13, width: chip, height: 18)
+                    glass(frame, radius: 9, tint: change > 0 ? mint : .white, opacity: 0.7)
+                    centered(text, in: frame, size: 9.5, weight: .bold, color: change > 0 ? green : soft, rounded: true)
+                    let bounds = CGRect(x: x + 16, y: cardTop + 80, width: cardWidth - 32, height: max(16, cardHeight - 96))
+                    let low = series.map(\.1).min() ?? 0, high = series.map(\.1).max() ?? 100
+                    let padding = max(2, (high - low) * 0.15)
+                    let floor = max(0, low - padding), ceiling = min(100, high + padding)
+                    let points = series.map { fraction, score in
+                        CGPoint(x: bounds.minX + fraction * bounds.width,
+                                y: bounds.maxY - (ceiling > floor ? (score - floor) / (ceiling - floor) : 0.5) * bounds.height)
+                    }
+                    sparkline(points, baseline: bounds.maxY)
+                }
             }
-            for tick in calendar.ticks {
-                let x = plot.minX + calendar.position(tick) * plot.width
-                line(x, plot.minY, x, plot.maxY, color: rule.withAlphaComponent(0.65))
-                label(calendar.label(tick, locale: language.language.locale), x - 34,
-                      plot.maxY + 7, 68, size: 9, color: muted, alignment: .center)
-            }
-            let positions = calendar.positions(for: points.map(\.date))
-            let coordinates = zip(points, positions).map { point, position in
-                CGPoint(x: plot.minX + position * plot.width,
-                        y: plot.maxY - point.value / highest * plot.height)
-            }
-            drawLoadTrace(coordinates, baseline: plot.maxY)
-            y -= chartReduction
-            func display(_ point: ChartPoint) -> String {
-                (point.reps.map { language.format("%d reps", $0) + " × " } ?? "") + weight(point.value)
-            }
-            let change = last.value - first.value
-            let delta = (change > 0 ? "+" : "") + weight(change)
-            func endpoint(_ title: String, _ index: Int) -> String {
-                let date = calendar.label(points[index].date, locale: language.language.locale)
-                return language.text(title) + " · #" + String(index + 1) + " · " + date
-            }
-            let summary = [(endpoint("First", 0), display(first)), (endpoint("Latest", points.count - 1), display(last)),
-                           (language.text("Change"), delta)]
-            for (metric, item) in summary.enumerated() {
-                let x = 38 + CGFloat(metric) * 182
-                let tint = metric == 2 ? UIColor(red: 0.97, green: 0.94, blue: 0.77, alpha: 1)
-                                       : UIColor(white: 0.965, alpha: 1)
-                tint.setFill()
-                UIBezierPath(roundedRect: CGRect(x: x, y: y + 183, width: 172, height: 47), cornerRadius: 9).fill()
-                label(item.0, x + 10, y + 186, 153, size: 10, color: muted)
-                label(item.1, x + 10, y + 200, 153, size: 15, weight: .bold)
-            }
-            let record = [language.text("Best working load"), display(peak),
-                          peak.date.formatted(Date.FormatStyle(locale: language.language.locale, timeZone: .gmt).year().month(.abbreviated).day())].joined(separator: " · ")
-            label(record, 38, y + 242, 536, size: 10, color: muted)
-            y += 268
-            if let single { paragraph(single, size: 11, color: green) }
-            for part in totalLines {
-                label(part, 38, y, 536, size: 11, weight: .semibold)
-                y += 16
-            }
-            if let panel { drawLegPanel(panel, exercise: variant.name) }
-            y += 12
+            y += rowsNeeded * (cardHeight + gap)
         }
 
-        private func drawLoadTrace(_ points: [CGPoint], baseline: CGFloat) {
-            guard let first = points.first, let last = points.last else { return }
-            let purple = UIColor(red: 0.38, green: 0.21, blue: 0.67, alpha: 1)
-            let path = UIBezierPath()
-            path.move(to: first)
-            for point in points.dropFirst() { path.addLine(to: point) }
-            if let area = path.copy() as? UIBezierPath {
-                area.addLine(to: CGPoint(x: last.x, y: baseline))
-                area.addLine(to: CGPoint(x: first.x, y: baseline))
-                area.close()
-                purple.withAlphaComponent(0.09).setFill()
-                area.fill()
-            }
-            path.lineWidth = 2.8
-            path.lineJoinStyle = .round
-            path.lineCapStyle = .round
-            purple.setStroke()
-            path.stroke()
-            for point in points {
-                let radius = points.count > 40 ? 1.4 : 2.8
-                purple.setFill()
-                UIBezierPath(ovalIn: CGRect(x: point.x - radius, y: point.y - radius,
-                                            width: radius * 2, height: radius * 2)).fill()
-            }
-            let end = UIBezierPath(ovalIn: CGRect(x: last.x - 4.3, y: last.y - 4.3, width: 8.6, height: 8.6))
-            UIColor.white.setFill()
-            end.fill()
-            purple.setStroke()
-            end.lineWidth = 2.7
-            end.stroke()
+        private func sparkline(_ points: [CGPoint], baseline: CGFloat) {
+            guard let last = points.last, let minX = points.first?.x else { return }
+            let top = points.map(\.y).min() ?? baseline
+            drawCurve(points, baseline: baseline, in: CGRect(x: minX, y: top, width: max(1, last.x - minX), height: max(1, baseline - top)), lineWidth: 2.2)
+            dot(last, radius: 9, fill: series.withAlphaComponent(0.16), ring: 0)
+            dot(last, radius: 3.6, fill: series, ring: 1.8)
         }
 
-        func wrapped(_ string: String, width: Double, size: CGFloat, weight: UIFont.Weight = .regular) -> [String] {
-            let text = NSAttributedString(string: string, attributes: [.font: UIFont.systemFont(ofSize: size, weight: weight)])
+        // MARK: Primitives
+
+        /// Archivo Expanded ExtraBold (SIL OFL, bundled in ReportFonts) sets the cover name; everything else uses the system face.
+        private static let displayFonts: Void = {
+            for name in ["Archivo_Expanded-ExtraBold"] {
+                guard let url = Bundle.main.url(forResource: name, withExtension: "ttf", subdirectory: "ReportFonts") else { continue }
+                CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+            }
+        }()
+
+        func font(_ size: CGFloat, _ weight: UIFont.Weight, rounded: Bool = false, display: Bool = false) -> UIFont {
+            if display {
+                _ = Self.displayFonts
+                if let face = UIFont(name: "ArchivoExpanded-ExtraBold", size: size) { return face }
+            }
+            let base = UIFont.systemFont(ofSize: size, weight: weight)
+            guard rounded, let descriptor = base.fontDescriptor.withDesign(.rounded) else { return base }
+            return UIFont(descriptor: descriptor, size: size)
+        }
+
+        func wrapped(_ string: String, width: Double, size: CGFloat, weight: UIFont.Weight = .regular, rounded: Bool = false,
+                     display: Bool = false) -> [String] {
+            let text = NSAttributedString(string: string, attributes: [.font: font(size, weight, rounded: rounded, display: display)])
             let typesetter = CTTypesetterCreateWithAttributedString(text)
             var offset = 0
             var lines: [String] = []
@@ -997,49 +1563,222 @@ struct AvatarReport: Transferable {
             return lines.isEmpty ? [""] : lines
         }
 
+        func measure(_ string: String, size: CGFloat, weight: UIFont.Weight, rounded: Bool = false, kern: CGFloat = 0,
+                     display: Bool = false) -> CGFloat {
+            var attributes: [NSAttributedString.Key: Any] = [.font: font(size, weight, rounded: rounded, display: display)]
+            if kern != 0 { attributes[.kern] = kern }
+            return ceil((string as NSString).size(withAttributes: attributes).width)
+        }
+
         func weight(_ kilograms: Double) -> String {
             number(report.unit.value(fromKilograms: kilograms)) + " " + report.unit.suffix
         }
 
         func number(_ value: Double) -> String {
-            value.formatted(.number.locale(language.language.locale).precision(.fractionLength(0...1)))
+            value.formatted(.number.locale(locale).precision(.fractionLength(0...1)))
         }
 
-        func trace(_ points: [CGPoint]) {
-            guard let first = points.first, let last = points.last else { return }
-            let path = UIBezierPath()
-            path.move(to: first)
-            for point in points.dropFirst() { path.addLine(to: point) }
-            green.setStroke()
-            path.lineWidth = 2
-            path.lineJoinStyle = .round
-            path.stroke()
-            green.setFill()
-            for point in points.count < 24 ? points : [first, last] {
-                UIBezierPath(ovalIn: CGRect(x: point.x - 2.6, y: point.y - 2.6, width: 5.2, height: 5.2)).fill()
+        func fill(_ rect: CGRect, _ color: UIColor, radius: CGFloat = 0) {
+            color.setFill()
+            (radius > 0 ? UIBezierPath(roundedRect: rect, cornerRadius: radius) : UIBezierPath(rect: rect)).fill()
+        }
+
+        func gradient(_ rect: CGRect, _ colors: [UIColor], vertical: Bool = true, radius: CGFloat = 0) {
+            let cg = context.cgContext
+            cg.saveGState()
+            if radius > 0 { UIBezierPath(roundedRect: rect, cornerRadius: radius).addClip() } else { cg.clip(to: rect) }
+            if let shading = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(), colors: colors.map(\.cgColor) as CFArray, locations: nil) {
+                cg.drawLinearGradient(shading, start: CGPoint(x: rect.minX, y: rect.minY),
+                                      end: vertical ? CGPoint(x: rect.minX, y: rect.maxY) : CGPoint(x: rect.maxX, y: rect.minY), options: [])
             }
+            cg.restoreGState()
         }
 
-        func line(_ x1: CGFloat, _ y1: CGFloat, _ x2: CGFloat, _ y2: CGFloat, color: UIColor) {
-            let path = UIBezierPath()
-            path.move(to: CGPoint(x: x1, y: y1))
-            path.addLine(to: CGPoint(x: x2, y: y2))
+        /// PDF shadings ignore alpha, so washes are mixed into the surface they sit on.
+        private func blend(_ color: UIColor, over base: UIColor, _ amount: CGFloat) -> UIColor {
+            var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0, r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+            color.getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
+            base.getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+            return UIColor(red: r2 + (r1 - r2) * amount, green: g2 + (g1 - g2) * amount, blue: b2 + (b1 - b2) * amount, alpha: 1)
+        }
+
+        private func stroke(_ rect: CGRect, _ color: UIColor, radius: CGFloat, lineWidth: CGFloat = 0.8) {
+            let path = UIBezierPath(roundedRect: rect.insetBy(dx: lineWidth / 2, dy: lineWidth / 2), cornerRadius: radius)
+            path.lineWidth = lineWidth
             color.setStroke()
-            path.lineWidth = 0.7
             path.stroke()
+        }
+
+        // MARK: Materials
+
+        /// Renders effects PDF vector shading cannot carry (alpha gradients, glows) into an embedded bitmap.
+        private func raster(_ size: CGSize, scale: CGFloat = 3, jpeg: Bool = false, _ draw: (CGContext) -> Void) -> UIImage {
+            let format = UIGraphicsImageRendererFormat()
+            format.scale = scale
+            format.opaque = jpeg
+            let image = UIGraphicsImageRenderer(size: size, format: format).image { draw($0.cgContext) }
+            guard jpeg, let data = image.jpegData(compressionQuality: 0.86), let compact = UIImage(data: data) else { return image }
+            return compact
+        }
+
+        private func radial(_ cg: CGContext, at center: CGPoint, radius: CGFloat, color: UIColor, alpha: CGFloat) {
+            guard let space = CGColorSpace(name: CGColorSpace.sRGB),
+                  let shading = CGGradient(colorsSpace: space, colors: [color.withAlphaComponent(alpha).cgColor,
+                                                                        color.withAlphaComponent(alpha * 0.45).cgColor,
+                                                                        color.withAlphaComponent(0).cgColor] as CFArray,
+                                           locations: [0, 0.45, 1]) else { return }
+            cg.drawRadialGradient(shading, startCenter: center, startRadius: 0, endCenter: center, endRadius: radius, options: [])
+        }
+
+        /// A soft aurora behind every page; the arrangement turns with the page so no two spreads repeat.
+        private func drawAurora() {
+            let size = AvatarReport.pageSize
+            let lavender = Pages.rgb(0xC6B6FF), peach = Pages.rgb(0xFFD3A1), aqua = Pages.rgb(0x8EE6D0), sky = Pages.rgb(0xA9D8FF)
+            let layouts: [[(CGFloat, CGFloat, CGFloat, UIColor, CGFloat)]] = [
+                [(0.98, 0.04, 340, aqua, 0.7), (0.02, 0.36, 290, lavender, 0.55), (0.92, 0.72, 310, peach, 0.46), (0.15, 0.98, 320, sky, 0.5)],
+                [(0.05, 0.06, 330, lavender, 0.55), (0.95, 0.32, 300, aqua, 0.66), (0.1, 0.74, 310, sky, 0.46), (0.9, 1.0, 300, peach, 0.46)],
+                [(0.9, 0.1, 320, peach, 0.46), (0.06, 0.45, 310, aqua, 0.62), (0.96, 0.66, 290, lavender, 0.52), (0.32, 1.02, 320, sky, 0.44)],
+            ]
+            let blobs = layouts[(page - 1) % layouts.count]
+            let image = raster(size, scale: 1, jpeg: true) { cg in
+                paper.setFill()
+                cg.fill(CGRect(origin: .zero, size: size))
+                for (x, y, radius, color, alpha) in blobs {
+                    radial(cg, at: CGPoint(x: size.width * x, y: size.height * y), radius: radius, color: color, alpha: alpha)
+                }
+            }
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
+
+        /// Frosted glass: a translucent pane with a bright rim, a top sheen and a faint lift off the page.
+        private func glass(_ rect: CGRect, radius: CGFloat = 20, tint: UIColor = .white, opacity: CGFloat = 0.58, dark: Bool = false) {
+            for step in 1...3 {
+                let spread = CGFloat(step) * 1.6
+                fill(rect.insetBy(dx: -spread, dy: -spread).offsetBy(dx: 0, dy: spread * 0.9),
+                     ink.withAlphaComponent(dark ? 0.06 : 0.022), radius: radius + spread)
+            }
+            fill(rect, tint.withAlphaComponent(opacity), radius: radius)
+            stroke(rect, UIColor.white.withAlphaComponent(dark ? 0.22 : 0.92), radius: radius, lineWidth: 1)
+            fill(CGRect(x: rect.minX + radius, y: rect.minY + 1.2, width: max(0, rect.width - radius * 2), height: 0.9),
+                 UIColor.white.withAlphaComponent(dark ? 0.32 : 1))
+        }
+
+        /// Monotone cubic interpolation: smooth, and never overshoots a recorded value.
+        private func smoothPath(_ points: [CGPoint]) -> UIBezierPath {
+            let path = UIBezierPath()
+            guard let first = points.first else { return path }
+            path.move(to: first)
+            let n = points.count
+            guard n > 2 else {
+                points.dropFirst().forEach { path.addLine(to: $0) }
+                return path
+            }
+            var slope = [CGFloat](repeating: 0, count: n - 1), tangent = [CGFloat](repeating: 0, count: n)
+            for i in 0..<(n - 1) {
+                let dx = points[i + 1].x - points[i].x
+                slope[i] = dx > 0 ? (points[i + 1].y - points[i].y) / dx : 0
+            }
+            tangent[0] = slope[0]
+            tangent[n - 1] = slope[n - 2]
+            for i in 1..<(n - 1) { tangent[i] = slope[i - 1] * slope[i] <= 0 ? 0 : (slope[i - 1] + slope[i]) / 2 }
+            for i in 0..<(n - 1) {
+                guard slope[i] != 0 else { tangent[i] = 0; tangent[i + 1] = 0; continue }
+                let a = tangent[i] / slope[i], b = tangent[i + 1] / slope[i], h = a * a + b * b
+                if h > 9 {
+                    let t = 3 / sqrt(h)
+                    tangent[i] = t * a * slope[i]
+                    tangent[i + 1] = t * b * slope[i]
+                }
+            }
+            for i in 0..<(n - 1) {
+                let dx = (points[i + 1].x - points[i].x) / 3
+                path.addCurve(to: points[i + 1],
+                              controlPoint1: CGPoint(x: points[i].x + dx, y: points[i].y + tangent[i] * dx),
+                              controlPoint2: CGPoint(x: points[i + 1].x - dx, y: points[i + 1].y - tangent[i + 1] * dx))
+            }
+            return path
+        }
+
+        /// A glowing gradient curve over a translucent fill, rendered once and placed as artwork.
+        private func drawCurve(_ points: [CGPoint], baseline: CGFloat, in frame: CGRect, lineWidth: CGFloat = 3) {
+            guard points.count >= 2, let first = points.first, let last = points.last else { return }
+            let pad: CGFloat = 16
+            let canvasRect = frame.insetBy(dx: -pad, dy: -pad)
+            let local = points.map { CGPoint(x: $0.x - canvasRect.minX, y: $0.y - canvasRect.minY) }
+            let floor = baseline - canvasRect.minY
+            let image = raster(canvasRect.size) { cg in
+                let curve = smoothPath(local)
+                guard let area = curve.copy() as? UIBezierPath, let space = CGColorSpace(name: CGColorSpace.sRGB) else { return }
+                area.addLine(to: CGPoint(x: local[local.count - 1].x, y: floor))
+                area.addLine(to: CGPoint(x: local[0].x, y: floor))
+                area.close()
+                let topY = local.map(\.y).min() ?? 0
+                cg.saveGState()
+                cg.addPath(area.cgPath)
+                cg.clip()
+                if let wash = CGGradient(colorsSpace: space, colors: [series.withAlphaComponent(0.34).cgColor, glow.withAlphaComponent(0.14).cgColor,
+                                                                      glow.withAlphaComponent(0).cgColor] as CFArray, locations: [0, 0.55, 1]) {
+                    cg.drawLinearGradient(wash, start: CGPoint(x: 0, y: topY), end: CGPoint(x: 0, y: floor), options: [])
+                }
+                cg.restoreGState()
+                cg.setLineCap(.round)
+                cg.setLineJoin(.round)
+                cg.saveGState()
+                cg.setShadow(offset: CGSize(width: 0, height: 4), blur: 10, color: series.withAlphaComponent(0.42).cgColor)
+                cg.addPath(curve.cgPath)
+                cg.setLineWidth(lineWidth)
+                cg.setStrokeColor(series.cgColor)
+                cg.strokePath()
+                cg.restoreGState()
+                cg.saveGState()
+                cg.addPath(curve.cgPath)
+                cg.setLineWidth(lineWidth + 0.4)
+                cg.replacePathWithStrokedPath()
+                cg.clip()
+                if let ink = CGGradient(colorsSpace: space, colors: [glow.cgColor, series.cgColor, violet.cgColor] as CFArray, locations: [0, 0.55, 1]) {
+                    cg.drawLinearGradient(ink, start: CGPoint(x: local[0].x, y: 0), end: CGPoint(x: local[local.count - 1].x, y: 0), options: [])
+                }
+                cg.restoreGState()
+            }
+            image.draw(in: canvasRect)
+            _ = (first, last)
+        }
+
+        /// Centers a single line optically: the cap height, not the line box, sits on the frame's middle.
+        private func centered(_ text: String, in rect: CGRect, size: CGFloat, weight: UIFont.Weight, color: UIColor, rounded: Bool = false) {
+            let face = font(size, weight, rounded: rounded)
+            label(text, rect.minX, rect.midY + face.capHeight / 2 - face.ascender, rect.width, size: size, weight: weight, color: color,
+                  alignment: .center, rounded: rounded)
+        }
+
+        /// The largest of the given sizes that keeps a title on one line, or the smallest when none does.
+        private func fittingSize(_ text: String, width: CGFloat, sizes: [CGFloat], weight: UIFont.Weight, display: Bool = false) -> CGFloat {
+            sizes.first { measure(text, size: $0, weight: weight, display: display) <= width } ?? sizes.last ?? 20
+        }
+
+        private func link(_ url: URL, _ rect: CGRect) {
+            context.setURL(url, for: context.cgContext.convertToDeviceSpace(rect))
         }
 
         func label(_ string: String, _ x: CGFloat, _ y: CGFloat, _ width: CGFloat,
                    size: CGFloat = 13, weight: UIFont.Weight = .regular, color: UIColor? = nil,
-                   alignment: NSTextAlignment = .left) {
+                   alignment: NSTextAlignment = .left, rounded: Bool = false, kern: CGFloat = 0, display: Bool = false) {
             let paragraph = NSMutableParagraphStyle()
             paragraph.alignment = alignment
             paragraph.lineBreakMode = .byTruncatingTail
-            let attributes: [NSAttributedString.Key: Any] = [
-                .font: UIFont.systemFont(ofSize: size, weight: weight),
-                .foregroundColor: color ?? ink, .paragraphStyle: paragraph,
+            var attributes: [NSAttributedString.Key: Any] = [
+                .font: font(size, weight, rounded: rounded, display: display), .foregroundColor: color ?? ink, .paragraphStyle: paragraph,
             ]
+            if kern != 0 { attributes[.kern] = kern }
             (string as NSString).draw(in: CGRect(x: x, y: y, width: width, height: size * 1.65), withAttributes: attributes)
         }
+    }
+}
+
+private extension UIColor {
+    var darker: UIColor {
+        var hue: CGFloat = 0, saturation: CGFloat = 0, brightness: CGFloat = 0, alpha: CGFloat = 0
+        getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+        return UIColor(hue: hue, saturation: saturation, brightness: brightness * 0.86, alpha: alpha)
     }
 }

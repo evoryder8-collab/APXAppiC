@@ -282,7 +282,7 @@ enum SimpleHomeLogic {
         date: String,
         programDayID: UUID
     ) -> UUID? {
-        sessions
+        StrengthProgress.withoutReplays(sessions)
             .filter {
                 $0.completed
                     && $0.userID == ownerID

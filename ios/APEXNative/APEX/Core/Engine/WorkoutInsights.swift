@@ -43,7 +43,7 @@ enum WorkoutInsights {
     ) -> Summary {
         let from = min(requestedFrom, requestedTo)
         let to = max(requestedFrom, requestedTo)
-        let allOwnedSessions = allSessions.filter { $0.userID == ownerID && $0.completed }
+        let allOwnedSessions = StrengthProgress.withoutReplays(allSessions.filter { $0.userID == ownerID && $0.completed })
         let allExternal = allImportedActivities.filter { activity in
             activity.userID == ownerID
                 && activity.hiddenAt == nil
@@ -55,14 +55,24 @@ enum WorkoutInsights {
         func attributedDate(_ activity: ImportedActivity) -> String {
             activity.apexWorkoutSessionID.flatMap { ownedDates[$0] } ?? activity.date
         }
-        let external = allExternal.filter { attributedDate($0) >= from && attributedDate($0) <= to }
+        let logs = allLogs.filter { log in
+            log.userID == ownerID && sessionIDs.contains(log.sessionID) && !log.skipped
+        }
+        // An unlinked Watch recording of an app workout is the same workout: attribute it instead of counting it twice.
+        let sessionsByDate = Dictionary(grouping: sessions, by: \.date)
+        let logsBySession = Dictionary(grouping: logs, by: \.sessionID)
+        let external = allExternal.compactMap { activity -> ImportedActivity? in
+            guard activity.apexWorkoutSessionID == nil,
+                  let session = sessionsByDate[activity.date]?.first(where: { session in
+                      TrainingProfile90.recordsSameWorkout(activity, as: session,
+                                                           modes: TrainingProfile90.modes(of: logsBySession[session.id] ?? []))
+                  }) else { return activity }
+            return activity.linkingToAPEXSession(session.id)
+        }.filter { attributedDate($0) >= from && attributedDate($0) <= to }
         let linkedSessionIDs = Set(external.compactMap { activity -> UUID? in
             guard let sessionID = activity.apexWorkoutSessionID, sessionIDs.contains(sessionID) else { return nil }
             return sessionID
         })
-        let logs = allLogs.filter { log in
-            log.userID == ownerID && sessionIDs.contains(log.sessionID) && !log.skipped
-        }
 
         var durationMinutes = external.reduce(0) { total, activity in
             total + max(0, activity.durationMinutes)
@@ -93,7 +103,7 @@ enum WorkoutInsights {
                   let value = log.distanceMeters, value.isFinite, value >= 0 else { return nil }
             return value
         }
-        let reps = logs.reduce(0) { $0 + max(0, $1.reps ?? 0) }
+        // Sets, reps and volume share the report's rules, so a timed hold stored in the reps field is not a repetition.
         let recorded = StrengthProgress.exerciseHistory(ownerID: ownerID, sessions: sessions, logs: logs, exercises: exercises)
             .reduce(into: StrengthProgress.LifetimeTotals()) { $0.add($1.totals) }
         let activeDates = Set(sessions.map(\.date) + external.map(attributedDate))
@@ -111,8 +121,8 @@ enum WorkoutInsights {
             activeDays: activeDates.count,
             durationMinutes: durationMinutes,
             activeEnergyKcal: energyFacts.isEmpty ? nil : energyFacts.reduce(0, +),
-            sets: logs.count,
-            reps: reps,
+            sets: recorded.sets,
+            reps: recorded.recordedReps ?? 0,
             volumeKG: recorded.liftedVolumeKG,
             partialVolume: recorded.liftedVolumeKG != nil && recorded.missingVolume,
             distanceKM: externalDistanceFacts.isEmpty && loggedDistanceFacts.isEmpty ? nil : distanceFacts,
@@ -137,7 +147,9 @@ enum WorkoutInsights {
 
     private static func validDurationMinutes(startedAt: String?, completedAt: String?) -> Int? {
         guard let startedAt, let completedAt,
-              let start = parseTimestamp(startedAt), let end = parseTimestamp(completedAt), end > start else { return nil }
+              let start = parseTimestamp(startedAt), let end = parseTimestamp(completedAt), end > start,
+              // A draft reopened the next day keeps its first start; that span is not training time.
+              end.timeIntervalSince(start) <= 6 * 3_600 else { return nil }
         return max(1, Int((end.timeIntervalSince(start) / 60).rounded()))
     }
 

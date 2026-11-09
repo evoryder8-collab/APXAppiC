@@ -19,6 +19,7 @@ enum LiftedMassComparison {
         var fact: String?
         var factSource: URL?
         var artworkURL: URL?
+        var kg: Double? = nil
     }
 
     private static let objects = landmarks("lifted-mass-landmarks")
@@ -117,6 +118,15 @@ enum LiftedMassComparison {
                           artworkURL: match.artwork.flatMap { Bundle.main.url(forResource: $0, withExtension: nil, subdirectory: "award-objects") })
     }
 
+    /// The largest fictional one-lift benchmark the total has already passed.
+    @MainActor
+    static func passedHeroCaption(kilograms: Double) -> Comparison? {
+        guard kilograms.isFinite, kilograms > 0, let hero = heroes.filter({ $0.kg <= kilograms }).max(by: { $0.kg < $1.kg }) else { return nil }
+        let language = LanguageState.shared
+        let caption = language.text(hero.name) + " · " + formattedMass(hero.kg, locale: language.language.locale)
+        return Comparison(caption: caption, source: hero.source, kg: hero.kg)
+    }
+
     @MainActor
     static func heroCaption(kilograms: Double) -> Comparison? {
         guard kilograms.isFinite, kilograms > 0,
@@ -128,6 +138,6 @@ enum LiftedMassComparison {
         let caption = language.text("Fictional one-lift benchmark · {hero} · {mass}")
             .replacingOccurrences(of: "{hero}", with: language.text(hero.name))
             .replacingOccurrences(of: "{mass}", with: mass)
-        return Comparison(caption: caption, source: hero.source)
+        return Comparison(caption: caption, source: hero.source, kg: hero.kg)
     }
 }

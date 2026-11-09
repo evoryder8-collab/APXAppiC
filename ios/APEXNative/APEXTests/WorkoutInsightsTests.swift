@@ -249,7 +249,8 @@ final class WorkoutInsightsTests: XCTestCase {
                                                sessions: [workout, later], logs: rows, importedActivities: [], exercises: [timed])
         let avatar = StrengthProgress.exerciseHistory(ownerID: ownerID, sessions: [workout], logs: rows, exercises: [timed])
         let totals = StrengthProgress.rankedFamilies(avatar).reduce(into: StrengthProgress.LifetimeTotals()) { $0.add($1.totals) }
-        XCTAssertEqual(summary.volumeKG, 192)
+        // The row saved without a movement ID shares its name with rows saved as `weighted_push_up`, so its 6 kg counts too.
+        XCTAssertEqual(summary.volumeKG, 264)
         XCTAssertEqual(summary.volumeKG, totals.liftedVolumeKG)
         XCTAssertEqual(summary.partialVolume, totals.missingVolume)
         XCTAssertTrue(summary.partialVolume)

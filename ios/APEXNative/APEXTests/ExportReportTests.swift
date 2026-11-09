@@ -185,7 +185,7 @@ final class ExportReportTests: XCTestCase {
         let pages = (0..<document.pageCount).compactMap { document.page(at: $0)?.string }
         let scorePage = try XCTUnwrap(pages.first { $0.contains(LanguageState.shared.text("Avatar scores")) })
         XCTAssertTrue(scorePage.contains("63 / 100"))
-        XCTAssertTrue(scorePage.contains("2026-01-05"))
+        XCTAssertTrue(scorePage.contains(LanguageState.shared.dateKey("2026-01-05")))
         let extracted = try XCTUnwrap(document.string)
         XCTAssertFalse(extracted.contains("99 / 100"))
         XCTAssertTrue(extracted.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ").contains("last word"))
@@ -247,8 +247,8 @@ final class ExportReportTests: XCTestCase {
         for (name, sessions, reps) in expectedRows {
             let title = try XCTUnwrap(document.findString(name, withOptions: .literal).first { $0.pages.first == page })
             let midY = title.bounds(for: page).midY
-            let sessionCell = CGRect(x: 242, y: midY - 3, width: 62, height: 6)
-            let repsCell = CGRect(x: 307, y: midY - 3, width: 74, height: 6)
+            let sessionCell = CGRect(x: 238, y: midY - 3, width: 58, height: 6)
+            let repsCell = CGRect(x: 299, y: midY - 3, width: 70, height: 6)
             XCTAssertEqual(page.selection(for: sessionCell)?.string?.trimmingCharacters(in: .whitespacesAndNewlines), String(sessions), name)
             XCTAssertEqual(page.selection(for: repsCell)?.string?.trimmingCharacters(in: .whitespacesAndNewlines), String(reps), name)
         }
@@ -352,7 +352,9 @@ final class ExportReportTests: XCTestCase {
         XCTAssertTrue(charts.contains(language.text("Before").uppercased(with: language.language.locale)))
         XCTAssertTrue(charts.contains(language.text("After").uppercased(with: language.language.locale)))
         XCTAssertTrue(charts.contains(language.text("Estimated load at the hands")))
-        XCTAssertTrue(charts.contains(language.text("Added weight not recorded")))
+        // A bodyweight push-up saved without a weight carried no added load.
+        XCTAssertTrue(charts.contains(language.text("Bodyweight only")))
+        XCTAssertFalse(charts.contains(language.text("Added weight not recorded")))
         XCTAssertFalse(charts.contains(language.text("Dumbbell Curl")))
         for (reps, kg) in [(18, 292), (30, 332)] {
             XCTAssertTrue(charts.contains(language.text("Recorded reps") + " " + String(reps)))
@@ -436,7 +438,7 @@ final class ExportReportTests: XCTestCase {
         XCTAssertLessThan(lunge.lowerBound, deadlift.lowerBound)
         let pushChart = charts[push.lowerBound..<lunge.lowerBound]
         XCTAssertTrue(pushChart.contains("+12 kg"))
-        XCTAssertTrue(pushChart.contains(language.format("%d reps", 10) + " × 0 kg"))
+        XCTAssertTrue(pushChart.contains(language.format("%d reps", 10) + " · " + language.text("Bodyweight")))
         XCTAssertTrue(pushChart.contains("#2"))
         XCTAssertFalse(pushChart.contains("#3"))
         XCTAssertFalse(charts.contains("Incline"))
@@ -500,8 +502,9 @@ final class ExportReportTests: XCTestCase {
         let pdf = report.pdfData()
         let language = LanguageState.shared
         let text = try XCTUnwrap(PDFDocument(data: pdf)?.string)
-        XCTAssertTrue(text.contains(language.text("Sets") + " · 2") && text.contains(language.format("%d reps", 15)))
-        XCTAssertTrue(text.contains(language.text("Added weight not recorded")))
+        // The unweighted first session counts as bodyweight work alongside the explicit 0 kg sets.
+        XCTAssertTrue(text.contains(language.text("Sets") + " · 3") && text.contains(language.format("%d reps", 23)))
+        XCTAssertFalse(text.contains(language.text("Added weight not recorded")))
         XCTAssertTrue(text.contains(language.text("Estimated load at the hands")))
         XCTAssertTrue(text.contains(language.text("Without backpack") + " · ≈ 26 kg"))
         XCTAssertTrue(text.contains(language.text("Added weight") + " · 10 kg"))
@@ -529,12 +532,12 @@ final class ExportReportTests: XCTestCase {
         XCTAssertTrue(ambiguous.contains(language.text("Level-floor reference")))
         XCTAssertTrue(ambiguous.contains("≈ 33 kg"))
         XCTAssertFalse(ambiguous.contains(language.text("Personal record")))
-        XCTAssertTrue(ambiguous.contains("0 cm · ≈ 26 kg") && ambiguous.contains(language.text("Without backpack")))
-        XCTAssertTrue(ambiguous.contains("30 cm · ≈ 29 kg") && ambiguous.contains("61 cm · ≈ 30 kg"))
+        XCTAssertTrue(ambiguous.contains("0 cm") && ambiguous.contains("≈ 26 kg") && ambiguous.contains(language.text("Without backpack")))
+        XCTAssertTrue(ambiguous.contains("30 cm") && ambiguous.contains("≈ 29 kg") && ambiguous.contains("61 cm") && ambiguous.contains("≈ 30 kg"))
         let elevated = try single("Feet-Elevated Push-Up", "feet_elevated_push_up", 10)
         XCTAssertTrue(elevated.contains(language.text("Feet elevated · Peak load from bodyweight")))
         XCTAssertTrue(elevated.contains(language.text("With backpack")))
-        XCTAssertTrue(elevated.contains("30 cm · ≈ 37 kg") && elevated.contains("61 cm · ≈ 37 kg"))
+        XCTAssertTrue(elevated.contains("30 cm") && elevated.contains("61 cm") && elevated.contains("≈ 37 kg"))
         XCTAssertFalse(elevated.contains("≈ 33 kg"))
         let narrow = try single("Diamond or Close-Grip Push-Up", "diamond_push_up", 10)
         XCTAssertTrue(narrow.contains(language.text("Narrow-grip reference · Half shoulder width")))
@@ -577,7 +580,9 @@ final class ExportReportTests: XCTestCase {
         let text = try XCTUnwrap(PDFDocument(data: pdf)?.string)
         let language = LanguageState.shared
         XCTAssertTrue(text.contains(language.format("%d reps", 10) + " × 36 kg"))
-        XCTAssertTrue(text.contains(language.text("Recorded reps") + " · " + language.format("%d reps", 20)))
+        // The before panel starts at the first recorded load, the same session the chart starts with.
+        XCTAssertFalse(text.contains(language.text("Not recorded")))
+        XCTAssertTrue(text.contains(language.dateKey("2026-08-14")))
         let sample = XCTAttachment(data: pdf, uniformTypeIdentifier: "com.adobe.pdf")
         sample.name = "Hip thrust receipt example.pdf"
         sample.lifetime = .keepAlways
@@ -618,14 +623,15 @@ final class ExportReportTests: XCTestCase {
             $0.string?.contains("Working leg") == true
         })
         let text = try XCTUnwrap(page.string)
-        XCTAssertTrue(text.contains("Best working load · 8 reps × 24 kg"))
+        XCTAssertTrue(text.contains("Best working load") && text.contains("8 reps × 24 kg"))
         XCTAssertTrue(text.contains("≈ 62 kg"))
         XCTAssertTrue(text.contains("73 kg"))
         XCTAssertTrue(text.contains("0 kg"))
         XCTAssertTrue(text.contains("BEFORE") && text.contains(language.dateKey("2026-02-01")))
         XCTAssertTrue(text.contains("AFTER") && text.contains(language.dateKey("2026-03-31")))
-        XCTAssertTrue(text.contains("PERSONAL RECORD") && text.contains("20 kg") && text.contains("90 kg"))
-        XCTAssertTrue(text.contains("8 reps · " + language.dateKey("2026-03-17")))
+        // The record is the heaviest working load; a heavier bodyweight on another day cannot set it.
+        XCTAssertTrue(text.contains("PERSONAL RECORD") && text.contains("24 kg") && text.contains("69 kg"))
+        XCTAssertTrue(text.contains("8 reps · " + language.dateKey("2026-03-10")))
         XCTAssertTrue(try XCTUnwrap(document.string).contains("Joined FITR MAX"))
         XCTAssertFalse(text.contains("200 kg"))
         let cover = try XCTUnwrap(document.page(at: 0))
@@ -637,7 +643,8 @@ final class ExportReportTests: XCTestCase {
         XCTAssertGreaterThan(try coverY("Strength athlete"), try coverY("Training totals"))
         XCTAssertGreaterThan(try coverY("Training totals"), try coverY("Around 4x Treadmills"))
         XCTAssertGreaterThan(try coverY("Around 4x Treadmills"), try coverY(hero.caption))
-        XCTAssertGreaterThan(try coverY(hero.caption), try coverY("Classified workouts"))
+        XCTAssertGreaterThan(try coverY("Strength athlete"), try coverY("Classified workouts"))
+        XCTAssertGreaterThan(try coverY("Classified workouts"), try coverY("Training totals"))
         let copy = try XCTUnwrap(document.string)
         for obsolete in ["Matched working load", "Median session-best", "Known external load", "Volume sums each"] {
             XCTAssertFalse(copy.contains(obsolete))
@@ -730,9 +737,8 @@ final class ExportReportTests: XCTestCase {
         XCTAssertEqual(profile.laterStart, "2026-01-08")
         XCTAssertEqual(profile.classifiedWorkouts, 1)
         let extracted = try XCTUnwrap(PDFDocument(data: report.pdfData())?.string)
-        for expected in ["Training totals", "Training profile"] {
-            XCTAssertTrue(extracted.contains(LanguageState.shared.text(expected)))
-        }
+        XCTAssertTrue(extracted.contains(LanguageState.shared.text("Training totals")))
+        XCTAssertTrue(extracted.contains(LanguageState.shared.text("Training profile").uppercased(with: LanguageState.shared.language.locale)))
         XCTAssertTrue(extracted.contains("160 kg"))
         XCTAssertTrue(extracted.contains(LanguageState.shared.dateKey(dates.upperBound)))
         for excluded in ["All-time training totals", "90-day training profile", "Outside-window exercise", "91 / 100", "88 / 100"] {
@@ -756,5 +762,121 @@ final class ExportReportTests: XCTestCase {
         let baseline = try XCTUnwrap(PDFDocument(data: empty.pdfData()))
         XCTAssertEqual(baseline.pageCount, 1)
         XCTAssertTrue(try XCTUnwrap(baseline.string).contains(LanguageState.shared.text("Building your baseline")))
+    }
+
+    // MARK: Shared receipt, Insights and report figures
+
+    private func session(_ date: String, start: String? = nil, end: String? = nil, day: UUID? = nil) -> WorkoutSession {
+        WorkoutSession(id: UUID(), userID: user, date: date, programDayID: day ?? dayID, isLite: false, isDeload: false,
+                       isEventRecovery: false, completed: true, qualityScore: 1, startedAt: start, completedAt: end, notes: "")
+    }
+
+    private func set(_ session: WorkoutSession, _ name: String, _ kg: Double?, _ reps: Int, movement: String? = nil, number: Int = 1) -> WorkoutLog {
+        WorkoutLog(id: UUID(), userID: user, sessionID: session.id, exerciseID: nil, exerciseName: name, setNumber: number,
+                   weightKG: kg, reps: reps, rir: nil, movementID: movement, skipped: false, overrideFlag: false, createdAt: "")
+    }
+
+    func testAReplayedReceiptCountsOnceOnEverySurface() {
+        let original = session("2026-10-30", start: "2026-10-30T20:05:22.981Z", end: "2026-10-30T21:30:00Z")
+        let replay = session("2026-10-30", start: "2026-10-30T20:05:22.981Z", end: "2026-10-31T20:27:35Z")
+        let logs = [original, replay].flatMap { day in (1...3).map { set(day, "B-Stance or Single-Leg Hip Thrust", 36, 10, number: $0) } }
+        var fixture = data()
+        fixture.workoutSessions = [original, replay]
+        fixture.workoutLogs = logs
+        XCTAssertEqual(StrengthProgress.withoutReplays([replay, original]).map(\.id), [original.id])
+        let history = StrengthProgress.exerciseHistory(ownerID: user, sessions: fixture.workoutSessions, logs: logs)
+        XCTAssertEqual(history.first?.sessionCount, 1)
+        XCTAssertEqual(history.first?.totals.liftedVolumeKG, 1_080)
+        let insight = WorkoutInsights.summarize(ownerID: user, from: "2026-10-30", to: "2026-10-30", sessions: fixture.workoutSessions,
+                                                logs: logs, importedActivities: [])
+        XCTAssertEqual(insight.workouts, 1)
+        XCTAssertEqual(insight.sets, 3)
+        XCTAssertEqual(insight.volumeKG, 1_080)
+        XCTAssertEqual(WorkoutReceipt.history(sessions: fixture.workoutSessions, days: [], date: "2026-10-30", ownerID: user).count, 1)
+        XCTAssertEqual(TrainingProfile90.summarize(ownerID: user, data: fixture, from: "2026-10-30", through: "2026-10-30").classifiedWorkouts, 1)
+    }
+
+    func testAnUnlinkedWatchRecordingOfAnAppWorkoutCountsOnce() {
+        let workout = session("2026-08-15", start: "2026-08-15T17:56:00Z", end: "2026-08-15T18:45:00Z")
+        let logs = [set(workout, "Dumbbell Hip Thrust", 20, 10)]
+        func watch(_ date: String, _ start: String, _ end: String, minutes: Int) -> ImportedActivity {
+            ImportedActivity(id: UUID(), userID: user, date: date, kind: "strength", activity: "Traditional Strength Training",
+                             durationMinutes: minutes, source: "Apple Watch", healthKitWorkoutID: UUID(), startedAt: start, endedAt: end,
+                             workoutNameKey: "health.workout.traditional_strength_training", sourceBundleIdentifier: "com.apple.health.watch")
+        }
+        // Started fourteen minutes before the app session and covers it: one workout.
+        let same = watch("2026-08-15", "2026-08-15T17:42:00Z", "2026-08-15T19:10:00Z", minutes: 88)
+        // A separate evening session the same day.
+        let separate = watch("2026-08-15", "2026-08-15T21:00:00Z", "2026-08-15T21:40:00Z", minutes: 40)
+        var fixture = data()
+        fixture.workoutSessions = [workout]
+        fixture.workoutLogs = logs
+        fixture.importedActivities = [same, separate]
+        XCTAssertEqual(TrainingProfile90.summarize(ownerID: user, data: fixture, from: "2026-08-15", through: "2026-08-15").classifiedWorkouts, 2)
+        let insight = WorkoutInsights.summarize(ownerID: user, from: "2026-08-15", to: "2026-08-15", sessions: [workout], logs: logs,
+                                                importedActivities: [same, separate])
+        XCTAssertEqual(insight.workouts, 2)
+        XCTAssertEqual(insight.durationMinutes, 128)
+    }
+
+    func testReceiptInsightsAndReportShareOneVolumeRule() {
+        let day = session("2026-11-07", start: "2026-11-07T15:09:00Z", end: "2026-11-07T15:25:00Z")
+        let logs = [set(day, "Band Abduction", 13, 20), set(day, "B-Stance or Single-Leg Hip Thrust", 36, 10),
+                    set(day, "Dumbbell Romanian Deadlift", nil, 12, movement: "dumbbell_romanian_deadlift"),
+                    set(day, "Weighted or Feet-Elevated Push-Up", 0, 15, movement: "weighted_push_up")]
+        let receipt = WorkoutReceipt.summarize(logs)
+        XCTAssertEqual(receipt.loadedVolumeKG, 360, "Band resistance is not lifted mass and 0 kg adds nothing")
+        XCTAssertTrue(receipt.partialVolume, "A blank load on a weighted lift makes the total a lower bound")
+        let insight = WorkoutInsights.summarize(ownerID: user, from: day.date, to: day.date, sessions: [day], logs: logs, importedActivities: [])
+        XCTAssertEqual(insight.volumeKG, 360)
+        XCTAssertTrue(insight.partialVolume)
+        let blankOnly = WorkoutReceipt.summarize([set(day, "B-Stance or Single-Leg Hip Thrust", nil, 10)])
+        XCTAssertTrue(blankOnly.volumeUnknown)
+    }
+
+    func testBlankLoadsStayUnknownExceptOnBodyweightMovements() {
+        let day = session("2026-08-18")
+        let logs = [set(day, "Strict Push-Up", nil, 13), set(day, "Dumbbell Romanian Deadlift", nil, 12),
+                    set(day, "Weighted or Feet-Elevated Push-Up", nil, 10, movement: "weighted_push_up")]
+        let history = StrengthProgress.exerciseHistory(ownerID: user, sessions: [day], logs: logs)
+        let push = history.first { $0.name == "Strict Push-Up" }
+        XCTAssertNil(history.first { $0.name.hasPrefix("Weighted") }?.sessions.first?.heaviestSet, "A blank load on a weighted variant is unknown")
+        let deadlift = history.first { $0.name.contains("Deadlift") }
+        XCTAssertEqual(push?.sessions.first?.heaviestSet?.kg, 0)
+        XCTAssertEqual(push?.sessions.first?.bodyweightPushUpSets, 1)
+        XCTAssertNil(deadlift?.sessions.first?.heaviestSet)
+        XCTAssertTrue(deadlift?.totals.missingVolume ?? false)
+    }
+
+    func testBilateralAndSingleLegDeadliftsStayDistinctVariants() {
+        let first = session("2026-09-21"), second = session("2026-10-26")
+        let logs = [set(first, "Dumbbell Romanian Deadlift", 16, 10, movement: "dumbbell_romanian_deadlift"),
+                    set(second, "Single-Leg Romanian Deadlift", 10, 10, movement: "single_leg_romanian_deadlift")]
+        let families = StrengthProgress.rankedFamilies(StrengthProgress.exerciseHistory(ownerID: user, sessions: [first, second], logs: logs))
+        XCTAssertEqual(families.count, 1)
+        XCTAssertEqual(Set(families[0].variants.map(\.key)), ["movement:dumbbell_romanian_deadlift", "movement:single_leg_romanian_deadlift"])
+    }
+
+    func testAReceiptWithoutAMovementIDJoinsTheSameNamedExercise() {
+        let early = session("2026-07-28"), later = session("2026-09-22")
+        let logs = [set(early, "Strict Push-Up Max Test", nil, 16), set(later, "Strict Push-Up Max Test", 0, 20, movement: "push_up")]
+        let history = StrengthProgress.exerciseHistory(ownerID: user, sessions: [early, later], logs: logs)
+        XCTAssertEqual(history.count, 1)
+        XCTAssertEqual(history.first?.sessionCount, 2)
+    }
+
+    @MainActor
+    func testANewAccountsProfileStartsAtItsFirstEvidence() throws {
+        var fixture = data()
+        fixture.workoutSessions = [-13, -11, -9, -7, -5, -3, -1, 0].map { session(APEXDateMath.adding(days: $0, to: "2026-11-09")) }
+        fixture.workoutLogs = fixture.workoutSessions.map { set($0, "Goblet Squat", 12, 10) }
+        fixture.accountCreation = .init(userID: user, date: try XCTUnwrap(APEXDateMath.date(from: "2026-10-27")))
+        let profile = TrainingProfile90.summarize(ownerID: user, data: fixture, through: "2026-11-09")
+        XCTAssertEqual(profile.from, "2026-10-27")
+        XCTAssertEqual(profile.dayCount, 14)
+        let weekly = profile.metrics(language: LanguageState.shared).first { $0.key == "Workouts per week" }?.value
+        XCTAssertEqual(weekly, 4.0.formatted(.number.locale(LanguageState.shared.language.locale).precision(.fractionLength(0...1))))
+        let oneDay = TrainingProfile90.summarize(ownerID: user, data: fixture, from: "2026-11-09", through: "2026-11-09")
+        XCTAssertNil(oneDay.metrics(language: LanguageState.shared).first { $0.key == "Workouts per week" })
     }
 }

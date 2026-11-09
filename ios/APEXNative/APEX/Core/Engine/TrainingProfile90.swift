@@ -62,8 +62,11 @@ struct TrainingProfile90: Sendable {
 
     @MainActor func metrics(language: LanguageState) -> [Metric] {
         var rows = [Metric(key: "Classified workouts", value: String(classifiedWorkouts))]
-        let weekly = (Double(classifiedWorkouts) * 7 / Double(dayCount)).formatted(.number.locale(language.language.locale).precision(.fractionLength(0...1)))
-        rows.append(Metric(key: "Workouts per week", value: weekly))
+        // A weekly rate from less than a week of history would extrapolate, not describe.
+        if dayCount >= 7 {
+            let weekly = (Double(classifiedWorkouts) * 7 / Double(dayCount)).formatted(.number.locale(language.language.locale).precision(.fractionLength(0...1)))
+            rows.append(Metric(key: "Workouts per week", value: weekly))
+        }
         rows += Mode.allCases.map { Metric(key: $0.rawValue, value: String(counts[$0, default: 0])) }
         if runs > 0 { rows.append(Metric(key: "Running", value: String(runs))) }
         if let recentMedianReps {
@@ -88,11 +91,17 @@ struct TrainingProfile90: Sendable {
                                                 uniquingKeysWith: { first, _ in first })
 
     static func summarize(ownerID: UUID, data: DashboardData, from start: String? = nil, through to: String) -> Self {
-        let from = start ?? APEXDateMath.adding(days: -89, to: to)
+        // A newer account's rolling profile starts at its first evidence, so rates are not diluted by days before it existed.
+        var evidence: [String] = data.workoutSessions.filter { $0.userID == ownerID && $0.completed }.map(\.date)
+        evidence += data.importedActivities.filter { $0.userID == ownerID && $0.hiddenAt == nil }.map(\.date)
+        evidence += data.orbitRuns.filter { $0.userID == ownerID && $0.status == "completed" }.map(\.localDate)
+        if let creation = data.accountCreation, creation.userID == ownerID { evidence.append(creation.date.apexDateKey) }
+        let firstEvidence = evidence.filter { FBDate.validDate($0) != nil && $0 <= to }.min()
+        let from = start ?? max(APEXDateMath.adding(days: -89, to: to), firstEvidence ?? to)
         let days = APEXDateMath.calendarDaysBetween(from: from, to: to) + 1
         let split = APEXDateMath.adding(days: days / 2, to: from)
         let window = from...to
-        let sessions = data.workoutSessions.filter { $0.userID == ownerID && $0.completed }
+        let sessions = StrengthProgress.withoutReplays(data.workoutSessions.filter { $0.userID == ownerID && $0.completed })
         let byID = Dictionary(sessions.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         let units = Dictionary(data.exercises.filter { $0.userID == ownerID }.map { ($0.id, $0.repUnit) },
                                uniquingKeysWith: { first, _ in first })
@@ -140,9 +149,13 @@ struct TrainingProfile90: Sendable {
             .sorted { $0.apexWorkoutSessionID != nil && $1.apexWorkoutSessionID == nil }
         var importedIDs = Set<UUID>()
         var importedRuns: [String: [Date]] = [:]
+        let sessionsByDate = Dictionary(grouping: sessions, by: \.date)
         for row in visible {
             let identity = row.healthKitWorkoutID ?? row.id
             let linked = row.apexWorkoutSessionID.flatMap { byID[$0] }
+                ?? (row.apexWorkoutSessionID == nil ? sessionsByDate[row.date]?.first {
+                    recordsSameWorkout(row, as: $0, modes: modes[.session($0.id)] ?? [])
+                } : nil)
             guard !hidden.contains(identity), row.durationMinutes > 0, let activity = activityType(row),
                   row.apexWorkoutSessionID == nil || linked != nil, window.contains(linked?.date ?? row.date),
                   importedIDs.insert(identity).inserted else { continue }
@@ -186,6 +199,32 @@ struct TrainingProfile90: Sendable {
         for name in ["strengthtraining", "weighttraining"] { result[name] = .resistance }
         return result
     }()
+
+    /// The kinds of training a receipt's performed sets contain.
+    static func modes(of logs: [WorkoutLog]) -> Set<Mode> {
+        Set(logs.compactMap { log -> Mode? in
+            guard !log.skipped else { return nil }
+            if log.exerciseName.contains(" · "), ManualWorkout.parseTreadmill(log.exerciseName) != nil { return .cardio }
+            switch MovementTiming.movement(named: log.exerciseName, movementID: log.movementID)?.entityType {
+            case "cardio_modality", "conditioning_complex": return .cardio
+            case "yoga_pose", "mobility_drill", "balance_drill": return .mobility
+            default: return (log.reps ?? 0) > 0 || (log.weightKG ?? 0) > 0 ? .resistance : nil
+            }
+        })
+    }
+
+    /// An unlinked Watch recording describes an app receipt when it happened on the same day, covers at least
+    /// half of the shorter of the two, and records a kind of training the receipt itself contains.
+    static func recordsSameWorkout(_ row: ImportedActivity, as session: WorkoutSession, modes: Set<Mode>) -> Bool {
+        guard row.date == session.date, let mode = activityType(row)?.mode, modes.contains(mode),
+              let start = ExternalWorkoutImport.parseTimestamp(row.startedAt),
+              let end = ExternalWorkoutImport.parseTimestamp(row.endedAt),
+              let sessionStart = ExternalWorkoutImport.parseTimestamp(session.startedAt),
+              let sessionEnd = ExternalWorkoutImport.parseTimestamp(session.completedAt),
+              end > start, sessionEnd > sessionStart else { return false }
+        let shared = min(end, sessionEnd).timeIntervalSince(max(start, sessionStart))
+        return shared > 0 && shared * 2 >= min(end.timeIntervalSince(start), sessionEnd.timeIntervalSince(sessionStart))
+    }
 
     private static func activityType(_ row: ImportedActivity) -> (mode: Mode, running: Bool)? {
         for label in [row.workoutNameKey, row.activity].compactMap({ $0 }) {

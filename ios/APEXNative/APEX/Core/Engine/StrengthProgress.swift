@@ -453,6 +453,28 @@ enum StrengthProgress {
         ExerciseCatalog.all.map { ($0.movementID, $0.unit) }, uniquingKeysWith: { first, _ in first }
     )
 
+    /// A client that replays a finished draft saves the same performance again under a new ID.
+    /// Two receipts for one programme day that started at the same instant are that one workout.
+    static func withoutReplays(_ sessions: [WorkoutSession]) -> [WorkoutSession] {
+        var kept: [String: WorkoutSession] = [:]
+        var order: [String] = []
+        for session in sessions {
+            let started = session.startedAt?.trimmingCharacters(in: .whitespaces) ?? ""
+            let key = started.isEmpty || !session.completed ? session.id.uuidString
+                : [session.userID.uuidString, session.programDayID.uuidString, started].joined(separator: "|")
+            guard let existing = kept[key] else {
+                kept[key] = session
+                order.append(key)
+                continue
+            }
+            // Keep the receipt that was finished first; the replay arrives later.
+            if (session.completedAt ?? "~", session.id.uuidString) < (existing.completedAt ?? "~", existing.id.uuidString) {
+                kept[key] = session
+            }
+        }
+        return order.compactMap { kept[$0] }
+    }
+
     static func exerciseHistory(
         ownerID: UUID, sessions: [WorkoutSession], logs: [WorkoutLog], exercises: [Exercise] = []
     ) -> [ExerciseHistory] {
@@ -461,8 +483,16 @@ enum StrengthProgress {
         let unitsByName = Dictionary(ownedExercises.map {
             ($0.name.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(), $0.repUnit)
         }, uniquingKeysWith: { first, next in first == next ? first : "ambiguous" })
+        // Older clients saved some receipts without a movement ID; the same name logged later carries it.
+        func nameKey(_ name: String) -> String {
+            name.lowercased().split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+        }
+        let movementByName = Dictionary(logs.compactMap { log -> (String, String)? in
+            guard log.userID == ownerID, let id = log.movementID, !id.isEmpty else { return nil }
+            return (nameKey(log.exerciseName), id)
+        }, uniquingKeysWith: { first, next in first == next ? first : "" }).filter { !$0.value.isEmpty }
 
-        let completed = sessions.filter { $0.completed && $0.userID == ownerID }
+        let completed = withoutReplays(sessions.filter { $0.completed && $0.userID == ownerID })
         let sessionByID = Dictionary(completed.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         struct Group {
             var name: String
@@ -474,8 +504,9 @@ enum StrengthProgress {
         }
         var groups: [String: Group] = [:]
         var seen = Set<UUID>()
-        for log in logs where log.userID == ownerID && !log.skipped {
+        for var log in logs where log.userID == ownerID && !log.skipped {
             guard let session = sessionByID[log.sessionID], seen.insert(log.id).inserted else { continue }
+            if log.movementID?.isEmpty ?? true { log.movementID = movementByName[nameKey(log.exerciseName)] }
             let treadmill = log.exerciseName.contains(" · ") ? ManualWorkout.parseTreadmill(log.exerciseName) : nil
             let name = (treadmill?.name ?? log.exerciseName).trimmingCharacters(in: .whitespacesAndNewlines)
             guard !name.isEmpty else { continue }
@@ -538,19 +569,22 @@ enum StrengthProgress {
             groups[key]?.sessions[session.id, default: SessionTotals(session)].totals.record(
                 log, measuresReps: measuresReps, measuresLoad: measuresExternalLoad
             )
-            if measuresReps, (log.reps ?? 0) > 0, log.weightKG.map({ $0.isFinite && $0 >= 0 }) ?? true,
+            // A plain bodyweight movement saved without a weight carried no added load; a weighted one stays unknown.
+            let impliesLoad = (normalized + " " + (log.movementID ?? "")).contains("weighted")
+            let loggedKG = log.weightKG ?? (usesBodyweight && !impliesLoad ? 0 : nil)
+            if measuresReps, (log.reps ?? 0) > 0, loggedKG.map({ $0.isFinite && $0 >= 0 }) ?? true,
                let position = pushPosition {
-                if log.weightKG == 0, let reps = log.reps {
+                if loggedKG == 0, let reps = log.reps {
                     groups[key]?.sessions[session.id]?.bodyweightPushUpSets += 1
                     groups[key]?.sessions[session.id]?.bodyweightPushUpReps += reps
                 }
                 let existing = groups[key]?.sessions[session.id]?.pushUp
-                if existing == nil || (log.weightKG ?? -1) > (existing?.addedKG ?? -1) {
-                    groups[key]?.sessions[session.id]?.pushUp = (log.weightKG, position)
+                if existing == nil || (loggedKG ?? -1) > (existing?.addedKG ?? -1) {
+                    groups[key]?.sessions[session.id]?.pushUp = (loggedKG, position)
                 }
             }
             if recordsExternalWeight,
-               let kg = log.weightKG, kg.isFinite, kg >= 0, let reps = log.reps, reps > 0 {
+               let kg = loggedKG, kg.isFinite, kg >= 0, let reps = log.reps, reps > 0 {
                 if let previous = groups[key]?.sessions[session.id]?.heaviestSet {
                     if (kg, reps) > (previous.kg, previous.reps) {
                         groups[key]?.sessions[session.id]?.heaviestSet = (kg, reps)
@@ -690,6 +724,14 @@ struct WorkoutChartCalendar {
         let days = calendar.dateComponents([.day], from: first, to: last).day ?? 0
         let count = min(days, max(1, intervals))
         if count == 0 { ticks = [first]; return }
+        // Short spans step in whole days so labels stay evenly spaced and never crowd the last date.
+        if days < max(1, intervals) * 3 {
+            let step = Int((Double(days) / Double(count)).rounded(.up))
+            var offsets = Array(stride(from: 0, to: days, by: step))
+            if offsets.count > 1, let last = offsets.last, days - last < step { offsets.removeLast() }
+            ticks = (offsets + [days]).compactMap { calendar.date(byAdding: .day, value: $0, to: first) }
+            return
+        }
         ticks = (0...count).compactMap { i in
             let offset = Int((Double(days * i) / Double(count)).rounded())
             return calendar.date(byAdding: .day, value: offset, to: first)

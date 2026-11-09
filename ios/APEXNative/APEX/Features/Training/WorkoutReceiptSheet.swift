@@ -36,7 +36,7 @@ struct WorkoutReceiptSheet: View {
         WorkoutLogOrder.performedOrder(session.data, sessionID: sessionID)
     }
 
-    private var summary: WorkoutReceipt.Summary { WorkoutReceipt.summarize(logs) }
+    private var summary: WorkoutReceipt.Summary { WorkoutReceipt.summarize(logs, exercises: session.data.exercises) }
 
     private var insights: [StrengthProgress.SessionInsight] {
         StrengthProgress.sessionInsights(
@@ -130,10 +130,17 @@ struct WorkoutReceiptSheet: View {
     }
 
     private var metrics: some View {
-        HStack(spacing: 9) {
-            metric(language.text("Loaded volume"), value: volumeText)
-            metric(language.text("Working sets"), value: String(summary.workingSets))
-            metric(language.text("Movements"), value: String(summary.movements))
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 9) {
+                metric(language.text("Loaded volume"), value: volumeText)
+                metric(language.text("Working sets"), value: String(summary.workingSets))
+                metric(language.text("Movements"), value: String(summary.movements))
+            }
+            if summary.partialVolume {
+                Text(language.text("Volume sums each recorded load × reps. An asterisk marks incomplete records."))
+                    .font(APEXFont.body(10))
+                    .foregroundStyle(APEXColor.secondaryInk)
+            }
         }
     }
 
@@ -142,7 +149,7 @@ struct WorkoutReceiptSheet: View {
         formatter.numberStyle = .decimal
         formatter.maximumFractionDigits = 0
         let number = formatter.string(from: NSNumber(value: summary.loadedVolumeKG.rounded())) ?? "0"
-        return "\(number) kg"
+        return summary.volumeUnknown ? "—" : "\(number) kg" + summary.volumeMarker
     }
 
     private func metric(_ label: String, value: String) -> some View {
@@ -637,7 +644,7 @@ struct CompletedWorkoutHistoryCards: View {
     private func apexHistoryCard(_ item: WorkoutReceipt.HistoryItem) -> some View {
         let isExpanded = expanded.contains(item.id)
         let logs = WorkoutLogOrder.performedOrder(session.data, sessionID: item.id)
-        let summary = WorkoutReceipt.summarize(logs)
+        let summary = WorkoutReceipt.summarize(logs, exercises: session.data.exercises)
         let time = item.session.completedAt.flatMap(Self.timeText)
         let currentRevealOffset = revealOffset(for: item.id)
 
@@ -721,7 +728,7 @@ struct CompletedWorkoutHistoryCards: View {
                 Divider().overlay(.white.opacity(0.9))
                 HStack(alignment: .top, spacing: 8) {
                     HStack(spacing: 8) {
-                        historyMetric("Loaded volume", value: language.format("%.0f kg", summary.loadedVolumeKG))
+                        historyMetric("Loaded volume", value: summary.volumeUnknown ? "—" : language.format("%.0f kg", summary.loadedVolumeKG) + summary.volumeMarker)
                         historyMetric("Working sets", value: String(summary.workingSets))
                         historyMetric("Movements", value: String(summary.movements))
                     }

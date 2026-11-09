@@ -123,6 +123,7 @@
 		5FE70D7E3BF921E84072006F /* bundle.js in Resources */ = {isa = PBXBuildFile; fileRef = A6F726BF795538B01541803E /* bundle.js */; };
 		6227F8BFC3310BF52BA17F2F /* DaylineSwipeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC1512A57154952F2B5701F /* DaylineSwipeTests.swift */; };
 		14406EBDAB20261108000002 /* GuidedArtwork in Resources */ = {isa = PBXBuildFile; fileRef = 14406EBDAB20261108000001 /* GuidedArtwork */; };
+		1A4F0CEDAB20261109000002 /* ReportFonts in Resources */ = {isa = PBXBuildFile; fileRef = 1A4F0CEDAB20261109000001 /* ReportFonts */; };
 		14411EBDAB20261108000015 /* spicy-pork-leg-soup.json in Resources */ = {isa = PBXBuildFile; fileRef = 14411EBDAB20261108000016 /* spicy-pork-leg-soup.json */; };
 		F14206081900000100000011 /* push-up-load-guide.json in Resources */ = {isa = PBXBuildFile; fileRef = F14206081900000100000012 /* push-up-load-guide.json */; };
 		B12F11DE2026110800000017 /* unilateral-load-guide.json in Resources */ = {isa = PBXBuildFile; fileRef = B12F11DE2026110800000018 /* unilateral-load-guide.json */; };
@@ -437,6 +438,7 @@
 		2EFDFD9852F284C2D009DA48 /* TrainingProgramView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingProgramView.swift; sourceTree = "<group>"; };
 		2FC9E251EB7BB3E5A44FAC00 /* CoachPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachPlanView.swift; sourceTree = "<group>"; };
 		14406EBDAB20261108000001 /* GuidedArtwork */ = {isa = PBXFileReference; lastKnownFileType = folder; path = GuidedArtwork; sourceTree = "<group>"; };
+		1A4F0CEDAB20261109000001 /* ReportFonts */ = {isa = PBXFileReference; lastKnownFileType = folder; path = ReportFonts; sourceTree = "<group>"; };
 		14411EBDAB20261108000016 /* spicy-pork-leg-soup.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/spicy-pork-leg-soup.json"; sourceTree = SOURCE_ROOT; };
 		F14206081900000100000012 /* push-up-load-guide.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/push-up-load-guide.json"; sourceTree = SOURCE_ROOT; };
 		B12F11DE2026110800000018 /* unilateral-load-guide.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/unilateral-load-guide.json"; sourceTree = SOURCE_ROOT; };
@@ -1013,6 +1015,7 @@
 			isa = PBXGroup;
 			children = (
 				14406EBDAB20261108000001 /* GuidedArtwork */,
+				1A4F0CEDAB20261109000001 /* ReportFonts */,
 				14411EBDAB20261108000016 /* spicy-pork-leg-soup.json */,
 				F14206081900000100000012 /* push-up-load-guide.json */,
 				B12F11DE2026110800000018 /* unilateral-load-guide.json */,
@@ -1428,6 +1431,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				14406EBDAB20261108000002 /* GuidedArtwork in Resources */,
+				1A4F0CEDAB20261109000002 /* ReportFonts in Resources */,
 				14411EBDAB20261108000015 /* spicy-pork-leg-soup.json in Resources */,
 				F14206081900000100000011 /* push-up-load-guide.json in Resources */,
 				B12F11DE2026110800000017 /* unilateral-load-guide.json in Resources */,

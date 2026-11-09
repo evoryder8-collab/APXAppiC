@@ -41,6 +41,7 @@ targets:
       - path: APEX
         excludes:
           - Resources/GuidedArtwork
+          - Resources/ReportFonts
       - path: ../../shared/push-up-load-guide.json
         buildPhase: resources
       - path: ../../shared/unilateral-load-guide.json
@@ -64,10 +65,14 @@ targets:
       - path: APEX/Resources/GuidedArtwork
         type: folder
         buildPhase: resources
+      - path: APEX/Resources/ReportFonts
+        type: folder
+        buildPhase: resources
     resources:
       - path: APEX/Resources
         excludes:
           - GuidedArtwork
+          - ReportFonts
       - path: APEX/PrivacyInfo.xcprivacy
     dependencies:
       - package: Supabase

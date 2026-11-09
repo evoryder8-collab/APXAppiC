@@ -34,8 +34,13 @@ enum WorkoutReceipt {
         let loadedVolumeKG: Double
         let workingSets: Int
         let movements: Int
+        /// A loaded set saved without its load or reps makes the total a lower bound.
+        var partialVolume = false
 
         var hasLoad: Bool { loadedVolumeKG > 0 }
+        var volumeMarker: String { partialVolume ? "*" : "" }
+        /// No recorded load and a blank one: the volume is unknown, not zero.
+        var volumeUnknown: Bool { !hasLoad && partialVolume }
     }
 
     struct DeletionPlan: Equatable, Sendable {
@@ -84,27 +89,30 @@ enum WorkoutReceipt {
         )
     }
 
-    static func summarize(_ logs: [WorkoutLog]) -> Summary {
+    static func summarize(_ logs: [WorkoutLog], exercises: [Exercise] = []) -> Summary {
         let working = logs.filter { !FocusT25.isFocusName($0.exerciseName) }
-        let volume = working.reduce(0.0) { total, log in
-            let descriptor = ExerciseLogging.descriptor(
-                movementNamed: log.exerciseName,
-                movementID: log.movementID
-            )
-            guard !log.skipped,
-                  descriptor.kind == .strength || descriptor.kind == .bodyweight else {
-                return total
+        // The receipt, Insights and the Avatar report share one volume rule: nominal band resistance,
+        // assistance and substitutes are not lifted mass.
+        let receipts = Dictionary(grouping: working, by: \.sessionID).compactMap { id, rows -> WorkoutSession? in
+            rows.first.map { WorkoutSession(id: id, userID: $0.userID, date: "", programDayID: id, isLite: false,
+                                            isDeload: false, isEventRecovery: false, completed: true, qualityScore: 1,
+                                            startedAt: nil, completedAt: nil, notes: "") }
+        }
+        let recorded = receipts.reduce(into: StrengthProgress.LifetimeTotals()) { totals, receipt in
+            for exercise in StrengthProgress.exerciseHistory(ownerID: receipt.userID, sessions: [receipt],
+                                                             logs: working, exercises: exercises) {
+                totals.add(exercise.totals)
             }
-            return total + max(0, log.weightKG ?? 0) * Double(max(0, log.reps ?? 0))
         }
         /* Movements count every exercise performed, conditioning included,
            because the session did contain them even without a load. */
         var names: [String] = []
         for log in logs where !names.contains(log.exerciseName) { names.append(log.exerciseName) }
         return Summary(
-            loadedVolumeKG: volume,
+            loadedVolumeKG: recorded.liftedVolumeKG ?? 0,
             workingSets: working.filter { !$0.skipped }.count,
-            movements: names.count
+            movements: names.count,
+            partialVolume: recorded.missingVolume
         )
     }
 
@@ -119,7 +127,7 @@ enum WorkoutReceipt {
         limit: Int? = nil
     ) -> [HistoryItem] {
         let dayNames = Dictionary(uniqueKeysWithValues: days.map { ($0.id, $0.name) })
-        let history = sessions
+        let history = StrengthProgress.withoutReplays(sessions)
             .filter { item in
                 item.completed
                     && (date == nil || item.date == date)
