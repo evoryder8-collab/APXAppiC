@@ -5883,7 +5883,6 @@
 "Getting there" = "Pe drumul cel bun";
 "About half your days hit the mark. Every extra on-target day moves your score up." = "Cam jumătate din zilele tale își ating ținta. Fiecare zi în plus pe țintă îți crește scorul.";
 "Finding your rhythm" = "Îți găsești ritmul";
-"The habit is forming. Pick one target to hit every day, and protein is a great place to start." = "Obiceiul se formează. Alege un obiectiv pe care să-l atingi zilnic, iar proteinele sunt un început excelent.";
 "Room to grow" = "Loc de creștere";
 "Hitting your targets more often gives your training the fuel it needs to show. Start with protein at every meal." = "Când îți atingi obiectivele mai des, antrenamentul primește combustibilul de care are nevoie ca să se vadă. Începe cu proteine la fiecare masă.";
 "Target %d g" = "Țintă %d g";
@@ -5931,3 +5930,7 @@
 "Logged on %d days" = "Înregistrată în %d zile";
 "Next: %@" = "Următorul: %@";
 "About the same volume" = "Cam același volum";
+"%d partly logged" = "%d înregistrate parțial";
+"The habit is forming. Pick one target to hit every day and build from there." = "Obiceiul se formează. Alege o țintă pe care să o atingi zilnic și construiește de acolo.";
+"You have passed this volume" = "Ai depășit acest volum";
+"Your next volume" = "Următorul tău volum";

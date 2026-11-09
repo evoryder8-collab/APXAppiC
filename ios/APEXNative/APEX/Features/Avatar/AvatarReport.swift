@@ -1545,7 +1545,8 @@ struct AvatarReport: Transferable {
 
         func drawNutrition(_ nutrition: NutritionReport) {
             begin("Nutrition", subtitle: language.dateKey(nutrition.from) + " – " + language.dateKey(nutrition.to) + "   ·   "
-                  + language.format("%d of %d days logged", nutrition.loggedDays, nutrition.periodDays))
+                  + language.format("%d of %d days logged", nutrition.loggedDays, nutrition.periodDays)
+                  + (nutrition.partialDays > 0 ? "   ·   " + language.format("%d partly logged", nutrition.partialDays) : ""))
             let gap: CGFloat = 10
             drawScoreHero(nutrition)
             y += gap
@@ -1622,7 +1623,7 @@ struct AvatarReport: Transferable {
             case .weekendDrift: return ("Weekday strong", "Your weekdays are on point. Bringing weekends a little closer is the quickest way to raise your score.")
             case .solidBase: return ("Solid base", "You are on target more often than not. Tightening one or two meals a day lifts you into the top tier.")
             case .gettingThere: return ("Getting there", "About half your days hit the mark. Every extra on-target day moves your score up.")
-            case .findingRhythm: return ("Finding your rhythm", "The habit is forming. Pick one target to hit every day, and protein is a great place to start.")
+            case .findingRhythm: return ("Finding your rhythm", "The habit is forming. Pick one target to hit every day and build from there.")
             case .needsAttention: return ("Room to grow", "Hitting your targets more often gives your training the fuel it needs to show. Start with protein at every meal.")
             }
         }
@@ -1765,7 +1766,10 @@ struct AvatarReport: Transferable {
             let protein = nutrition.macros.first { $0.kind == .protein }
             let surplus = (protein?.overDays ?? 0) * 2 >= max(1, nutrition.loggedDays)
             let strengths = nutrition.strengths.sorted { ($0 == .protein ? 0 : 1) < ($1 == .protein ? 0 : 1) }
-            return Array((nutrition.focus.map(Insight.focus) + strengths.map { Insight.strength($0, surplus: $0 == .protein && surplus) }).prefix(2))
+            // An earned win leads, then the next gain; whatever is left fills the second card.
+            let wins = strengths.map { Insight.strength($0, surplus: $0 == .protein && surplus) }
+            let gains = nutrition.focus.map(Insight.focus)
+            return Array((wins.prefix(1) + gains + wins.dropFirst()).prefix(2))
         }
 
         private func insightCopy(_ insight: Insight) -> Copy {
@@ -1905,7 +1909,7 @@ struct AvatarReport: Transferable {
             let tankFrame = CGRect(x: card.maxX - pad - tank.width, y: card.minY + pad, width: tank.width, height: tank.height)
             let textWidth = tankFrame.minX - card.minX - pad - 12
             let caption = wrapped(comparison.caption, width: textWidth, size: 10.5, weight: .semibold)
-            let notes = (next.map { [language.format("Next: %@", $0.name + " · " + litres($0.litres))] } ?? [])
+            let notes = (next.map { [language.format("Next: %@", $0.name.contains(where: \.isNumber) ? $0.name : $0.name + " · " + litres($0.litres))] } ?? [])
                 + [language.format("Logged on %d days", nutrition.waterDays)]
             let noteLines = notes.flatMap { wrapped($0, width: card.width - pad * 2, size: 9.5, weight: .medium) }
             let fixed = pad + max(tank.height + 8, 50) + 6 + CGFloat(noteLines.count) * 13 + pad - 4

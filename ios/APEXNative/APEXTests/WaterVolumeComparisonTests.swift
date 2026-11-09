@@ -63,7 +63,7 @@ final class WaterVolumeComparisonTests: XCTestCase {
         try withLanguage(.english) {
             XCTAssertEqual(WaterVolumeComparison.caption(litres: 150)?.caption, "Enough to fill a bathtub")
             XCTAssertEqual(WaterVolumeComparison.caption(litres: 300)?.caption, "Enough to fill a fridge")
-            XCTAssertEqual(WaterVolumeComparison.caption(litres: 50_000e12)?.caption, "Lake Baikal · Milestone passed")
+            XCTAssertEqual(WaterVolumeComparison.caption(litres: 50_000e12)?.caption, "Lake Baikal · You have passed this volume")
             XCTAssertNil(WaterVolumeComparison.caption(litres: 0))
             XCTAssertNil(WaterVolumeComparison.caption(litres: -1))
             XCTAssertNil(WaterVolumeComparison.caption(litres: .infinity))

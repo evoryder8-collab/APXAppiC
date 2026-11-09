@@ -37,6 +37,7 @@ struct NutritionReport: Sendable, Equatable {
         enum Badge: String, Sendable, CaseIterable {
             case freshStart, champ, lockedIn, onARoll, comeback, lapsed, weekendGaps, almostDaily, stopStart, buildTheStreak
         }
+        let firstDay: String
         let takenDays: Int
         let trackedDays: Int
         let longestStreak: Int
@@ -47,8 +48,12 @@ struct NutritionReport: Sendable, Equatable {
 
     let from: String
     let to: String
+    /// Calendar days from the first nutrition, water or creatine entry in the range to its end.
     let periodDays: Int
+    /// Fully logged days; every average, day count and the score are based on these.
     let loggedDays: Int
+    /// Days with some food logged but too few meals to judge the whole day.
+    let partialDays: Int
     let macros: [Macro]
     let score: Int?
     let stars: Int
@@ -105,6 +110,9 @@ struct NutritionReport: Sendable, Equatable {
     ]
     private static let scoreWeights: [Kind: Double] = [.protein: 0.40, .calories: 0.30, .carbs: 0.15, .fat: 0.15]
     private static let minimumScoredDays = 7
+    private static let fullDayMeals = 3
+    // Stars step with the verdict tiers, so four stars always means a strong score.
+    private static let starFloors = [90, 75, 55, 35, 15]
     private static let trendWindow = 14
     private static let bandTolerance = 1e-9
 
@@ -137,7 +145,11 @@ struct NutritionReport: Sendable, Equatable {
         var onTarget: [Kind: Int] = [:]
         var under: [Kind: Int] = [:]
         var over: [Kind: Int] = [:]
+        let settings = data.settings?.userID == ownerID ? data.settings : nil
+        let expectedMeals = FitnessBrainService.mealRhythmHistory(from: settings?.addons).compactMapValues { $0.expectedMeals }
         var loggedDays = 0
+        var partialDays = 0
+        var firstEvidence: String?
         var dayScores: [(day: String, score: Double)] = []
         var drinkML = 0
         var waterDays = 0
@@ -150,9 +162,20 @@ struct NutritionReport: Sendable, Equatable {
                 legacyDrinkLiters: logsByDay[day]?.waterL ?? 0
             )
             drinkML += ledger.drinkML
-            if ledger.drinkML > 0 { waterDays += 1 }
+            if ledger.drinkML > 0 {
+                waterDays += 1
+                firstEvidence = firstEvidence ?? day
+            }
 
-            guard let eaten = eaten(meals: mealsByDay[day] ?? [], log: logsByDay[day]), eaten.kcal > 0 else { continue }
+            let meals = mealsByDay[day] ?? []
+            guard let eaten = eaten(meals: meals, log: logsByDay[day]), eaten.kcal > 0 else { continue }
+            firstEvidence = firstEvidence ?? day
+            // The app does not penalise an incomplete diary, so a day with fewer meals than a full day
+            // of eating is a partial log, not a day of under-eating. A manual daily total counts as full.
+            guard meals.isEmpty || meals.count >= min(fullDayMeals, Int(expectedMeals[day] ?? Double(fullDayMeals))) else {
+                partialDays += 1
+                continue
+            }
             loggedDays += 1
             var dayScore = 0.0
             for kind in Kind.allCases {
@@ -175,7 +198,10 @@ struct NutritionReport: Sendable, Equatable {
         }
 
         let creatine = creatine(ownerID: ownerID, data: data, days: days)
-        guard loggedDays > 0 || drinkML > 0 || creatine != nil else { return nil }
+        guard loggedDays > 0 || partialDays > 0 || drinkML > 0 || creatine != nil else { return nil }
+        // The period starts when the person started logging, not at an earlier training import.
+        let started = [firstEvidence, creatine?.firstDay].compactMap { $0 }.min() ?? dates.lowerBound
+        let periodDays = days.filter { $0 >= started }.count
 
         let macros = Kind.allCases.map { kind in
             Macro(
@@ -197,15 +223,16 @@ struct NutritionReport: Sendable, Equatable {
             : nil
 
         return NutritionReport(
-            from: dates.lowerBound,
+            from: started,
             to: dates.upperBound,
-            periodDays: days.count,
+            periodDays: periodDays,
             loggedDays: loggedDays,
+            partialDays: partialDays,
             macros: macros,
             score: score,
-            stars: score.map { Int((Double($0) / 20).rounded()) } ?? 0,
+            stars: score.map { value in starFloors.filter { value >= $0 }.count } ?? 0,
             strengths: targets == nil || loggedDays == 0 ? [] : Kind.allCases.filter { rate($0) >= 0.8 },
-            focus: focus(macros: macros, loggedDays: loggedDays, periodDays: days.count),
+            focus: focus(macros: macros, loggedDays: loggedDays, periodDays: periodDays),
             waterLitres: Double(drinkML) / 1_000,
             waterDays: waterDays,
             verdict: verdict(VerdictInput(
@@ -268,7 +295,7 @@ struct NutritionReport: Sendable, Equatable {
             weekendMissShare: missed.isEmpty ? 0 : Double(missed.filter(isWeekend).count) / Double(missed.count)
         )
         return Creatine(
-            takenDays: taken.count, trackedDays: tracked.count, longestStreak: longest, currentStreak: current,
+            firstDay: first, takenDays: taken.count, trackedDays: tracked.count, longestStreak: longest, currentStreak: current,
             score: score, badge: badgeRules.first { $0.1(input) }?.0 ?? .buildTheStreak
         )
     }
@@ -286,7 +313,8 @@ struct NutritionReport: Sendable, Equatable {
            protein.target != nil {
             let proteinRate = Double(protein.metDays) / Double(loggedDays)
             let caloriesRate = Double(calories.metDays) / Double(loggedDays)
-            if proteinRate < 0.7 { result.append(.proteinLow) }
+            // Only when the average is short too, so the card never contradicts the ring above it.
+            if proteinRate < 0.7, protein.average < (protein.target ?? 0) { result.append(.proteinLow) }
             if caloriesRate < 0.7 { result.append(calories.underDays > calories.overDays ? .caloriesLow : .caloriesHigh) }
         }
         if Double(loggedDays) < 0.6 * Double(periodDays) { result.append(.loggingGaps) }

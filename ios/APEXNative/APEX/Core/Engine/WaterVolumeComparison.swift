@@ -68,7 +68,7 @@ enum WaterVolumeComparison {
                 ? language.format("Enough to fill %d %@", count, match.plural ?? match.name)
                 : name + " · " + language.format("About %d of these", count)
         case nil:
-            caption = name + " · " + language.text(match.litres <= litres ? "Milestone passed" : "Next milestone")
+            caption = name + " · " + language.text(match.litres <= litres ? "You have passed this volume" : "Your next volume")
         }
         return Comparison(caption: caption, name: name, litres: match.litres, count: count)
     }

@@ -5901,7 +5901,6 @@
 "Getting there" = "Auf gutem Weg";
 "About half your days hit the mark. Every extra on-target day moves your score up." = "Etwa die Hälfte deiner Tage trifft ins Ziel. Jeder zusätzliche Tag im Ziel bringt deinen Wert nach oben.";
 "Finding your rhythm" = "Du findest deinen Rhythmus";
-"The habit is forming. Pick one target to hit every day, and protein is a great place to start." = "Die Gewohnheit entsteht. Wähle ein Ziel, das du jeden Tag triffst, und Protein ist ein toller Anfang.";
 "Room to grow" = "Luft nach oben";
 "Hitting your targets more often gives your training the fuel it needs to show. Start with protein at every meal." = "Wenn du deine Ziele öfter triffst, bekommt dein Training den Treibstoff, den es braucht, um sichtbar zu werden. Fang mit Protein zu jeder Mahlzeit an.";
 "Target %d g" = "Ziel %d g";
@@ -5949,3 +5948,7 @@
 "Logged on %d days" = "An %d Tagen erfasst";
 "Next: %@" = "Als Nächstes: %@";
 "About the same volume" = "Ungefähr gleich viel";
+"%d partly logged" = "%d teilweise erfasst";
+"The habit is forming. Pick one target to hit every day and build from there." = "Die Gewohnheit entsteht. Wähle ein Ziel, das du jeden Tag triffst, und baue darauf auf.";
+"You have passed this volume" = "Dieses Volumen hast du übertroffen";
+"Your next volume" = "Dein nächstes Volumen";

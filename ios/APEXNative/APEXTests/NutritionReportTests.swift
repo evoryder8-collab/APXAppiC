@@ -64,17 +64,19 @@ final class NutritionReportTests: XCTestCase {
         )
     }
 
-    /// One meal per day, each macro at the given share of today's target.
+    /// Three equal meals per day (a full day), together at the given share of today's target.
     private func mealsAtRatios(_ ratios: [(calories: Double, protein: Double, carbs: Double, fat: Double)]) -> [LoggedMeal] {
         let t = targets
-        return ratios.enumerated().map { index, r in
-            meal(
-                day(index),
-                kcal: Double(t.targetCalories) * r.calories,
-                protein: Double(t.proteinG) * r.protein,
-                carbs: Double(t.carbsG) * r.carbs,
-                fat: Double(t.fatG) * r.fat
-            )
+        return ratios.enumerated().flatMap { index, r in
+            (0..<3).map { _ in
+                meal(
+                    day(index),
+                    kcal: Double(t.targetCalories) * r.calories / 3,
+                    protein: Double(t.proteinG) * r.protein / 3,
+                    carbs: Double(t.carbsG) * r.carbs / 3,
+                    fat: Double(t.fatG) * r.fat / 3
+                )
+            }
         }
     }
 
@@ -92,7 +94,8 @@ final class NutritionReportTests: XCTestCase {
         data.dailyLogs = [dailyLog(day(0), kcal: 3_000, protein: 300, fat: 100, carbs: 400)]
         data.loggedMeals = [
             meal(day(0), kcal: 800, protein: 50, carbs: 90, fat: 20),
-            meal(day(0), kcal: 1_200, protein: 70, carbs: 110, fat: 30),
+            meal(day(0), kcal: 700, protein: 40, carbs: 60, fat: 20),
+            meal(day(0), kcal: 500, protein: 30, carbs: 50, fat: 10),
             meal(day(0), kcal: 5_000, protein: 500, userID: UUID()),
         ]
 
@@ -122,7 +125,7 @@ final class NutritionReportTests: XCTestCase {
         let report = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: range))
 
         XCTAssertEqual(report.loggedDays, 0)
-        XCTAssertEqual(report.periodDays, 10)
+        XCTAssertEqual(report.periodDays, 9, "The period starts at the first entry: the water on the second day")
     }
 
     func testBandEdgesCountAsOnTargetAndJustOutsideDoesNot() throws {
@@ -394,5 +397,66 @@ final class NutritionReportTests: XCTestCase {
     func testEmptyRangeHasNoReport() {
         XCTAssertNil(NutritionReport.summarize(ownerID: owner, data: DashboardData(), dates: range))
         XCTAssertNil(NutritionReport.summarize(ownerID: owner, data: data(), dates: range))
+    }
+
+    // MARK: Full days and the period
+
+    func testADayWithFewerMealsThanAFullDayIsPartialNotUnderTarget() throws {
+        var data = data()
+        let t = targets
+        data.loggedMeals = mealsAtRatios(Array(repeating: (1, 1, 1, 1), count: 7))
+            + [meal(day(7), kcal: Double(t.targetCalories) * 0.3, protein: 20), meal(day(8), kcal: 400), meal(day(8), kcal: 500)]
+
+        let report = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: range))
+
+        XCTAssertEqual(report.loggedDays, 7)
+        XCTAssertEqual(report.partialDays, 2)
+        XCTAssertEqual(try macro(report, .calories).underDays, 0, "A partly logged day is not a day of under-eating")
+        XCTAssertEqual(report.score, 100)
+    }
+
+    func testAMealPlanWithTwoMealsMakesTwoMealsAFullDay() throws {
+        var data = data()
+        data.loggedMeals = [meal(day(0), kcal: 900), meal(day(0), kcal: 1_000)]
+        XCTAssertEqual(try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: range)).partialDays, 1)
+
+        data.settings = UserSettings(userID: owner, voiceOn: false, ticksOn: false, notificationsOn: false, guardianFactor: 1,
+                                     addons: ["meal_rhythm_history": .object([day(0): .object(["expected_meals": .number(2)])])])
+        let report = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: range))
+        XCTAssertEqual(report.loggedDays, 1)
+        XCTAssertEqual(report.partialDays, 0)
+    }
+
+    func testThePeriodStartsAtTheFirstEntryNotTheStartOfTheRange() throws {
+        var data = data()
+        data.dailyLogs = [dailyLog(day(4), kcal: 2_000, protein: 120, fat: 60, carbs: 220)]
+
+        let report = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: range))
+
+        XCTAssertEqual(report.from, day(4))
+        XCTAssertEqual(report.periodDays, 6)
+    }
+
+    func testProteinIsOnlyAFocusWhenTheAverageIsShortToo() throws {
+        var data = data()
+        // Four days far over target and six just under: under on most days, yet the average is above target.
+        data.loggedMeals = mealsAtRatios(Array(repeating: (1, 2.0, 1, 1), count: 4) + Array(repeating: (1, 0.9, 1, 1), count: 6))
+        XCTAssertFalse(try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: range)).focus.contains(.proteinLow))
+
+        data.loggedMeals = mealsAtRatios(Array(repeating: (1, 0.6, 1, 1), count: 10))
+        XCTAssertTrue(try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: range)).focus.contains(.proteinLow))
+    }
+
+    func testStarsStepWithTheVerdictTiers() throws {
+        func stars(onTarget: Int) throws -> Int {
+            var data = data()
+            data.loggedMeals = mealsAtRatios(Array(repeating: (1, 1, 1, 1), count: onTarget) + Array(repeating: (0.5, 0.5, 0.5, 0.5), count: 10 - onTarget))
+            return try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: range)).stars
+        }
+        XCTAssertEqual(try stars(onTarget: 10), 5)
+        XCTAssertEqual(try stars(onTarget: 8), 4)
+        XCTAssertEqual(try stars(onTarget: 7), 3, "70 is a solid base, not a four-star score")
+        XCTAssertEqual(try stars(onTarget: 4), 2)
+        XCTAssertEqual(try stars(onTarget: 0), 0)
     }
 }

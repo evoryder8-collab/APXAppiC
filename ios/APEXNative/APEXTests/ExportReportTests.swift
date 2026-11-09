@@ -788,14 +788,17 @@ final class ExportReportTests: XCTestCase {
         for index in 0..<days {
             let date = APEXDateMath.adding(days: index, to: "2026-03-01")
             let protein = [1.3, 1.1, 1.0, 0.9][index % 4], carbs = [1.0, 0.7, 1.1, 1.3][index % 4], fat = [1.0, 1.1, 0.9, 1.4][index % 4]
-            data.loggedMeals.append(LoggedMeal(
-                id: UUID(), userID: user, localDate: date, mealSlot: "lunch", displayName: "Meal",
-                sourcePresetID: nil, sourcePlannedMealID: nil, loggedAt: "\(date)T12:00:00Z",
-                clientIdempotencyKey: UUID().uuidString, loggedAs: "manual",
-                totalKcal: Double(targets.targetCalories) * (index % 3 == 0 ? 0.85 : 1.02),
-                totalProteinG: Double(targets.proteinG) * protein, totalCarbsG: Double(targets.carbsG) * carbs,
-                totalFatG: Double(targets.fatG) * fat
-            ))
+            // Three meals make a full day; a day with fewer is a partial log and is not scored.
+            for _ in 0..<3 {
+                data.loggedMeals.append(LoggedMeal(
+                    id: UUID(), userID: user, localDate: date, mealSlot: "lunch", displayName: "Meal",
+                    sourcePresetID: nil, sourcePlannedMealID: nil, loggedAt: "\(date)T12:00:00Z",
+                    clientIdempotencyKey: UUID().uuidString, loggedAs: "manual",
+                    totalKcal: Double(targets.targetCalories) * (index % 3 == 0 ? 0.85 : 1.02) / 3,
+                    totalProteinG: Double(targets.proteinG) * protein / 3, totalCarbsG: Double(targets.carbsG) * carbs / 3,
+                    totalFatG: Double(targets.fatG) * fat / 3
+                ))
+            }
             if index % 7 != 3 {
                 data.supplementLogs.append(SupplementLog(id: UUID(), userID: user, date: date, supplementID: creatineID,
                                                          checkedAt: "\(date)T08:00:00Z"))

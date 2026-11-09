@@ -2434,3 +2434,22 @@ Verification: the parity harness on the client export before and after; `ExportR
 - **Before had no Body + load when After did.** Cause: the first weigh-in was later than the first session, and only weigh-ins on or before a session were accepted. A session with none now uses the next weigh-in inside the exported period (`AvatarReport.laterBodyweightBySession`), and every tile prints the bodyweight it used (with its date when it is a later one). A weigh-in after the period is still ignored. Covered by a test.
 - **Most trained exercises.** Families are listed in body-region divisions (lower, upper, then core and other when present), each from most to least trained; figures never wrap away from their unit (the volume column is wider and a figure steps down a size before it would wrap); variant names get the spare room beside the short session counts.
 
+
+### 2026-11-09 · Nutrition page in the Avatar PDF (iOS)
+
+Page 2 of the report is now Nutrition. `NutritionReport.summarize` builds one summary and the page draws only from it: a 0–100 consistency score with stars and one of eleven verdicts, protein, carbs and fat rings and a calories bar against the current targets, up to two insight cards (an earned win first, then the next gain), a creatine consistency ring with one of ten badges and its streak, and the water drunk compared with one of 182 familiar containers (`shared/water-volume-landmarks.json`, names in nine languages, from a teaspoon to the Caspian Sea).
+
+Rules, each reusing one the app already applies:
+
+- A day's food is the sum of its logged meals, else the manual daily total (the Nutrition screen's rule). Targets come from `EnergyEngine.targets` and are today's targets; they are not stored historically.
+- Calories count as on target within ±10 %, protein at 95 % or more (the Health score's rules). More protein than the target is a win, never a miss; carbs and fat use a ±20 % display band.
+- **Only fully logged days are judged.** A day needs at least three logged meals (or as many as the meal plan expects when that is fewer), or a manual daily total. A day with fewer meals is shown as "partly logged" and is not counted as under-eating, matching the app's rule that an incomplete diary is not penalised. Found on a real export: 15 of 51 logged days were partial and would have been scored as misses.
+- The period starts at the first nutrition, water or creatine entry, not at an earlier imported workout.
+- Creatine is keyed on the day a check-off belongs to, so a past day ticked later in the calendar changes the score, streak and badge on re-export. A supplement marked training-days-only is not scored.
+- The water total is drinks from the hydration ledger (legacy daily value as fallback), not water from food.
+
+Copy rule from the owner: nothing reads as wasted effort. Enough or more than enough is a win; a gap is the next gain. All new strings exist in the eight translated languages; the water milestone wording has its own keys because the shared one mentions weight in Japanese.
+
+Each exercise's session list is capped at nine entries, sampled evenly from first to latest and always keeping the record.
+
+Verification: 35 summary tests, 4 water-list tests (unique names, ascending volumes, all translations, a match within 30 % for every total from 0.25 L to 5,000 L) and 2 page tests; the page was rendered from a real client export in English and German and checked for overflow. Gaps: the fixed three-meal threshold misjudges people who eat two large meals without a meal plan; typical (non-standard) container sizes and lake volumes were not checked against sources; not run on a physical device; Japanese, Thai and Swiss German copy was not reviewed by a native speaker.

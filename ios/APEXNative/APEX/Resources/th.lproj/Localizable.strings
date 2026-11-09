@@ -5883,7 +5883,6 @@
 "Getting there" = "ใกล้แล้ว";
 "About half your days hit the mark. Every extra on-target day moves your score up." = "ประมาณครึ่งหนึ่งของวันทั้งหมดตรงเป้า ทุกวันที่ตรงเป้าเพิ่มขึ้นจะดันคะแนนของคุณขึ้น";
 "Finding your rhythm" = "กำลังหาจังหวะของคุณ";
-"The habit is forming. Pick one target to hit every day, and protein is a great place to start." = "นิสัยกำลังก่อตัว เลือกเป้าหมายหนึ่งอย่างที่ทำให้ได้ทุกวัน และโปรตีนคือจุดเริ่มต้นที่ดีมาก";
 "Room to grow" = "ยังเติบโตได้อีก";
 "Hitting your targets more often gives your training the fuel it needs to show. Start with protein at every meal." = "การทำได้ตามเป้าบ่อยขึ้นจะเติมพลังให้การฝึกของคุณเห็นผล เริ่มจากโปรตีนในทุกมื้อ";
 "Target %d g" = "เป้าหมาย %d g";
@@ -5931,3 +5930,7 @@
 "Logged on %d days" = "บันทึก %d วัน";
 "Next: %@" = "ถัดไป: %@";
 "About the same volume" = "ปริมาณพอ ๆ กัน";
+"%d partly logged" = "%d วันบันทึกบางส่วน";
+"The habit is forming. Pick one target to hit every day and build from there." = "นิสัยกำลังก่อตัว เลือกเป้าหมายหนึ่งอย่างที่จะทำให้ได้ทุกวัน แล้วค่อย ๆ ต่อยอดจากตรงนั้น";
+"You have passed this volume" = "คุณดื่มเกินปริมาณนี้แล้ว";
+"Your next volume" = "ปริมาณเป้าหมายถัดไป";
