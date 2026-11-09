@@ -1546,7 +1546,7 @@ struct AvatarReport: Transferable {
         func drawNutrition(_ nutrition: NutritionReport) {
             begin("Nutrition", subtitle: language.dateKey(nutrition.from) + " – " + language.dateKey(nutrition.to) + "   ·   "
                   + language.format("%d of %d days logged", nutrition.loggedDays, nutrition.periodDays))
-            let gap: CGFloat = 12
+            let gap: CGFloat = 10
             drawScoreHero(nutrition)
             y += gap
             if nutrition.loggedDays > 0 {
@@ -1571,8 +1571,12 @@ struct AvatarReport: Transferable {
             let scored = nutrition.score != nil
             let textX = scored ? left + 262 : left + pad
             let textWidth = right - pad - textX
-            let lines = Array(wrapped(language.text(copy.line), width: textWidth, size: 10.5).prefix(3))
-            let card = CGRect(x: left, y: y, width: width, height: max(128, 64 + CGFloat(lines.count) * 15))
+            let title = language.text(copy.title)
+            let titleSize = fittingSize(title, width: textWidth, sizes: [18, 16, 14.5], weight: .bold)
+            let titleLines = wrapped(title, width: textWidth, size: titleSize, weight: .bold)
+            let lines = wrapped(language.text(copy.line), width: textWidth, size: 10.5)
+            let blockHeight = CGFloat(titleLines.count) * (titleSize + 5) + 4 + CGFloat(lines.count) * 15
+            let card = CGRect(x: left, y: y, width: width, height: max(116, blockHeight + 36))
             glass(card, radius: 24, opacity: 0.6)
             let earned = nutrition.stars >= 4
             let wash = raster(card.size, scale: 2) { cg in
@@ -1582,22 +1586,24 @@ struct AvatarReport: Transferable {
             }
             wash.draw(in: card)
             if let score = nutrition.score {
-                label(language.text("Consistency score").uppercased(with: locale), left + pad, y + 20, 220, size: 9.5, weight: .bold, color: green, kern: 0.6)
+                label(language.text("Consistency score").uppercased(with: locale), left + pad, y + 18, 220, size: 9.5, weight: .bold, color: green, kern: 0.6)
                 let big = font(52, .heavy, rounded: true), small = font(15, .semibold, rounded: true)
                 let figure = String(score)
-                label(figure, left + pad, y + 32, 160, size: 52, weight: .heavy, rounded: true)
-                label("/ 100", left + pad + measure(figure, size: 52, weight: .heavy, rounded: true) + 6, y + 32 + big.ascender - small.ascender,
+                label(figure, left + pad, y + 29, 160, size: 52, weight: .heavy, rounded: true)
+                label("/ 100", left + pad + measure(figure, size: 52, weight: .heavy, rounded: true) + 6, y + 29 + big.ascender - small.ascender,
                       80, size: 15, weight: .semibold, color: muted, rounded: true)
                 for index in 0..<5 {
-                    drawStar(CGRect(x: left + pad + CGFloat(index) * 21, y: y + 98, width: 17, height: 17), earned: index < nutrition.stars)
+                    drawStar(CGRect(x: left + pad + CGFloat(index) * 21, y: y + 89, width: 17, height: 17), earned: index < nutrition.stars)
                 }
-                if earned { drawRosette(CGRect(x: left + 168, y: y + 30, width: 58, height: 72)) }
+                if earned { drawRosette(CGRect(x: left + 168, y: card.midY - 36, width: 58, height: 72)) }
                 fill(CGRect(x: textX - 22, y: y + 22, width: 0.8, height: card.height - 44), ink.withAlphaComponent(0.09))
             }
-            let blockHeight = 26 + CGFloat(lines.count) * 15
             var cursor = card.midY - blockHeight / 2
-            label(language.text(copy.title), textX, cursor, textWidth, size: 18, weight: .bold)
-            cursor += 26
+            for part in titleLines {
+                label(part, textX, cursor, textWidth, size: titleSize, weight: .bold)
+                cursor += titleSize + 5
+            }
+            cursor += 4
             for line in lines {
                 label(line, textX, cursor, textWidth, size: 10.5, color: soft)
                 cursor += 15
@@ -1641,17 +1647,17 @@ struct AvatarReport: Transferable {
 
         private func drawMacroRings(_ nutrition: NutritionReport) {
             let kinds: [NutritionReport.Kind] = [.protein, .carbs, .fat]
-            let gap: CGFloat = 12, height: CGFloat = 176, diameter: CGFloat = 94
+            let gap: CGFloat = 12, height: CGFloat = 160, diameter: CGFloat = 88
             let tileWidth = (width - gap * 2) / 3
             for (index, kind) in kinds.enumerated() {
                 guard let macro = nutrition.macros.first(where: { $0.kind == kind }) else { continue }
                 let tile = CGRect(x: left + CGFloat(index) * (tileWidth + gap), y: y, width: tileWidth, height: height)
                 glass(tile, radius: 22, opacity: 0.6)
-                let ring = CGRect(x: tile.midX - diameter / 2, y: tile.minY + 16, width: diameter, height: diameter)
+                let ring = CGRect(x: tile.midX - diameter / 2, y: tile.minY + 12, width: diameter, height: diameter)
                 let ratio = macro.target.map { $0 > 0 ? macro.average / $0 : 0 }
                 drawRing(in: ring, ratio: ratio ?? 0, line: 10, colors: macroColors(kind))
                 centered(number(macro.average.rounded()) + " g", in: ring, size: 18, weight: .bold, color: ink, rounded: true)
-                var cursor = ring.maxY + 11
+                var cursor = ring.maxY + 8
                 centered(language.text(macroName(kind)), in: CGRect(x: tile.minX + 10, y: cursor, width: tile.width - 20, height: 16),
                          size: 12.5, weight: .bold, color: ink)
                 cursor += 18
@@ -1702,8 +1708,9 @@ struct AvatarReport: Transferable {
                                           end: CGPoint(x: center.x - radius, y: center.y + radius), options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
                 }
                 cg.restoreGState()
+                // A sliver over the target reads as a glitch, so the second lap starts at 3 %.
                 let lap = min(1, ratio - 1)
-                guard lap > 0.005 else { return }
+                guard lap >= 0.03 else { return }
                 cg.saveGState()
                 cg.setShadow(offset: .zero, blur: 4, color: UIColor.black.withAlphaComponent(0.25).cgColor)
                 cg.setStrokeColor(colors.deep.cgColor)
@@ -1716,17 +1723,17 @@ struct AvatarReport: Transferable {
         }
 
         private func drawCaloriesBar(_ calories: NutritionReport.Macro, loggedDays: Int) {
-            let strip = CGRect(x: left, y: y, width: width, height: 56)
+            let strip = CGRect(x: left, y: y, width: width, height: 50)
             glass(strip, radius: 18, opacity: 0.6)
             let pad: CGFloat = 18
-            label(language.text("Calories"), left + pad, y + 11, 150, size: 12.5, weight: .bold)
+            label(language.text("Calories"), left + pad, y + 8, 150, size: 12.5, weight: .bold)
             let value = number(calories.average.rounded()) + " " + language.text("kcal")
             if let target = calories.target, target > 0 {
                 let rate = Double(calories.metDays) / Double(max(1, loggedDays))
-                label(language.format("On target %d of %d days", calories.metDays, loggedDays), left + pad, y + 30, 150,
+                label(language.format("On target %d of %d days", calories.metDays, loggedDays), left + pad, y + 27, 150,
                       size: 9.5, weight: .semibold, color: rate >= 0.7 ? green : amberInk)
-                label(value, right - pad - 150, y + 9, 150, size: 17, weight: .bold, alignment: .right, rounded: true)
-                label(language.format("Target %d kcal", Int(target.rounded())), right - pad - 150, y + 31, 150, size: 9.5,
+                label(value, right - pad - 150, y + 6, 150, size: 17, weight: .bold, alignment: .right, rounded: true)
+                label(language.format("Target %d kcal", Int(target.rounded())), right - pad - 150, y + 28, 150, size: 9.5,
                       weight: .medium, color: muted, alignment: .right)
                 let colors = macroColors(.calories)
                 let track = CGRect(x: left + 170, y: strip.midY - 4.5, width: width - 170 - 150 - pad - 18, height: 9)
@@ -1744,7 +1751,7 @@ struct AvatarReport: Transferable {
                 }
                 fill(CGRect(x: mark - 0.75, y: track.minY - 4, width: 1.5, height: track.height + 8), ink.withAlphaComponent(0.55), radius: 0.75)
             } else {
-                label(value, right - pad - 150, y + 18, 150, size: 17, weight: .bold, alignment: .right, rounded: true)
+                label(value, right - pad - 150, y + 14, 150, size: 17, weight: .bold, alignment: .right, rounded: true)
             }
             y = strip.maxY
         }
@@ -1777,10 +1784,16 @@ struct AvatarReport: Transferable {
 
         private func drawInsights(_ insights: [Insight]) {
             let gap: CGFloat = 12, pad: CGFloat = 16, glyph: CGFloat = 30
-            let cardWidth = insights.count == 1 ? width : (width - gap) / 2
+            let lone = insights.count == 1
+            let cardWidth = lone ? width : (width - gap) / 2
+            // A lone card is wide enough to set its sentence beside the glyph, under the title.
+            let indent = lone ? glyph + 11 : 0
             let copies = insights.map(insightCopy)
-            let bodies = copies.map { wrapped(language.text($0.line), width: cardWidth - pad * 2, size: 10).prefix(3) }
-            let height = max(92, pad + glyph + 10 + CGFloat(bodies.map(\.count).max() ?? 0) * 14 + pad - 4)
+            let bodies = copies.map { wrapped(language.text($0.line), width: cardWidth - pad * 2 - indent, size: 10) }
+            let lines = CGFloat(bodies.map(\.count).max() ?? 0) * 14
+            let titleWidth = cardWidth - glyph - pad * 2 - 11
+            let titleSize = copies.map { fittingSize(language.text($0.title), width: titleWidth, sizes: [12.5, 11.5, 10.5], weight: .bold) }.min() ?? 12.5
+            let height = lone ? max(72, pad + 24 + lines + pad - 2) : max(88, pad + glyph + 8 + lines + pad - 6)
             for (index, insight) in insights.enumerated() {
                 let card = CGRect(x: left + CGFloat(index) * (cardWidth + gap), y: y, width: cardWidth, height: height)
                 let reward: Bool
@@ -1794,21 +1807,33 @@ struct AvatarReport: Transferable {
                     gradient(badge, [glow, series], radius: glyph / 2)
                     drawArrowGlyph(badge.insetBy(dx: 9, dy: 8))
                 }
-                let title = language.text(copies[index].title)
-                label(title, badge.maxX + 11, badge.midY - 9, card.width - glyph - pad * 2 - 11, size: 12.5, weight: .bold,
-                      color: reward ? amberInk : ink)
-                var cursor = badge.maxY + 10
+                label(language.text(copies[index].title), badge.maxX + 11, (lone ? card.minY + pad - 1 : badge.midY - 9) + (12.5 - titleSize) / 2, titleWidth,
+                      size: titleSize, weight: .bold, color: reward ? amberInk : ink)
+                var cursor = lone ? card.minY + pad + 21 : badge.maxY + 8
                 for line in bodies[index] {
-                    label(line, card.minX + pad, cursor, card.width - pad * 2, size: 10, color: soft)
+                    label(line, card.minX + pad + indent, cursor, card.width - pad * 2 - indent, size: 10, color: soft)
                     cursor += 14
                 }
             }
             y += height
         }
 
+        /// Creatine and water side by side at one height; either takes the full width alone. Each card measures, then draws.
         private func drawSupplementRow(_ nutrition: NutritionReport) {
-            guard let creatine = nutrition.creatine else { return }
-            drawCreatineCard(creatine, in: CGRect(x: left, y: y, width: (width - 12) / 2, height: 0))
+            var cards: [(CGRect, Bool) -> CGFloat] = []
+            if let creatine = nutrition.creatine { cards.append { self.creatineCard(creatine, in: $0, draw: $1) } }
+            if nutrition.waterLitres > 0, let comparison = WaterVolumeComparison.caption(litres: nutrition.waterLitres) {
+                cards.append { self.waterCard(nutrition, comparison: comparison, in: $0, draw: $1) }
+            }
+            guard !cards.isEmpty else { return }
+            let gap: CGFloat = 12
+            let cardWidth = (width - gap * CGFloat(cards.count - 1)) / CGFloat(cards.count)
+            let slots = cards.indices.map { CGRect(x: left + CGFloat($0) * (cardWidth + gap), y: y, width: cardWidth, height: bottom - y) }
+            let height = min(bottom - y, max(132, zip(cards, slots).map { $0.0($0.1, false) }.max() ?? 0))
+            for (card, slot) in zip(cards, slots) {
+                _ = card(CGRect(x: slot.minX, y: y, width: slot.width, height: height), true)
+            }
+            y += height
         }
 
         private func badgeCopy(_ badge: NutritionReport.Creatine.Badge) -> Copy {
@@ -1826,31 +1851,35 @@ struct AvatarReport: Transferable {
             }
         }
 
-        private func drawCreatineCard(_ creatine: NutritionReport.Creatine, in slot: CGRect) {
+        private func creatineCard(_ creatine: NutritionReport.Creatine, in card: CGRect, draw: Bool) -> CGFloat {
             let reward: Set<NutritionReport.Creatine.Badge> = [.champ, .lockedIn, .onARoll, .comeback]
             let isReward = reward.contains(creatine.badge)
-            let pad: CGFloat = 16, diameter: CGFloat = 58
+            let pad: CGFloat = 16, diameter: CGFloat = 50
             let copy = badgeCopy(creatine.badge)
-            let inner = slot.width - pad * 2
+            let inner = card.width - pad * 2
             let stats = wrapped(language.format("Taken on %d of %d days · longest streak %d days", creatine.takenDays, creatine.trackedDays,
                                                 creatine.longestStreak), width: inner, size: 9.5, weight: .medium)
-            let body = Array(wrapped(language.text(copy.line), width: inner, size: 10).prefix(3))
-            let height = max(132, pad + diameter + 10 + CGFloat(stats.count) * 13 + 6 + CGFloat(body.count) * 14 + pad - 4)
-            let card = CGRect(x: slot.minX, y: slot.minY, width: slot.width, height: height)
+            let fixed = pad + diameter + 8 + CGFloat(stats.count) * 13 + 6 + pad - 4
+            let sentence = wrapped(language.text(copy.line), width: inner, size: 10)
+            // A sentence is shown whole or not at all; the page edge never cuts one off.
+            let body = fixed + CGFloat(sentence.count) * 14 <= card.height ? sentence : []
+            guard draw else { return fixed + CGFloat(body.count) * 14 }
             glass(card, radius: 20, tint: isReward ? amberWash : .white, opacity: isReward ? 0.82 : 0.6)
             let ring = CGRect(x: card.maxX - pad - diameter, y: card.minY + pad - 2, width: diameter, height: diameter)
             drawRing(in: ring, ratio: Double(creatine.score) / 100, line: 7,
                      colors: isReward ? macroColors(.fat) : macroColors(.protein))
-            centered(String(creatine.score), in: ring, size: 17, weight: .bold, color: ink, rounded: true)
+            centered(String(creatine.score), in: ring, size: 15, weight: .bold, color: ink, rounded: true)
             let textWidth = ring.minX - card.minX - pad - 8
             label(language.text("Creatine").uppercased(with: locale), card.minX + pad, card.minY + pad, textWidth, size: 9.5, weight: .bold,
                   color: isReward ? amberInk : green, kern: 0.6)
             var titleX = card.minX + pad
             if isReward {
-                drawStar(CGRect(x: titleX, y: card.minY + pad + 19, width: 15, height: 15), earned: true)
+                drawStar(CGRect(x: titleX, y: card.minY + pad + 18, width: 15, height: 15), earned: true)
                 titleX += 20
             }
-            label(language.text(copy.title), titleX, card.minY + pad + 15, ring.minX - titleX - 8, size: 15, weight: .bold,
+            let badgeTitle = language.text(copy.title)
+            let badgeSize = fittingSize(badgeTitle, width: ring.minX - titleX - 8, sizes: [15, 13.5, 12], weight: .bold)
+            label(badgeTitle, titleX, card.minY + pad + 15 + (15 - badgeSize) / 2, ring.minX - titleX - 8, size: badgeSize, weight: .bold,
                   color: isReward ? amberInk : ink)
             var cursor = card.minY + pad + diameter + 8
             for line in stats {
@@ -1862,7 +1891,98 @@ struct AvatarReport: Transferable {
                 label(line, card.minX + pad, cursor, inner, size: 10, color: soft)
                 cursor += 14
             }
-            y = card.maxY
+            return card.height
+        }
+
+        private func litres(_ value: Double) -> String {
+            value.formatted(.number.locale(locale).precision(.fractionLength(value < 100 ? 1 : 0))) + " L"
+        }
+
+        private func waterCard(_ nutrition: NutritionReport, comparison: WaterVolumeComparison.Comparison, in card: CGRect, draw: Bool) -> CGFloat {
+            let pad: CGFloat = 16, tank = CGSize(width: 50, height: 78)
+            let blue = Pages.rgb(0x1F6FD6)
+            let next = WaterVolumeComparison.next(after: nutrition.waterLitres)
+            let tankFrame = CGRect(x: card.maxX - pad - tank.width, y: card.minY + pad, width: tank.width, height: tank.height)
+            let textWidth = tankFrame.minX - card.minX - pad - 12
+            let caption = wrapped(comparison.caption, width: textWidth, size: 10.5, weight: .semibold)
+            let notes = (next.map { [language.format("Next: %@", $0.name + " · " + litres($0.litres))] } ?? [])
+                + [language.format("Logged on %d days", nutrition.waterDays)]
+            let noteLines = notes.flatMap { wrapped($0, width: card.width - pad * 2, size: 9.5, weight: .medium) }
+            let fixed = pad + max(tank.height + 8, 50) + 6 + CGFloat(noteLines.count) * 13 + pad - 4
+            let textBlock = max(tank.height + 8, 50 + CGFloat(caption.count) * 14.5)
+            let needed = pad + textBlock + 6 + CGFloat(noteLines.count) * 13 + pad - 4
+            let shown = needed <= card.height ? caption : []
+            guard draw else { return shown.isEmpty ? fixed : needed }
+            glass(card, radius: 20, opacity: 0.6)
+            label(language.text("Water").uppercased(with: locale), card.minX + pad, card.minY + pad, textWidth, size: 9.5, weight: .bold,
+                  color: blue, kern: 0.6)
+            let figure = litres(nutrition.waterLitres)
+            let figureSize = fittingSize(figure, width: textWidth, sizes: [26, 22, 18], weight: .bold)
+            label(figure, card.minX + pad, card.minY + pad + 15 + (26 - figureSize) / 2, textWidth, size: figureSize, weight: .bold,
+                  color: ink, rounded: true)
+            var cursor = card.minY + pad + 50
+            for line in shown {
+                label(line, card.minX + pad, cursor, textWidth, size: 10.5, weight: .semibold, color: ink)
+                cursor += 14.5
+            }
+            let progress = next.map { min(1, max(0, nutrition.waterLitres / $0.litres)) } ?? 1
+            drawTank(in: tankFrame, level: progress)
+            cursor = max(cursor, tankFrame.maxY + 8) + 6
+            for line in noteLines {
+                label(line, card.minX + pad, cursor, card.width - pad * 2, size: 9.5, weight: .medium, color: muted)
+                cursor += 13
+            }
+            return card.height
+        }
+
+        /// A glass tank filled to `level` (0...1) with a wave-topped blue gradient.
+        private func drawTank(in frame: CGRect, level: Double) {
+            let pad: CGFloat = 8
+            let canvas = frame.insetBy(dx: -pad, dy: -pad)
+            let image = raster(canvas.size) { cg in
+                guard let space = CGColorSpace(name: CGColorSpace.sRGB) else { return }
+                let body = CGRect(x: pad, y: pad, width: frame.width, height: frame.height)
+                let vessel = UIBezierPath(roundedRect: body, cornerRadius: 12)
+                cg.saveGState()
+                cg.setShadow(offset: CGSize(width: 0, height: 3), blur: 8, color: Pages.rgb(0x1F6FD6).withAlphaComponent(0.25).cgColor)
+                cg.setFillColor(UIColor.white.withAlphaComponent(0.75).cgColor)
+                cg.addPath(vessel.cgPath)
+                cg.fillPath()
+                cg.restoreGState()
+                cg.saveGState()
+                cg.addPath(vessel.cgPath)
+                cg.clip()
+                // Headroom at both ends keeps the wave visible for an almost empty or almost full tank.
+                let surface = body.maxY - body.height * (0.08 + 0.8 * CGFloat(min(1, max(0, level))))
+                func wave(phase: CGFloat, amplitude: CGFloat) -> CGPath {
+                    let path = UIBezierPath()
+                    path.move(to: CGPoint(x: body.minX, y: body.maxY))
+                    for step in 0...24 {
+                        let x = body.minX + body.width * CGFloat(step) / 24
+                        path.addLine(to: CGPoint(x: x, y: surface + amplitude * sin(CGFloat(step) / 24 * 2 * .pi + phase)))
+                    }
+                    path.addLine(to: CGPoint(x: body.maxX, y: body.maxY))
+                    path.close()
+                    return path.cgPath
+                }
+                cg.setFillColor(Pages.rgb(0x7CC8F8).withAlphaComponent(0.55).cgColor)
+                cg.addPath(wave(phase: .pi, amplitude: 2.6))
+                cg.fillPath()
+                cg.addPath(wave(phase: 0, amplitude: 2.2))
+                cg.clip()
+                if let shading = CGGradient(colorsSpace: space, colors: [Pages.rgb(0x6CC4F7).cgColor, Pages.rgb(0x1F6FD6).cgColor] as CFArray,
+                                            locations: [0, 1]) {
+                    cg.drawLinearGradient(shading, start: CGPoint(x: 0, y: surface - 3), end: CGPoint(x: 0, y: body.maxY), options: [])
+                }
+                cg.restoreGState()
+                cg.setFillColor(UIColor.white.withAlphaComponent(0.55).cgColor)
+                cg.fill(CGRect(x: body.minX + 7, y: body.minY + 10, width: 3, height: body.height - 26))
+                cg.addPath(UIBezierPath(roundedRect: body.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 11.5).cgPath)
+                cg.setLineWidth(1)
+                cg.setStrokeColor(Pages.rgb(0x1F6FD6).withAlphaComponent(0.28).cgColor)
+                cg.strokePath()
+            }
+            image.draw(in: canvas)
         }
 
         /// A five-point star as a vector path; earned stars carry the amber gradient, unearned ones a faint ink.

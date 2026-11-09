@@ -830,6 +830,8 @@ final class ExportReportTests: XCTestCase {
             XCTAssertTrue(text.contains(language.text(name).uppercased(with: language.language.locale)) || text.contains(language.text(name)), name)
         }
         XCTAssertNotNil(nutrition.creatine)
+        let water = try XCTUnwrap(WaterVolumeComparison.caption(litres: nutrition.waterLitres))
+        XCTAssertTrue(text.replacingOccurrences(of: "\n", with: " ").contains(water.caption), water.caption)
         let attachment = XCTAttachment(data: pdf, uniformTypeIdentifier: "com.adobe.pdf")
         attachment.name = "Nutrition page.pdf"
         attachment.lifetime = .keepAlways
