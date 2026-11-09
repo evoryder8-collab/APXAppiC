@@ -62,6 +62,8 @@ targets:
         buildPhase: resources
       - path: ../../shared/hero-lift-landmarks.json
         buildPhase: resources
+      - path: ../../shared/water-volume-landmarks.json
+        buildPhase: resources
       - path: APEX/Resources/GuidedArtwork
         type: folder
         buildPhase: resources
