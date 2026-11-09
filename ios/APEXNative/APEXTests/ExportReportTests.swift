@@ -232,7 +232,8 @@ final class ExportReportTests: XCTestCase {
         })
         let text = try XCTUnwrap(page.string)
         let language = LanguageState.shared
-        XCTAssertTrue(text.contains(language.text("Hip Thrust") + " · " + language.text("Lower body")))
+        // Families are listed under their body-region division instead of carrying the region on every row.
+        XCTAssertTrue(text.contains(language.text("Lower body")) && text.contains(language.text("Hip Thrust")))
         XCTAssertTrue(text.contains(language.text("Barbell Hip Thrust")))
         XCTAssertTrue(text.contains(language.text("Machine Hip Thrust")))
         XCTAssertTrue(text.contains("1.78 tons"))
@@ -240,15 +241,15 @@ final class ExportReportTests: XCTestCase {
         XCTAssertTrue(text.contains("300 kg"))
         XCTAssertTrue(text.contains("80.9 kg"))
         let expectedRows = [
-            (language.text("Hip Thrust") + " · " + language.text("Lower body"), 2, 22),
+            (language.text("Hip Thrust"), 2, 22),
             (language.text("Machine Hip Thrust"), 2, 16),
             (language.text("Barbell Hip Thrust"), 1, 6),
         ]
         for (name, sessions, reps) in expectedRows {
             let title = try XCTUnwrap(document.findString(name, withOptions: .literal).first { $0.pages.first == page })
             let midY = title.bounds(for: page).midY
-            let sessionCell = CGRect(x: 238, y: midY - 3, width: 58, height: 6)
-            let repsCell = CGRect(x: 299, y: midY - 3, width: 70, height: 6)
+            let sessionCell = CGRect(x: 217, y: midY - 3, width: 58, height: 6)
+            let repsCell = CGRect(x: 278, y: midY - 3, width: 60, height: 6)
             XCTAssertEqual(page.selection(for: sessionCell)?.string?.trimmingCharacters(in: .whitespacesAndNewlines), String(sessions), name)
             XCTAssertEqual(page.selection(for: repsCell)?.string?.trimmingCharacters(in: .whitespacesAndNewlines), String(reps), name)
         }
@@ -863,6 +864,27 @@ final class ExportReportTests: XCTestCase {
         let history = StrengthProgress.exerciseHistory(ownerID: user, sessions: [early, later], logs: logs)
         XCTAssertEqual(history.count, 1)
         XCTAssertEqual(history.first?.sessionCount, 2)
+    }
+
+    func testASessionBeforeTheFirstWeighInUsesTheNextOneInsideTheReport() {
+        let early = session("2026-08-14"), recent = session("2026-11-06")
+        var fixture = data()
+        fixture.workoutSessions = [early, recent]
+        fixture.workoutLogs = [set(early, "Reverse Lunge", 6, 10, movement: "reverse_lunge"),
+                               set(recent, "Reverse Lunge", 12, 10, movement: "reverse_lunge")]
+        fixture.healthMetrics = [HealthMetric(id: UUID(), userID: user, date: "2026-08-26", weightKG: 41.5),
+                                 HealthMetric(id: UUID(), userID: user, date: "2026-11-02", weightKG: 41)]
+        let report = AvatarReport.scoped(ownerID: user, data: fixture, partialScores: [:], period: .allTime,
+                                         dates: "2026-08-14"..."2026-11-09", today: "2026-11-09")
+        XCTAssertNil(report.bodyweightBySession[early.id])
+        XCTAssertEqual(report.laterBodyweightBySession[early.id]?.kg, 41.5)
+        XCTAssertEqual(report.laterBodyweightBySession[early.id]?.date, "2026-08-26")
+        XCTAssertEqual(report.bodyweightBySession[recent.id], 41)
+        XCTAssertNil(report.laterBodyweightBySession[recent.id])
+        // A weigh-in after the exported period is not evidence for it.
+        let short = AvatarReport.scoped(ownerID: user, data: fixture, partialScores: [:], period: .custom,
+                                        dates: "2026-08-14"..."2026-08-20", today: "2026-11-09")
+        XCTAssertNil(short.laterBodyweightBySession[early.id])
     }
 
     @MainActor

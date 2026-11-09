@@ -47,6 +47,13 @@ struct AvatarReport: Transferable {
     var period: AvatarReportPeriod = .allTime
     var reportDates: ClosedRange<String>? = nil
     var identityStages: [IdentityStage] = []
+    var laterBodyweightBySession: [UUID: LaterBodyweight] = [:]
+
+    /// The nearest weigh-in after a session that has none on or before it, with its date so the figure stays traceable.
+    struct LaterBodyweight {
+        let kg: Double
+        let date: String
+    }
 
     /// Consecutive months that share one training identity, from the same rules as the 90-day profile.
     struct IdentityStage {
@@ -107,8 +114,8 @@ struct AvatarReport: Transferable {
             item.sessions.first { $0.heaviestSet != nil }.map { (item.key, $0) }
         })
         let required = Set(first.values.map(\.sessionID))
-        let weights = bodyweights(in: data, owner: ownerID, through: dates.upperBound,
-                                  sessions: sessions + earlier.filter { required.contains($0.id) })
+        let (weights, laterWeights) = bodyweights(in: data, owner: ownerID, through: dates.upperBound,
+                                                  sessions: sessions + earlier.filter { required.contains($0.id) })
         let currentMass = data.profile.flatMap { profile -> Double? in
             guard profile.userID == ownerID, (10...500).contains(profile.weightKG) else { return nil }
             // A new profile can carry the database default until the user enters a weight.
@@ -134,11 +141,12 @@ struct AvatarReport: Transferable {
                     exercises: data.exercises.filter { $0.userID == ownerID }, trainingProfile: profile,
                     bodyweightBySession: weights, currentBodyweight: currentMass,
                     earlierFirst: first, joinedDate: joined, period: period, reportDates: dates,
-                    identityStages: identityStages(ownerID: ownerID, data: data, dates: dates))
+                    identityStages: identityStages(ownerID: ownerID, data: data, dates: dates),
+                    laterBodyweightBySession: laterWeights)
     }
 
     private static func bodyweights(in data: DashboardData, owner: UUID, through end: String,
-                                    sessions: [WorkoutSession]) -> [UUID: Double] {
+                                    sessions: [WorkoutSession]) -> (onOrBefore: [UUID: Double], later: [UUID: LaterBodyweight]) {
         struct Observation {
             let date: String
             let kg: Double
@@ -167,6 +175,7 @@ struct AvatarReport: Transferable {
             ($0.date, $0.priority, $0.time ?? .distantPast, $0.tie) < ($1.date, $1.priority, $1.time ?? .distantPast, $1.tie)
         }
         var bySession: [UUID: Double] = [:]
+        var later: [UUID: LaterBodyweight] = [:]
         var dayStart = 0
         for session in sessions.sorted(by: { $0.date < $1.date }) {
             while dayStart < observations.count && observations[dayStart].date < session.date { dayStart += 1 }
@@ -176,8 +185,15 @@ struct AvatarReport: Transferable {
                 return time <= started
             }
             bySession[session.id] = sameDay?.kg ?? (dayStart > 0 ? observations[dayStart - 1].kg : nil)
+            // No weigh-in yet: the first one after the session (still inside the report) is the closest evidence.
+            if bySession[session.id] == nil, let next = observations[dayStart...].first(where: { row in
+                guard row.date == session.date, let time = row.time, let started else { return true }
+                return time > started
+            }) {
+                later[session.id] = LaterBodyweight(kg: next.kg, date: next.date)
+            }
         }
-        return bySession
+        return (bySession, later)
     }
 
     var fileName: String {
@@ -593,11 +609,18 @@ struct AvatarReport: Transferable {
         // MARK: Rankings
 
         func drawRankings(_ rows: [StrengthProgress.RankedFamily]) {
+            // The volume column is wide enough to keep a figure and its unit on one line.
             let columns: [(title: String, x: CGFloat, width: CGFloat)] = [
-                ("Exercise", 40, 195), ("Sessions", 238, 58), ("Recorded reps", 299, 70),
-                ("Load per rep", 372, 78), ("Lifted volume", 453, 102.28),
+                ("Exercise", 40, 174), ("Sessions", 217, 58), ("Recorded reps", 278, 60),
+                ("Load per rep", 341, 72), ("Lifted volume", 416, 139.28),
             ]
             let mostSessions = CGFloat(max(1, rows.map(\.sessionCount).max() ?? 1))
+            var division: StrengthProgress.BodyRegion?
+            func divisionHeading(_ region: StrengthProgress.BodyRegion) {
+                dot(CGPoint(x: left + 6, y: y + 10), radius: 4.5, fill: regionColors(region).1, ring: 0)
+                label(language.text(region.rawValue), left + 18, y, width - 18, size: 15, weight: .heavy)
+                y += 28
+            }
             func heading() {
                 begin("Most trained exercises", subtitle: language.text("Each completed workout counts once per exercise family."))
                 if rows.contains(where: { $0.totals.missingVolume || $0.totals.missingReps }) {
@@ -613,38 +636,41 @@ struct AvatarReport: Transferable {
                               size: 9, weight: .bold, color: muted, alignment: index == 0 ? .left : .right)
                     }
                 }
-                y += height + 10
+                y += height + 12
+                if let division { divisionHeading(division) }
             }
-            typealias Row = (cells: [[String]], size: CGFloat, variant: Bool, sessions: Int)
+            typealias Row = (name: [String], values: [String], size: CGFloat, variant: Bool, sessions: Int)
             func layout(_ title: String, sessions: Int, totals: StrengthProgress.LifetimeTotals, variant: Bool) -> Row {
                 let size: CGFloat = variant ? 10 : 12
-                let indent: CGFloat = variant ? 26 : 14
                 let average = totals.averageLoadKG.map { weight($0) + (totals.missingVolume ? "*" : "") }
-                let values = [title, String(sessions), recordedReps(totals) ?? "", average ?? "", liftedVolume(totals) ?? ""]
-                let cells = zip(columns, values).enumerated().map { index, cell in
-                    wrapped(cell.1, width: cell.0.width - (index == 0 ? indent : 10) - 3, size: size, weight: variant ? .regular : .semibold)
-                }
-                return (cells, size, variant, sessions)
+                // Session counts are short, so names may run a little into that column before they wrap.
+                return (wrapped(title, width: columns[0].width + 30 - (variant ? 26 : 14), size: size, weight: variant ? .regular : .semibold),
+                        [String(sessions), recordedReps(totals) ?? "", average ?? "", liftedVolume(totals) ?? ""], size, variant, sessions)
             }
             func height(_ row: Row) -> CGFloat {
-                let lines = CGFloat(row.cells.map(\.count).max() ?? 1) * (row.size + 3)
-                return row.variant ? lines + 3 : max(lines, CGFloat(row.cells[0].count) * (row.size + 3) + 9) + 6
+                CGFloat(row.name.count) * (row.size + 3) + (row.variant ? 3 : 15)
             }
-
             func draw(_ row: Row) {
                 let rowTop = y
                 let indent: CGFloat = row.variant ? 26 : 14
+                let fontWeight: UIFont.Weight = row.variant ? .regular : .semibold
                 if row.variant { fill(CGRect(x: left + 16, y: y + row.size / 2 + 2, width: 4, height: 4), series.withAlphaComponent(0.45), radius: 2) }
-                for (index, cell) in row.cells.enumerated() {
-                    for (line, part) in cell.enumerated() {
-                        let inset = index == 0 ? indent : 0
-                        label(part, columns[index].x + inset, rowTop + CGFloat(line) * (row.size + 3), columns[index].width - inset - (index == 0 ? 0 : 10),
-                              size: row.size, weight: index > 0 && !row.variant ? .bold : (row.variant ? .regular : .semibold),
-                              color: row.variant ? muted : ink, alignment: index == 0 ? .left : .right, rounded: index > 0)
-                    }
+                for (line, part) in row.name.enumerated() {
+                    label(part, columns[0].x + indent, rowTop + CGFloat(line) * (row.size + 3), columns[0].width + 32 - indent, size: row.size,
+                          weight: fontWeight, color: row.variant ? muted : ink)
+                }
+                for (index, value) in row.values.enumerated() {
+                    let column = columns[index + 1]
+                    let numberWeight: UIFont.Weight = row.variant ? .regular : .bold
+                    // A figure never wraps away from its unit: it steps down a size instead.
+                    let size = [row.size, row.size - 1, row.size - 2, row.size - 3].first {
+                        measure(value, size: $0, weight: numberWeight, rounded: true) <= column.width - 10
+                    } ?? row.size - 3
+                    label(value, column.x, rowTop + (row.size - size) * 0.7, column.width - 10, size: size, weight: numberWeight,
+                          color: row.variant ? muted : ink, alignment: .right, rounded: true)
                 }
                 if !row.variant {
-                    let track = CGRect(x: left + indent, y: rowTop + CGFloat(row.cells[0].count) * (row.size + 3) + 4, width: 150, height: 4)
+                    let track = CGRect(x: left + indent, y: rowTop + CGFloat(row.name.count) * (row.size + 3) + 4, width: 150, height: 4)
                     fill(track, ink.withAlphaComponent(0.06), radius: 2)
                     gradient(CGRect(x: track.minX, y: track.minY, width: max(4, track.width * CGFloat(row.sessions) / mostSessions), height: 4),
                              [glow, series], vertical: false, radius: 2)
@@ -652,39 +678,47 @@ struct AvatarReport: Transferable {
                 y = rowTop + height(row)
             }
 
-            // A family with variants gets its own card; consecutive single-movement families share one.
-            var groups: [[Row]] = []
-            var singles: [Row] = []
-            for family in rows {
-                let head = layout(language.text(family.name) + " · " + language.text(family.region.rawValue),
-                                  sessions: family.sessionCount, totals: family.totals, variant: false)
-                if family.showsVariants {
-                    if !singles.isEmpty { groups.append(singles); singles = [] }
-                    groups.append([head] + family.variants.map {
-                        layout(language.text($0.name), sessions: $0.sessionCount, totals: $0.totals, variant: true)
-                    })
-                } else {
-                    singles.append(head)
-                }
-            }
-            if !singles.isEmpty { groups.append(singles) }
-
             heading()
-            for group in groups {
-                var start = 0
-                while start < group.count {
-                    var used: CGFloat = 14, end = start
-                    while end < group.count, y + used + height(group[end]) <= bottom {
-                        used += height(group[end])
-                        end += 1
+            // Lower body first, then upper body; each division runs from the most to the least trained family.
+            for region in [StrengthProgress.BodyRegion.lower, .upper, .core, .other] {
+                let families = rows.filter { $0.region == region }
+                guard !families.isEmpty else { continue }
+                // A family with variants gets its own card; consecutive single-movement families share one.
+                var groups: [[Row]] = []
+                var singles: [Row] = []
+                for family in families {
+                    let head = layout(language.text(family.name), sessions: family.sessionCount, totals: family.totals, variant: false)
+                    if family.showsVariants {
+                        if !singles.isEmpty { groups.append(singles); singles = [] }
+                        groups.append([head] + family.variants.map {
+                            layout(language.text($0.name), sessions: $0.sessionCount, totals: $0.totals, variant: true)
+                        })
+                    } else {
+                        singles.append(head)
                     }
-                    if end == start { heading(); continue }
-                    glass(CGRect(x: left, y: y, width: width, height: used), radius: 16, opacity: 0.55)
-                    y += 8
-                    for row in group[start..<end] { draw(row) }
-                    y += 14
-                    start = end
-                    if start < group.count { heading() }
+                }
+                if !singles.isEmpty { groups.append(singles) }
+                division = region
+                if y + 28 + 14 + (groups.first?.first.map(height) ?? 0) > bottom { heading() } else {
+                    if y > top + 120 { y += 6 }
+                    divisionHeading(region)
+                }
+                for group in groups {
+                    var start = 0
+                    while start < group.count {
+                        var used: CGFloat = 14, end = start
+                        while end < group.count, y + used + height(group[end]) <= bottom {
+                            used += height(group[end])
+                            end += 1
+                        }
+                        if end == start { heading(); continue }
+                        glass(CGRect(x: left, y: y, width: width, height: used), radius: 16, opacity: 0.55)
+                        y += 8
+                        for row in group[start..<end] { draw(row) }
+                        y += 14
+                        start = end
+                        if start < group.count { heading() }
+                    }
                 }
             }
         }
@@ -867,28 +901,50 @@ struct AvatarReport: Transferable {
             }
         }
 
-        /// The recorded sessions behind the chart, newest first, so every point maps to a workout.
+        /// The recorded sessions behind the chart on a timeline that runs first to latest, left to right, like the chart.
         private func drawSessionLog(_ points: [ChartPoint]) {
             let available = bottom - y - 14
-            guard available > 90, let bestAt = bestIndex(points) else { return }
-            let columns = 3, rowHeight: CGFloat = 34
-            let rows = min(Int((available - 52) / rowHeight), (points.count + columns - 1) / columns)
+            guard available > 100, let bestAt = bestIndex(points) else { return }
+            let columns = 3, rowHeight: CGFloat = 46
+            let rows = min(Int((available - 54) / rowHeight), (points.count + columns - 1) / columns)
             guard rows > 0 else { return }
-            let shown = Array(points.enumerated().reversed().prefix(rows * columns))
-            let card = CGRect(x: left, y: y + 6, width: width, height: 46 + CGFloat(rows) * rowHeight)
+            // When the page cannot hold every session, keep the most recent ones, still in chronological order.
+            let shown = Array(points.enumerated().suffix(rows * columns))
+            let usedRows = (shown.count + columns - 1) / columns
+            let card = CGRect(x: left, y: y + 6, width: width, height: 50 + CGFloat(usedRows) * rowHeight)
             glass(card, radius: 22, opacity: 0.5)
             label(language.text("Sessions"), left + 20, card.minY + 14, 200, size: 12, weight: .bold)
-            label(language.format("%d sessions", points.count), right - 220, card.minY + 15, 200, size: 10, color: muted, alignment: .right)
+            label(language.text("First") + "  →  " + language.text("Latest") + "   ·   " + language.format("%d sessions", points.count),
+                  right - 300, card.minY + 15, 280, size: 10, weight: .medium, color: muted, alignment: .right)
             let columnWidth = (width - 40) / CGFloat(columns)
+            let latestAt = points.count - 1
             for (slot, entry) in shown.enumerated() {
-                let x = left + 20 + CGFloat(slot % columns) * columnWidth
-                let top = card.minY + 40 + CGFloat(slot / columns) * rowHeight
-                let isBest = entry.offset == bestAt
-                if isBest { fill(CGRect(x: x - 8, y: top - 3, width: columnWidth - 6, height: rowHeight - 4), amberWash.withAlphaComponent(0.85), radius: 10) }
-                label("#" + String(entry.offset + 1) + " · " + language.dateKey(entry.element.day), x, top, columnWidth - 14, size: 8.8,
+                let column = slot % columns
+                let x = left + 20 + CGFloat(column) * columnWidth
+                let top = card.minY + 42 + CGFloat(slot / columns) * rowHeight
+                let isBest = entry.offset == bestAt, isLatest = entry.offset == latestAt
+                // The rail carries the eye from one session to the next; an arrowhead closes each step.
+                if slot < shown.count - 1 {
+                    let railEnd = column == columns - 1 ? x + columnWidth - 26 : x + columnWidth - 4
+                    fill(CGRect(x: x + 9, y: top + 3.6, width: railEnd - x - 9, height: 0.9), ink.withAlphaComponent(0.16))
+                    let tip = UIBezierPath()
+                    tip.move(to: CGPoint(x: railEnd, y: top + 4))
+                    tip.addLine(to: CGPoint(x: railEnd - 5, y: top + 1.2))
+                    tip.addLine(to: CGPoint(x: railEnd - 5, y: top + 6.8))
+                    tip.close()
+                    ink.withAlphaComponent(0.28).setFill()
+                    tip.fill()
+                }
+                if isBest || isLatest {
+                    fill(CGRect(x: x - 8, y: top + 10, width: columnWidth - 10, height: rowHeight - 14),
+                         (isBest ? amberWash : mint).withAlphaComponent(isBest ? 0.85 : 0.5), radius: 10)
+                }
+                dot(CGPoint(x: x + 4, y: top + 4), radius: 4, fill: isBest ? amber : series, ring: 0)
+                if !isBest && !isLatest { dot(CGPoint(x: x + 4, y: top + 4), radius: 2.2, fill: .white, ring: 0) }
+                label("#" + String(entry.offset + 1) + " · " + language.dateKey(entry.element.day), x, top + 13, columnWidth - 22, size: 8.8,
                       weight: .medium, color: isBest ? amberInk : muted)
-                label((isBest ? "★ " : "") + display(entry.element), x, top + 13, columnWidth - 14, size: 11.5, weight: .bold,
-                      color: isBest ? amberInk : ink, rounded: true)
+                label((isBest ? "★ " : "") + display(entry.element), x, top + 25, columnWidth - 22, size: 11.5, weight: .bold,
+                      color: isBest ? amberInk : isLatest ? green : ink, rounded: true)
             }
             y = card.maxY + 8
         }
@@ -1312,6 +1368,7 @@ struct AvatarReport: Transferable {
                 let load: String
                 let loadKG: Double?
                 let combined: String?
+                let bodyNote: String?
                 let estimate: String?
                 let recordedReps: String?
             }
@@ -1325,7 +1382,7 @@ struct AvatarReport: Transferable {
                 let performance: String
             }
             let record: Record?
-            var height: CGFloat { record == nil ? 222 : 284 }
+            var height: CGFloat { record == nil ? 234 : 296 }
         }
 
         private func legPanel(_ variant: StrengthProgress.ExerciseHistory) -> LegPanel? {
@@ -1336,10 +1393,13 @@ struct AvatarReport: Transferable {
                   let latest = eligible.last else { return nil }
             let words = Set(variant.name.lowercased().split(whereSeparator: { !$0.isLetter }).map(String.init))
             if !words.isDisjoint(with: ["or", "assisted", "supported", "machine", "smith", "cable", "band"]) { support = .externalOnly }
+            func body(_ row: StrengthProgress.SessionTotals) -> (kg: Double, date: String?)? {
+                if let kg = report.bodyweightBySession[row.sessionID] { return (kg, nil) }
+                return report.laterBodyweightBySession[row.sessionID].map { ($0.kg, $0.date) }
+            }
             func combined(_ row: StrengthProgress.SessionTotals) -> Double? {
-                guard support != .externalOnly, let kg = row.heaviestSet?.kg,
-                      let body = report.bodyweightBySession[row.sessionID] else { return nil }
-                return body + kg
+                guard support != .externalOnly, let kg = row.heaviestSet?.kg, let body = body(row) else { return nil }
+                return body.kg + kg
             }
             func entry(_ row: StrengthProgress.SessionTotals) -> LegPanel.Entry {
                 let total = combined(row)
@@ -1348,8 +1408,11 @@ struct AvatarReport: Transferable {
                     let units = report.unit.value(fromKilograms: all * 0.8436)
                     return "≈ " + number(units.rounded()) + " " + report.unit.suffix
                 }
+                let bodyNote = total == nil ? nil : body(row).map { measured in
+                    language.text("Bodyweight") + " · " + weight(measured.kg) + (measured.date.map { " · " + language.dateKey($0) } ?? "")
+                }
                 return .init(date: language.dateKey(row.date), load: row.heaviestSet.map { weight($0.kg) } ?? language.text("Not recorded"),
-                             loadKG: row.heaviestSet?.kg, combined: total.map(weight), estimate: estimate,
+                             loadKG: row.heaviestSet?.kg, combined: total.map(weight), bodyNote: bodyNote, estimate: estimate,
                              recordedReps: row.heaviestSet == nil ? row.totals.recordedReps.map { language.format("%d reps", $0) } : nil)
             }
             // A personal record is the heaviest working load (then most reps); bodyweight changes cannot set one.
@@ -1380,7 +1443,7 @@ struct AvatarReport: Transferable {
             }
             let illustration = Bundle.main.url(forResource: panel.movement, withExtension: "webp", subdirectory: "leg-anatomy")
                 .flatMap { UIImage(contentsOfFile: $0.path) }
-            let tileTop = y + 46, tileHeight: CGFloat = 160, arrowGap: CGFloat = 36
+            let tileTop = y + 46, tileHeight: CGFloat = 172, arrowGap: CGFloat = 36
             let tileWidth = (width - 28 - arrowGap) / 2
             for (index, entry) in [panel.before, panel.after].enumerated() {
                 let x = left + 14 + CGFloat(index) * (tileWidth + arrowGap)
@@ -1405,9 +1468,12 @@ struct AvatarReport: Transferable {
                 if let reps = entry.recordedReps {
                     label(language.text("Recorded reps") + " · " + reps, textX, tile.minY + 98, textWidth, size: 10.5, weight: .semibold)
                 }
-                if let estimate = entry.estimate {
-                    for (line, part) in wrapped(panel.estimateLabel + " " + estimate, width: textWidth, size: 8.5).prefix(2).enumerated() {
-                        label(part, textX, tile.minY + 135 + CGFloat(line) * 11, textWidth, size: 8.5, color: muted)
+                // Under the total: the bodyweight it was built from, then the front-foot estimate.
+                var noteY = tile.minY + 134
+                for note in [entry.bodyNote, entry.estimate.map { panel.estimateLabel + " " + $0 }].compactMap({ $0 }) {
+                    for part in wrapped(note, width: textWidth, size: 8.5).prefix(2) {
+                        label(part, textX, noteY, textWidth, size: 8.5, color: muted)
+                        noteY += 11
                     }
                 }
             }
