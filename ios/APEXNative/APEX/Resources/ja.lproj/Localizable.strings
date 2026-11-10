@@ -1424,6 +1424,7 @@
 "Searching FITR MAX Food Memory" = "FITR MAX Food Memoryを検索中";
 "Checking FITR MAX Food Memory and Open Food Facts" = "FITR MAX Food MemoryとOpen Food Factsを確認中";
 "Enable Camera for FITR MAX in Settings to scan food labels." = "ラベルを読み取るには、設定でFITR MAXにカメラを許可してください。";
+"Enable Camera for FITR MAX in Settings to take progress photos." = "進捗の写真を撮るには、設定でFITR MAXにカメラを許可してください。";
 "Show FITR MAX Orbit shortcut" = "FITR MAX Orbitのショートカットを表示";
 "Allow front camera for food scanning" = "食品スキャンにフロントカメラを使う";
 "All meals and snacks" = "すべての食事と間食";

@@ -190,7 +190,8 @@ final class ProgressCameraTests: XCTestCase {
     private func camera(
         ghost: UIImage?,
         framing: ProgressPhotoEngine.FramingMode = .full,
-        frontCameraAllowed: Bool = false
+        frontCameraAllowed: Bool = false,
+        cameraAllowed: Bool = true
     ) throws -> some View {
         let session = AppSession(developerSandboxRole: .coach)
         let operation = try XCTUnwrap(session.accountOperationLease())
@@ -203,7 +204,7 @@ final class ProgressCameraTests: XCTestCase {
             intent: intent,
             reference: ghost == nil ? nil : previous,
             operation: operation,
-            controller: ProgressCameraController(accessAnswer: { true }),
+            controller: ProgressCameraController(accessAnswer: { cameraAllowed }),
             loadReferenceImage: { _ in ghost },
             onClose: {},
             onCaptured: { _, _ in }
@@ -307,6 +308,35 @@ final class ProgressCameraTests: XCTestCase {
                 hint.intersects(timer),
                 "\(context): the timer row \(timer.integral) covers the pose hint \(hint.integral)"
             )
+        }
+    }
+
+    /// C3. Refusing the camera used to leave a black screen and a dead
+    /// shutter. The screen now says what happened and offers the way to fix it.
+    func testARefusedCameraExplainsItselfAndOffersSettings() async throws {
+        let refused = ProgressCameraController(accessAnswer: { false })
+        await refused.start(position: .back)
+        XCTAssertTrue(refused.accessDenied)
+        XCTAssertFalse(refused.isReady)
+
+        let allowed = ProgressCameraController(accessAnswer: { true })
+        await allowed.start(position: .back)
+        XCTAssertFalse(allowed.accessDenied)
+        allowed.stop()
+
+        for phone in Self.phones {
+            let context = "\(phone.name), camera refused"
+            let layout = try await layOut(
+                try camera(ghost: nil, cameraAllowed: false), size: phone.size,
+                expecting: ["close", "library", "cameraDenied", "openSettings"], named: "camera, \(context)"
+            )
+            layout.assertReachable(["close", "library", "cameraDenied", "openSettings"], context)
+
+            let normal = try await layOut(
+                try camera(ghost: nil), size: phone.size, expecting: Self.cameraControls,
+                named: "camera, \(phone.name), camera allowed"
+            )
+            XCTAssertNil(normal.frames["cameraDenied"], "\(phone.name): the notice shows although the camera is allowed")
         }
     }
 }

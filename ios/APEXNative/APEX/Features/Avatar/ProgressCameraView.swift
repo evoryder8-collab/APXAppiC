@@ -29,6 +29,8 @@ final class ProgressCameraController: NSObject {
     nonisolated private let analyzer = ProgressFrameAnalyzer()
     private(set) var position: AVCaptureDevice.Position = .front
     private(set) var isReady = false
+    /// The person refused the camera, or the device forbids it.
+    private(set) var accessDenied = false
     /// Live distance and subject reading, when the device can measure it.
     let reading = ProgressDepthAnalyzer()
     private var captured: ((UIImage) -> Void)?
@@ -52,9 +54,10 @@ final class ProgressCameraController: NSObject {
         } else {
             granted = await AVCaptureDevice.requestAccess(for: .video)
         }
-        guard granted,
-              Task.isCancelled == false,
+        guard Task.isCancelled == false,
               lifecycleGeneration == requestGeneration else { return }
+        accessDenied = !granted
+        guard granted else { return }
         self.position = position
         await withCheckedContinuation { continuation in
             sessionQueue.async { [self] in
@@ -290,7 +293,7 @@ struct ProgressCameraView: View {
                     .accessibilityHidden(true)
             }
 
-            guides
+            if controller.accessDenied { accessNotice } else { guides }
             chrome
             liveReading
 
@@ -436,6 +439,39 @@ struct ProgressCameraView: View {
         case .free:
             EmptyView()
         }
+    }
+
+    /* Without the camera there is nothing to frame, so the outline gives way
+       to the reason and the one tap that fixes it. Close and Library still
+       work underneath. */
+    private var accessNotice: some View {
+        VStack(spacing: 10) {
+            Text(language.text("Camera access is off"))
+                .font(APEXFont.display(20))
+            Text(language.text("Enable Camera for FITR MAX in Settings to take progress photos."))
+                .font(APEXFont.body(13, weight: .medium))
+                .foregroundStyle(.white.opacity(0.75))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+            Button(language.text("Open Settings")) {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            .font(APEXFont.body(14, weight: .bold))
+            .foregroundStyle(.black)
+            .padding(.horizontal, 18)
+            .frame(height: 42)
+            .background(.white, in: Capsule())
+            .buttonStyle(.plain)
+            .padding(.top, 4)
+            .layoutFrame("openSettings")
+        }
+        .foregroundStyle(.white)
+        .padding(22)
+        .background(.black.opacity(0.55), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .layoutFrame("cameraDenied")
+        .padding(.horizontal, 28)
     }
 
     private func hint(_ text: String) -> some View {
