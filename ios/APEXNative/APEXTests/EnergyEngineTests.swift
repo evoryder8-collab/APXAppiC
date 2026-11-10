@@ -1211,6 +1211,83 @@ final class EnergyEngineTests: XCTestCase {
         )
     }
 
+    // MARK: Weekly calibration samples
+
+    private func calibrationNow() -> Date {
+        Calendar.current.date(from: DateComponents(year: 2026, month: 9, day: 20, hour: 12))!
+    }
+
+    /// Fourteen closed days ending yesterday. Each takes its weight, intake and how many meals were logged.
+    private func fortnight(
+        owner: UUID,
+        weight: (Int) -> Double?,
+        intake: Int = 2_600,
+        meals: Int = 3
+    ) -> DashboardData {
+        var data = DashboardData()
+        data.profile = profile(userID: owner, weight: 81, level: .moderate, goal: .maintain)
+        for offset in -14 ... -1 {
+            let day = Calendar.current.date(byAdding: .day, value: offset, to: calibrationNow())!.apexDateKey
+            data.dailyLogs.append(DailyLog(
+                id: UUID(), userID: owner, date: day, kcal: intake, proteinG: 150, fatG: 80, carbsG: 300, waterL: 0,
+                estimatedTDEE: 2_600, computedPAL: 1.5, activityMode: "precise", weightKG: weight(offset),
+                nutritionSource: "structured"
+            ))
+            for _ in 0..<meals {
+                data.loggedMeals.append(LoggedMeal(
+                    id: UUID(), userID: owner, localDate: day, mealSlot: "lunch", displayName: "Meal",
+                    sourcePresetID: nil, sourcePlannedMealID: nil, loggedAt: "\(day)T12:00:00Z",
+                    clientIdempotencyKey: UUID().uuidString, loggedAs: "manual",
+                    totalKcal: Double(intake) / Double(meals), totalProteinG: 50, totalCarbsG: 100, totalFatG: 27
+                ))
+            }
+        }
+        return data
+    }
+
+    private func calibration(_ data: DashboardData) -> EnergyEngine.WeeklyCalibration? {
+        EnergyEngine.weeklyCalibration(profile: data.profile!, data: data, now: calibrationNow())
+    }
+
+    func testCalibrationDoesNotLearnFromPartlyLoggedDays() {
+        // One 1,400 kcal meal a day against a 2,600 kcal estimate is an unfinished diary, not a fortnight of starving.
+        let partial = fortnight(owner: UUID(), weight: { _ in 80 }, intake: 1_400, meals: 1)
+        XCTAssertNil(calibration(partial), "Nothing to learn: no day was fully logged")
+    }
+
+    func testCalibrationDoesNotReadACopiedProfileWeightAsAWeighIn() {
+        // One real 82 kg weigh-in among days that carry the 81 kg profile weight, copied on when each was finalised.
+        let copied = fortnight(owner: UUID(), weight: { $0 == -13 ? 82 : 81 })
+        XCTAssertNil(calibration(copied), "A weight nobody measured is not a kilogram lost")
+    }
+
+    func testCalibrationStillLearnsFromFullyLoggedDaysWithRealWeighIns() throws {
+        let owner = UUID()
+        // A steady 80 kg on the scale while eating 2,300 kcal a day: the 2,600 kcal estimate runs high.
+        var honest = fortnight(owner: owner, weight: { _ in 80 }, intake: 2_300)
+        let result = try XCTUnwrap(calibration(honest))
+        XCTAssertEqual(result.sampleDays, 14, "Every closed day of the fortnight, and not today")
+        XCTAssertEqual(result.predictedTDEE, 2_600)
+        XCTAssertEqual(result.observedTDEE, 2_300)
+        XCTAssertEqual(
+            result.nextK,
+            EnergyEngine.calibratedK(
+                currentK: 1, meanDailyIntake: 2_300, predictedDailyTDEE: 2_600,
+                startingEMAWeight: 80, endingEMAWeight: 80, elapsedDays: 13
+            ),
+            accuracy: 1e-9
+        )
+
+        // Today is still open: a morning with breakfast only changes nothing.
+        let today = calibrationNow().apexDateKey
+        honest.dailyLogs.append(DailyLog(
+            id: UUID(), userID: owner, date: today, kcal: 400, proteinG: 20, fatG: 10, carbsG: 50, waterL: 0,
+            estimatedTDEE: 2_600, computedPAL: 1.5, activityMode: "precise", weightKG: 79.3,
+            nutritionSource: "structured"
+        ))
+        XCTAssertEqual(calibration(honest), result)
+    }
+
     func testCalibrationNudgesUpwardAndClamps() {
         let next = EnergyEngine.calibratedK(
             currentK: 1,

@@ -834,6 +834,74 @@ enum EnergyEngine {
         return elapsed >= 7
     }
 
+    struct WeeklyCalibration: Equatable, Sendable {
+        let nextK: Double
+        let observedTDEE: Double
+        let predictedTDEE: Double
+        let sampleDays: Int
+    }
+
+    /// The correction the last fortnight supports, or nil when it is not due or there is too
+    /// little to learn from.
+    static func weeklyCalibration(
+        profile: Profile,
+        data: DashboardData,
+        now: Date = .now,
+        calendar: Calendar = .current
+    ) -> WeeklyCalibration? {
+        /* Constantine and June use explicit, confirmation-only whole-day
+           protocols. The generic activity coefficient must never drift their
+           authored calorie tables in the background. */
+        guard usesPersonalProtocol(profile) == false,
+              isWeeklyCalibrationDue(lastAppliedAt: profile.calibrationHistory.last?.appliedAt, now: now, calendar: calendar)
+        else { return nil }
+        /* A day teaches something only when its diary is complete and a scale was read. A partly
+           logged day reads as under-eating, and a profile weight copied onto the day reads as a
+           weight that never moved. Today is still open, so the fortnight ends yesterday. */
+        let today = now.apexDateKey
+        let cutoff = calendar.date(byAdding: .day, value: -14, to: now)?.apexDateKey ?? today
+        let weighed = Dictionary(
+            Bodyweight.weighIns(ownerID: profile.userID, data: data).map { ($0.date, $0) },
+            uniquingKeysWith: { _, later in later }
+        )
+        let samples = data.dailyLogs
+            .filter { $0.userID == profile.userID && $0.date >= cutoff && $0.date < today }
+            .sorted { $0.date < $1.date }
+            .compactMap { log -> (date: String, kcal: Double, predicted: Double, kg: Double)? in
+                guard let kcal = log.kcal, let predicted = log.estimatedTDEE, let weighIn = weighed[log.date],
+                      !(weighIn.typed && Bodyweight.isProfileCopy(log, of: profile)),
+                      NutritionReport.summarize(ownerID: profile.userID, data: data, dates: log.date...log.date)?.loggedDays == 1
+                else { return nil }
+                return (log.date, Double(kcal), Double(predicted), weighIn.kg)
+            }
+        guard samples.count >= 12,
+              let firstDate = ISO8601DateFormatter.apexDateOnly.date(from: samples.first?.date ?? ""),
+              let lastDate = ISO8601DateFormatter.apexDateOnly.date(from: samples.last?.date ?? "")
+        else { return nil }
+
+        let ema = weightEMA(samples.map(\.kg))
+        guard let startWeight = ema.first, let endWeight = ema.last else { return nil }
+        let elapsedDays = max(1, calendar.dateComponents([.day], from: firstDate, to: lastDate).day ?? 1)
+        let meanIntake = samples.reduce(0) { $0 + $1.kcal } / Double(samples.count)
+        let predicted = samples.reduce(0) { $0 + $1.predicted } / Double(samples.count)
+        let next = calibratedK(
+            currentK: profile.calibrationK,
+            meanDailyIntake: meanIntake,
+            predictedDailyTDEE: predicted,
+            startingEMAWeight: startWeight,
+            endingEMAWeight: endWeight,
+            elapsedDays: elapsedDays
+        )
+        guard abs(next - profile.calibrationK) >= 0.001 else { return nil }
+        let storedPerDay = (endWeight - startWeight) * 7_700 / Double(elapsedDays)
+        return WeeklyCalibration(
+            nextK: next,
+            observedTDEE: meanIntake - storedPerDay,
+            predictedTDEE: predicted,
+            sampleDays: samples.count
+        )
+    }
+
     static func calibratedK(
         currentK: Double,
         meanDailyIntake: Double,

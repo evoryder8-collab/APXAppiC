@@ -8296,50 +8296,16 @@ final class AppSession {
     private func considerWeeklyCalibration(operation: AccountOperationLease) async throws {
         try requireCurrentAccountOperation(operation)
         guard var profile, profile.userID == operation.ownerID else { return }
-        /* Constantine and June use explicit, confirmation-only whole-day
-           protocols. The generic activity coefficient must never drift their
-           authored calorie tables in the background. */
-        guard EnergyEngine.usesPersonalProtocol(profile) == false else { return }
-        let today = Date().apexDateKey
-        guard EnergyEngine.isWeeklyCalibrationDue(lastAppliedAt: profile.calibrationHistory.last?.appliedAt) else { return }
-        let cutoff = Calendar.current.date(byAdding: .day, value: -13, to: .now)?.apexDateKey ?? today
-        let samples = data.dailyLogs
-            .filter {
-                $0.userID == operation.ownerID
-                    && $0.date >= cutoff && $0.date <= today
-                    && $0.kcal != nil && $0.weightKG != nil && $0.estimatedTDEE != nil
-            }
-            .sorted { $0.date < $1.date }
-        guard samples.count >= 12,
-              let firstDate = ISO8601DateFormatter.apexDateOnly.date(from: samples.first?.date ?? ""),
-              let lastDate = ISO8601DateFormatter.apexDateOnly.date(from: samples.last?.date ?? "")
-        else { return }
-
-        let ema = EnergyEngine.weightEMA(samples.compactMap(\.weightKG))
-        guard let startWeight = ema.first, let endWeight = ema.last else { return }
-        let elapsedDays = max(1, Calendar.current.dateComponents([.day], from: firstDate, to: lastDate).day ?? 1)
-        let meanIntake = samples.reduce(0) { $0 + Double($1.kcal ?? 0) } / Double(samples.count)
-        let predicted = samples.reduce(0) { $0 + Double($1.estimatedTDEE ?? 0) } / Double(samples.count)
-        let next = EnergyEngine.calibratedK(
-            currentK: profile.calibrationK,
-            meanDailyIntake: meanIntake,
-            predictedDailyTDEE: predicted,
-            startingEMAWeight: startWeight,
-            endingEMAWeight: endWeight,
-            elapsedDays: elapsedDays
-        )
-        guard abs(next - profile.calibrationK) >= 0.001 else { return }
-        let storedPerDay = (endWeight - startWeight) * 7_700 / Double(elapsedDays)
-        let observed = meanIntake - storedPerDay
+        guard let calibration = EnergyEngine.weeklyCalibration(profile: profile, data: data) else { return }
         let previous = profile.calibrationK
-        profile.calibrationK = next
+        profile.calibrationK = calibration.nextK
         profile.calibrationHistory.append(.init(
             appliedAt: Date().ISO8601Format(),
             previousK: previous,
-            nextK: next,
-            observedTDEE: observed,
-            predictedTDEE: predicted,
-            sampleDays: samples.count
+            nextK: calibration.nextK,
+            observedTDEE: calibration.observedTDEE,
+            predictedTDEE: calibration.predictedTDEE,
+            sampleDays: calibration.sampleDays
         ))
         profile.calibrationHistory = Array(profile.calibrationHistory.suffix(52))
         profile.updatedAt = Date().ISO8601Format()
