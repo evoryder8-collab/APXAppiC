@@ -448,10 +448,31 @@ enum HealthWorkoutCatalog {
         case .swimBikeRun: return item("endurance", "swim_bike_run", "Swim, Bike, Run")
         case .transition: return item("endurance", "transition", "Transition")
         case .underwaterDiving: return item("endurance", "underwater_diving", "Underwater Diving")
-        case .other: return item("mobility", "other", "Apple Health Workout")
-        @unknown default: return item("mobility", "unknown", "Apple Health Workout")
+        case .other: return item("other", "other", "Apple Health Workout")
+        @unknown default: return item("other", "unknown", "Apple Health Workout")
         }
     }
+
+    /// What a stored Apple Health workout trained, read from its workout type so the Avatar scores
+    /// and the 90-day profile follow one rule. "Other" and unknown types say nothing about the
+    /// training and give nil; a row saved before its type was stored keeps the kind it was saved with.
+    static func kind(of row: ImportedActivity) -> String? {
+        let unnamed = ["other", identity(for: .other).fallbackName.lowercased()].contains(row.activity.lowercased())
+        let kind = row.workoutNameKey.flatMap { kindByNameKey[$0] } ?? (unnamed ? "other" : row.kind)
+        return kind == "other" ? nil : kind
+    }
+
+    private static let kindByNameKey: [String: String] = {
+        var kinds = ["health.workout.unknown": "other"]
+        for raw in Array(1...80) + [82, 83, 84, 3000] {
+            guard let type = HKWorkoutActivityType(rawValue: UInt(raw)) else { continue }
+            for indoor in [nil, true, false] as [Bool?] {
+                let identity = identity(for: type, isIndoor: indoor)
+                kinds[identity.nameKey] = identity.kind
+            }
+        }
+        return kinds
+    }()
 }
 
 enum HealthWorkoutMetrics {

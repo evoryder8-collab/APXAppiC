@@ -159,7 +159,8 @@ enum FitnessBrainService {
                   completedByDate[activity.date]?.contains(where: {
                       TrainingProfile90.recordsSameWorkout(activity, as: $0, modes: modesBySession[$0.id] ?? [])
                   }) != true,
-                  let kind = FBImportKind(rawValue: activity.kind) else { return nil }
+                  let kind = HealthWorkoutCatalog.kind(of: activity).flatMap(FBImportKind.init(rawValue:))
+            else { return nil }
             return FBImportedActivity(
                 date: activity.date, kind: kind, durationMin: Double(activity.durationMinutes))
         }

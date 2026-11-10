@@ -201,18 +201,6 @@ struct TrainingProfile90: Sendable {
                     muscleGrowthGoal: data.settings?.userID == ownerID && NutritionGoalPolicy.context(from: data.settings)?.trainingGoal == "muscle")
     }
 
-    private static let importedTypes: [String: Mode] = {
-        var result: [String: Mode] = [:]
-        for (name, kind) in HealthImport.activityKind {
-            result[name.lowercased()] = kind == "strength" ? .resistance : kind == "endurance" ? .cardio : .mobility
-        }
-        for name in ["run", "indoorrun", "outdoorrun", "indoorwalk", "outdoorwalk", "walking", "indoorcycling",
-                     "outdoorcycling", "indoorcycle", "outdoorcycle", "hiit", "stairclimber", "stairclimbing"] { result[name] = .cardio }
-        for name in ["barre", "stretching", "mobility"] { result[name] = .mobility }
-        for name in ["strengthtraining", "weighttraining"] { result[name] = .resistance }
-        return result
-    }()
-
     /// The kinds of training a receipt's performed sets contain.
     static func modes(of logs: [WorkoutLog]) -> Set<Mode> {
         Set(logs.compactMap { log -> Mode? in
@@ -240,13 +228,18 @@ struct TrainingProfile90: Sendable {
     }
 
     private static func activityType(_ row: ImportedActivity) -> (mode: Mode, running: Bool)? {
-        for label in [row.workoutNameKey, row.activity].compactMap({ $0 }) {
-            let key = label.lowercased().replacingOccurrences(of: "health.workout.", with: "").filter(\.isLetter)
-            if let mode = importedTypes[key] {
-                return (mode, ["running", "run", "indoorrun", "outdoorrun"].contains(key))
-            }
+        let mode: Mode
+        switch HealthWorkoutCatalog.kind(of: row) {
+        case "strength": mode = .resistance
+        case "endurance": mode = .cardio
+        case "mobility": mode = .mobility
+        default: return nil
         }
-        return nil
+        let running = [row.workoutNameKey, row.activity].compactMap { $0 }.contains { label in
+            ["running", "run", "indoorrun", "outdoorrun"].contains(
+                label.lowercased().replacingOccurrences(of: "health.workout.", with: "").filter(\.isLetter))
+        }
+        return (mode, running)
     }
 
     private static func compareLoads(_ logsByReps: [Int: [WorkoutLog]], split: String, ownerID: UUID,

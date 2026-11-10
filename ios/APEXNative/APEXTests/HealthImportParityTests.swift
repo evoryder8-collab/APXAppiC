@@ -359,6 +359,42 @@ final class HealthImportParityTests: XCTestCase {
         XCTAssertEqual(again.activities.count, 0, "a second import must add nothing")
     }
 
+    func testWorkoutTypeThatSaysNothingFeedsNoStatAndBothViewsUseOneMap() throws {
+        XCTAssertEqual(HealthWorkoutCatalog.identity(for: .other).kind, "other")
+        XCTAssertEqual(HealthWorkoutCatalog.identity(for: .taiChi).kind, "mobility")
+
+        let owner = UUID(uuidString: "10000000-0000-0000-0000-0000000000A9")!
+        var data = APEXDebugFixture.dashboard(userID: owner)
+        data.programDays = []
+        data.exercises = []
+        data.workoutSessions = []
+        data.workoutLogs = []
+        data.orbitRuns = []
+        func watch(_ nameKey: String?, _ name: String, hour: Int) -> ImportedActivity {
+            ImportedActivity(
+                id: UUID(), userID: owner, date: "2026-10-05", kind: "mobility", activity: name,
+                durationMinutes: 30, source: "Apple Watch", healthKitWorkoutID: UUID(),
+                startedAt: "2026-10-05T\(hour):00:00Z", endedAt: "2026-10-05T\(hour):30:00Z",
+                workoutNameKey: nameKey, sourceBundleIdentifier: "com.apple.health"
+            )
+        }
+        // Every row was stored as "mobility", the only kind the table could hold for them.
+        data.importedActivities = [
+            watch("health.workout.other", "Apple Health Workout", hour: 10),
+            watch("health.workout.unknown", "Apple Health Workout", hour: 11),
+            watch(nil, "Other", hour: 12),
+            watch("health.workout.tai_chi", "Tai Chi", hour: 13),
+            watch("health.workout.cooldown", "Cooldown", hour: 14),
+        ]
+
+        let fed = try XCTUnwrap(FitnessBrainService.engineInput(from: data)).importedActivities
+        XCTAssertEqual(fed.map(\.kind), [.mobility, .mobility], "only Tai Chi and Cooldown are mobility work")
+
+        let profile = TrainingProfile90.summarize(ownerID: owner, data: data, through: "2026-10-06")
+        XCTAssertEqual(profile.counts[.mobility], 2, "the 90-day profile counts the same two")
+        XCTAssertEqual(profile.classifiedWorkouts, 2)
+    }
+
     func testShortAndUnmappedWorkoutsAreRejectedByTheSharedRules() {
         XCTAssertEqual(HealthImport.minimumWorkoutMinutes, 8)
         XCTAssertEqual(HealthImport.activityKind["Running"], "endurance")
