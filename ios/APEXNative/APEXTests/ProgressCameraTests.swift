@@ -456,4 +456,37 @@ final class ProgressCameraTests: XCTestCase {
             }
         }
     }
+
+    /// C12. The label beside the shutter names the camera in use.
+    func testTheCameraLabelNamesTheCameraInUse() async throws {
+        let front = try await controller(on: .front)
+        XCTAssertEqual(front.lensName, "FRONT")
+        front.stop()
+        let rear = try await controller(on: .back)
+        XCTAssertEqual(rear.lensName, "REAR")
+        rear.flip()
+        XCTAssertEqual(rear.lensName, "FRONT", "flipping changes the label with the camera")
+        rear.stop()
+    }
+
+    /// C12. A capture that produces no photo used to end in silence, with the
+    /// shutter live again and nothing saved. It now answers, with nothing.
+    func testAFailedCaptureAnswersInsteadOfEndingSilently() async throws {
+        /* The simulator has no camera, so every capture here is a failed one. */
+        let controller = ProgressCameraController(accessAnswer: { true })
+        var answers: [UIImage?] = []
+        controller.capture { answers.append($0) }
+        for _ in 0..<100 where answers.isEmpty {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        XCTAssertEqual(answers.count, 1, "the capture never reported back")
+        XCTAssertNil(answers.first ?? nil)
+        controller.stop()
+
+        var direct: [UIImage?] = []
+        controller.capture { direct.append($0) }
+        controller.finishCapture(with: nil)
+        XCTAssertEqual(direct.count, 1, "a photo that could not be read was dropped without a word")
+        controller.stop()
+    }
 }

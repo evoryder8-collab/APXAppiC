@@ -486,6 +486,7 @@
 "Cautious start" = "慎重なスタート";
 "Championship" = "大会";
 "Camera access is off" = "カメラへのアクセスがオフです";
+"The camera missed that shot. Tap the shutter to try again." = "カメラが撮影できませんでした。シャッターをタップして、もう一度お試しください。";
 "Calendar action failed" = "カレンダーの操作に失敗しました";
 "Apple Health sleep" = "Apple Healthの睡眠";
 "Apple Health is not available on this device." = "このデバイスではApple Healthを利用できません。";

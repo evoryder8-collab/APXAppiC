@@ -476,6 +476,7 @@
 "Camera access begins only after you confirm below. Nothing is uploaded until you review and save." = "แอปจะเข้าถึงกล้องหลังจากคุณยืนยันด้านล่างเท่านั้น รูปจะยังไม่ถูกอัปโหลดจนกว่าคุณจะตรวจดูและกดบันทึก";
 "Camera access is blocked. Allow camera access in Safari settings, or enter the barcode below." = "การเข้าถึงกล้องถูกบล็อก โปรดอนุญาตกล้องในการตั้งค่า Safari หรือป้อนบาร์โค้ดด้านล่าง";
 "Camera access is off" = "ปิดสิทธิ์การใช้กล้องอยู่";
+"The camera missed that shot. Tap the shutter to try again." = "กล้องถ่ายภาพนี้ไม่สำเร็จ แตะชัตเตอร์แล้วลองอีกครั้ง";
 "Camera around waist height" = "ตั้งกล้องไว้ระดับเอว";
 "Camera work" = "งานกล้อง";
 "Campaign" = "แผนฝึก";

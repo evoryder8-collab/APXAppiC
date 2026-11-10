@@ -486,6 +486,7 @@
 "Cautious start" = "Avvio prudente";
 "Championship" = "Gara";
 "Camera access is off" = "Accesso alla fotocamera disattivato";
+"The camera missed that shot. Tap the shutter to try again." = "La fotocamera ha mancato lo scatto. Tocca il pulsante di scatto per riprovare.";
 "Calendar action failed" = "Azione calendario non riuscita";
 "Apple Health sleep" = "Sonno da Apple Health";
 "Apple Health is not available on this device." = "Apple Health non è disponibile su questo dispositivo.";

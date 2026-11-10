@@ -33,7 +33,7 @@ final class ProgressCameraController: NSObject {
     private(set) var accessDenied = false
     /// Live distance and subject reading, when the device can measure it.
     let reading = ProgressDepthAnalyzer()
-    private var captured: ((UIImage) -> Void)?
+    private var captured: ((UIImage?) -> Void)?
     private var lifecycleGeneration: UInt64 = 0
     /* Stands in for the system prompt where there is no camera and nobody to
        answer it, so the screen can be laid out and checked without one. */
@@ -79,6 +79,9 @@ final class ProgressCameraController: NSObject {
             if session.isRunning { session.stopRunning() }
         }
     }
+
+    /// The camera in use, as the label beside the shutter names it.
+    var lensName: String { position == .front ? "FRONT" : "REAR" }
 
     func flip() {
         let next: AVCaptureDevice.Position = position == .front ? .back : .front
@@ -135,12 +138,16 @@ final class ProgressCameraController: NSObject {
         }
     }
 
-    func capture(_ completion: @escaping (UIImage) -> Void) {
+    /// Takes a photo and answers once: with it, or with nil when there is none.
+    func capture(_ completion: @escaping (UIImage?) -> Void) {
         captured = completion
         sessionQueue.async { [self] in
             /* A session with no live video connection raises an exception
                when asked for a photo, rather than failing. */
-            guard output.connection(with: .video)?.isActive == true else { return }
+            guard output.connection(with: .video)?.isActive == true else {
+                Task { @MainActor [weak self] in self?.finishCapture(with: nil) }
+                return
+            }
             output.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
         }
     }
@@ -150,7 +157,6 @@ final class ProgressCameraController: NSObject {
        so every saved photo has the person's true left and right and a front
        and a rear photo of one pose can be compared. */
     func finishCapture(with image: UIImage?) {
-        guard let image else { return }
         captured?(image)
         captured = nil
     }
@@ -228,6 +234,7 @@ struct ProgressCameraView: View {
     @State private var timerSeconds = 5
     @State private var ghost: Double = 0.25
     @State private var showLibrary = false
+    @State private var captureFailed = false
     @State private var libraryImage: UIImage?
 
     var intent: ProgressCaptureIntent
@@ -304,6 +311,19 @@ struct ProgressCameraView: View {
             if controller.accessDenied { accessNotice } else { guides }
             chrome
             liveReading
+
+            if captureFailed {
+                Text(language.text("The camera missed that shot. Tap the shutter to try again."))
+                    .font(APEXFont.body(13, weight: .bold))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 12)
+                    .background(.black.opacity(0.6), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .padding(.horizontal, 28)
+                    .allowsHitTesting(false)
+            }
 
             if let countdown {
                 Text("\(countdown)")
@@ -571,7 +591,7 @@ struct ProgressCameraView: View {
                     .layoutFrame("shutter")
                     Spacer()
                     if allowsFrontCamera {
-                        Text(controller.position == .front ? language.text("REAR") : language.text("FRONT"))
+                        Text(language.text(controller.lensName))
                             .font(APEXFont.mono(10, weight: .bold))
                             .foregroundStyle(.white.opacity(0.6))
                             .frame(width: 74, alignment: .trailing)
@@ -659,6 +679,7 @@ struct ProgressCameraView: View {
 
     private func beginCountdown() {
         countdownTask?.cancel()
+        captureFailed = false
         countdown = timerSeconds
         countdownTask = Task {
             while let value = countdown, value > 0 {
@@ -672,6 +693,10 @@ struct ProgressCameraView: View {
             countdown = nil
             controller.capture { image in
                 guard session.accountOperationIsCurrent(operation) else { return }
+                guard let image else {
+                    captureFailed = true
+                    return
+                }
                 onCaptured(image, resolvedIntent)
             }
         }
