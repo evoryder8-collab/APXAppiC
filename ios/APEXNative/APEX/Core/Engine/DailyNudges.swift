@@ -148,21 +148,23 @@ enum DailyNudges {
     /// next evening about a day that was over. A dated trigger whose moment
     /// has passed is accepted and never delivered, so a passed evening
     /// registers nothing at all. The bell in the app still shows the nudge.
+    ///
+    /// The day key is Gregorian whatever the phone counts in, so only the time zone is taken
+    /// from `calendar`, the phone's own, and the components carry a Gregorian calendar for
+    /// the system to read them with. Read on a Buddhist calendar, 2026 ended centuries ago.
     static func eveningTrigger(for day: String, now: Date, calendar: Calendar = .current) -> DateComponents? {
         let parts = day.split(separator: "-").compactMap { Int($0) }
         guard parts.count == 3 else { return nil }
+        var gregorian = Calendar(identifier: .gregorian)
+        gregorian.timeZone = calendar.timeZone
         let slot = DateComponents(
-            year: parts[0], month: parts[1], day: parts[2], hour: eveningHour, minute: eveningMinute
+            calendar: gregorian, year: parts[0], month: parts[1], day: parts[2], hour: eveningHour, minute: eveningMinute
         )
-        guard let moment = calendar.date(from: slot), moment > now else { return nil }
+        guard let moment = gregorian.date(from: slot), moment > now else { return nil }
         return slot
     }
 
-    static func today() -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter.string(from: Date())
-    }
+    static func today() -> String { Date().apexDateKey }
 }
 
 /// Turns a nudge into words, in whatever language the app is currently in.
