@@ -360,7 +360,7 @@ struct VisualProgressView: View {
                         selectedImage = image
                         pose = resolved.pose
                         note = resolved.note
-                        capturedWeightKG = resolved.resolvedWeightKG
+                        capturedWeightKG = resolved.weightKG(forPhotoTakenAt: takenAt)
                         capturedFraming = resolved.framing
                         capturedDate = takenAt
                         captureIntent = nil

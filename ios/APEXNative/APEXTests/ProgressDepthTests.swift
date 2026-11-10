@@ -22,6 +22,28 @@ final class ProgressDepthTests: XCTestCase {
         XCTAssertFalse(ProgressComparison.posterContent(.minimal, includeStats: true).stats)
         XCTAssertTrue(ProgressComparison.posterContent(.detailed, includeStats: false).athlete)
     }
+
+    /// The weight typed before the camera opens is today's. A photo picked
+    /// from the library and dated another day must not be saved with it.
+    func testTodaysWeightIsNotSavedWithAPhotoFromAnotherDay() throws {
+        var intent = ProgressCaptureIntent()
+        intent.weightKG = "72.5"
+        let now = try XCTUnwrap(APEXDateMath.date(from: "2026-11-10"))
+        XCTAssertEqual(intent.weightKG(forPhotoTakenAt: nil, now: now), 72.5, "a photo taken now")
+        XCTAssertEqual(
+            intent.weightKG(forPhotoTakenAt: now.addingTimeInterval(-3_600), now: now), 72.5,
+            "a library photo from earlier today"
+        )
+        XCTAssertNil(
+            intent.weightKG(forPhotoTakenAt: try XCTUnwrap(APEXDateMath.date(from: "2026-11-09")), now: now),
+            "yesterday's photo was saved with today's weight"
+        )
+        XCTAssertNil(
+            intent.weightKG(forPhotoTakenAt: try XCTUnwrap(APEXDateMath.date(from: "2025-06-14")), now: now),
+            "an old baseline was saved with today's weight"
+        )
+    }
+
     func testPlacementRangeMatchesAFullBodyFrame() {
         let reading = ProgressDepthAnalyzer()
 
