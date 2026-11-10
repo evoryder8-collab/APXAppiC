@@ -279,14 +279,15 @@ struct NutritionReport: Sendable, Equatable {
             $0.userID == ownerID && ids.contains($0.supplementID) && inRange.contains($0.date)
         }.map(\.date))
         guard let first = taken.min() else { return nil }
-        let tracked = days.filter { $0 >= first }
+        var tracked = days.filter { $0 >= first }
+        // The range's last day can still be ticked, so while it is open it is not a miss: not for the streak, the score or the day count.
+        if let last = tracked.last, !taken.contains(last) { tracked.removeLast() }
         var longest = 0, run = 0
         for day in tracked {
             run = taken.contains(day) ? run + 1 : 0
             longest = max(longest, run)
         }
-        let fromEnd = tracked.reversed().drop { $0 == tracked.last && !taken.contains($0) }
-        let current = fromEnd.prefix { taken.contains($0) }.count
+        let current = tracked.reversed().prefix { taken.contains($0) }.count
         let missed = tracked.filter { !taken.contains($0) }
         let score = Int((100 * Double(taken.count) / Double(tracked.count)).rounded())
         let input = BadgeInput(
