@@ -325,6 +325,7 @@ final class AppSession {
     /// Shared UI date survives Simple/Advanced navigation, never crosses accounts.
     var browsingDate = Date()
     @ObservationIgnored private var followedToday = Date().apexDateKey
+    @ObservationIgnored private var browsingDateHeld = false
 
 
     private func updateSandboxPlanReceipt(planVersionID: UUID, activate: Bool, ownerID: UUID) throws {
@@ -374,6 +375,8 @@ final class AppSession {
     private let offlineStore: OfflineStore
     let defaults: UserDefaults
     @ObservationIgnored private let sandboxDefaultsSuiteName: String?
+    /// A sandbox delete returns at once. A test waits here to act while one is still on its way to the server.
+    @ObservationIgnored var sandboxDeleteInFlight: (@MainActor () async -> Void)?
     @ObservationIgnored private let hydrationConnectivity: HydrationPhoneConnectivity?
     @ObservationIgnored private let hydrationMutationQueue = HydrationMutationQueue()
     @ObservationIgnored private let supplementMutationQueue = SupplementMutationQueue()
@@ -456,6 +459,7 @@ final class AppSession {
         accountGeneration.advance()
         authenticatedOwnerID = nil
         browsingDate = .now
+        browsingDateHeld = false
         suspendedAccessOwnerID = nil
         EntitlementStore.shared.resetAccount()
         OrbitLocationManager.shared.releaseForAccountBoundary()
@@ -1642,14 +1646,8 @@ final class AppSession {
               healthImportIsEnabled(operation: operation) else { return }
         await HealthKitManager.shared.requestNewReadAccessIfNeeded()
         guard accountOperationIsCurrent(operation) else { return }
-        if HealthKitManager.shared.waterWriteState == .authorized {
-            try? await HealthKitManager.shared.syncFoodWater(
-                liters: foodHydrationLiters(on: .now),
-                on: .now,
-                accountID: operation.ownerID
-            )
-            guard accountOperationIsCurrent(operation) else { return }
-        }
+        await mirrorFoodWaterToHealth(on: .now, operation: operation)
+        guard accountOperationIsCurrent(operation) else { return }
         if let snapshot = await HealthKitManager.shared.silentRefresh(ownerID: operation.ownerID) {
             guard accountOperationIsCurrent(operation) else { return }
             await applyHealthSnapshot(snapshot, operation: operation)
@@ -2332,11 +2330,19 @@ final class AppSession {
     }
 
     /// Moves the shared date to the new day when it was on today at the last check.
-    /// A day the user browsed to stays put.
+    /// A day the user browsed to stays put, and so does the day under an open workout.
     func followTodayAcrossMidnight(now: Date = .now) {
+        guard !browsingDateHeld else { return }
         let today = now.apexDateKey
         if followedToday != today, browsingDate.apexDateKey == followedToday { browsingDate = now }
         followedToday = today
+    }
+
+    /// An open workout is built from the shared date, so the date holds while it is open
+    /// and catches up with any day change when it closes.
+    func holdBrowsingDate(_ held: Bool, now: Date = .now) {
+        browsingDateHeld = held
+        followTodayAcrossMidnight(now: now)
     }
 
     func onAppBecameActive() async {
@@ -3156,17 +3162,18 @@ final class AppSession {
     /// deliberately kept separate from `DailyLog.waterL`, which represents
     /// drinks and Apple Health dietary-water samples.
     func foodHydrationLiters(on date: Date) -> Double {
+        foodHydrationML(on: date) / 1_000
+    }
+
+    /// The same water in millilitres, summed portion by portion as the score engine sums it.
+    /// Whole-millilitre figures are rounded from this, never from litres.
+    func foodHydrationML(on date: Date) -> Double {
         let day = date.apexDateKey
         let mealIDs = Set(data.loggedMeals.lazy.filter { $0.localDate == day }.map(\.id))
         guard !mealIDs.isEmpty else { return 0 }
-        let milliliters = data.loggedFoodEntries.lazy
+        return data.loggedFoodEntries.lazy
             .filter { mealIDs.contains($0.mealID) }
-            .reduce(0.0) { result, entry in
-                if let measured = entry.waterML { return result + max(0, measured) }
-                guard let per100 = entry.snapshotWaterML100 else { return result }
-                return result + max(0, per100) * max(0, entry.equivalentAmount) / 100
-            }
-        return milliliters / 1_000
+            .reduce(0.0) { $0 + (FoodHydration.loggedWater($1) ?? 0) }
     }
 
     func hydrationResolution(on date: Date) -> HydrationDayResolution {
@@ -3181,7 +3188,7 @@ final class AppSession {
 
     /// The day's water the home gauge shows, from the calculation the score engine uses.
     func hydrationIntakeML(on date: Date) -> Int {
-        hydrationResolution(on: date).intakeML(loggedFoodML: foodHydrationLiters(on: date) * 1_000)
+        hydrationResolution(on: date).intakeML(loggedFoodML: foodHydrationML(on: date))
     }
 
     private func hydrationResolution(ownerID: UUID, on date: Date) -> HydrationDayResolution {
@@ -3331,26 +3338,12 @@ final class AppSession {
               event.source != .healthKitExternal, event.source != .food else {
             throw CancellationError()
         }
-        data.hydrationEvents?.removeAll {
-            $0.id == event.id && $0.userID == operation.ownerID
-        }
-        await persistDelete(
-            table: "hydration_events",
-            id: event.id,
-            ownerID: operation.ownerID,
-            expectedAccountToken: operation.generation
-        )
+        await removeHydrationEvent(event, operation: operation)
         try requireCurrentAccountOperation(operation)
         if event.source == .iPhone, healthImportIsEnabled(operation: operation) {
             try? await HealthKitManager.shared.deleteWater(eventID: event.id, date: date)
             try requireCurrentAccountOperation(operation)
         }
-        try await mirrorHydrationAggregate(
-            ownerID: operation.ownerID,
-            on: date,
-            operation: operation
-        )
-        try requireCurrentAccountOperation(operation)
         publishHydrationState()
     }
 
@@ -3762,6 +3755,21 @@ final class AppSession {
         try? await mirrorHydrationAggregate(ownerID: ownerID, on: date, operation: operation)
     }
 
+    /// Takes an event off the ledger. The stored day total follows before the server is told,
+    /// so a drink added while the delete is in flight does not find the old total and revive this one.
+    private func removeHydrationEvent(_ event: HydrationEvent, operation: AccountOperationLease) async {
+        data.hydrationEvents?.removeAll { $0.id == event.id && $0.userID == operation.ownerID }
+        if let date = ISO8601DateFormatter.apexDateOnly.date(from: event.localDate) {
+            try? await mirrorHydrationAggregate(ownerID: operation.ownerID, on: date, operation: operation)
+        }
+        await persistDelete(
+            table: "hydration_events",
+            id: event.id,
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+    }
+
     private func reduceHydration(
         byML amountML: Int,
         on date: Date,
@@ -3888,7 +3896,7 @@ final class AppSession {
         guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
         let day = date.apexDateKey
         let key = "food:\(day)"
-        let amountML = Int((foodHydrationLiters(on: date) * 1_000).rounded())
+        let amountML = Int(foodHydrationML(on: date).rounded())
         let existing = (data.hydrationEvents ?? []).first {
             $0.userID == ownerID && $0.clientIdempotencyKey == key
         }
@@ -3938,6 +3946,19 @@ final class AppSession {
         publishHydrationState()
     }
 
+    /// The day's food water goes to Health once its food event holds it. The Watch counts food water
+    /// from that event alone, and a meal logged on the website arrives without one.
+    func mirrorFoodWaterToHealth(on date: Date, operation: AccountOperationLease) async {
+        await syncFoodHydrationEvent(on: date, ownerID: operation.ownerID, operation: operation)
+        guard healthImportIsEnabled(operation: operation),
+              HealthKitManager.shared.waterWriteState == .authorized else { return }
+        try? await HealthKitManager.shared.syncFoodWater(
+            liters: foodHydrationLiters(on: date),
+            on: date,
+            accountID: operation.ownerID
+        )
+    }
+
     private func reconcileHealthHydration(
         _ snapshot: HealthSnapshot,
         operation: AccountOperationLease
@@ -3972,13 +3993,7 @@ final class AppSession {
             deletedSampleIDs: snapshot.deletedHydrationSampleIDs
         )
         for event in deleted {
-            data.hydrationEvents?.removeAll { $0.id == event.id }
-            await persistDelete(
-                table: "hydration_events",
-                id: event.id,
-                ownerID: ownerID,
-                expectedAccountToken: operation.generation
-            )
+            await removeHydrationEvent(event, operation: operation)
             guard accountOperationIsCurrent(operation) else { return }
         }
 
@@ -4284,26 +4299,8 @@ final class AppSession {
                 event: event,
                 afterTombstoneRevision: mutation.createdAt
             ) {
-                data.hydrationEvents?.removeAll { $0.userID == ownerID && $0.id == event.id }
-                await persistDelete(
-                    table: "hydration_events",
-                    id: event.id,
-                    ownerID: ownerID,
-                    expectedAccountToken: operation.generation
-                )
+                await removeHydrationEvent(event, operation: operation)
                 guard !Task.isCancelled, accountOperationIsCurrent(operation) else { return }
-                if let date = ISO8601DateFormatter.apexDateOnly.date(from: event.localDate) {
-                    do {
-                        try await mirrorHydrationAggregate(
-                            ownerID: ownerID,
-                            on: date,
-                            operation: operation
-                        )
-                    } catch {
-                        return
-                    }
-                    guard !Task.isCancelled, accountOperationIsCurrent(operation) else { return }
-                }
             }
             guard !Task.isCancelled, accountOperationIsCurrent(operation) else { return }
             recordHydrationDeleteAcknowledgement(eventID: eventID, ownerID: ownerID)
@@ -4341,13 +4338,8 @@ final class AppSession {
               healthImportIsEnabled(operation: operation),
               profile?.userID == operation.ownerID else { return }
         let ownerID = operation.ownerID
-        if HealthKitManager.shared.waterWriteState == .authorized,
-           let resolvedDate = ISO8601DateFormatter.apexDateOnly.date(from: snapshot.date) {
-            try? await HealthKitManager.shared.syncFoodWater(
-                liters: foodHydrationLiters(on: resolvedDate),
-                on: resolvedDate,
-                accountID: ownerID
-            )
+        if let resolvedDate = ISO8601DateFormatter.apexDateOnly.date(from: snapshot.date) {
+            await mirrorFoodWaterToHealth(on: resolvedDate, operation: operation)
             guard accountOperationIsCurrent(operation) else { return }
         }
         for metric in snapshot.metricRows(ownerID: ownerID, existing: data.healthMetrics) {
@@ -8167,7 +8159,10 @@ final class AppSession {
         ownerID: UUID? = nil,
         expectedAccountToken: UInt64? = nil
     ) async {
-        if isDeveloperSandbox { return }
+        if isDeveloperSandbox {
+            await sandboxDeleteInFlight?()
+            return
+        }
         let persistenceOwnerID = verifiedPersistenceOwnerID(ownerID)
         if let expectedAccountToken {
             guard accountGeneration.accepts(expectedAccountToken),

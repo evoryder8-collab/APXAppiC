@@ -317,9 +317,11 @@ final class NutritionReportTests: XCTestCase {
                       checkedAt: checkedAt ?? "\(day(index))T08:00:00Z")
     }
 
-    private func creatine(taken: [Int], days: Int) throws -> NutritionReport.Creatine {
+    /// Read on the range's last day, unless a later `today` says the range has closed.
+    private func creatine(taken: [Int], days: Int, today: Int? = nil) throws -> NutritionReport.Creatine {
         let (data, _) = creatineData(taken: taken)
-        let report = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: day(0)...day(days - 1)))
+        let report = try XCTUnwrap(NutritionReport.summarize(
+            ownerID: owner, data: data, dates: day(0)...day(days - 1), today: day(today ?? days - 1)))
         return try XCTUnwrap(report.creatine)
     }
 
@@ -377,6 +379,16 @@ final class NutritionReportTests: XCTestCase {
         XCTAssertEqual(missed.currentStreak, 1)
     }
 
+    func testARangeThatEndedInThePastCountsItsUntickedLastDayAsAMiss() throws {
+        // Nine days ticked, the tenth never was, and the report is read a week after the range closed.
+        let closed = try creatine(taken: Array(0..<9), days: 10, today: 16)
+        XCTAssertEqual(closed.takenDays, 9)
+        XCTAssertEqual(closed.trackedDays, 10)
+        XCTAssertEqual(closed.score, 90)
+        XCTAssertEqual(closed.longestStreak, 9)
+        XCTAssertEqual(closed.currentStreak, 0)
+    }
+
     func testABackfilledCheckOffCountsOnTheDayItBelongsTo() throws {
         let (before, id) = creatineData(taken: (0..<10).filter { $0 != 5 })
         var after = before
@@ -404,7 +416,7 @@ final class NutritionReportTests: XCTestCase {
             creatineLog(try XCTUnwrap(data.supplements.first { $0.name == "Magnesium" }).id, day: 3),
         ]
 
-        let result = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: range)?.creatine)
+        let result = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: range, today: range.upperBound)?.creatine)
         XCTAssertEqual(result.takenDays, 2)
         // Ten days in range; the last is unticked and still open, so nine are judged.
         XCTAssertEqual(result.trackedDays, 9)

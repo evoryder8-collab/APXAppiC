@@ -43,6 +43,24 @@ final class HydrationDayTests: XCTestCase {
         XCTAssertEqual(session.data.hydrationEvents?.filter { $0.localDate == emptyDay }.map(\.amountML), [330])
     }
 
+    func testADrinkAddedWhileARemovalIsStillSavingDoesNotBringTheRemovedDrinkBack() async throws {
+        let (session, operation) = try sandbox()
+        let day = try date(emptyDay)
+        try await session.logHydration(amountML: 250, on: day, operation: operation)
+        let drink = try XCTUnwrap(session.data.hydrationEvents?.first { $0.localDate == emptyDay })
+
+        // The next drink is added before the server has answered the removal.
+        session.sandboxDeleteInFlight = { [weak session] in
+            session?.sandboxDeleteInFlight = nil
+            try? await session?.logHydration(amountML: 330, on: day, operation: operation)
+        }
+        try await session.deleteHydrationEvent(drink, on: day, operation: operation)
+
+        XCTAssertEqual(session.hydrationResolution(on: day).drinkML, 330)
+        XCTAssertEqual(session.data.hydrationEvents?.filter { $0.localDate == emptyDay }.map(\.amountML), [330])
+        XCTAssertEqual(session.data.dailyLogs.first { $0.date == emptyDay }?.waterL, 0.33)
+    }
+
     func testAfterMidnightTheAppIsOnTheNewDayUnlessTheUserBrowsedBack() async throws {
         let (session, operation) = try sandbox()
         let evening = try date("2031-05-10", hour: 21)
@@ -67,6 +85,27 @@ final class HydrationDayTests: XCTestCase {
         session.browsingDate = evening
         session.followTodayAcrossMidnight(now: try date("2031-05-12", hour: 7))
         XCTAssertEqual(session.browsingDate.apexDateKey, "2031-05-10")
+    }
+
+    func testAWorkoutOpenAcrossMidnightKeepsItsDayUntilItCloses() throws {
+        let (session, _) = try sandbox()
+        let evening = try date("2031-05-10", hour: 23)
+        let afterMidnight = try date("2031-05-11", hour: 0)
+        session.browsingDate = evening
+        session.followTodayAcrossMidnight(now: evening)
+
+        // The workout opens at 23:00 and is still open when the day changes.
+        session.holdBrowsingDate(true, now: evening)
+        session.followTodayAcrossMidnight(now: afterMidnight)
+        XCTAssertEqual(session.browsingDate.apexDateKey, "2031-05-10", "the open workout keeps the day it was started on")
+
+        // Closing it catches up with the day that began meanwhile.
+        session.holdBrowsingDate(false, now: afterMidnight)
+        XCTAssertEqual(session.browsingDate.apexDateKey, "2031-05-11")
+
+        // The next midnight is followed as before.
+        session.followTodayAcrossMidnight(now: try date("2031-05-12", hour: 7))
+        XCTAssertEqual(session.browsingDate.apexDateKey, "2031-05-12")
     }
 
     func testReopeningTheAppTheNextMorningMovesOffYesterday() async throws {
@@ -149,5 +188,64 @@ final class HydrationDayTests: XCTestCase {
         XCTAssertEqual(session.hydrationIntakeML(on: day), 6_750)
         XCTAssertEqual(watchTotal(), 6_750)
         XCTAssertEqual(scoreEngineTotal(), 6_750)
+    }
+
+    func testAMealLoggedOnTheWebsiteReachesTheWatchWhenFoodWaterGoesToHealth() async throws {
+        let (session, operation) = try sandbox()
+        let day = try date(emptyDay)
+        func watchTotal() -> Int {
+            HydrationCompanionSnapshot.make(
+                ownerID: operation.ownerID, date: emptyDay, events: session.data.hydrationEvents ?? [], presets: [],
+                preferences: .default,
+                legacyDrinkLiters: session.data.dailyLogs.first { $0.date == emptyDay }?.waterL ?? 0,
+                revision: "\(emptyDay)T12:00:00.000Z"
+            ).totalML
+        }
+        func foodEventAmounts() -> [Int] {
+            (session.data.hydrationEvents ?? []).filter { $0.localDate == emptyDay && $0.kind == .food }.map(\.amountML)
+        }
+
+        try await session.logHydration(amountML: 2_000, on: day, operation: operation)
+        let foods = try await session.searchFoods(query: "Oats", operation: operation)
+        try await session.logFood(try XCTUnwrap(foods.first), amount: 100, unit: "g", mealSlot: "breakfast", date: day, operation: operation)
+        let entry = try XCTUnwrap(session.data.loggedFoodEntries.indices.last)
+        session.data.loggedFoodEntries[entry].waterML = 500.5
+        // As the website leaves the day: the meal is in the food log and the day has no food event.
+        session.data.hydrationEvents?.removeAll { $0.localDate == emptyDay && $0.kind == .food }
+        XCTAssertEqual(session.hydrationIntakeML(on: day), 2_501)
+
+        await session.mirrorFoodWaterToHealth(on: day, operation: operation)
+        XCTAssertEqual(foodEventAmounts(), [501])
+        XCTAssertEqual(watchTotal(), 2_501, "the Watch shows the food water the phone shows")
+
+        // Mirroring again adds no second food event and counts nothing twice.
+        await session.mirrorFoodWaterToHealth(on: day, operation: operation)
+        XCTAssertEqual(foodEventAmounts(), [501])
+        XCTAssertEqual(watchTotal(), 2_501)
+        XCTAssertEqual(session.hydrationIntakeML(on: day), 2_501)
+    }
+
+    func testTheGaugeAndTheScoreEngineRoundFoodWaterToTheSameMillilitre() async throws {
+        let (session, operation) = try sandbox()
+        let day = try date(emptyDay)
+        func scoreEngineTotal() -> Int? {
+            FitnessBrainService.waterTotals(session.data, ownerID: operation.ownerID)[emptyDay]
+        }
+        try await session.logHydration(amountML: 2_250, on: day, operation: operation)
+        let foods = try await session.searchFoods(query: "Oats", operation: operation)
+        try await session.logFood(try XCTUnwrap(foods.first), amount: 400, unit: "g", mealSlot: "breakfast", date: day, operation: operation)
+        let entry = try XCTUnwrap(session.data.loggedFoodEntries.indices.last)
+        XCTAssertEqual(session.data.loggedFoodEntries[entry].equivalentAmount, 400)
+
+        // Food water ending on half a millilitre: the gauge rounds it up as the engine does, so a 2,751 ml goal is met on both.
+        session.data.loggedFoodEntries[entry].waterML = 500.5
+        XCTAssertEqual(scoreEngineTotal(), 2_751)
+        XCTAssertEqual(session.hydrationIntakeML(on: day), 2_751)
+
+        // A portion worked out from water per 100 g is rounded the way the engine rounds it.
+        session.data.loggedFoodEntries[entry].waterML = nil
+        session.data.loggedFoodEntries[entry].snapshotWaterML100 = 87.374
+        XCTAssertEqual(scoreEngineTotal(), 2_600)
+        XCTAssertEqual(session.hydrationIntakeML(on: day), 2_600)
     }
 }

@@ -121,7 +121,8 @@ struct NutritionReport: Sendable, Equatable {
         var values: [Kind: Double] = [:]
     }
 
-    static func summarize(ownerID: UUID, data: DashboardData, dates: ClosedRange<String>) -> NutritionReport? {
+    /// `today` is the day creatine can still be ticked on; without it every day in the range is closed.
+    static func summarize(ownerID: UUID, data: DashboardData, dates: ClosedRange<String>, today: String? = nil) -> NutritionReport? {
         let days = dayKeys(dates)
         guard !days.isEmpty else { return nil }
         let inRange = Set(days)
@@ -202,7 +203,7 @@ struct NutritionReport: Sendable, Equatable {
             dayScores.append((day, dayScore))
         }
 
-        let creatine = creatine(ownerID: ownerID, data: data, days: days)
+        let creatine = creatine(ownerID: ownerID, data: data, days: days, today: today)
         guard loggedDays > 0 || partialDays > 0 || drinkML > 0 || creatine != nil else { return nil }
         // The period starts when the person started logging, not at an earlier training import.
         let started = [firstEvidence, creatine?.firstDay].compactMap { $0 }.min() ?? dates.lowerBound
@@ -275,7 +276,7 @@ struct NutritionReport: Sendable, Equatable {
     }
 
     /// Daily creatine, keyed on the day a check-off belongs to, so a past day ticked later still counts.
-    private static func creatine(ownerID: UUID, data: DashboardData, days: [String]) -> Creatine? {
+    private static func creatine(ownerID: UUID, data: DashboardData, days: [String], today: String?) -> Creatine? {
         let ids = Set(data.supplements.filter {
             $0.userID == ownerID && !$0.trainingDaysOnly && SupplementCatalogue.isCreatine($0.name)
         }.map(\.id))
@@ -285,8 +286,9 @@ struct NutritionReport: Sendable, Equatable {
         }.map(\.date))
         guard let first = taken.min() else { return nil }
         var tracked = days.filter { $0 >= first }
-        // The range's last day can still be ticked, so while it is open it is not a miss: not for the streak, the score or the day count.
-        if let last = tracked.last, !taken.contains(last) { tracked.removeLast() }
+        // Today can still be ticked, so while it is open it is not a miss: not for the streak, the score or the day count.
+        // A range that ended before today has no open day.
+        if let last = tracked.last, last == today, !taken.contains(last) { tracked.removeLast() }
         var longest = 0, run = 0
         for day in tracked {
             run = taken.contains(day) ? run + 1 : 0

@@ -222,9 +222,7 @@ enum FitnessBrainService {
         for meal in data.loggedMeals where meal.userID == ownerID { mealDates[meal.id] = meal.localDate }
         var foodByDay: [String: Double] = [:]
         for entry in data.loggedFoodEntries where entry.userID == ownerID {
-            guard let date = mealDates[entry.mealID],
-                  let water = entry.waterML ?? FoodHydration.portionWater(entry.snapshotWaterML100, equivalentAmount: entry.equivalentAmount),
-                  water.isFinite, water > 0 else { continue }
+            guard let date = mealDates[entry.mealID], let water = FoodHydration.loggedWater(entry) else { continue }
             foodByDay[date, default: 0] += water
         }
         let events = Dictionary(grouping: (data.hydrationEvents ?? []).filter { $0.userID == ownerID }, by: \.localDate)

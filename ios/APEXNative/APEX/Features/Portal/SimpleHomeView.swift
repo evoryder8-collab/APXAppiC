@@ -459,6 +459,8 @@ struct SimpleHomeView: View {
                 .presentationDragIndicator(.visible)
         }
         .onAppear {
+            // A screen torn down with its workout still open never reported the close.
+            session.holdBrowsingDate(showWorkout)
 #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-open-water") {
                 /* Let the Simple/Advanced mode transition finish before the
@@ -494,6 +496,8 @@ struct SimpleHomeView: View {
                 }
             }
         }
+        // The cover is built from the shared date, so midnight must not move the day under an open workout.
+        .onChange(of: showWorkout) { _, open in session.holdBrowsingDate(open) }
         .apexPopover(isPresented: $showTargetEditor) {
             NutritionTargetSheet(date: selectedDate, onClose: { showTargetEditor = false })
                 .environment(session)

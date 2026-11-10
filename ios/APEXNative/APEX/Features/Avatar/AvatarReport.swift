@@ -156,7 +156,7 @@ struct AvatarReport: Transferable {
                     earlierFirst: first, joinedDate: joined, period: period, reportDates: dates,
                     identityStages: identityStages(ownerID: ownerID, data: data, dates: dates),
                     laterBodyweightBySession: laterWeights,
-                    nutrition: NutritionReport.summarize(ownerID: ownerID, data: data, dates: dates))
+                    nutrition: NutritionReport.summarize(ownerID: ownerID, data: data, dates: dates, today: today))
     }
 
     private static func bodyweights(in data: DashboardData, owner: UUID, through end: String,
