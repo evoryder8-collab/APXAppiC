@@ -122,6 +122,48 @@ enum ProgressPhotoEngine {
         return updateViews(origin, side: side, view: next, synced: synced)
     }
 
+    /* The drags in progress on a comparison, from one report of a finger's
+       travel to the next. Each photo has its own: two fingers, one on each
+       photo, report in turn, and with one drag remembered for both every
+       report looked like a new drag and the photos ran to their limits. */
+    struct ComparisonDrags: Sendable {
+        /// Where each finger landed, and where its photo was at that moment.
+        private var inProgress: [Side: (start: CGPoint, origin: ComparisonView)] = [:]
+
+        /// Where the photos are once a drag on one of them has travelled
+        /// this far from where it started.
+        mutating func moved(
+            _ side: Side,
+            from start: CGPoint,
+            by translation: CGSize,
+            pane: CGSize,
+            views: ComparisonViews,
+            synced: Bool
+        ) -> ComparisonViews {
+            /* A new drag is told by where it started as well as by the last
+               one ending, because a drag the system interrupts never reports
+               its end. */
+            var began = side == .left ? views.left : views.right
+            if let drag = inProgress[side], drag.start == start {
+                began = drag.origin
+            } else {
+                inProgress[side] = (start, began)
+            }
+            var origin = views
+            switch side {
+            case .left: origin.left = began
+            case .right: origin.right = began
+            }
+            return ProgressPhotoEngine.drag(
+                from: origin, side: side, translation: translation, pane: pane, synced: synced
+            )
+        }
+
+        mutating func ended(_ side: Side) {
+            inProgress[side] = nil
+        }
+    }
+
     /// Where a pan puts a photo inside a pane of this size, on screen or on
     /// the exported card.
     static func panOffset(_ view: ComparisonView, in pane: CGSize) -> CGSize {

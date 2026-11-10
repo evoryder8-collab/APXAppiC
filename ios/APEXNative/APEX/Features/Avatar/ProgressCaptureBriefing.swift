@@ -13,6 +13,14 @@ struct ProgressCaptureIntent: Hashable, Sendable, Identifiable {
               value.isFinite, value > 0 else { return nil }
         return value
     }
+
+    /// The weight to save with a photo taken at this moment, or now when it
+    /// has none. The weight typed in the briefing is today's, so a photo from
+    /// another day is saved without one.
+    func weightKG(forPhotoTakenAt takenAt: Date?, now: Date = .now) -> Double? {
+        if let takenAt, takenAt.apexDateKey != now.apexDateKey { return nil }
+        return resolvedWeightKG
+    }
 }
 
 /*

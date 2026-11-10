@@ -18,9 +18,7 @@ struct ProgressComparisonView: View {
     @State private var synced = true
     /// The side last touched, which is the one the zoom buttons act on.
     @State private var active = ProgressPhotoEngine.Side.left
-    /// The drag in progress: where the finger landed, and where both photos
-    /// were at that moment.
-    @State private var drag: (start: CGPoint, origin: ProgressPhotoEngine.ComparisonViews)?
+    @State private var drags = ProgressPhotoEngine.ComparisonDrags()
     @State private var exported: URL?
     @State private var isExporting = false
     @State private var exportTask: Task<Void, Never>?
@@ -229,17 +227,12 @@ struct ProgressComparisonView: View {
             DragGesture()
                 .onChanged { value in
                     active = side
-                    /* A new drag is told by where it started as well as by
-                       the last one ending, because a drag the system
-                       interrupts never reports its end. */
-                    if drag?.start != value.startLocation { drag = (value.startLocation, views) }
-                    guard let origin = drag?.origin else { return }
-                    views = ProgressPhotoEngine.drag(
-                        from: origin, side: side,
-                        translation: value.translation, pane: pane, synced: synced
+                    views = drags.moved(
+                        side, from: value.startLocation, by: value.translation,
+                        pane: pane, views: views, synced: synced
                     )
                 }
-                .onEnded { _ in drag = nil }
+                .onEnded { _ in drags.ended(side) }
         )
         .onTapGesture { active = side }
         .clipped()

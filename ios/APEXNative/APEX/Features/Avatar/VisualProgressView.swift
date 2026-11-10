@@ -1,6 +1,13 @@
 import PhotosUI
 import SwiftUI
 
+/// Two photos chosen to compare, oldest first so BEFORE really is before.
+private struct ProgressComparisonPair: Identifiable {
+    let before: ProgressPhoto
+    let after: ProgressPhoto
+    var id: [UUID] { [before.id, after.id] }
+}
+
 struct VisualProgressView: View {
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
@@ -24,7 +31,10 @@ struct VisualProgressView: View {
     @State private var captureIntent: ProgressCaptureIntent?
     @State private var captureOperation: AccountOperationLease?
     @State private var captureRequestID: UUID?
-    @State private var showComparison = false
+    /// The pair on the comparison screen. It holds its own two photos, so the
+    /// screen cannot open with nothing to show, or be emptied by the timeline
+    /// reloading underneath it.
+    @State private var comparing: ProgressComparisonPair?
     @State private var preparationTask: Task<Void, Never>?
     @State private var preparationID: UUID?
     /// Older photos loaded as the timeline is scrolled, beyond the first page.
@@ -36,19 +46,29 @@ struct VisualProgressView: View {
         ProgressPhotoEngine.timeline(session.data.progressPhotos, earlier: earlierPhotos)
     }
 
-    /// Opens straight on the review of a photo already in hand.
-    init(reviewing image: UIImage? = nil) {
+    /// Replaces the server's answer for older photos, for layout checks.
+    var loadEarlier: (([ProgressPhoto]) async throws -> (photos: [ProgressPhoto], reachedEnd: Bool))?
+
+    /// Opens straight on the review of a photo already in hand, or with
+    /// photos already ticked for comparison.
+    init(
+        reviewing image: UIImage? = nil,
+        ticked: [UUID] = [],
+        loadEarlier: (([ProgressPhoto]) async throws -> (photos: [ProgressPhoto], reachedEnd: Bool))? = nil
+    ) {
         _selectedImage = State(initialValue: image)
+        _comparisonSelection = State(initialValue: ticked)
+        self.loadEarlier = loadEarlier
     }
 
-    /// The two chosen photos, oldest first so BEFORE really is before.
-    private var comparisonPair: (before: ProgressPhoto, after: ProgressPhoto)? {
+    /// The two ticked photos, once both are on the timeline.
+    private var comparisonPair: ProgressComparisonPair? {
         let chosen = comparisonSelection.compactMap { id in
             photos.first { $0.id == id }
         }
         guard chosen.count == 2 else { return nil }
         let ordered = chosen.sorted { $0.localDate < $1.localDate }
-        return (ordered[0], ordered[1])
+        return ProgressComparisonPair(before: ordered[0], after: ordered[1])
     }
 
     /// SwiftUI writes `nil` through the presentation binding for system and
@@ -161,24 +181,25 @@ struct VisualProgressView: View {
                     .tint(APEXColor.violet)
                 }
 
-                if comparisonSelection.count == 2 {
+                if let pair = comparisonPair {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text(language.text("Before and after"))
                                 .font(APEXFont.display(25))
                             Spacer()
-                            Button(language.text("Compare")) { showComparison = true }
+                            Button(language.text("Compare")) { comparing = pair }
                                 .font(APEXFont.body(12, weight: .bold))
                                 .foregroundStyle(APEXColor.violet)
                                 .accessibilityIdentifier("progress-compare")
+                                .layoutFrame("compare")
                             Button(language.text("Clear")) { comparisonSelection = [] }
                                 .font(APEXFont.body(12, weight: .bold))
                         }
                         HStack(spacing: 10) {
-                            ForEach(selectedPhotos) { photo in
+                            ForEach([pair.before, pair.after]) { photo in
                                 RemoteProgressImageCard(
                                     photo: photo,
-                                    title: photo == selectedPhotos.first ? "Before" : "After",
+                                    title: photo.id == pair.before.id ? "Before" : "After",
                                     includeStats: includeStats,
                                     snapshot: snapshot(for: photo),
                                     compact: true
@@ -252,10 +273,16 @@ struct VisualProgressView: View {
             }
         }
         .onChange(of: ProgressPhotoEngine.firstPageReach(session.data.progressPhotos)) { _, _ in
-            /* The first page ends somewhere else now, so the older pages no
-               longer join onto it. They load again from where it ends. */
-            earlierPhotos = []
-            reachedFirstPhoto = false
+            reloadEarlierPhotos()
+        }
+        .onChange(of: session.data.progressPhotos.map(\.id)) { before, _ in
+            /* A photo that has left the first page and is not among the
+               older ones may still be on the server. An old photo imported
+               here is added to the first page in memory, and the refresh
+               that follows keeps only the newest. The older pages were
+               loaded without it, so they load again. */
+            let shown = Set(photos.map(\.id))
+            if before.contains(where: { !shown.contains($0) }) { reloadEarlierPhotos() }
         }
         .onChange(of: session.profile?.userID) { _, _ in
             preparationTask?.cancel()
@@ -276,7 +303,7 @@ struct VisualProgressView: View {
             captureIntent = nil
             captureOperation = nil
             captureRequestID = nil
-            showComparison = false
+            comparing = nil
             comparisonSelection = []
             showCamera = false
         }
@@ -333,7 +360,7 @@ struct VisualProgressView: View {
                         selectedImage = image
                         pose = resolved.pose
                         note = resolved.note
-                        capturedWeightKG = resolved.resolvedWeightKG
+                        capturedWeightKG = resolved.weightKG(forPhotoTakenAt: takenAt)
                         capturedFraming = resolved.framing
                         capturedDate = takenAt
                         captureIntent = nil
@@ -343,15 +370,13 @@ struct VisualProgressView: View {
                 )
             }
         }
-        .fullScreenCover(isPresented: $showComparison) {
-            if let pair = comparisonPair {
-                ProgressComparisonView(
-                    before: pair.before, after: pair.after,
-                    includeStats: includeStats,
-                    onClose: { showComparison = false }
-                )
-                .environment(session)
-            }
+        .fullScreenCover(item: $comparing) { pair in
+            ProgressComparisonView(
+                before: pair.before, after: pair.after,
+                includeStats: includeStats,
+                onClose: { comparing = nil }
+            )
+            .environment(session)
         }
         .sheet(isPresented: $showCamera) {
             ProgressCameraPicker(image: $selectedImage)
@@ -373,9 +398,16 @@ struct VisualProgressView: View {
         captureRequestID = nil
     }
 
-    private var selectedPhotos: [ProgressPhoto] {
-        comparisonSelection.compactMap { id in photos.first { $0.id == id } }
-            .sorted { $0.localDate < $1.localDate }
+    /* The first page ends somewhere else now, so the older pages no longer
+       join onto it. They load again from where it ends. A tick on a photo
+       that leaves with them goes too: only a photo on the timeline can be
+       compared. */
+    private func reloadEarlierPhotos() {
+        earlierPhotos = []
+        reachedFirstPhoto = false
+        comparisonSelection.removeAll { id in
+            !session.data.progressPhotos.contains { $0.id == id }
+        }
     }
 
     private func snapshot(for photo: ProgressPhoto) -> RPGSnapshot? {
@@ -399,10 +431,25 @@ struct VisualProgressView: View {
     private func loadEarlierPhotos() async {
         guard let operation = session.accountOperationLease() else { return }
         do {
-            let page = try await session.earlierProgressPhotos(after: earlierPhotos, operation: operation)
-            guard session.accountOperationIsCurrent(operation) else { return }
-            earlierPhotos = ProgressPhotoEngine.timeline(earlierPhotos, earlier: page.photos)
-            reachedFirstPhoto = page.reachedEnd
+            while !Task.isCancelled {
+                let reach = ProgressPhotoEngine.firstPageReach(session.data.progressPhotos)
+                let asked = earlierPhotos
+                let page: (photos: [ProgressPhoto], reachedEnd: Bool)
+                if let loadEarlier {
+                    page = try await loadEarlier(asked)
+                } else {
+                    page = try await session.earlierProgressPhotos(after: asked, operation: operation)
+                }
+                guard session.accountOperationIsCurrent(operation) else { return }
+                /* A page is what comes after the photos loaded when it was
+                   asked for. If those have changed since, it would leave a
+                   hole where it no longer joins on, so it is asked again. */
+                guard asked == earlierPhotos,
+                      reach == ProgressPhotoEngine.firstPageReach(session.data.progressPhotos) else { continue }
+                earlierPhotos = ProgressPhotoEngine.timeline(earlierPhotos, earlier: page.photos)
+                reachedFirstPhoto = page.reachedEnd
+                return
+            }
         } catch {
             /* Asked again the next time the end of the list scrolls into view. */
         }

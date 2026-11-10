@@ -54,14 +54,9 @@ final class ProgressCameraTests: XCTestCase {
         }
     }
 
-    /// Lays the view out in a window of the given size and waits until every
-    /// name in `expecting` has reported where it is.
-    private func layOut(
-        _ view: some View,
-        size: CGSize,
-        expecting: [String] = [],
-        named name: String
-    ) async throws -> Layout {
+    /// Puts the view on screen in a window of the given size. The frames keep
+    /// following it for as long as it is shown.
+    private func show(_ view: some View, size: CGSize) throws -> (frames: Frames, host: UIViewController) {
         let frames = Frames()
         let host = UIHostingController(
             rootView: view.onPreferenceChange(ProgressLayoutFrames.self) { frames.value = $0 }
@@ -76,6 +71,19 @@ final class ProgressCameraTests: XCTestCase {
         window.isHidden = false
         self.window = window
         host.view.layoutIfNeeded()
+        return (frames, host)
+    }
+
+    /// Lays the view out in a window of the given size and waits until every
+    /// name in `expecting` has reported where it is.
+    private func layOut(
+        _ view: some View,
+        size: CGSize,
+        expecting: [String] = [],
+        named name: String
+    ) async throws -> Layout {
+        let (frames, host) = try show(view, size: size)
+        let window = try XCTUnwrap(self.window)
         for _ in 0..<60 where !expecting.allSatisfy({ frames.value[$0] != nil }) || frames.value.isEmpty {
             try await Task.sleep(for: .milliseconds(50))
         }
@@ -571,5 +579,213 @@ final class ProgressCameraTests: XCTestCase {
         let built = layout.frames.keys.filter { $0.hasPrefix("timelineRow") }.count
         XCTAssertGreaterThan(built, 0, "the timeline shows no photos at all")
         XCTAssertLessThan(built, 40, "\(built) of 130 rows were built on open, so the end of the list is reached at once")
+    }
+
+    // MARK: - The timeline beyond its first page
+
+    /// Day `number` of a calendar of 28-day months, later numbers later.
+    private static func day(_ number: Int) -> String {
+        String(format: "2025-%02d-%02d", 1 + number / 28, 1 + number % 28)
+    }
+
+    /// The timeline in a window tall enough for every row and the end of the
+    /// list to be on screen, so older photos load without anything scrolling.
+    private func timeline(of session: AppSession, older: OlderPhotos, ticked: [UUID] = []) throws -> Frames {
+        let view = VisualProgressView(ticked: ticked) { earlier in
+            await older.page(below: session.data.progressPhotos, after: earlier)
+        }
+        /* The screen reports its own frame too, so every new width is a
+           fresh report of everything on it. */
+        return try show(
+            view.environment(session).layoutFrame("screen"), size: CGSize(width: 393, height: 20_000)
+        ).frames
+    }
+
+    private func shows(_ photo: ProgressPhoto, in frames: Frames) -> Bool {
+        frames.value["timelineRow \(photo.id)"] != nil
+    }
+
+    /// Gives the screen a few seconds to get there, and fails if it does not.
+    private func wait(
+        for what: String, file: StaticString = #filePath, line: UInt = #line, _ reached: () -> Bool
+    ) async throws {
+        let width = window?.frame.width ?? 0
+        for turn in 0..<80 where !reached() {
+            try await Task.sleep(for: .milliseconds(50))
+            /* A row removed while the screen was already updating stays in
+               the last report until the frames next change, so the window
+               is given a new width. */
+            window?.frame.size.width = width + CGFloat(turn % 2)
+            window?.rootViewController?.view.layoutIfNeeded()
+        }
+        window?.frame.size.width = width
+        XCTAssertTrue(reached(), what, file: file, line: line)
+    }
+
+    /// A page of older photos answers one question: what comes after the
+    /// photos that were loaded when it was asked. If the first page ends
+    /// somewhere else by the time it arrives, it no longer joins on. Joined
+    /// on regardless, it left a hole in the timeline, so it is asked again.
+    func testAPageAskedBeforeTheFirstPageMovedIsAskedAgain() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(session.accountOperationLease()).ownerID
+        let firstPage = (0..<120).map { row(owner: owner, date: Self.day(200 - $0)) }
+        let baseline = row(owner: owner, date: Self.day(10))
+        session.data.progressPhotos = firstPage
+        let older = OlderPhotos(firstPage + [baseline])
+        older.hold()
+        let frames = try timeline(of: session, older: older)
+        try await wait(for: "the end of the timeline asks for older photos") { older.asked > 0 }
+
+        /* Two photos saved on another device push the last two off the first
+           page while the answer is on its way. */
+        let saved = [row(owner: owner, date: Self.day(202)), row(owner: owner, date: Self.day(201))]
+        older.all += saved
+        session.data.progressPhotos = saved + firstPage.dropLast(2)
+        try await wait(for: "the new photos are on the timeline") { shows(saved[0], in: frames) }
+        older.release()
+
+        try await wait(for: "the photos that left the first page are still on the timeline") {
+            firstPage.suffix(2).allSatisfy { shows($0, in: frames) } && shows(baseline, in: frames)
+        }
+    }
+
+    /// An old photo imported from the library is filed under its own date,
+    /// below the first page. The refresh that follows a save brings the newest
+    /// 120 again, and the import then has to be found among the older photos.
+    /// It used to be in neither, gone until the screen was opened again.
+    func testAnImportedOldPhotoIsStillOnTheTimelineAfterTheRefreshThatFollowsItsSave() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(session.accountOperationLease()).ownerID
+        let firstPage = (0..<120).map { row(owner: owner, date: Self.day(200 - $0)) }
+        let earlier = (0..<3).map { row(owner: owner, date: Self.day(10 - $0)) }
+        session.data.progressPhotos = firstPage
+        let older = OlderPhotos(firstPage + earlier)
+        let frames = try timeline(of: session, older: older)
+        try await wait(for: "the older photos load") { earlier.allSatisfy { shows($0, in: frames) } }
+
+        /* Saving uploads the photo, then adds it to the photos in memory. */
+        let imported = row(owner: owner, date: Self.day(2))
+        older.all.append(imported)
+        session.data.progressPhotos.insert(imported, at: 0)
+        try await wait(for: "the imported photo is on the timeline") { shows(imported, in: frames) }
+
+        /* The refresh: the first page is the newest 120 again. */
+        let asked = older.asked
+        older.hold()
+        session.data.progressPhotos = firstPage
+        try await wait(for: "the older photos are asked for again once a photo has left the first page") {
+            older.asked > asked
+        }
+        older.release()
+        try await wait(for: "the imported photo is on the timeline, among the older photos") {
+            older.asked > asked && shows(imported, in: frames) && earlier.allSatisfy { shows($0, in: frames) }
+        }
+    }
+
+    /// Older photos are loaded by this screen and kept by it. They belong to
+    /// the account they were loaded for, and leave the timeline when it does.
+    func testOlderPhotosLeaveWithTheAccountTheyWereLoadedFor() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(session.accountOperationLease()).ownerID
+        let firstPage = (0..<120).map { row(owner: owner, date: Self.day(200 - $0)) }
+        let earlier = (0..<3).map { row(owner: owner, date: Self.day(10 - $0)) }
+        session.data.progressPhotos = firstPage
+        let older = OlderPhotos(firstPage + earlier)
+        let frames = try timeline(of: session, older: older)
+        try await wait(for: "the older photos load") { earlier.allSatisfy { shows($0, in: frames) } }
+
+        /* The next account's first page ends on the same day, so only the
+           change of account says the older photos are not its own. */
+        let next = AppSession(developerSandboxRole: .invitedClient)
+        let nextOwner = try XCTUnwrap(next.accountOperationLease()).ownerID
+        XCTAssertNotEqual(nextOwner, owner)
+        let nextPage = (0..<120).map { row(owner: nextOwner, date: Self.day(200 - $0)) }
+        var data = next.data
+        data.progressPhotos = nextPage
+        older.all = nextPage
+        session.data = data
+        try await wait(for: "the next account's photos are on the timeline") { shows(nextPage[0], in: frames) }
+        try await wait(for: "the older photos of the account that left are off the timeline") {
+            !earlier.contains { shows($0, in: frames) }
+        }
+    }
+
+    /// A comparison needs both of its photos on the timeline. An older photo
+    /// that is ticked leaves with the older pages when they reload: its tick
+    /// goes with it, and Compare is never offered for a photo that is not there.
+    func testCompareIsOnlyOfferedForTwoPhotosOnTheTimeline() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(session.accountOperationLease()).ownerID
+        /* One photo a day, so the next one saved moves where the first page ends. */
+        let firstPage = (0..<120).map { row(owner: owner, date: Self.day(200 - $0)) }
+        let baseline = row(owner: owner, date: Self.day(10))
+        session.data.progressPhotos = firstPage
+        let older = OlderPhotos(firstPage + [baseline])
+        let frames = try timeline(of: session, older: older, ticked: [baseline.id, firstPage[0].id])
+        try await wait(for: "both ticked photos are on the timeline, so Compare is offered") {
+            shows(baseline, in: frames) && frames.value["compare"] != nil
+        }
+
+        older.hold()
+        let saved = row(owner: owner, date: Self.day(201))
+        older.all.append(saved)
+        session.data.progressPhotos.insert(saved, at: 0)
+        try await wait(for: "the older photos give way when the first page ends somewhere else") {
+            !shows(baseline, in: frames)
+        }
+        try await wait(for: "Compare is not offered while one of its photos is off the timeline") {
+            frames.value["compare"] == nil
+        }
+
+        older.release()
+        try await wait(for: "the older photos load again") { shows(baseline, in: frames) }
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertNil(frames.value["compare"], "a tick on a photo that left the timeline came back with it")
+    }
+}
+
+/// Stands in for the server's older photos. It answers the question the app's
+/// own paging asks, and can be made to take its time over it.
+@MainActor
+private final class OlderPhotos {
+    var all: [ProgressPhoto]
+    /// How many pages have been asked for.
+    private(set) var asked = 0
+    private var held = false
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+
+    init(_ all: [ProgressPhoto]) {
+        self.all = all
+    }
+
+    func page(
+        below firstPage: [ProgressPhoto], after earlier: [ProgressPhoto]
+    ) async -> (photos: [ProgressPhoto], reachedEnd: Bool) {
+        await ProgressPhotoEngine.earlierPage(firstPage: firstPage, earlier: earlier) { @Sendable day, limit in
+            await self.rows(onOrBefore: day, limit: limit)
+        }
+    }
+
+    private func rows(onOrBefore day: String, limit: Int) async -> [ProgressPhoto] {
+        asked += 1
+        if held {
+            await withCheckedContinuation { waiting.append($0) }
+        }
+        return Array(
+            all.filter { $0.localDate <= day }
+                .sorted { ($0.localDate, $0.id.uuidString) > ($1.localDate, $1.id.uuidString) }
+                .prefix(limit)
+        )
+    }
+
+    func hold() {
+        held = true
+    }
+
+    func release() {
+        held = false
+        waiting.forEach { $0.resume() }
+        waiting = []
     }
 }
