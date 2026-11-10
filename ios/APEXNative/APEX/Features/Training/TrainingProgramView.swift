@@ -992,7 +992,9 @@ enum TrackedWorkout {
             exerciseName: input.exerciseName,
             setNumber: input.setNumber,
             weightKG: nil,
-            reps: nil,
+            // A finished check is one completion, as the web and the guided player save it.
+            // Without a count the row is not a valid set and Finish discards the whole workout.
+            reps: decision == .completed ? 1 : nil,
             rir: nil,
             movementID: input.movementID,
             skipped: decision == .skipped
@@ -1049,12 +1051,7 @@ enum TrackedWorkout {
                 return input.skipped || hasFacts(input, descriptor: descriptor)
             }
             guard let decision = checkDecisions[setKey(for: input)] else { return false }
-            switch decision {
-            case .completed:
-                return !input.skipped && measurementsAreEmpty(input)
-            case .skipped:
-                return input.skipped && measurementsAreEmpty(input)
-            }
+            return input == applying(decision, to: input)
         }
     }
 
@@ -1063,13 +1060,6 @@ enum TrackedWorkout {
         descriptor: ExerciseLoggingDescriptor
     ) -> Bool {
         descriptor.isSupported && ExerciseLogging.isValid(input)
-    }
-
-    private static func measurementsAreEmpty(_ input: WorkoutSetInput) -> Bool {
-        input.weightKG == nil && input.reps == nil && input.rir == nil
-            && input.durationSeconds == nil && input.distanceMeters == nil
-            && input.contacts == nil && input.rounds == nil
-            && input.workSeconds == nil && input.recoverySeconds == nil
     }
 }
 

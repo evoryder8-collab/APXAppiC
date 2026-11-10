@@ -401,7 +401,7 @@ final class WorkoutSessionModeContractTests: XCTestCase {
         XCTAssertNil(input.rir)
     }
 
-    func testCheckTrackedWorkNeedsAnExplicitDecisionAndPersistsNoMeasurements() {
+    func testCheckTrackedWorkNeedsAnExplicitDecisionAndPersistsNoLoadOrEffort() {
         let check = Exercise(
             id: UUID(), userID: user, programDayID: UUID(), name: "Warm-up",
             sets: 1, repMin: 0, repMax: 0, repUnit: "check", perSide: false,
@@ -419,7 +419,7 @@ final class WorkoutSessionModeContractTests: XCTestCase {
 
         let completed = TrackedWorkout.applying(.completed, to: draft)
         XCTAssertFalse(completed.skipped)
-        XCTAssertNil(completed.reps)
+        XCTAssertEqual(completed.reps, 1)
         XCTAssertNil(completed.weightKG)
         XCTAssertNil(completed.rir)
         XCTAssertTrue(TrackedWorkout.isReadyToFinish(
@@ -433,6 +433,29 @@ final class WorkoutSessionModeContractTests: XCTestCase {
         XCTAssertNil(skipped.rir)
         XCTAssertTrue(TrackedWorkout.isReadyToFinish(
             [skipped], exercises: [check], checkDecisions: [key: .skipped]
+        ))
+    }
+
+    func testCompletedCheckRowIsSavedAsOneCompletion() {
+        let stretch = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Focus T25 · Stretch",
+            sets: 1, repMin: 1, repMax: 1, repUnit: "check", perSide: false,
+            restSeconds: 0, tempoUp: 0, tempoDown: 0, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 0, isLite: false,
+            optional: false, sortOrder: 0
+        )
+        let draft = TrackedWorkout.setInputs(for: [stretch])[0]
+        let completed = TrackedWorkout.applying(.completed, to: draft)
+
+        // Finishing keeps the workout only when every row is skipped or valid once normalised.
+        XCTAssertTrue(
+            ExerciseLogging.isValid(completed.normalizedForPersistence()),
+            "a check row marked Completed must not make Finish discard the whole workout"
+        )
+        XCTAssertEqual(completed.reps, 1, "one completion, as the web and the guided player save it")
+        XCTAssertTrue(TrackedWorkout.isReadyToFinish(
+            [completed], exercises: [stretch],
+            checkDecisions: [TrackedWorkout.setKey(for: draft): .completed]
         ))
     }
 
