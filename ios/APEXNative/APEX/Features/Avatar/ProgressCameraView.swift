@@ -138,8 +138,21 @@ final class ProgressCameraController: NSObject {
     func capture(_ completion: @escaping (UIImage) -> Void) {
         captured = completion
         sessionQueue.async { [self] in
+            /* A session with no live video connection raises an exception
+               when asked for a photo, rather than failing. */
+            guard output.connection(with: .video)?.isActive == true else { return }
             output.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
         }
+    }
+
+    /* The main-actor half of the photo delegate: hands the capture on as the
+       sensor saw it. A selfie is not flipped to match its mirrored preview,
+       so every saved photo has the person's true left and right and a front
+       and a rear photo of one pose can be compared. */
+    func finishCapture(with image: UIImage?) {
+        guard let image else { return }
+        captured?(image)
+        captured = nil
     }
 }
 
@@ -163,22 +176,8 @@ extension ProgressCameraController: AVCapturePhotoCaptureDelegate {
         didFinishProcessingPhoto photo: AVCapturePhoto,
         error: Error?
     ) {
-        guard let data = photo.fileDataRepresentation(), let image = UIImage(data: data) else { return }
-        Task { @MainActor [weak self] in
-            guard let self else { return }
-            /* A front-camera frame arrives mirrored relative to what the
-               person saw, so it is flipped back to the image they aligned. */
-            let corrected = position == .front ? image.mirrored() : image
-            captured?(corrected)
-            captured = nil
-        }
-    }
-}
-
-private extension UIImage {
-    func mirrored() -> UIImage {
-        guard let cgImage else { return self }
-        return UIImage(cgImage: cgImage, scale: scale, orientation: .leftMirrored)
+        let image = photo.fileDataRepresentation().flatMap { UIImage(data: $0) }
+        Task { @MainActor [weak self] in self?.finishCapture(with: image) }
     }
 }
 
@@ -291,6 +290,9 @@ struct ProgressCameraView: View {
                         Image(uiImage: referenceImage)
                             .resizable()
                             .scaledToFill()
+                            /* The selfie preview is a mirror and saved photos
+                               are not, so under it the ghost is mirrored. */
+                            .scaleEffect(x: controller.position == .front ? -1 : 1, y: 1)
                     }
                     .clipped()
                     .opacity(ghost)

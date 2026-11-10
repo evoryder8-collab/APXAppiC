@@ -5,6 +5,7 @@
  * sizes with a stand-in for the permission prompt and the photo download,
  * then read back where each control landed.
  */
+import AVFoundation
 import SwiftUI
 import XCTest
 @testable import APEX
@@ -85,13 +86,17 @@ final class ProgressCameraTests: XCTestCase {
         return Layout(frames: frames.value, safe: host.view.bounds.inset(by: host.view.safeAreaInsets))
     }
 
+    private func picture(of window: UIWindow) -> UIImage {
+        UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+    }
+
     /// A layout is a visual thing. Run with TEST_RUNNER_APEX_LAYOUT_SHOTS set
     /// to a folder and every screen checked here is also kept as a picture.
     private func keepPicture(of window: UIWindow, named name: String) {
         guard let folder = ProcessInfo.processInfo.environment["APEX_LAYOUT_SHOTS"] else { return }
-        let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
-            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
-        }
+        let image = picture(of: window)
         let directory = URL(fileURLWithPath: folder)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try? image.pngData()?.write(to: directory.appending(path: name.replacingOccurrences(of: ":", with: "-") + ".png"))
@@ -104,6 +109,39 @@ final class ProgressCameraTests: XCTestCase {
             UIColor.systemTeal.setFill()
             context.fill(CGRect(origin: .zero, size: size))
         }
+    }
+
+    /// A portrait photo that is red on its left half and blue on its right,
+    /// stored the way a camera stores it: sideways, with an orientation flag.
+    private func sidedPhoto() throws -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let sensor = UIGraphicsImageRenderer(size: CGSize(width: 400, height: 300), format: format).image { context in
+            /* Rotated a quarter turn clockwise for display, the top half of
+               the sensor frame becomes the right half of the photo. */
+            UIColor.blue.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 400, height: 150))
+            UIColor.red.setFill()
+            context.fill(CGRect(x: 0, y: 150, width: 400, height: 150))
+        }
+        return UIImage(cgImage: try XCTUnwrap(sensor.cgImage), scale: 1, orientation: .right)
+    }
+
+    /// Red, green and blue of one point of an image as it is displayed.
+    private func colour(of image: UIImage, at unit: CGPoint) throws -> (red: Int, green: Int, blue: Int) {
+        var pixel = [UInt8](repeating: 0, count: 4)
+        let context = try XCTUnwrap(CGContext(
+            data: &pixel, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        UIGraphicsPushContext(context)
+        /* Flipped to UIKit's top-left origin, then moved so the wanted point
+           lands on the single pixel. */
+        context.translateBy(x: 0, y: 1)
+        context.scaleBy(x: 1, y: -1)
+        image.draw(at: CGPoint(x: -unit.x * image.size.width, y: -unit.y * image.size.height))
+        UIGraphicsPopContext()
+        return (Int(pixel[0]), Int(pixel[1]), Int(pixel[2]))
     }
 
     private static let ghosts: [(name: String, size: CGSize)] = [
@@ -184,6 +222,19 @@ final class ProgressCameraTests: XCTestCase {
     }
 
     // MARK: - The camera
+
+    /// A controller that has been allowed the camera and has chosen its lens.
+    /// The simulator takes seconds to give up on a camera it does not have,
+    /// so this does not wait for the session itself.
+    private func controller(on position: AVCaptureDevice.Position) async throws -> ProgressCameraController {
+        let controller = ProgressCameraController(accessAnswer: { true })
+        Task { await controller.start(position: position) }
+        for _ in 0..<200 where controller.position != position {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        XCTAssertEqual(controller.position, position)
+        return controller
+    }
 
     private static let cameraControls = ["close", "pose", "framing", "timerRow", "library", "shutter"]
 
@@ -321,8 +372,7 @@ final class ProgressCameraTests: XCTestCase {
         XCTAssertTrue(refused.accessDenied)
         XCTAssertFalse(refused.isReady)
 
-        let allowed = ProgressCameraController(accessAnswer: { true })
-        await allowed.start(position: .back)
+        let allowed = try await controller(on: .back)
         XCTAssertFalse(allowed.accessDenied)
         allowed.stop()
 
@@ -358,6 +408,52 @@ final class ProgressCameraTests: XCTestCase {
                 expecting: ["shutter"], named: "camera, \(pose) pose, front photo owned"
             )
             XCTAssertNil(other.frames["ghostSlider"], "a front photo is ghosted under a \(pose) shot")
+        }
+    }
+
+    /// C9. A saved photo keeps the person's true left and right whichever
+    /// camera took it, so a selfie and a rear photo of one pose line up.
+    func testAFrontCameraPhotoIsSavedWithTheSameLeftAndRightAsARearOne() async throws {
+        let shot = try sidedPhoto()
+        XCTAssertGreaterThan(try colour(of: shot, at: CGPoint(x: 0.25, y: 0.5)).red, 200, "the fixture is red on the left")
+        XCTAssertGreaterThan(try colour(of: shot, at: CGPoint(x: 0.75, y: 0.5)).blue, 200, "and blue on the right")
+
+        for (name, position) in [("front", AVCaptureDevice.Position.front), ("rear", .back)] {
+            let controller = try await controller(on: position)
+            var saved: UIImage?
+            controller.capture { saved = $0 }
+            controller.finishCapture(with: shot)
+            controller.stop()
+
+            let image = try XCTUnwrap(saved, "the \(name) camera handed nothing on")
+            XCTAssertEqual(image.size, shot.size, "the \(name) camera photo is no longer upright")
+            let left = try colour(of: image, at: CGPoint(x: 0.25, y: 0.5))
+            let right = try colour(of: image, at: CGPoint(x: 0.75, y: 0.5))
+            XCTAssertGreaterThan(left.red, 200, "the \(name) camera saved the photo mirrored")
+            XCTAssertGreaterThan(right.blue, 200, "the \(name) camera saved the photo mirrored")
+        }
+    }
+
+    /// C9. The live selfie preview is a mirror, so under it the ghost is
+    /// mirrored too. Under the rear camera it is shown as it was saved.
+    func testTheGhostIsMirroredOnlyUnderTheMirroredSelfiePreview() async throws {
+        let size = Self.phones[1].size
+        for (name, front) in [("rear", false), ("front", true)] {
+            _ = try await layOut(
+                try camera(ghost: try sidedPhoto(), frontCameraAllowed: front), size: size,
+                expecting: ["shutter", "ghostSlider"], named: "camera, sided ghost under the \(name) camera"
+            )
+            let screen = picture(of: try XCTUnwrap(window))
+            /* Beside the outline, where nothing else is drawn. */
+            let left = try colour(of: screen, at: CGPoint(x: 0.06, y: 0.45))
+            let right = try colour(of: screen, at: CGPoint(x: 0.94, y: 0.45))
+            if front {
+                XCTAssertGreaterThan(left.blue, left.red + 20, "under the selfie preview the ghost is not mirrored")
+                XCTAssertGreaterThan(right.red, right.blue + 20, "under the selfie preview the ghost is not mirrored")
+            } else {
+                XCTAssertGreaterThan(left.red, left.blue + 20, "under the rear camera the ghost is flipped")
+                XCTAssertGreaterThan(right.blue, right.red + 20, "under the rear camera the ghost is flipped")
+            }
         }
     }
 }
