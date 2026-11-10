@@ -1361,6 +1361,14 @@ final class EnergyEngineTests: XCTestCase {
         XCTAssertEqual(calibration(honest), result)
     }
 
+    func testCalibrationNeverSamplesAnotherAccountsRows() {
+        // A fortnight that would calibrate, cached beside an account that logged nothing.
+        var cached = fortnight(owner: UUID(), weight: { _ in 80 }, intake: 2_300)
+        XCTAssertNotNil(calibration(cached))
+        cached.profile = profile(userID: UUID(), weight: 81, level: .moderate, goal: .maintain)
+        XCTAssertNil(calibration(cached), "Another account's days and weigh-ins teach this one nothing")
+    }
+
     func testCalibrationNudgesUpwardAndClamps() {
         let next = EnergyEngine.calibratedK(
             currentK: 1,
