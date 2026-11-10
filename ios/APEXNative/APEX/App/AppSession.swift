@@ -3219,9 +3219,13 @@ final class AppSession {
     }
 
     func hydrationTargetResolution(on date: Date, now: Date = .now) -> HydrationTargetResolution {
-        DailyWaterTargets(data: data, coachManaged: coachContext.capabilities.sponsoredClient && !coachClientPolicy.canCreateCustomWorkouts,
+        let day = date.apexDateKey
+        // A past day keeps the goal it had, the one the Avatar grades it against.
+        let history = day < now.apexDateKey && data.settings?.userID == data.profile?.userID
+            ? data.settings?.addons[ScoreGoalHistory.addonKey] : nil
+        return DailyWaterTargets(data: data, coachManaged: coachContext.capabilities.sponsoredClient && !coachClientPolicy.canCreateCustomWorkouts,
                           followsCoach: coachClientPolicy.canFollowCoachPlan, includeCustom: coachClientPolicy.canCreateCustomWorkouts)
-            .resolve(day: date.apexDateKey, now: now)
+            .resolve(day: day, now: now, goals: ScoreGoalHistory(stored: history).earlierGoals(on: day))
     }
 
     var hydrationPresets: [HydrationPreset] {

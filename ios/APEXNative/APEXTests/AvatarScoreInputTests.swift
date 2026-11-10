@@ -529,6 +529,39 @@ final class AvatarScoreInputTests: XCTestCase {
         XCTAssertEqual(try recalculatedHealth(&data, at: "2026-10-02T12:00:00Z"), before)
     }
 
+    @MainActor
+    func testHomeWaterCardShowsAnEarlierDayTheGoalItHad() throws {
+        var data = historyStart()
+        data.hydrationPreferences = waterGoal(2_000)
+        _ = try recalculatedHealth(&data, at: "2026-10-01T12:00:00Z")
+        data.hydrationPreferences = waterGoal(3_000)
+        _ = try recalculatedHealth(&data, at: "2026-10-02T12:00:00Z")
+        let app = AppSession(developerSandboxRole: .coach)
+        app.data = data
+        let today = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-02T12:00:00Z"))
+        let earlier = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-09-30T12:00:00Z"))
+        XCTAssertEqual(app.hydrationTargetResolution(on: earlier, now: today).targetML, 2_000)
+        XCTAssertEqual(app.hydrationTargetResolution(on: today, now: today).targetML, 3_000)
+    }
+
+    func testNutritionReportJudgesEarlierDaysAgainstTheTargetsTheyHad() throws {
+        var data = historyStart()
+        let input = try XCTUnwrap(FitnessBrainService.engineInput(from: data))
+        let targets = FitnessBrainTargets.computeTargets(
+            input.profile, asOf: "2026-10-01", trainingGoal: input.trainingGoal, planWeeks: input.planWeeks)
+        data.dailyLogs = thirtyDays(kcal: Int(targets.kcal.rounded()), protein: Int(targets.proteinG.rounded()) + 5)
+        _ = try recalculatedHealth(&data, at: "2026-10-01T12:00:00Z")
+        let dates = "2026-09-01"..."2026-10-02"
+        let before = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: dates))
+        XCTAssertEqual(before.macros.first { $0.kind == .calories }?.onTargetDays, 30)
+        data.profile?.weightKG += 25
+        data.profile?.activityLevel = .sedentary
+        _ = try recalculatedHealth(&data, at: "2026-10-02T12:00:00Z")
+        let after = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: dates))
+        XCTAssertEqual(after.macros.map(\.metDays), before.macros.map(\.metDays))
+        XCTAssertEqual(after.score, before.score)
+    }
+
     func testGoalHistoryKeepsEachDaysGoalsAcrossSeveralChanges() {
         func goals(_ kcal: Double) -> ScoreGoalHistory.Goals {
             ScoreGoalHistory.Goals(customWaterML: nil, weightKG: 80, targets: FBTargets(

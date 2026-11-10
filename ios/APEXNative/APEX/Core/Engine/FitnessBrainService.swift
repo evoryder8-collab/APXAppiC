@@ -408,8 +408,13 @@ struct ScoreGoalHistory: Codable, Equatable, Sendable {
         (try? JSONEncoder().encode(self)).flatMap { try? JSONDecoder().decode(JSONValue.self, from: $0) }
     }
 
+    /// The goals a day had when they have changed since, or nil when today's applied to it.
+    func earlierGoals(on day: String) -> Goals? {
+        past.first { day < $0.until }?.goals
+    }
+
     func goals(on day: String, now: Goals) -> Goals {
-        past.first { day < $0.until }?.goals ?? now
+        earlierGoals(on: day) ?? now
     }
 
     /// Records today's goals and reports whether the history changed. The first change of a
