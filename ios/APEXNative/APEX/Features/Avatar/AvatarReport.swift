@@ -2128,7 +2128,7 @@ struct AvatarReport: Transferable {
                 let cardTop = y + CGFloat(index / 2) * (cardHeight + gap)
                 glass(CGRect(x: x, y: cardTop, width: cardWidth, height: cardHeight), radius: 22, opacity: 0.55)
                 label(language.text(title), x + 16, cardTop + 14, cardWidth - 100, size: 11, weight: .semibold, color: soft)
-                label(number(value) + " / 100", x + 16, cardTop + 31, cardWidth - 32, size: 22, weight: .bold, rounded: true)
+                label(number(Double(AvatarIndex.shown(value))) + " / 100", x + 16, cardTop + 31, cardWidth - 32, size: 22, weight: .bold, rounded: true)
                 let track = CGRect(x: x + 16, y: cardTop + 64, width: cardWidth - 32, height: 5)
                 fill(track, ink.withAlphaComponent(0.07), radius: 2.5)
                 gradient(CGRect(x: track.minX, y: track.minY, width: max(5, track.width * CGFloat(min(100, max(0, value)) / 100)), height: 5),

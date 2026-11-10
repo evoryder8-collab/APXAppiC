@@ -16,6 +16,7 @@
 "%@ is currently your clearest asset. %@ is the most useful next opportunity, not a failure. FITR MAX will improve it through consistent training, recovery and nutrition signals while preserving what is already strong." = "%@ เป็นจุดแข็งที่ชัดที่สุดตอนนี้ %@ คือโอกาสพัฒนาต่อ ไม่ใช่ความล้มเหลว FITR MAX จะช่วยพัฒนาด้วยการฝึก การฟื้นตัว และโภชนาการที่สม่ำเสมอ พร้อมรักษาจุดแข็งเดิมไว้";
 "%@%d m" = "%@%d เมตร";
 "%+.1f over 14 days · tap for the full story" = "%+.1f ใน 14 วัน · แตะเพื่อดูรายละเอียด";
+"%+.1f over %d days · tap for the full story" = "%+.1f ใน %d วัน · แตะเพื่อดูรายละเอียด";
 "%d" = "%d";
 "%d %@" = "%d %@";
 "%d %@ %@" = "%d %@ %@";

@@ -16,6 +16,7 @@
 "%@ is currently your clearest asset. %@ is the most useful next opportunity, not a failure. FITR MAX will improve it through consistent training, recovery and nutrition signals while preserving what is already strong." = "%@ este acum punctul tău forte. %@ este următoarea oportunitate utilă, nu un eșec. FITR MAX o va îmbunătăți prin antrenament, recuperare și nutriție consecvente, păstrând ceea ce este deja puternic.";
 "%@%d m" = "%@%d m";
 "%+.1f over 14 days · tap for the full story" = "%+.1f în 14 zile · apasă pentru povestea completă";
+"%+.1f over %d days · tap for the full story" = "%+.1f în %d zile · apasă pentru povestea completă";
 "%d" = "%d";
 "%d %@" = "%d %@";
 "%d %@ %@" = "%d %@ %@";

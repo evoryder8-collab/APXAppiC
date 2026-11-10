@@ -1544,6 +1544,7 @@
 "Today's energy model places you at %@ with a %d kcal target." = "今日のエネルギー収支では %@ に位置し、目標は %d kcal です。";
 "Original: %@ · %d min. Adapted: %@ · %d min." = "元: %@・%d 分。調整後: %@・%d 分。";
 "%+.1f over 14 days · tap for the full story" = "14日間で %+.1f・詳しくはタップ";
+"%+.1f over %d days · tap for the full story" = "%+.1f（%d日間）・詳しくはタップ";
 " (was %@ kg)" = "（以前は %@ kg）";
 "%.2f of %.2f L" = "%.2f / %.2f L";
 "%.1f km · %@ · %@ navigation" = "%.1f km・%@・ナビ %@";

@@ -1544,6 +1544,7 @@
 "Today's energy model places you at %@ with a %d kcal target." = "Il modello energetico di oggi ti colloca su %@ con un obiettivo di %d kcal.";
 "Original: %@ · %d min. Adapted: %@ · %d min." = "Originale: %@ · %d min. Adattato: %@ · %d min.";
 "%+.1f over 14 days · tap for the full story" = "%+.1f in 14 giorni · tocca per il quadro completo";
+"%+.1f over %d days · tap for the full story" = "%+.1f in %d giorni · tocca per il quadro completo";
 " (was %@ kg)" = " (era %@ kg)";
 "%.2f of %.2f L" = "%.2f di %.2f L";
 "%.1f km · %@ · %@ navigation" = "%.1f km · %@ · navigazione %@";

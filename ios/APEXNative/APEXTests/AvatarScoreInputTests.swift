@@ -357,4 +357,66 @@ final class AvatarScoreInputTests: XCTestCase {
         let settings = try String(contentsOf: app.appending(path: "Features/Settings/SettingsView.swift"), encoding: .utf8)
         XCTAssertFalse(settings.contains("Overload Guardian"))
     }
+
+    private func score(_ date: String, _ value: Double) -> RPGSnapshot {
+        RPGSnapshot(id: UUID(), userID: owner, date: date, overall: value, health: value, joint: value,
+                    flexibility: value, endurance: value, strength: value, strengthUpper: value, strengthLower: value)
+    }
+
+    func testChangeIsLabelledWithTheDaysItReallySpans() throws {
+        let dayThree = [score("2026-10-01", 50), score("2026-10-02", 51), score("2026-10-03", 53.2)]
+        let young = try XCTUnwrap(AvatarIndex.comparison(in: dayThree, window: 30))
+        XCTAssertEqual(young.days, 2)
+        XCTAssertEqual(young.snapshot.date, "2026-10-01")
+        XCTAssertNil(AvatarIndex.comparison(in: [score("2026-10-01", 50)], window: 30))
+        let sixWeeks = (0..<40).map { score(FBDate.addDays("2026-09-01", $0), 50 + Double($0) / 4) }
+        let month = try XCTUnwrap(AvatarIndex.comparison(in: sixWeeks, window: 30))
+        XCTAssertEqual(month.days, 30)
+        XCTAssertEqual(month.snapshot.date, "2026-09-10")
+    }
+
+    func testLevelSignalsNameNoLeaderOrLimiter() throws {
+        XCTAssertNil(AvatarIndex.leaderAndLimiter(Array(repeating: 50, count: 6)))
+        XCTAssertNil(AvatarIndex.leaderAndLimiter([50.2, 49.8, 50.4]))
+        let split = try XCTUnwrap(AvatarIndex.leaderAndLimiter([50, 62, 41]))
+        XCTAssertEqual(split.leader, 1)
+        XCTAssertEqual(split.limiter, 2)
+    }
+
+    func testFirstWeekOfRegularMealsScoresAsRegular() throws {
+        var data = dashboard(baseline: "2026-10-01")
+        data.settings?.addons["time_zone"] = .string("UTC")
+        data.loggedMeals = (1...7).map { day in
+            LoggedMeal(
+                id: UUID(), userID: owner, localDate: String(format: "2026-10-%02d", day), mealSlot: "lunch",
+                displayName: "Lunch", sourcePresetID: nil, sourcePlannedMealID: nil,
+                loggedAt: String(format: "2026-10-%02dT12:00:00Z", day), clientIdempotencyKey: UUID().uuidString,
+                loggedAs: "manual", totalKcal: 600, totalProteinG: 30, totalCarbsG: 60, totalFatG: 20)
+        }
+        let now = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-07T20:00:00Z"))
+        let rhythm = MetabolicRhythm(data: data, days: 30, now: now)
+        XCTAssertEqual(try XCTUnwrap(rhythm.score), 100, accuracy: 0.5)
+    }
+
+    func testBodyIndexCardFiguresFollowThePrintedScore() {
+        XCTAssertEqual(AvatarIndex.nextUnlock(after: 44.6), 50)
+        XCTAssertEqual(AvatarIndex.nextUnlock(after: 44.4), 45)
+        XCTAssertEqual(AvatarIndex.stepProgress(44.6), 0, accuracy: 0.001)
+        XCTAssertEqual(AvatarIndex.stepProgress(47.4), 0.4, accuracy: 0.001)
+        XCTAssertEqual(AvatarIndex.personalBest([68, 60.2, 61.4]), 61.4)
+        XCTAssertEqual(AvatarIndex.personalBest([68]), 68)
+        XCTAssertEqual(AvatarIndex.nextUnlock(after: 100), 100)
+        XCTAssertEqual(AvatarIndex.stepProgress(100), 1)
+    }
+
+    @MainActor
+    func testReportPrintsTheSameWholeNumberScoreAsTheApp() throws {
+        var data = dashboard()
+        data.snapshots = [score("2026-10-05", 60.2)]
+        let report = AvatarReport.scoped(ownerID: owner, data: data, partialScores: [:], period: .custom,
+                                        dates: "2026-10-01"..."2026-10-06", today: "2026-10-06")
+        let text = try XCTUnwrap(PDFDocument(data: report.pdfData())?.string)
+        XCTAssertTrue(text.contains("60 / 100"))
+        XCTAssertFalse(text.contains("60.2"))
+    }
 }
