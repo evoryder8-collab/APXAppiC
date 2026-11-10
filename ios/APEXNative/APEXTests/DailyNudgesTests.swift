@@ -215,6 +215,40 @@ extension DailyNudgesTests {
         XCTAssertEqual(nudges(data), [])
     }
 
+    func testTheCreatineReminderAndTheReportRecogniseTheSameNames() {
+        func stack(_ name: String, ticked: Bool) -> DashboardData {
+            var data = dayData()
+            let id = UUID()
+            data.supplements = [Supplement(
+                id: id, userID: Self.owner, name: name, dose: "5 g", timing: "morning", clockTime: nil,
+                offsetMinutes: nil, groupLabel: "", trainingDaysOnly: false, sortOrder: 0
+            )]
+            if ticked {
+                data.supplementLogs = [SupplementLog(
+                    id: UUID(), userID: Self.owner, date: Self.day, supplementID: id,
+                    checkedAt: "\(Self.day)T08:00:00Z"
+                )]
+            }
+            return data
+        }
+        func reportHasCreatine(_ data: DashboardData) -> Bool {
+            NutritionReport.summarize(ownerID: Self.owner, data: data, dates: Self.day...Self.day)?.creatine != nil
+        }
+
+        for name in [
+            "Creatine", "Creatine powder", "CREATINE HCL", "Kreatin", "Kreatin Pulver",
+            "Creatină monohidrat", "Creatina en polvo", "クレアチン", "ครีเอทีน",
+        ] {
+            XCTAssertEqual(nudges(stack(name, ticked: false)).map(\.kind), [.creatineMissed], "\(name): the reminder")
+            XCTAssertEqual(nudges(stack(name, ticked: true)), [], "\(name): ticked, nothing to say")
+            XCTAssertTrue(reportHasCreatine(stack(name, ticked: true)), "\(name): the report")
+        }
+        for name in ["Magnesium", "Whey protein", "Vitamin D"] {
+            XCTAssertEqual(nudges(stack(name, ticked: false)), [], name)
+            XCTAssertFalse(reportHasCreatine(stack(name, ticked: true)), name)
+        }
+    }
+
     func testTheReminderAndTheAssessmentShareOneProteinLine() {
         for losing in [true, false] {
             for consumed in stride(from: 0.0, through: 160, by: 2.5) {

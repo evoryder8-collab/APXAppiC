@@ -128,6 +128,19 @@ enum SupplementCatalogue {
         }
     }
 
+    /// Whether a supplement the person named is creatine. One check for the
+    /// evening reminder and the report, so neither misses "Creatine powder"
+    /// or "Kreatin".
+    static func isCreatine(_ name: String) -> Bool {
+        let folded = name.folding(
+            options: [.caseInsensitive, .diacriticInsensitive],
+            locale: Locale(identifier: "en_US_POSIX")
+        )
+        // Every shipped language spells it with one of these. The catalogue adds its aliases and near misses.
+        return ["creatin", "kreatin", "クレアチン", "ครีเอทีน"].contains { folded.contains($0) || name.contains($0) }
+            || search(name, limit: 1).first?.id == "creatine_monohydrate"
+    }
+
     static func search(_ raw: String, age: Int = 0, limit: Int = 40) -> [Entry] {
         let all = visible(forAge: age)
         let query = normalise(raw)

@@ -124,14 +124,11 @@ enum DailyNudges {
            ) {
             nudges.append(short)
         }
-        let creatine = data.supplements
-            .filter { $0.userID == ownerID && !$0.archived }
-            .sorted { $0.sortOrder < $1.sortOrder }
-            .first { $0.name.lowercased().contains("creatine") }
-        let creatineLogged = creatine.map { supplement in
-            data.supplementLogs.contains { $0.date == today && $0.supplementID == supplement.id }
-        } ?? false
-        if let missed = creatineMissed(loggedToday: creatineLogged, inStack: creatine != nil, date: today) {
+        let creatine = Set(data.supplements.filter {
+            $0.userID == ownerID && !$0.archived && SupplementCatalogue.isCreatine($0.name)
+        }.map(\.id))
+        let creatineLogged = data.supplementLogs.contains { $0.date == today && creatine.contains($0.supplementID) }
+        if let missed = creatineMissed(loggedToday: creatineLogged, inStack: !creatine.isEmpty, date: today) {
             nudges.append(missed)
         }
         return nudges
