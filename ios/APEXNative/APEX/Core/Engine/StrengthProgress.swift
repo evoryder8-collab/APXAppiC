@@ -690,18 +690,40 @@ enum StrengthProgress {
         return daysBetween(latest.date, today) >= intervalDays
     }
 
-    /// Check-ins live in settings addons, the same place the web keeps them.
+    /// Check-ins live in settings addons, the same place the web keeps them. The single object an
+    /// older iPhone build saved is read as well; the list wins for a date both hold.
     static func checkins(from addons: [String: JSONValue]?) -> [JointCheckin] {
-        guard case .array(let rows)? = addons?["joint_checkins"] else { return [] }
-        return rows.compactMap { row in
-            guard case .object(let fields) = row,
-                  case .string(let date)? = fields["date"] else { return nil }
+        func checkin(_ row: JSONValue?) -> JointCheckin? {
+            guard let fields = row?.objectValue, let date = fields["date"]?.stringValue else { return nil }
             func score(_ key: String) -> Int {
-                guard case .number(let value)? = fields[key] else { return 0 }
+                guard let value = fields[key]?.numberValue else { return 0 }
                 return max(0, min(10, Int(value)))
             }
             return JointCheckin(date: date, arms: score("arms"), core: score("core"), legs: score("legs"))
         }
+        var rows = (addons?["joint_checkins"]?.arrayValue ?? []).compactMap(checkin)
+        if let legacy = checkin(addons?["avatar_joint_check"]), !rows.contains(where: { $0.date == legacy.date }) {
+            rows.append(legacy)
+        }
+        return rows
+    }
+
+    /// The stored list after a check-in, as the web writes it: one row per date, oldest first, two years kept.
+    static func checkinRows(_ addons: [String: JSONValue], adding checkin: JointCheckin) -> [JSONValue] {
+        func date(_ row: JSONValue) -> String { row.objectValue?["date"]?.stringValue ?? "" }
+        let kept = (addons["joint_checkins"]?.arrayValue ?? []).filter { date($0) != checkin.date }
+        let row = JSONValue.object([
+            "id": .string(UUID().uuidString.lowercased()), "date": .string(checkin.date),
+            "arms": .number(Double(checkin.arms)), "core": .number(Double(checkin.core)),
+            "legs": .number(Double(checkin.legs)),
+        ])
+        return Array((kept + [row]).sorted { date($0) < date($1) }.suffix(104))
+    }
+
+    /// The check-in that speaks for a day: the latest from the two weeks up to it. An older one
+    /// says nothing about how the joints are now.
+    static func currentCheckin(_ checkins: [JointCheckin], on date: String) -> JointCheckin? {
+        checkins.filter { $0.date <= date && daysBetween($0.date, date) <= 14 }.max { $0.date < $1.date }
     }
 }
 

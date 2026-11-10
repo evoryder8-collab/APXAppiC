@@ -729,25 +729,24 @@ struct AvatarView: View {
     }
 
     private func loadJointCheck() {
-        guard let object = session.data.settings?.addons["avatar_joint_check"]?.objectValue else { return }
-        jointArms = object["arms"]?.numberValue ?? 3
-        jointCore = object["core"]?.numberValue ?? 3
-        jointLegs = object["legs"]?.numberValue ?? 3
-        jointSaved = object["date"]?.stringValue == Date().apexDateKey
+        guard let latest = StrengthProgress.checkins(from: session.data.settings?.addons)
+            .max(by: { $0.date < $1.date }) else { return }
+        jointArms = Double(latest.arms)
+        jointCore = Double(latest.core)
+        jointLegs = Double(latest.legs)
+        jointSaved = latest.date == Date().apexDateKey
     }
 
     private func saveJointCheck() {
         guard let operation = session.accountOperationLease() else { return }
-        let arms = jointArms
-        let core = jointCore
-        let legs = jointLegs
+        let checkin = StrengthProgress.JointCheckin(
+            date: Date().apexDateKey, arms: Int(jointArms), core: Int(jointCore), legs: Int(jointLegs)
+        )
         Task {
             do {
+                // The list the briefing and the morning verdict read, in the shape the web writes.
                 try await session.updateSettings({
-                    $0.addons["avatar_joint_check"] = .object([
-                        "date": .string(Date().apexDateKey), "arms": .number(arms),
-                        "core": .number(core), "legs": .number(legs),
-                    ])
+                    $0.addons["joint_checkins"] = .array(StrengthProgress.checkinRows($0.addons, adding: checkin))
                 }, operation: operation)
                 guard session.accountOperationIsCurrent(operation) else { return }
                 jointSaved = true

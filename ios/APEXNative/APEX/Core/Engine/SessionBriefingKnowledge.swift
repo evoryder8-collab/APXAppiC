@@ -110,8 +110,9 @@ extension SessionBriefing {
             return !area.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         } == true
 
-        let latestCheckin = StrengthProgress.checkins(from: addons)
-            .max { $0.date < $1.date }
+        let latestCheckin = StrengthProgress.currentCheckin(
+            StrengthProgress.checkins(from: addons), on: date ?? Date().apexDateKey
+        )
         let elevatedJointCheckIn = latestCheckin.map {
             max($0.arms, $0.core, $0.legs) >= 4
         } ?? false

@@ -414,4 +414,52 @@ final class StrengthProgressParityTests: XCTestCase {
         XCTAssertEqual(rows.first?.arms, 7)
         XCTAssertEqual(StrengthProgress.checkins(from: [:]).count, 0)
     }
+
+    func testCheckinSavedByAnOlderPhoneBuildIsStillRead() {
+        let legacy: JSONValue = .object([
+            "date": .string("2026-11-03"), "arms": .number(2), "core": .number(3), "legs": .number(9),
+        ])
+        let alone = StrengthProgress.checkins(from: ["avatar_joint_check": legacy])
+        XCTAssertEqual(alone.map(\.date), ["2026-11-03"], "the single object older builds wrote is a check-in")
+        XCTAssertEqual(alone.first?.legs, 9)
+
+        let both = StrengthProgress.checkins(from: [
+            "avatar_joint_check": legacy,
+            "joint_checkins": .array([
+                .object(["date": .string("2026-11-03"), "arms": .number(1), "core": .number(1), "legs": .number(4)]),
+                .object(["date": .string("2026-10-27"), "arms": .number(1), "core": .number(1), "legs": .number(1)]),
+            ]),
+        ])
+        XCTAssertEqual(both.count, 2, "one check-in per date")
+        XCTAssertEqual(both.first { $0.date == "2026-11-03" }?.legs, 4, "the list wins for a date both hold")
+    }
+
+    func testPhoneCheckinJoinsTheListTheBriefingReads() throws {
+        let stored: [String: JSONValue] = ["joint_checkins": .array([
+            .object(["id": .string("web-row"), "date": .string("2026-11-03"), "arms": .number(1), "core": .number(1), "legs": .number(1)]),
+            .object(["id": .string("same-day"), "date": .string("2026-11-10"), "arms": .number(0), "core": .number(0), "legs": .number(0)]),
+        ])]
+        let rows = StrengthProgress.checkinRows(
+            stored, adding: .init(date: "2026-11-10", arms: 2, core: 3, legs: 9)
+        )
+
+        XCTAssertEqual(rows.count, 2, "a second check-in on one day replaces the first")
+        XCTAssertEqual(rows.first?.objectValue?["id"]?.stringValue, "web-row", "rows the web wrote are kept as they are")
+        let saved = try XCTUnwrap(rows.last?.objectValue)
+        XCTAssertEqual(Set(saved.keys), ["id", "date", "arms", "core", "legs"], "the shape the web writes")
+        XCTAssertNotNil(saved["id"]?.stringValue.flatMap(UUID.init(uuidString:)))
+
+        let addons: [String: JSONValue] = ["joint_checkins": .array(rows)]
+        XCTAssertEqual(StrengthProgress.checkins(from: addons).last?.legs, 9)
+        XCTAssertTrue(SessionBriefing.knowledgeContext(
+            dayType: "legs_a", exerciseNames: [], date: "2026-11-11",
+            completedSessionDates: [], completedSessionCount: 0, addons: addons
+        ).elevatedJointCheckIn, "the briefing reads what the phone saved")
+
+        let avatar = try String(contentsOf: URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "APEX/Features/Avatar/AvatarView.swift"))
+        XCTAssertTrue(avatar.contains(#"$0.addons["joint_checkins"] = .array(StrengthProgress.checkinRows("#))
+        XCTAssertFalse(avatar.contains(#"addons["avatar_joint_check"] ="#), "nothing reads a check-in saved there")
+    }
 }

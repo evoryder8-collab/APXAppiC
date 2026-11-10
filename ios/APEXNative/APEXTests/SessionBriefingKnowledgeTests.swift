@@ -125,6 +125,20 @@ final class SessionBriefingKnowledgeTests: XCTestCase {
         XCTAssertTrue(context.hypermobilityReported)
     }
 
+    func testJointCheckinOlderThanTwoWeeksStopsDrivingTheElevatedLine() {
+        func context(checkedOn date: String) -> SessionBriefing.KnowledgeContext {
+            makeContext(date: "2026-08-28", addons: [
+                "joint_checkins": .array([
+                    .object(["date": .string(date), "arms": .number(1), "core": .number(1), "legs": .number(7)]),
+                ]),
+            ])
+        }
+
+        XCTAssertTrue(context(checkedOn: "2026-08-14").elevatedJointCheckIn, "14 days old still counts")
+        XCTAssertFalse(context(checkedOn: "2026-08-13").elevatedJointCheckIn, "15 days old no longer speaks for today")
+        XCTAssertFalse(context(checkedOn: "2026-08-29").elevatedJointCheckIn, "a later check-in says nothing about this session")
+    }
+
     func testMobilityKnowledgeTeachesMethodsBoundariesAndNeuralWarning() {
         let knowledge = SessionBriefing.knowledge(context: .init(
             position: .before,
