@@ -43,6 +43,24 @@ final class HydrationDayTests: XCTestCase {
         XCTAssertEqual(session.data.hydrationEvents?.filter { $0.localDate == emptyDay }.map(\.amountML), [330])
     }
 
+    func testADrinkAddedWhileARemovalIsStillSavingDoesNotBringTheRemovedDrinkBack() async throws {
+        let (session, operation) = try sandbox()
+        let day = try date(emptyDay)
+        try await session.logHydration(amountML: 250, on: day, operation: operation)
+        let drink = try XCTUnwrap(session.data.hydrationEvents?.first { $0.localDate == emptyDay })
+
+        // The next drink is added before the server has answered the removal.
+        session.sandboxDeleteInFlight = { [weak session] in
+            session?.sandboxDeleteInFlight = nil
+            try? await session?.logHydration(amountML: 330, on: day, operation: operation)
+        }
+        try await session.deleteHydrationEvent(drink, on: day, operation: operation)
+
+        XCTAssertEqual(session.hydrationResolution(on: day).drinkML, 330)
+        XCTAssertEqual(session.data.hydrationEvents?.filter { $0.localDate == emptyDay }.map(\.amountML), [330])
+        XCTAssertEqual(session.data.dailyLogs.first { $0.date == emptyDay }?.waterL, 0.33)
+    }
+
     func testAfterMidnightTheAppIsOnTheNewDayUnlessTheUserBrowsedBack() async throws {
         let (session, operation) = try sandbox()
         let evening = try date("2031-05-10", hour: 21)

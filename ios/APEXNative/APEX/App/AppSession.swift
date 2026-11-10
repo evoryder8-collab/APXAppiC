@@ -375,6 +375,8 @@ final class AppSession {
     private let offlineStore: OfflineStore
     let defaults: UserDefaults
     @ObservationIgnored private let sandboxDefaultsSuiteName: String?
+    /// A sandbox delete returns at once. A test waits here to act while one is still on its way to the server.
+    @ObservationIgnored var sandboxDeleteInFlight: (@MainActor () async -> Void)?
     @ObservationIgnored private let hydrationConnectivity: HydrationPhoneConnectivity?
     @ObservationIgnored private let hydrationMutationQueue = HydrationMutationQueue()
     @ObservationIgnored private let supplementMutationQueue = SupplementMutationQueue()
@@ -3342,26 +3344,12 @@ final class AppSession {
               event.source != .healthKitExternal, event.source != .food else {
             throw CancellationError()
         }
-        data.hydrationEvents?.removeAll {
-            $0.id == event.id && $0.userID == operation.ownerID
-        }
-        await persistDelete(
-            table: "hydration_events",
-            id: event.id,
-            ownerID: operation.ownerID,
-            expectedAccountToken: operation.generation
-        )
+        await removeHydrationEvent(event, operation: operation)
         try requireCurrentAccountOperation(operation)
         if event.source == .iPhone, healthImportIsEnabled(operation: operation) {
             try? await HealthKitManager.shared.deleteWater(eventID: event.id, date: date)
             try requireCurrentAccountOperation(operation)
         }
-        try await mirrorHydrationAggregate(
-            ownerID: operation.ownerID,
-            on: date,
-            operation: operation
-        )
-        try requireCurrentAccountOperation(operation)
         publishHydrationState()
     }
 
@@ -3773,6 +3761,21 @@ final class AppSession {
         try? await mirrorHydrationAggregate(ownerID: ownerID, on: date, operation: operation)
     }
 
+    /// Takes an event off the ledger. The stored day total follows before the server is told,
+    /// so a drink added while the delete is in flight does not find the old total and revive this one.
+    private func removeHydrationEvent(_ event: HydrationEvent, operation: AccountOperationLease) async {
+        data.hydrationEvents?.removeAll { $0.id == event.id && $0.userID == operation.ownerID }
+        if let date = ISO8601DateFormatter.apexDateOnly.date(from: event.localDate) {
+            try? await mirrorHydrationAggregate(ownerID: operation.ownerID, on: date, operation: operation)
+        }
+        await persistDelete(
+            table: "hydration_events",
+            id: event.id,
+            ownerID: operation.ownerID,
+            expectedAccountToken: operation.generation
+        )
+    }
+
     private func reduceHydration(
         byML amountML: Int,
         on date: Date,
@@ -3983,13 +3986,7 @@ final class AppSession {
             deletedSampleIDs: snapshot.deletedHydrationSampleIDs
         )
         for event in deleted {
-            data.hydrationEvents?.removeAll { $0.id == event.id }
-            await persistDelete(
-                table: "hydration_events",
-                id: event.id,
-                ownerID: ownerID,
-                expectedAccountToken: operation.generation
-            )
+            await removeHydrationEvent(event, operation: operation)
             guard accountOperationIsCurrent(operation) else { return }
         }
 
@@ -4295,26 +4292,8 @@ final class AppSession {
                 event: event,
                 afterTombstoneRevision: mutation.createdAt
             ) {
-                data.hydrationEvents?.removeAll { $0.userID == ownerID && $0.id == event.id }
-                await persistDelete(
-                    table: "hydration_events",
-                    id: event.id,
-                    ownerID: ownerID,
-                    expectedAccountToken: operation.generation
-                )
+                await removeHydrationEvent(event, operation: operation)
                 guard !Task.isCancelled, accountOperationIsCurrent(operation) else { return }
-                if let date = ISO8601DateFormatter.apexDateOnly.date(from: event.localDate) {
-                    do {
-                        try await mirrorHydrationAggregate(
-                            ownerID: ownerID,
-                            on: date,
-                            operation: operation
-                        )
-                    } catch {
-                        return
-                    }
-                    guard !Task.isCancelled, accountOperationIsCurrent(operation) else { return }
-                }
             }
             guard !Task.isCancelled, accountOperationIsCurrent(operation) else { return }
             recordHydrationDeleteAcknowledgement(eventID: eventID, ownerID: ownerID)
@@ -8178,7 +8157,10 @@ final class AppSession {
         ownerID: UUID? = nil,
         expectedAccountToken: UInt64? = nil
     ) async {
-        if isDeveloperSandbox { return }
+        if isDeveloperSandbox {
+            await sandboxDeleteInFlight?()
+            return
+        }
         let persistenceOwnerID = verifiedPersistenceOwnerID(ownerID)
         if let expectedAccountToken {
             guard accountGeneration.accepts(expectedAccountToken),
