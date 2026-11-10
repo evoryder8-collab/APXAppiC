@@ -290,6 +290,34 @@ enum MealTimingEngine {
         let source: String
     }
 
+    /// What the recovery-nutrition card says about the latest workout of a day.
+    enum RecoveryCard: Equatable, Sendable {
+        /// Nothing has followed the session yet: the offer, with the minutes
+        /// left in the two-hour window when the finish time is known.
+        case open(minutesLeft: Int?)
+        /// A meal followed the session. The card reports it and asks for nothing.
+        case fuelled(gapMinutes: Int, timingScore: Int)
+
+        var isOpen: Bool {
+            if case .open = self { true } else { false }
+        }
+    }
+
+    /// Nil once there is nothing left to act on: a day that is over with no
+    /// meal after the session.
+    static func recoveryCard(
+        timing: PostWorkoutTiming?,
+        finishedAt: Date?,
+        now: Date,
+        isLiveDay: Bool
+    ) -> RecoveryCard? {
+        if let gap = timing?.gapMinutes, let score = timing?.timingScore {
+            return .fuelled(gapMinutes: gap, timingScore: score)
+        }
+        guard isLiveDay else { return nil }
+        return .open(minutesLeft: finishedAt.map { max(0, 120 - Int(max(0, now.timeIntervalSince($0)) / 60)) })
+    }
+
     struct WorkoutMealTiming: Sendable {
         let sessionID: UUID
         let date: String

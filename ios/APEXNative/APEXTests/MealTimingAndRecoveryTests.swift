@@ -282,6 +282,37 @@ final class MealTimingEngineTests: XCTestCase {
         XCTAssertNil(relations.first?.gapMinutes)
     }
 
+    func testTheRecoveryCardClosesOnceAMealFollowsOrTheDayIsOver() throws {
+        let finish = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-01-05T18:00:00Z"))
+        let workout = [session(started: "2026-01-05T17:00:00Z", completed: "2026-01-05T18:00:00Z")]
+        func card(meals: [LoggedMeal], minutesAfter: Double, live: Bool) -> MealTimingEngine.RecoveryCard? {
+            MealTimingEngine.recoveryCard(
+                timing: MealTimingEngine.postWorkoutNutrition(sessions: workout, meals: meals, timeZone: "UTC").first,
+                finishedAt: finish,
+                now: finish.addingTimeInterval(minutesAfter * 60),
+                isLiveDay: live
+            )
+        }
+        let dinner = meal(slot: "dinner", at: "2026-01-05T19:30:00Z")
+
+        XCTAssertEqual(card(meals: [], minutesAfter: 30, live: true), .open(minutesLeft: 90), "Just trained, nothing eaten yet")
+        XCTAssertEqual(card(meals: [], minutesAfter: 200, live: true), .open(minutesLeft: 0))
+        XCTAssertEqual(
+            card(meals: [dinner], minutesAfter: 95, live: true), .fuelled(gapMinutes: 90, timingScore: 100),
+            "Once the meal is in, the card reports it and stops asking for one"
+        )
+        XCTAssertEqual(
+            card(meals: [dinner], minutesAfter: 24 * 60, live: false), .fuelled(gapMinutes: 90, timingScore: 100),
+            "A past day keeps the result"
+        )
+        XCTAssertNil(card(meals: [], minutesAfter: 24 * 60, live: false), "A past day has no window left to offer")
+        XCTAssertEqual(
+            MealTimingEngine.recoveryCard(timing: nil, finishedAt: nil, now: finish, isLiveDay: true),
+            .open(minutesLeft: nil),
+            "Without a recorded finish there is no countdown to show"
+        )
+    }
+
     func testMealTimingSeparatesSnackFromRecoveryAndClosesItsDateWindow() throws {
         let cutoff = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-01-07T22:00:00Z"))
         var data = APEXDebugFixture.dashboard(userID: user)

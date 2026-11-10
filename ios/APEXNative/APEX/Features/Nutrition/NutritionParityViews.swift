@@ -1013,12 +1013,17 @@ struct APEXDaylineView: View {
 
     @ViewBuilder
     private func recoveryCard(for workout: DaylineWorkoutEntry, now: Date) -> some View {
-        let relation = recoveryRelation(for: workout)
-        let completed = workout.session.completedAt.map(parsedTimestamp)
-        let remaining: Int? = completed.flatMap { finish in
-            guard isLiveDate(at: now) else { return nil }
-            return max(0, 120 - Int(max(0, now.timeIntervalSince(finish)) / 60))
+        if let card = MealTimingEngine.recoveryCard(
+            timing: recoveryRelation(for: workout),
+            finishedAt: workout.session.completedAt.map(parsedTimestamp),
+            now: now,
+            isLiveDay: isLiveDate(at: now)
+        ) {
+            recoveryCard(card)
         }
+    }
+
+    private func recoveryCard(_ card: MealTimingEngine.RecoveryCard) -> some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 10) {
                 VStack(alignment: .leading, spacing: 5) {
@@ -1026,23 +1031,25 @@ struct APEXDaylineView: View {
                         .font(APEXFont.mono(8))
                         .tracking(1.4)
                         .foregroundStyle(APEXColor.green.opacity(0.72))
-                    Text(language.text("Protein opportunity is open"))
+                    Text(language.text(card.isOpen ? "Protein opportunity is open" : "Recovery meal logged"))
                         .font(APEXFont.display(15))
                         .foregroundStyle(.white)
-                    Text(language.text("Aim for 20 to 40 g of high-quality protein within two hours. Add carbohydrate based on session load and today’s target."))
-                        .font(APEXFont.body(9, weight: .semibold))
-                        .foregroundStyle(.white.opacity(0.48))
-                        .fixedSize(horizontal: false, vertical: true)
-                    if let remaining {
-                        Text(remaining > 0
-                             ? language.format("%d min left in the high-value window", remaining)
-                             : language.text("The broad two-hour window has passed. Recovery still depends most on the full day."))
-                            .font(APEXFont.mono(8, weight: .bold))
-                            .foregroundStyle(Color.cyan.opacity(0.72))
+                    if case .open(let minutesLeft) = card {
+                        Text(language.text("Aim for 20 to 40 g of high-quality protein within two hours. Add carbohydrate based on session load and today’s target."))
+                            .font(APEXFont.body(9, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.48))
+                            .fixedSize(horizontal: false, vertical: true)
+                        if let minutesLeft {
+                            Text(minutesLeft > 0
+                                 ? language.format("%d min left in the high-value window", minutesLeft)
+                                 : language.text("The broad two-hour window has passed. Recovery still depends most on the full day."))
+                                .font(APEXFont.mono(8, weight: .bold))
+                                .foregroundStyle(Color.cyan.opacity(0.72))
+                        }
                     }
                 }
                 Spacer()
-                if let score = relation?.timingScore {
+                if case .fuelled(_, let score) = card {
                     VStack(spacing: 2) {
                         Text("\(score)")
                             .font(APEXFont.display(22))
@@ -1055,26 +1062,27 @@ struct APEXDaylineView: View {
                     .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 13))
                 }
             }
-            if let gap = relation?.gapMinutes {
+            if case .fuelled(let gap, _) = card {
                 Text(language.format("%d min · meal finished after training", gap))
                     .font(APEXFont.mono(8, weight: .bold))
                     .foregroundStyle(APEXColor.green.opacity(0.72))
+            } else {
+                Button {
+                    onOpenComposer(.create(
+                        date: date,
+                        slot: "post_workout",
+                        name: language.text("Post-workout")
+                    ))
+                } label: {
+                    Label(language.text("Add post-workout meal"), systemImage: "plus")
+                        .font(APEXFont.body(10, weight: .bold))
+                        .foregroundStyle(Color.cyan.opacity(0.9))
+                        .padding(.horizontal, 12)
+                        .frame(height: 34)
+                        .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+                }
+                .buttonStyle(.plain)
             }
-            Button {
-                onOpenComposer(.create(
-                    date: date,
-                    slot: "post_workout",
-                    name: language.text("Post-workout")
-                ))
-            } label: {
-                Label(language.text("Add post-workout meal"), systemImage: "plus")
-                    .font(APEXFont.body(10, weight: .bold))
-                    .foregroundStyle(Color.cyan.opacity(0.9))
-                    .padding(.horizontal, 12)
-                    .frame(height: 34)
-                    .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
-            }
-            .buttonStyle(.plain)
             if (session.data.settings?.addons["interface_mode"]?.stringValue ?? "clean") == "detailed" {
                 Text(language.text("This is a broad recovery window, not a minute-by-minute anabolic cliff. If another hard session starts within four hours, prioritize faster carbohydrate replacement."))
                     .font(APEXFont.body(8, weight: .medium))
