@@ -590,8 +590,8 @@ final class ProgressCameraTests: XCTestCase {
 
     /// The timeline in a window tall enough for every row and the end of the
     /// list to be on screen, so older photos load without anything scrolling.
-    private func timeline(of session: AppSession, older: OlderPhotos) throws -> Frames {
-        let view = VisualProgressView { earlier in
+    private func timeline(of session: AppSession, older: OlderPhotos, ticked: [UUID] = []) throws -> Frames {
+        let view = VisualProgressView(ticked: ticked) { earlier in
             await older.page(below: session.data.progressPhotos, after: earlier)
         }
         return try show(view.environment(session), size: CGSize(width: 393, height: 20_000)).frames
@@ -605,9 +605,15 @@ final class ProgressCameraTests: XCTestCase {
     private func wait(
         for what: String, file: StaticString = #filePath, line: UInt = #line, _ reached: () -> Bool
     ) async throws {
-        for _ in 0..<80 where !reached() {
+        let width = window?.frame.width ?? 0
+        for turn in 0..<80 where !reached() {
             try await Task.sleep(for: .milliseconds(50))
+            /* The lazy list goes on reporting a row it has removed until it
+               is laid out at a new width, so it is given one. */
+            window?.frame.size.width = width + CGFloat(turn % 2)
+            window?.rootViewController?.view.layoutIfNeeded()
         }
+        window?.frame.size.width = width
         XCTAssertTrue(reached(), what, file: file, line: line)
     }
 
@@ -637,6 +643,39 @@ final class ProgressCameraTests: XCTestCase {
         try await wait(for: "the photos that left the first page are still on the timeline") {
             firstPage.suffix(2).allSatisfy { shows($0, in: frames) } && shows(baseline, in: frames)
         }
+    }
+
+    /// A comparison needs both of its photos on the timeline. An older photo
+    /// that is ticked leaves with the older pages when they reload: its tick
+    /// goes with it, and Compare is never offered for a photo that is not there.
+    func testCompareIsOnlyOfferedForTwoPhotosOnTheTimeline() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(session.accountOperationLease()).ownerID
+        /* One photo a day, so the next one saved moves where the first page ends. */
+        let firstPage = (0..<120).map { row(owner: owner, date: Self.day(200 - $0)) }
+        let baseline = row(owner: owner, date: Self.day(10))
+        session.data.progressPhotos = firstPage
+        let older = OlderPhotos(firstPage + [baseline])
+        let frames = try timeline(of: session, older: older, ticked: [baseline.id, firstPage[0].id])
+        try await wait(for: "both ticked photos are on the timeline, so Compare is offered") {
+            shows(baseline, in: frames) && frames.value["compare"] != nil
+        }
+
+        older.hold()
+        let saved = row(owner: owner, date: Self.day(201))
+        older.all.append(saved)
+        session.data.progressPhotos.insert(saved, at: 0)
+        try await wait(for: "the older photos give way when the first page ends somewhere else") {
+            !shows(baseline, in: frames)
+        }
+        try await wait(for: "Compare is not offered while one of its photos is off the timeline") {
+            frames.value["compare"] == nil
+        }
+
+        older.release()
+        try await wait(for: "the older photos load again") { shows(baseline, in: frames) }
+        try await Task.sleep(for: .milliseconds(300))
+        XCTAssertNil(frames.value["compare"], "a tick on a photo that left the timeline came back with it")
     }
 }
 

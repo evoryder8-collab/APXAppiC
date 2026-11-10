@@ -711,7 +711,7 @@ final class ProgressParityTests: XCTestCase {
             "showBriefing = false",
             "captureIntent = nil",
             "captureOperation = nil",
-            "showComparison = false",
+            "comparing = nil",
             "comparisonSelection = []",
             "showCamera = false"
         ] {
@@ -783,7 +783,7 @@ final class ProgressParityTests: XCTestCase {
         )
         let coverEnd = try XCTUnwrap(
             source.range(
-                of: ".fullScreenCover(isPresented: $showComparison)",
+                of: ".fullScreenCover(item: $comparing)",
                 range: coverStart.upperBound..<source.endIndex
             )
         )
@@ -815,7 +815,7 @@ final class ProgressParityTests: XCTestCase {
         XCTAssertTrue(binding.contains("revokeCapturePresentation()"))
 
         let helperEnd = try XCTUnwrap(
-            source.range(of: "private var selectedPhotos", range: helperStart.upperBound..<source.endIndex)
+            source.range(of: "private func reloadEarlierPhotos()", range: helperStart.upperBound..<source.endIndex)
         )
         let helper = String(source[helperStart.lowerBound..<helperEnd.lowerBound])
         XCTAssertTrue(helper.contains("captureIntent = nil"))
