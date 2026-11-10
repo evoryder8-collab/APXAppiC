@@ -19,6 +19,7 @@ import { buildSeedData } from '../../../src/data/seed.ts'
 import type {
   AppData,
   DailyLog,
+  FitnessEvidenceRecord,
   HealthMetric,
   ImportedActivity,
   WorkoutLog,
@@ -245,6 +246,40 @@ for (const persona of ['june', 'matthew'] as PersonaSlug[]) {
   scenarios.push({ name: `persona_${persona}`, persona, throughDate: '2026-07-01', data: d })
 }
 
+/* 6: the server stamped the baseline and a self-check with tomorrow's UTC date */
+{
+  const d = base('constantine')
+  d.profile = { ...d.profile!, baseline_date: addDays(THROUGH, 1) }
+  selfCheck(d, 'cardio_capacity_score', 62, 55, `${addDays(THROUGH, 1)}T02:30:00.000Z`)
+  scenarios.push({ name: 'stamps_ahead_of_device_date', persona: 'constantine', throughDate: THROUGH, data: d })
+}
+
+function selfCheck(
+  data: AppData,
+  metric: FitnessEvidenceRecord['metric'],
+  value: number,
+  lowerBound: number,
+  measuredAt: string,
+): void {
+  const id = fid()
+  data.fitness_evidence.push({
+    id,
+    user_id: USER,
+    metric,
+    value,
+    unit: 'score_0_100',
+    source: 'structured_self_report',
+    protocol: 'apex_baseline_calibration_v1',
+    device: null,
+    measured_at: measuredAt,
+    imported_at: measuredAt,
+    confidence: 'low',
+    metadata: { answered_count: 3, lower_bound: lowerBound },
+    supersedes_id: null,
+    client_idempotency_key: `fixture:${id}`,
+  })
+}
+
 function rhythmDay(date: string, verdict: string, rhythm: number, completion: number) {
   return {
     date,
@@ -298,6 +333,7 @@ const out = {
           .map(d => [d.date, waterTargetResolver(sc.data)(d.date, sc.throughDate, 0).targetML])),
         health_metrics: sc.data.health_metrics,
         imported_activities: sc.data.imported_activities,
+        fitness_evidence: sc.data.fitness_evidence,
       },
       expected: {
         targets,

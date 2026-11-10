@@ -170,9 +170,11 @@ enum FitnessBrainService {
             capacityCalibrationEvidence: capacityCalibrationEvidence(
                 from: (data.fitnessEvidence ?? []).filter { record in
                     !hasChosenStart
-                        || record.protocol != "apex_onboarding_pulse_v1" || String(record.measuredAt.prefix(10)) > profile.baselineDate
+                        || record.protocol != "apex_onboarding_pulse_v1"
+                        || localDay(of: record.measuredAt, in: timeZone) > profile.baselineDate
                 },
-                ownerID: profile.userID
+                ownerID: profile.userID,
+                timeZone: timeZone
             ),
             recoveryHistory: recoveryHistory(from: data.settings?.addons),
             mealRhythmHistory: mealRhythmHistory(from: data.settings?.addons),
@@ -207,6 +209,13 @@ enum FitnessBrainService {
 
     // MARK: - addons JSON extraction
 
+    /// The calendar day of a stored instant where the person is. Its UTC prefix is already
+    /// tomorrow on an evening west of Greenwich, and still yesterday on a morning east of it.
+    static func localDay(of timestamp: String, in timeZone: TimeZone) -> String {
+        guard let instant = ExternalWorkoutImport.parseTimestamp(timestamp) else { return String(timestamp.prefix(10)) }
+        return instant.formatted(Date.ISO8601FormatStyle(timeZone: timeZone).year().month().day())
+    }
+
     static func capacityCalibrationEvidence(
         from records: [FitnessEvidenceRecord],
         ownerID: UUID,
@@ -235,7 +244,7 @@ enum FitnessBrainService {
                   let metric = metrics[record.metric],
                   record.measuredAt.count >= 10 else { return nil }
 
-            let measuredOn = String(record.measuredAt.prefix(10))
+            let measuredOn = localDay(of: record.measuredAt, in: timeZone)
             guard measuredOn.count == 10,
                   measuredOn[measuredOn.index(measuredOn.startIndex, offsetBy: 4)] == "-",
                   measuredOn[measuredOn.index(measuredOn.startIndex, offsetBy: 7)] == "-" else {

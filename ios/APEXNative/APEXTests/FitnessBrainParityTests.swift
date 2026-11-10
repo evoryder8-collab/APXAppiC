@@ -31,6 +31,7 @@ private struct Input: Decodable, Sendable {
     let hydration_targets: [String: Int]?
     let health_metrics: [FBHealthMetric]
     let imported_activities: [FBImportedActivity]
+    let fitness_evidence: [FitnessEvidenceRecord]?
 }
 
 private struct Addons: Decodable, Sendable {
@@ -337,10 +338,19 @@ final class FitnessBrainParityTests: XCTestCase {
             programDays: input.program_days,
             exercises: input.exercises,
             workoutSessions: input.workout_sessions,
-            workoutLogs: input.workout_logs,
+            workoutLogs: input.workout_logs.map { stored in
+                var log = stored
+                log.performedTypes = MovementTiming.performedWorkoutTypes(for: log)
+                return log
+            },
             dailyLogs: input.daily_logs,
             healthMetrics: input.health_metrics,
             importedActivities: input.imported_activities,
+            // The web reads the UTC day of each record, so the fixture is replayed in UTC.
+            capacityCalibrationEvidence: FitnessBrainService.capacityCalibrationEvidence(
+                from: input.fitness_evidence ?? [],
+                ownerID: UUID(uuidString: input.profile.userID) ?? UUID(),
+                timeZone: TimeZone(secondsFromGMT: 0) ?? .current),
             recoveryHistory: input.settings_addons?.recovery_history ?? [],
             mealRhythmHistory: input.settings_addons?.meal_rhythm_history ?? [:]
         )

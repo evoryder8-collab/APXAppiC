@@ -94,12 +94,14 @@ public enum FitnessBrainEngine {
                 > "\(existing.measuredOn):\(existing.importedAt):\(existing.id)"
         }
 
-        for item in owned where !supersededIDs.contains(item.id) {
+        for var item in owned where !supersededIDs.contains(item.id) {
             guard item.value.isFinite,
                   (0...100).contains(item.value),
                   item.coverage.isFinite,
-                  item.coverage > 0,
-                  item.measuredOn <= throughDate else { continue }
+                  item.coverage > 0 else { continue }
+            // Evidence that already exists cannot be from the future: an answer stamped with
+            // tomorrow's UTC date on an evening west of Greenwich counts today.
+            item.measuredOn = min(item.measuredOn, throughDate)
             if item.measuredOn <= baselineDate {
                 if let existing = beforeBaseline[item.metric], !isNewer(item, than: existing) {
                     continue
@@ -398,7 +400,8 @@ public enum FitnessBrainEngine {
             $0 < profile.baselineDate && $0 <= throughDate && activity[$0]?.types.isEmpty == false
                 && FBDate.validDate($0) != nil
         }.min()
-        let start = earliestWork ?? profile.baselineDate
+        // A baseline the server stamped with tomorrow's UTC date still starts today.
+        let start = min(earliestWork ?? profile.baselineDate, throughDate)
         let total = FBDate.daysBetween(start, throughDate)
         if total < 0 { return FBEngineResult(snapshots: [], synergies: []) }
 

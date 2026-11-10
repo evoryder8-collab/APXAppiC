@@ -218,7 +218,10 @@ function capacityCalibrationTimeline(
 
   for (const record of owned) {
     const metric = capacityCalibrationMetrics[record.metric]
-    const measuredOn = record.measured_at.slice(0, 10)
+    const stamped = record.measured_at.slice(0, 10)
+    // Evidence that already exists cannot be from the future: an answer stamped with
+    // tomorrow's UTC date on an evening west of Greenwich counts today.
+    const measuredOn = stamped > throughDate ? throughDate : stamped
     if (
       supersededIDs.has(record.id)
       || !metric
@@ -230,8 +233,7 @@ function capacityCalibrationTimeline(
       || !Number.isFinite(record.value)
       || record.value < 0
       || record.value > 100
-      || !/^\d{4}-\d{2}-\d{2}$/.test(measuredOn)
-      || measuredOn > throughDate
+      || !/^\d{4}-\d{2}-\d{2}$/.test(stamped)
     ) continue
     const coverage = calibrationCoverage(record)
     if (coverage <= 0) continue
@@ -506,6 +508,8 @@ export function computeEngine(data: AppData, throughDate: string,
       if (date < start && date <= throughDate && day.types.length && isIsoDate(date)) start = date
     }
   }
+  // A baseline the server stamped with tomorrow's UTC date still starts today.
+  if (start > throughDate) start = throughDate
   const total = differenceInCalendarDays(
     new Date(throughDate + 'T12:00:00'),
     new Date(start + 'T12:00:00'),

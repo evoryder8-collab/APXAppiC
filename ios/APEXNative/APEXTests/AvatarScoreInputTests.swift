@@ -154,4 +154,44 @@ final class AvatarScoreInputTests: XCTestCase {
         let nextDay = try await plan.snapshot(date: "2026-10-07")
         XCTAssertTrue(nextDay.metricRows(ownerID: owner, existing: rows).isEmpty)
     }
+
+    func testEveningCalibrationWestOfGreenwichBelongsToTheLocalDay() throws {
+        let losAngeles = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
+        let record = evidence(.cardioCapacityScore, value: 62, measuredAt: "2026-11-10T02:30:00Z")
+        let anchors = FitnessBrainService.capacityCalibrationEvidence(
+            from: [record], ownerID: owner, timeZone: losAngeles)
+        XCTAssertEqual(anchors.map(\.measuredOn), ["2026-11-09"])
+    }
+
+    func testOnboardingAnswersOnSignupEveningDoNotAlterChosenStartingPoints() throws {
+        let losAngeles = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
+        var data = dashboard(baseline: "2026-11-09")
+        data.profile?.avatarStartingPoints = AvatarStartingPoints.balanced
+        data.fitnessEvidence = [evidence(.cardioCapacityScore, value: 30, measuredAt: "2026-11-10T02:30:00Z",
+                                         protocolName: "apex_onboarding_pulse_v1")]
+        let input = try XCTUnwrap(FitnessBrainService.engineInput(from: data, timeZone: losAngeles))
+        XCTAssertTrue(input.capacityCalibrationEvidence.isEmpty)
+    }
+
+    func testScoresShowOnSignupDayWhenTheStoredBaselineIsAheadOfTheDeviceDate() throws {
+        var data = dashboard(baseline: "2026-11-10")
+        data.profile?.avatarStartingPoints = AvatarStartingPoints.balanced
+        XCTAssertEqual(try result(data, through: "2026-11-09").publishableSnapshots.last?.overall, 50)
+    }
+
+    func testCalibrationDatedAheadOfTheDeviceDateAppliesToday() throws {
+        var data = dashboard(baseline: "2026-11-01")
+        data.profile?.avatarStartingPoints = AvatarStartingPoints.balanced
+        var input = try XCTUnwrap(FitnessBrainService.engineInput(from: data))
+        input.capacityCalibrationEvidence = [FBCapacityCalibrationEvidence(
+            id: "ahead", userID: owner.uuidString.lowercased(), metric: .cardiorespiratory, value: 62,
+            measuredOn: "2026-11-10", importedAt: "2026-11-10T01:00:00Z", coverage: 0.55, supersedesID: nil)]
+        XCTAssertEqual(FitnessBrainEngine.compute(input, throughDate: "2026-11-09").snapshots.last?.endurance, 56.6)
+    }
+
+    func testNewProfileCarriesTheDeviceDateAsItsBaseline() throws {
+        let body = try JSONEncoder().encode(ProfileCreationRequest(userID: owner, goal: "maintain"))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["baseline_date"] as? String, Date().apexDateKey)
+    }
 }
