@@ -97,6 +97,23 @@ test('repeated sets and sessions cannot multiply a Quick Log domain or an existi
   assert.deepEqual(latest({ ...plan, workout_sessions: [...plan.workout_sessions, session()], workout_logs: [log()] }), latest(plan))
 })
 
+test('a coach-plan workout is credited from the movements performed, exactly as a Quick Log is', () => {
+  const asCoach = (data: AppData): AppData => ({
+    ...data,
+    program_days: data.program_days.map((day) => ({ ...day, day_type: 'coach' as const })),
+  })
+  for (const facts of [{}, { movement_id: 'push_up', weight_kg: 0 }, { movement_id: 'cat_cow', reps: null, duration_seconds: 120 }]) {
+    assert.deepEqual(latest(asCoach(custom([log(facts)]))), latest(custom([log(facts)])))
+  }
+  assert.ok(latest(asCoach(custom())).strength_lower > latest(baseline).strength_lower)
+  // Two coach sessions on one day credit a body area once, and a deload flag adds nothing a Quick Log would not get.
+  const twice = custom(
+    [log(), log({ id: 'other', session_id: 'other' })],
+    [session({ is_deload: true }), session({ id: 'other' })],
+  )
+  assert.deepEqual(latest(asCoach(twice)), latest(custom()))
+})
+
 test('editing or deleting the Quick Log replays its domain, and linked wearable effort adds no second credit', () => {
   const lower = custom()
   const upper = custom([log({ movement_id: 'push_up' })])
