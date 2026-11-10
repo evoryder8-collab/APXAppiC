@@ -354,6 +354,63 @@ final class ProgressParityTests: XCTestCase {
         XCTAssertEqual(unlocked.right.x, 10, accuracy: 0.01, "the pan is kept as a share of the pane")
     }
 
+    /// Two fingers, one on each photo, report their travel in turn. Each
+    /// drag has to move its own photo by its own travel. With one drag
+    /// remembered for both, every report looked like a new drag starting
+    /// from where the last had left the photos, and they ran to their limits.
+    func testTwoFingersOnTheTwoPhotosEachDragTheirOwn() {
+        let pane = CGSize(width: 180, height: 400)
+        let zoomed = ProgressPhotoEngine.ComparisonView(scale: 3, x: 0, y: 0)
+        let start = ProgressPhotoEngine.ComparisonViews(left: zoomed, right: zoomed)
+        let leftFinger = CGPoint(x: 60, y: 200), rightFinger = CGPoint(x: 280, y: 200)
+
+        var views = start
+        var drags = ProgressPhotoEngine.ComparisonDrags()
+        for travel in 1...20 {
+            views = drags.moved(
+                .left, from: leftFinger, by: CGSize(width: Double(travel), height: 0),
+                pane: pane, views: views, synced: false
+            )
+            views = drags.moved(
+                .right, from: rightFinger, by: CGSize(width: 0, height: Double(-travel)),
+                pane: pane, views: views, synced: false
+            )
+        }
+        let left = ProgressPhotoEngine.panOffset(views.left, in: pane)
+        let right = ProgressPhotoEngine.panOffset(views.right, in: pane)
+        XCTAssertEqual(left.width, 20, accuracy: 0.01, "the left photo did not follow its own finger")
+        XCTAssertEqual(left.height, 0, accuracy: 0.01, "the left photo moved with the other finger")
+        XCTAssertEqual(right.height, -20, accuracy: 0.01, "the right photo did not follow its own finger")
+        XCTAssertEqual(right.width, 0, accuracy: 0.01, "the right photo moved with the other finger")
+
+        /* Synced, either finger moves both photos, and neither sends them
+           further than the two have travelled. */
+        views = start
+        drags = ProgressPhotoEngine.ComparisonDrags()
+        for travel in 1...20 {
+            for (side, finger) in [(ProgressPhotoEngine.Side.left, leftFinger), (.right, rightFinger)] {
+                views = drags.moved(
+                    side, from: finger, by: CGSize(width: Double(travel), height: 0),
+                    pane: pane, views: views, synced: true
+                )
+                XCTAssertEqual(views.left, views.right, "synced moves both photos together")
+            }
+        }
+        XCTAssertLessThanOrEqual(
+            ProgressPhotoEngine.panOffset(views.left, in: pane).width, 21.01,
+            "two fingers moving together threw the photos further than they moved"
+        )
+
+        /* A finger that lifts and lands again begins a new drag from where
+           its photo now is. */
+        drags.ended(.left)
+        views = drags.moved(
+            .left, from: CGPoint(x: 70, y: 210), by: CGSize(width: -5, height: 0),
+            pane: pane, views: views, synced: false
+        )
+        XCTAssertEqual(ProgressPhotoEngine.panOffset(views.left, in: pane).width, 16, accuracy: 0.01)
+    }
+
     /// C7. The pan is one number read by the screen and by the exported card.
     /// On two panes of different sizes it has to be the same share of each.
     func testAPanIsTheSameShareOfTheScreenPaneAndTheExportedPane() {
