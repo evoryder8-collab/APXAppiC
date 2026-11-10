@@ -265,6 +265,23 @@ for (const persona of ['june', 'matthew'] as PersonaSlug[]) {
   /* a deload day with two sessions banks its joint credit once */
   session(d, '2026-06-16', 'push', { is_deload: true })
   session(d, '2026-06-16', 'pull', { is_deload: true })
+  /* a full-body day typed upper credits the legs it trained, and its leg press progress is lower-body progress */
+  const upperDay = d.program_days.find((p) => p.day_type === 'upper')!
+  const pressed = d.exercises.find((e) => e.program_day_id === upperDay.id && !e.is_lite)!
+  const fullBody = session(d, '2026-06-23', 'upper')
+  log(d, fullBody, { exercise_name: 'Leg Press', exercise_id: pressed.id, movement_id: 'leg_press', weight_kg: 100 })
+  log(d, fullBody, { exercise_name: 'Machine Chest Press', movement_id: 'machine_chest_press', weight_kg: 40 })
+  log(d, session(d, '2026-06-30', 'upper'), {
+    exercise_name: 'Leg Press', exercise_id: pressed.id, movement_id: 'leg_press', weight_kg: 110,
+  })
+  /* a recovery-typed day of strength work earns strength, not flexibility */
+  const capacity = session(d, '2026-07-02', 'fix')
+  log(d, capacity, { exercise_name: 'Lat Pulldown', movement_id: 'lat_pulldown', weight_kg: 50 })
+  log(d, capacity, { exercise_name: 'Dead Bug', movement_id: 'dead_bug' })
+  /* an unlisted lift keeps the day's label beside an identified mobility drill */
+  const legs = session(d, '2026-07-07', 'legs_a')
+  log(d, legs, { exercise_name: 'Unlisted lift', weight_kg: 60 })
+  log(d, legs, { exercise_name: 'Cat-Cow', movement_id: 'cat_cow', reps: null, duration_seconds: 120 })
   scenarios.push({ name: 'performed_movements_and_loads', persona: 'constantine', throughDate: THROUGH, data: d })
 }
 

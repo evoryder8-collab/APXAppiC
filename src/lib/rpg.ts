@@ -332,7 +332,8 @@ export function computeEngine(data: AppData, throughDate: string,
   const authored = bespokeProtocolFor(profile) != null
   const allocated = !authored && validStartingPoints(profile.avatar_starting_points)
 
-  const dayTypeById = new Map(programDays.map((d) => [d.id, d.day_type]))
+  // A coach plan has no day category of its own; its performed movements earn the credit.
+  const dayTypeById = new Map(programDays.map((d) => [d.id, d.day_type === 'coach' ? 'custom' : d.day_type]))
   const targets = computeTargets(profile, nutritionPlanContext(data.settings?.addons.training_induction ?? data.settings?.addons.training_induction_baseline))
   const canScoreNutrition = hasScorableNutritionTargets(targets)
 
@@ -383,12 +384,24 @@ export function computeEngine(data: AppData, throughDate: string,
     }
     if (quality === 0) continue
     if (!type || type === 'custom') continue
-    getDay(s.date).types.push({
-      type,
-      quality,
-      deload: s.is_deload,
-      recovery: s.is_event_recovery,
-    })
+    const day = getDay(s.date)
+    if (s.is_event_recovery) {
+      day.types.push({ type, quality, deload: s.is_deload, recovery: true })
+      continue
+    }
+    // A planned session credits the body areas its catalogue movements trained. A strength or
+    // mobility label speaks only for work the receipt cannot identify, or when it identifies
+    // nothing. A cardio label always stands: conditioning is often built from strength movements.
+    const logs = logsBySession.get(s.id) ?? []
+    const proved = new Set(logs.flatMap(performedWorkoutTypes))
+    const label = workoutActivityDomain(type)
+    const labelled = label === 'cardio' || proved.size === 0
+      || logs.some((log) => !log.movement_id && hasPerformedWorkoutFacts(log))
+    for (const domain of ['upper', 'legs_a', 'mobility', 'cardio'] as const) {
+      const own = domain === label
+      if (!proved.has(domain) && !(own && labelled)) continue
+      day.types.push({ type: own ? type : domain, quality, deload: s.is_deload, recovery: false })
+    }
   }
   for (const log of workoutLogs) {
     const session = sessionById.get(log.session_id)
@@ -437,6 +450,7 @@ export function computeEngine(data: AppData, throughDate: string,
   }
   /* Progressive overload events: top weight for an exercise rises vs previous session */
   const byExercise = new Map<string, Array<{ date: string; w: number }>>()
+  const exerciseDomains = new Map<string, Set<PerformedWorkoutType>>()
   for (const log of workoutLogs) {
     if (!log.exercise_id || !hasPerformedWorkoutFacts(log)
       || log.weight_kg == null || !Number.isFinite(log.weight_kg)) continue
@@ -445,6 +459,9 @@ export function computeEngine(data: AppData, throughDate: string,
     const arr = byExercise.get(log.exercise_id) ?? []
     arr.push({ date: s.date, w: log.weight_kg })
     byExercise.set(log.exercise_id, arr)
+    const domains = exerciseDomains.get(log.exercise_id) ?? new Set<PerformedWorkoutType>()
+    for (const domain of performedWorkoutTypes(log)) domains.add(domain)
+    exerciseDomains.set(log.exercise_id, domains)
   }
   const exerciseDayById = new Map(exercises.map((e) => [e.id, e.program_day_id]))
   for (const [exId, arr] of byExercise) {
@@ -457,8 +474,13 @@ export function computeEngine(data: AppData, throughDate: string,
         const dayId = exerciseDayById.get(exId)
         const type = dayId ? dayTypeById.get(dayId) : undefined
         const a = getDay(dates[i])
-        if (type && LOWER_TYPES.includes(type)) a.overloadLower += 1
-        else if (type && UPPER_TYPES.includes(type)) a.overloadUpper += 1
+        // The movement decides which half of the body progressed. The day's label
+        // speaks only for a lift the catalogue cannot identify.
+        const domains = exerciseDomains.get(exId)
+        const lower = domains?.size ? domains.has('legs_a') : !!type && LOWER_TYPES.includes(type)
+        const upper = domains?.size ? domains.has('upper') : !!type && UPPER_TYPES.includes(type)
+        if (lower) a.overloadLower += 1
+        else if (upper) a.overloadUpper += 1
       }
     }
   }

@@ -290,11 +290,25 @@ public enum FitnessBrainEngine {
             }
             guard quality > 0 else { continue }
             guard let type = dayTypeByID[s.programDayID], type != .custom else { continue }
-            day(s.date).types.append(TypeEntry(
-                type: type,
-                quality: quality,
-                deload: s.isDeload,
-                recovery: s.isEventRecovery))
+            let activity = day(s.date)
+            if s.isEventRecovery {
+                activity.types.append(TypeEntry(type: type, quality: quality, deload: s.isDeload, recovery: true))
+                continue
+            }
+            // A planned session credits the body areas its catalogue movements trained. A strength
+            // or mobility label speaks only for work the receipt cannot identify, or when it
+            // identifies nothing. A cardio label always stands: conditioning is often built from
+            // strength movements.
+            let logs = logsBySession[s.id] ?? []
+            let proved = Set(logs.flatMap { $0.performedTypes ?? [] })
+            let labelled = type.activityDomain == .cardio || proved.isEmpty
+                || logs.contains { ($0.movementID ?? "").isEmpty && $0.hasPerformedWork }
+            for domain in [FBDayType.upper, .legsA, .mobility, .cardio] {
+                let own = domain == type.activityDomain
+                guard proved.contains(domain) || (own && labelled) else { continue }
+                activity.types.append(TypeEntry(
+                    type: own ? type : domain, quality: quality, deload: s.isDeload, recovery: false))
+            }
         }
         /* Focus T25 conditioning logged inside any completed session */
         for log in input.workoutLogs {
@@ -338,12 +352,14 @@ public enum FitnessBrainEngine {
         /* Progressive overload: top weight rises vs the previous session */
         var byExercise: [String: [(date: String, w: Double)]] = [:]
         var exerciseOrder: [String] = []
+        var exerciseDomains: [String: Set<FBDayType>] = [:]
         for log in input.workoutLogs {
             guard let exID = log.exerciseID, log.hasPerformedWork, let w = log.weightKG, w.isFinite,
                   let s = sessionByID[log.sessionID], s.completed,
                   (qualityBySession[s.id] ?? 0) > 0 else { continue }
             if byExercise[exID] == nil { exerciseOrder.append(exID) }
             byExercise[exID, default: []].append((s.date, w))
+            exerciseDomains[exID, default: []].formUnion(log.performedTypes ?? [])
         }
         var exerciseDayByID: [String: String] = [:]
         for e in input.exercises { exerciseDayByID[e.id] = e.programDayID }
@@ -358,8 +374,12 @@ public enum FitnessBrainEngine {
                 if (byDate[dates[i]] ?? 0) > (byDate[dates[i - 1]] ?? 0) {
                     let type = exerciseDayByID[exID].flatMap { dayTypeByID[$0] }
                     let a = day(dates[i])
-                    if let type, lowerTypes.contains(type) { a.overloadLower += 1 }
-                    else if let type, upperTypes.contains(type) { a.overloadUpper += 1 }
+                    // The movement decides which half of the body progressed. The day's label
+                    // speaks only for a lift the catalogue cannot identify.
+                    let domains = exerciseDomains[exID] ?? []
+                    let lower = domains.isEmpty ? type.map(lowerTypes.contains) == true : domains.contains(.legsA)
+                    let upper = domains.isEmpty ? type.map(upperTypes.contains) == true : domains.contains(.upper)
+                    if lower { a.overloadLower += 1 } else if upper { a.overloadUpper += 1 }
                 }
             }
         }

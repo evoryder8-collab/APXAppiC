@@ -227,4 +227,50 @@ final class AvatarScoreInputTests: XCTestCase {
         let input = try XCTUnwrap(FitnessBrainService.engineInput(from: data))
         XCTAssertEqual(input.workoutSessions.map(\.isDeload), [true, false])
     }
+
+    func testFullBodyDayCreditsEachBodyAreaItsMovementsTrained() throws {
+        var input = try engineInput(dayType: "upper")
+        let rested = try scores(input)
+        input.workoutSessions = [fbSession("full")]
+        input.workoutLogs = [fbSet("leg_press", session: "full"), fbSet("machine_chest_press", session: "full")]
+        let trained = try scores(input)
+        XCTAssertGreaterThan(trained.strengthLower, rested.strengthLower)
+        XCTAssertGreaterThan(trained.strengthUpper, rested.strengthUpper)
+    }
+
+    func testLegPressIncreaseRaisesLowerBodyStrengthOnAnUpperTypedDay() throws {
+        var input = try engineInput(dayType: "upper")
+        input.exercises = [FBExerciseRef(id: "leg-press", programDayID: dayID.uuidString.lowercased())]
+        input.workoutSessions = [fbSession("first", date: "2026-10-02"), fbSession("second")]
+        input.workoutLogs = [fbSet("leg_press", session: "first", weight: 100, exercise: "leg-press"),
+                             fbSet("leg_press", session: "second", weight: 100, exercise: "leg-press")]
+        let level = try scores(input)
+        input.workoutLogs[1].weightKG = 110
+        let heavier = try scores(input)
+        XCTAssertGreaterThan(heavier.strengthLower, level.strengthLower)
+        XCTAssertEqual(heavier.strengthUpper, level.strengthUpper)
+    }
+
+    func testStrengthOnlyRecoveryTypedDayEarnsNoFlexibility() throws {
+        var input = try engineInput(dayType: "fix")
+        let rested = try scores(input)
+        input.workoutSessions = [fbSession("capacity")]
+        input.workoutLogs = [fbSet("lat_pulldown", session: "capacity"), fbSet("dead_bug", session: "capacity", weight: nil)]
+        let trained = try scores(input)
+        XCTAssertGreaterThan(trained.strengthUpper, rested.strengthUpper)
+        XCTAssertEqual(trained.flexibility, rested.flexibility)
+        XCTAssertEqual(trained.joint, rested.joint)
+    }
+
+    func testPlannedDayKeepsItsLabelForWorkTheAppCannotIdentify() throws {
+        var input = try engineInput(dayType: "legs_a")
+        let rested = try scores(input)
+        input.workoutSessions = [fbSession("legs")]
+        input.workoutLogs = [fbSet(nil, session: "legs"), fbSet("cat_cow", session: "legs", weight: nil, reps: nil, duration: 120)]
+        let trained = try scores(input)
+        XCTAssertGreaterThan(trained.strengthLower, rested.strengthLower)
+        XCTAssertGreaterThan(trained.flexibility, rested.flexibility)
+        input.workoutLogs = []
+        XCTAssertGreaterThan(try scores(input).strengthLower, rested.strengthLower)
+    }
 }
