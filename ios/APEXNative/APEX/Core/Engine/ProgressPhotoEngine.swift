@@ -291,22 +291,32 @@ enum ProgressPhotoEngine {
     /// How many photos the dashboard brings on open, and each later page adds.
     static let pageSize = 120
 
-    /* One further page of older photos. It is asked for by date, from the
-       oldest day already loaded, and whatever is already loaded is dropped
-       from the answer. Asked for by position instead, a photo saved or
-       deleted since the first page would shift every row and one would be
-       repeated or skipped. The limit is widened by that day's loaded photos
-       so a page always brings a full page of new ones. */
+    /* The day the first page reaches back to: that of its last photo. Read
+       off the newest page-worth rather than the oldest photo present,
+       because an old baseline imported since sits far below the page and is
+       not where it ends. */
+    static func firstPageReach(_ firstPage: [ProgressPhoto], pageSize: Int = pageSize) -> String? {
+        firstPage.map(\.localDate).sorted(by: >).prefix(pageSize).last
+    }
+
+    /* One further page of older photos, as the server returned it. It is
+       asked for by date, from the oldest day the pages so far reach back to.
+       Asked for by position instead, a photo saved or deleted since the
+       first page would shift every row and one would be repeated or skipped.
+       The answer starts with photos already loaded from that day on, so the
+       limit is widened by their number and a page always brings a full page
+       of new ones. `timeline` drops the repeats. */
     static func earlierPage(
-        after loaded: [ProgressPhoto],
+        firstPage: [ProgressPhoto],
+        earlier: [ProgressPhoto],
         pageSize: Int = pageSize,
         fetch: (_ onOrBefore: String, _ limit: Int) async throws -> [ProgressPhoto]
     ) async rethrows -> (photos: [ProgressPhoto], reachedEnd: Bool) {
-        guard let oldest = loaded.map(\.localDate).min() else { return ([], true) }
-        let limit = pageSize + loaded.count { $0.localDate == oldest }
-        let rows = try await fetch(oldest, limit)
-        let known = Set(loaded.map(\.id))
-        return (rows.filter { !known.contains($0.id) }, rows.count < limit)
+        guard let day = earlier.map(\.localDate).min() ?? firstPageReach(firstPage, pageSize: pageSize)
+        else { return ([], true) }
+        let limit = pageSize + timeline(firstPage, earlier: earlier).count { $0.localDate <= day }
+        let rows = try await fetch(day, limit)
+        return (rows, rows.count < limit)
     }
 
     /// Every photo loaded so far, each once, newest first.

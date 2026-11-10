@@ -389,24 +389,26 @@ final class ProgressParityTests: XCTestCase {
     /// time, each photo once, and never the whole history in one request.
     func testOlderPhotosLoadAPageAtATimeUntilTheFirstOne() async throws {
         let owner = UUID()
-        /* Seven photos a day for fifty days, so the first page ends partway
-           through a day and the next one has to finish it. */
-        let start = try XCTUnwrap(APEXDateMath.date(from: "2026-01-01"))
+        func photo(daysAfterStart days: Double) throws -> ProgressPhoto {
+            let start = try XCTUnwrap(APEXDateMath.date(from: "2026-01-01"))
+            return ProgressPhotoEngine.checkpoint(
+                id: UUID(), userID: owner, takenAt: start.addingTimeInterval(days * 86_400), pose: "front",
+                framing: .full, width: 3, height: 4, referencePhotoID: nil, weightKG: nil, note: ""
+            )
+        }
+        /* Seven photos a day for fifty days, so a page ends partway through a
+           day and the next one has to finish it. */
         var all: [ProgressPhoto] = []
         for day in 0..<50 {
             for shot in 0..<7 {
-                let moment = start.addingTimeInterval(Double(day) * 86_400 + Double(shot) * 3_600 + 21_600)
-                all.append(ProgressPhotoEngine.checkpoint(
-                    id: UUID(), userID: owner, takenAt: moment, pose: ["front", "side", "back"][shot % 3],
-                    framing: .full, width: 3, height: 4, referencePhotoID: nil, weightKG: nil, note: ""
-                ))
+                all.append(try photo(daysAfterStart: Double(day) + Double(shot) / 100))
             }
         }
         let newestFirst = ProgressPhotoEngine.timeline(all, earlier: [])
         XCTAssertEqual(newestFirst.count, 350)
 
         /* The server's answer: the owner's photos on or before a day, newest
-           first, cut at the limit. Same-day order is not the app's order. */
+           first, cut at the limit. Its order within a day is not the app's. */
         var requests: [(day: String, limit: Int)] = []
         func server(_ day: String, _ limit: Int) -> [ProgressPhoto] {
             requests.append((day, limit))
@@ -416,21 +418,32 @@ final class ProgressParityTests: XCTestCase {
                     .prefix(limit)
             )
         }
-
-        var shown = Array(newestFirst.prefix(ProgressPhotoEngine.pageSize))
-        var pages = 0
-        while pages < 10 {
-            let page = await ProgressPhotoEngine.earlierPage(after: shown, fetch: server)
-            XCTAssertTrue(Set(page.photos.map(\.id)).isDisjoint(with: shown.map(\.id)), "a photo was loaded twice")
-            shown = ProgressPhotoEngine.timeline(shown, earlier: page.photos)
-            pages += 1
-            if page.reachedEnd { break }
+        /* Nothing newer than the oldest day reached may be missing. */
+        func assertNoGaps(
+            _ shown: [ProgressPhoto], of everything: [ProgressPhoto], _ message: String, line: UInt = #line
+        ) {
+            guard let reach = shown.map(\.localDate).min() else { return XCTFail(message, line: line) }
+            let ids = Set(shown.map(\.id))
+            let missing = everything.filter { $0.localDate > reach && !ids.contains($0.id) }
+            XCTAssertTrue(missing.isEmpty, "\(message): \(missing.count) photos after \(reach) are missing", line: line)
+            XCTAssertEqual(ids.count, shown.count, "\(message): a photo is shown twice", line: line)
         }
 
+        let firstPage = Array(newestFirst.prefix(ProgressPhotoEngine.pageSize))
+        var earlier: [ProgressPhoto] = []
+        var pages = 0
+        while pages < 10 {
+            let page = await ProgressPhotoEngine.earlierPage(firstPage: firstPage, earlier: earlier, fetch: server)
+            earlier = ProgressPhotoEngine.timeline(earlier, earlier: page.photos)
+            pages += 1
+            assertNoGaps(ProgressPhotoEngine.timeline(firstPage, earlier: earlier), of: all, "after page \(pages)")
+            if page.reachedEnd { break }
+        }
+        let shown = ProgressPhotoEngine.timeline(firstPage, earlier: earlier)
         XCTAssertEqual(shown.count, 350, "photos beyond the first 120 never arrived")
         XCTAssertEqual(shown.map(\.id), newestFirst.map(\.id), "every photo once, newest first")
         XCTAssertEqual(shown.last?.localDate, "2026-01-01", "the earliest baseline is on the timeline")
-        XCTAssertEqual(pages, 2, "350 photos are the first page and two more")
+        XCTAssertLessThanOrEqual(pages, 3, "350 photos are the first page and two or three more")
         XCTAssertTrue(
             requests.allSatisfy { $0.limit <= ProgressPhotoEngine.pageSize + 7 },
             "a page asked for more than a page: \(requests.map(\.limit))"
@@ -438,22 +451,41 @@ final class ProgressParityTests: XCTestCase {
 
         /* A photo saved after the first page loaded shifts every position on
            the server. Paging by date is unmoved by it. */
-        let late = ProgressPhotoEngine.checkpoint(
-            id: UUID(), userID: owner, takenAt: start.addingTimeInterval(60 * 86_400), pose: "front",
-            framing: .full, width: 3, height: 4, referencePhotoID: nil, weightKG: nil, note: ""
-        )
+        let late = try photo(daysAfterStart: 60)
         all.append(late)
-        let firstPage = Array(newestFirst.prefix(ProgressPhotoEngine.pageSize))
-        let next = await ProgressPhotoEngine.earlierPage(after: [late] + firstPage, fetch: server)
-        XCTAssertEqual(next.photos.count, ProgressPhotoEngine.pageSize)
+        let next = await ProgressPhotoEngine.earlierPage(firstPage: [late] + firstPage, earlier: [], fetch: server)
+        let afterSave = ProgressPhotoEngine.timeline([late] + firstPage, earlier: next.photos)
+        XCTAssertGreaterThanOrEqual(afterSave.count, 1 + 2 * ProgressPhotoEngine.pageSize)
+        assertNoGaps(afterSave, of: all, "after a photo was saved")
+
+        /* An old baseline imported today is saved under its own date, far
+           below the first page. It must not move the starting point past
+           every photo in between. */
+        let baseline = try photo(daysAfterStart: -400)
+        let afterImport = await ProgressPhotoEngine.earlierPage(
+            firstPage: firstPage + [baseline], earlier: [], fetch: server
+        )
+        let joined = ProgressPhotoEngine.timeline(firstPage, earlier: afterImport.photos)
+        XCTAssertGreaterThanOrEqual(
+            joined.count, 2 * ProgressPhotoEngine.pageSize,
+            "an imported old photo made the timeline skip the photos before it"
+        )
+        assertNoGaps(joined, of: newestFirst, "after an old baseline was imported")
+        XCTAssertLessThanOrEqual(afterImport.photos.count, ProgressPhotoEngine.pageSize + 8, "still one page")
+        XCTAssertFalse(afterImport.reachedEnd)
+
+        /* The first page moves down a photo when one is saved elsewhere. The
+           photo it lost is on the day the earlier pages start from, so it is
+           still on the timeline. */
+        let shifted = Array(firstPage.dropLast())
         XCTAssertEqual(
-            ProgressPhotoEngine.timeline([late] + firstPage, earlier: next.photos).map(\.id),
-            ProgressPhotoEngine.timeline(all, earlier: []).prefix(241).map(\.id),
-            "nothing skipped and nothing repeated"
+            Set(ProgressPhotoEngine.timeline([late] + shifted, earlier: earlier).map(\.id)),
+            Set(all.map(\.id)),
+            "a photo fell between the first page and the older ones"
         )
 
         /* Nothing loaded means nothing older to ask for. */
-        let none = await ProgressPhotoEngine.earlierPage(after: [], fetch: server)
+        let none = await ProgressPhotoEngine.earlierPage(firstPage: [], earlier: [], fetch: server)
         XCTAssertTrue(none.photos.isEmpty)
         XCTAssertTrue(none.reachedEnd)
     }

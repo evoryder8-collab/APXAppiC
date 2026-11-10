@@ -251,6 +251,12 @@ struct VisualProgressView: View {
                 )
             }
         }
+        .onChange(of: ProgressPhotoEngine.firstPageReach(session.data.progressPhotos)) { _, _ in
+            /* The first page ends somewhere else now, so the older pages no
+               longer join onto it. They load again from where it ends. */
+            earlierPhotos = []
+            reachedFirstPhoto = false
+        }
         .onChange(of: session.profile?.userID) { _, _ in
             preparationTask?.cancel()
             preparationTask = nil
@@ -393,9 +399,9 @@ struct VisualProgressView: View {
     private func loadEarlierPhotos() async {
         guard let operation = session.accountOperationLease() else { return }
         do {
-            let page = try await session.earlierProgressPhotos(after: photos, operation: operation)
+            let page = try await session.earlierProgressPhotos(after: earlierPhotos, operation: operation)
             guard session.accountOperationIsCurrent(operation) else { return }
-            earlierPhotos.append(contentsOf: page.photos)
+            earlierPhotos = ProgressPhotoEngine.timeline(earlierPhotos, earlier: page.photos)
             reachedFirstPhoto = page.reachedEnd
         } catch {
             /* Asked again the next time the end of the list scrolls into view. */

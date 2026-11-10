@@ -961,10 +961,11 @@ actor SupabaseService {
     /// The next page of progress photos older than the ones already loaded.
     func loadEarlierProgressPhotos(
         ownerID: UUID,
-        after loaded: [ProgressPhoto]
+        firstPage: [ProgressPhoto],
+        earlier: [ProgressPhoto]
     ) async throws -> (photos: [ProgressPhoto], reachedEnd: Bool) {
         guard let client else { throw APEXServiceError.configurationMissing }
-        return try await ProgressPhotoEngine.earlierPage(after: loaded) { day, limit in
+        return try await ProgressPhotoEngine.earlierPage(firstPage: firstPage, earlier: earlier) { day, limit in
             try await client
                 .from("progress_photos")
                 .select()
