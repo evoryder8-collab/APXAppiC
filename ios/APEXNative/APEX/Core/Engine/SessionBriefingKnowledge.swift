@@ -73,6 +73,7 @@ extension SessionBriefing {
         dayType: String,
         exerciseNames: [String],
         date: String?,
+        programDayID: UUID? = nil,
         data: DashboardData
     ) -> KnowledgeContext {
         let completedSessions = data.workoutSessions.filter { $0.completed }
@@ -80,7 +81,8 @@ extension SessionBriefing {
             dayType: dayType,
             exerciseNames: exerciseNames,
             date: date,
-            completedSessionDates: completedSessions.map(\.date),
+            // Another session finished on the date does not finish this one.
+            completedSessionDates: completedSessions.filter { $0.programDayID == programDayID }.map(\.date),
             completedSessionCount: completedSessions.count,
             addons: data.settings?.addons
         )

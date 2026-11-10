@@ -139,6 +139,39 @@ final class SessionBriefingKnowledgeTests: XCTestCase {
         XCTAssertFalse(context(checkedOn: "2026-08-29").elevatedJointCheckIn, "a later check-in says nothing about this session")
     }
 
+    func testSecondSessionOnTheSameDateIsNotAlreadyComplete() {
+        let morning = UUID(), evening = UUID()
+        var data = DashboardData.empty
+        data.workoutSessions = [WorkoutSession(
+            id: UUID(), userID: UUID(), date: "2026-08-28", programDayID: morning, isLite: false,
+            isDeload: false, isEventRecovery: false, completed: true, qualityScore: 1,
+            startedAt: nil, completedAt: nil, notes: ""
+        )]
+        func position(_ programDayID: UUID?, on date: String = "2026-08-28") -> SessionBriefing.SessionPosition {
+            SessionBriefing.knowledgeContext(
+                dayType: "legs_a", exerciseNames: [], date: date, programDayID: programDayID, data: data
+            ).position
+        }
+
+        XCTAssertEqual(position(morning), .after)
+        XCTAssertEqual(position(evening), .before, "another session finished that day does not finish this one")
+        XCTAssertEqual(position(nil), .before, "a rest day has no session to be complete")
+        XCTAssertEqual(position(morning, on: "2026-08-29"), .before)
+    }
+
+    func testEveryBriefingCardNamesTheSessionItDescribes() throws {
+        let training = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "APEX/Features/Training")
+        let callers = try ["TrainingProgramView.swift", "WorkoutDaySheet.swift"]
+            .map { try String(contentsOf: training.appending(path: $0)) }.joined()
+        let cards = callers.components(separatedBy: "MuscleMapCard(").count - 1
+
+        XCTAssertEqual(cards, 4)
+        XCTAssertEqual(callers.components(separatedBy: "sessionDayID: ").count - 1, cards)
+        XCTAssertTrue(try String(contentsOf: training.appending(path: "MuscleMapCard.swift"))
+            .contains("programDayID: sessionDayID,"))
+    }
+
     func testMobilityKnowledgeTeachesMethodsBoundariesAndNeuralWarning() {
         let knowledge = SessionBriefing.knowledge(context: .init(
             position: .before,

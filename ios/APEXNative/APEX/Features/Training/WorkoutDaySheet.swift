@@ -134,6 +134,7 @@ struct WorkoutDaySheet: View {
                             MuscleMapCard(
                                 dayType: plan.isRecoveryMicro ? "mobility" : day.dayType,
                                 sessionDate: date,
+                                sessionDayID: day.id,
                                 exerciseNames: plan.exercises.map(\.name),
                                 height: 240,
                                 accent: accent

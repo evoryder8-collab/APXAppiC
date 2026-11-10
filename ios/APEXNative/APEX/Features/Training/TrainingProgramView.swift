@@ -368,6 +368,7 @@ struct TrainingProgramView: View {
                     MuscleMapCard(
                         dayType: todayMuscleDayType,
                         sessionDate: selectedDate,
+                        sessionDayID: todayPlan.programDay?.id,
                         exerciseNames: todayExerciseNames,
                         height: 442,
                         accent: accent,
@@ -414,6 +415,7 @@ struct TrainingProgramView: View {
                     MuscleMapCard(
                         dayType: todayMuscleDayType,
                         sessionDate: Date().apexDateKey,
+                        sessionDayID: todayPlan.programDay?.id,
                         exerciseNames: todayExerciseNames,
                         height: 442,
                         accent: accent,
@@ -1452,6 +1454,7 @@ struct WorkoutDayView: View {
                 MuscleMapCard(
                     dayType: exercises.isEmpty ? "rest" : day.dayType,
                     sessionDate: date,
+                    sessionDayID: day.id,
                     exerciseNames: exercises.map(\.name),
                     height: 270,
                     accent: accent
