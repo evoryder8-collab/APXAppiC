@@ -24,6 +24,8 @@ struct ProgressComparisonView: View {
     let after: ProgressPhoto
     var includeStats = true
     var onClose: () -> Void
+    /// Replaces the signed download of each photo, for layout checks.
+    var loadImage: ((ProgressPhoto) async throws -> UIImage)?
 
     /* The screen loads its own photos. Passing them in was how it ended up
        showing two black panels with an export button that had nothing to
@@ -105,6 +107,7 @@ struct ProgressComparisonView: View {
         operation: AccountOperationLease
     ) async throws -> UIImage {
         guard session.accountOperationIsCurrent(operation) else { throw CancellationError() }
+        if let loadImage { return try await loadImage(photo) }
         let url = try await session.signedProgressURL(
             for: photo,
             thumbnail: false,
@@ -138,6 +141,7 @@ struct ProgressComparisonView: View {
                 .frame(height: 42)
                 .background(.white.opacity(0.12), in: Capsule())
                 .buttonStyle(.plain)
+                .layoutFrame("close")
         }
     }
 
@@ -175,11 +179,16 @@ struct ProgressComparisonView: View {
         return ZStack(alignment: .top) {
             Color.white.opacity(0.04)
             if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .scaleEffect(view.scale)
-                    .offset(x: view.x, y: view.y)
+                /* Over a layer the size of the panel, so a photo wider than
+                   its panel is cropped by it rather than widening it and
+                   carrying the label out of sight. */
+                Color.clear.overlay {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                        .scaleEffect(view.scale)
+                        .offset(x: view.x, y: view.y)
+                }
             } else if loadFailed {
                 VStack(spacing: 6) {
                     Image(systemName: "photo.badge.exclamationmark")
@@ -203,11 +212,13 @@ struct ProgressComparisonView: View {
                 }
                 .foregroundStyle(.white)
                 .shadow(radius: 6)
+                .layoutFrame(side == .left ? "beforeLabel" : "afterLabel")
                 if side == .left { Spacer() }
             }
             .padding(10)
         }
         .frame(width: width)
+        .layoutFrame(side == .left ? "beforePanel" : "afterPanel")
         .contentShape(Rectangle())
         .gesture(
             DragGesture()

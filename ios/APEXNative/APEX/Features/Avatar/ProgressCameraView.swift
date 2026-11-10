@@ -33,12 +33,26 @@ final class ProgressCameraController: NSObject {
     let reading = ProgressDepthAnalyzer()
     private var captured: ((UIImage) -> Void)?
     private var lifecycleGeneration: UInt64 = 0
+    /* Stands in for the system prompt where there is no camera and nobody to
+       answer it, so the screen can be laid out and checked without one. */
+    private let accessAnswer: (@Sendable () async -> Bool)?
+
+    init(accessAnswer: (@Sendable () async -> Bool)? = nil) {
+        self.accessAnswer = accessAnswer
+        super.init()
+    }
 
     func start(position: AVCaptureDevice.Position = .front) async {
         lifecycleGeneration &+= 1
         let requestGeneration = lifecycleGeneration
         isReady = false
-        guard await AVCaptureDevice.requestAccess(for: .video),
+        let granted: Bool
+        if let accessAnswer {
+            granted = await accessAnswer()
+        } else {
+            granted = await AVCaptureDevice.requestAccess(for: .video)
+        }
+        guard granted,
               Task.isCancelled == false,
               lifecycleGeneration == requestGeneration else { return }
         self.position = position
@@ -185,9 +199,28 @@ struct CameraPreviewLayer: UIViewRepresentable {
     }
 }
 
+/* Where a named control landed on screen. The camera, the comparison and the
+   review card each fill the screen with a photo of any shape, and the only
+   proof that the photo has not pushed a control off it is to lay the real
+   screen out at phone sizes and read these back. */
+struct ProgressLayoutFrames: PreferenceKey {
+    static let defaultValue: [String: CGRect] = [:]
+    static func reduce(value: inout [String: CGRect], nextValue: () -> [String: CGRect]) {
+        value.merge(nextValue()) { $1 }
+    }
+}
+
+extension View {
+    func layoutFrame(_ name: String) -> some View {
+        background(GeometryReader { proxy in
+            Color.clear.preference(key: ProgressLayoutFrames.self, value: [name: proxy.frame(in: .global)])
+        })
+    }
+}
+
 struct ProgressCameraView: View {
     @State private var language = LanguageState.shared
-    @State private var controller = ProgressCameraController()
+    @State private var controller: ProgressCameraController
     @State private var countdown: Int?
     @State private var countdownTask: Task<Void, Never>?
     @State private var timerSeconds = 5
@@ -199,6 +232,8 @@ struct ProgressCameraView: View {
     /// The previous photo in the same pose, shown underneath for alignment.
     var reference: ProgressPhoto?
     let operation: AccountOperationLease
+    /// Replaces the signed download of the previous photo, for layout checks.
+    var loadReferenceImage: ((ProgressPhoto) async throws -> UIImage?)?
     var onClose: () -> Void
 
     /// Whether the user has allowed the front camera for progress scans.
@@ -217,12 +252,16 @@ struct ProgressCameraView: View {
         intent: ProgressCaptureIntent,
         reference: ProgressPhoto? = nil,
         operation: AccountOperationLease,
+        controller: ProgressCameraController = ProgressCameraController(),
+        loadReferenceImage: ((ProgressPhoto) async throws -> UIImage?)? = nil,
         onClose: @escaping () -> Void,
         onCaptured: @escaping (UIImage, ProgressCaptureIntent) -> Void
     ) {
         self.intent = intent
         self.reference = reference
         self.operation = operation
+        _controller = State(initialValue: controller)
+        self.loadReferenceImage = loadReferenceImage
         self.onClose = onClose
         self.onCaptured = onCaptured
         _pose = State(initialValue: intent.pose)
@@ -235,9 +274,16 @@ struct ProgressCameraView: View {
             CameraPreviewLayer(session: controller.session).ignoresSafeArea()
 
             if let referenceImage, ghost > 0 {
-                Image(uiImage: referenceImage)
-                    .resizable()
-                    .scaledToFill()
+                /* Drawn over a layer that is exactly the screen. A filled
+                   image placed straight in the stack reports its own width,
+                   and the stack then lays every control out that wide. */
+                Color.clear
+                    .overlay {
+                        Image(uiImage: referenceImage)
+                            .resizable()
+                            .scaledToFill()
+                    }
+                    .clipped()
                     .opacity(ghost)
                     .allowsHitTesting(false)
                     .ignoresSafeArea()
@@ -271,14 +317,20 @@ struct ProgressCameraView: View {
             guard session.accountOperationIsCurrent(operation),
                   let reference else { return }
             do {
-                let url = try await session.signedProgressURL(
-                    for: reference,
-                    thumbnail: false,
-                    operation: operation
-                )
-                let (data, _) = try await URLSession.shared.data(from: url)
+                let image: UIImage?
+                if let loadReferenceImage {
+                    image = try await loadReferenceImage(reference)
+                } else {
+                    let url = try await session.signedProgressURL(
+                        for: reference,
+                        thumbnail: false,
+                        operation: operation
+                    )
+                    let (data, _) = try await URLSession.shared.data(from: url)
+                    image = UIImage(data: data)
+                }
                 guard session.accountOperationIsCurrent(operation) else { return }
-                referenceImage = UIImage(data: data)
+                referenceImage = image
             } catch is CancellationError {
                 return
             } catch {
@@ -392,6 +444,7 @@ struct ProgressCameraView: View {
             .padding(.horizontal, 12)
             .padding(.vertical, 6)
             .background(.black.opacity(0.35), in: Capsule())
+            .layoutFrame("hint")
             .padding(.bottom, 150)
             .allowsHitTesting(false)
     }
@@ -406,11 +459,13 @@ struct ProgressCameraView: View {
                         .padding(.horizontal, 16)
                         .frame(height: 38)
                         .background(.black.opacity(0.4), in: Capsule())
+                        .layoutFrame("close")
                     Spacer()
                     segmented(
                         options: [("FRONT", "front"), ("SIDE", "side"), ("BACK", "back")],
                         selected: pose
                     ) { pose = $0 }
+                    .layoutFrame("pose")
                 }
                 segmented(
                     options: [
@@ -423,6 +478,7 @@ struct ProgressCameraView: View {
                 ) { raw in
                     if let mode = ProgressPhotoEngine.FramingMode(rawValue: raw) { framing = mode }
                 }
+                .layoutFrame("framing")
             }
             .padding(.horizontal, 14)
             .padding(.top, 8)
@@ -437,6 +493,7 @@ struct ProgressCameraView: View {
                         .font(APEXFont.body(11, weight: .bold))
                         .foregroundStyle(.white)
                 }
+                .layoutFrame("timerRow")
                 Text(language.text("CAMERA ONLY · MICROPHONE OFF").uppercased())
                     .font(APEXFont.mono(8, weight: .bold))
                     .tracking(1.3)
@@ -449,6 +506,7 @@ struct ProgressCameraView: View {
                         .padding(.horizontal, 15)
                         .frame(height: 38)
                         .background(.white.opacity(0.15), in: Capsule())
+                        .layoutFrame("library")
                     Spacer()
                     Button(action: beginCountdown) {
                         Circle()
@@ -459,6 +517,7 @@ struct ProgressCameraView: View {
                     .disabled(!controller.isReady || countdown != nil)
                     .accessibilityLabel(language.format("Take photo in %d seconds", timerSeconds))
                     .accessibilityIdentifier("progress-camera-shutter")
+                    .layoutFrame("shutter")
                     Spacer()
                     if allowsFrontCamera {
                         Text(controller.position == .front ? language.text("REAR") : language.text("FRONT"))
@@ -513,6 +572,7 @@ struct ProgressCameraView: View {
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(.black.opacity(0.4), in: Capsule())
+        .layoutFrame("ghostSlider")
     }
 
     private func segmented(

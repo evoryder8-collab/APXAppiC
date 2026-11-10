@@ -25,6 +25,11 @@ struct VisualProgressView: View {
     @State private var preparationTask: Task<Void, Never>?
     @State private var preparationID: UUID?
 
+    /// Opens straight on the review of a photo already in hand.
+    init(reviewing image: UIImage? = nil) {
+        _selectedImage = State(initialValue: image)
+    }
+
     /* The ghost is the last photo in the same pose. Without it the overlay
        has nothing to align to, which is most of why the camera exists. */
     private func referencePhoto(for pose: String) -> ProgressPhoto? {
@@ -87,6 +92,7 @@ struct VisualProgressView: View {
                             HStack(spacing: 10) {
                                 Button(language.text("Retake")) { self.selectedImage = nil }
                                     .buttonStyle(.bordered)
+                                    .layoutFrame("retake")
                                 Button {
                                     guard let operation = session.accountOperationLease() else { return }
                                     let requestID = UUID()
@@ -103,6 +109,7 @@ struct VisualProgressView: View {
                                 .buttonStyle(.borderedProminent)
                                 .tint(APEXColor.violet)
                                 .disabled(isSaving)
+                                .layoutFrame("save")
                             }
                         }
                     }
@@ -449,10 +456,14 @@ private struct ProgressImageCard: View {
 
     var body: some View {
         ZStack(alignment: .bottomLeading) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
-                .frame(height: 470)
+            /* Over a layer the width of the page, so a square or landscape
+               photo is cropped by the card rather than widening the page. */
+            Color.clear
+                .overlay {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFill()
+                }
                 .clipped()
             LinearGradient(colors: [.clear, .black.opacity(0.68)], startPoint: .center, endPoint: .bottom)
             VStack(alignment: .leading, spacing: 9) {
@@ -471,6 +482,7 @@ private struct ProgressImageCard: View {
         }
         .frame(height: 470)
         .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
+        .layoutFrame("reviewCard")
     }
 
     private func compactBar(_ title: String, _ value: Double, _ color: Color) -> some View {
