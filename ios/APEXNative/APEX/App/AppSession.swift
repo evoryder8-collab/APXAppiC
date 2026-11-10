@@ -5741,6 +5741,7 @@ final class AppSession {
         width: Int,
         height: Int,
         pose: String,
+        framing: ProgressPhotoEngine.FramingMode,
         note: String,
         weightKG: Double? = nil,
         date: Date = .now,
@@ -5750,30 +5751,17 @@ final class AppSession {
         try requireCurrentAccountOperation(operation)
         guard let profile,
               profile.userID == operation.ownerID else { throw CancellationError() }
-        let id = UUID()
-        let owner = operation.ownerID.uuidString.lowercased()
-        let month = String(date.apexDateKey.prefix(7))
-        let stem = id.uuidString.lowercased()
-        let originalPath = "\(owner)/\(month)/\(stem)-original.jpg"
-        let thumbnailPath = "\(owner)/\(month)/\(stem)-thumb.jpg"
-        let row = ProgressPhoto(
-            id: id,
+        let row = ProgressPhotoEngine.checkpoint(
+            id: UUID(),
             userID: operation.ownerID,
-            localDate: date.apexDateKey,
-            capturedAt: date.ISO8601Format(),
+            takenAt: date,
             pose: pose,
-            storagePath: originalPath,
-            thumbnailPath: thumbnailPath,
+            framing: framing,
             width: width,
             height: height,
-            aspectRatio: Double(width) / Double(max(height, 1)),
-            cropX: 0.5,
-            cropY: 0.5,
-            cropScale: 1,
             referencePhotoID: data.progressPhotos.first(where: { $0.pose == pose })?.id,
             weightKG: weightKG,
-            note: note.trimmingCharacters(in: .whitespacesAndNewlines),
-            clientIdempotencyKey: "ios-progress-\(stem)"
+            note: note
         )
         if APEXRuntimeEnvironment.usesLocalUITestFixture() == false {
             do {

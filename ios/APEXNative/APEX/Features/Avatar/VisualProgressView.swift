@@ -11,6 +11,7 @@ struct VisualProgressView: View {
     @State private var pose = "front"
     @State private var note = ""
     @State private var capturedWeightKG: Double?
+    @State private var capturedFraming = ProgressPhotoEngine.FramingMode.full
     @State private var isSaving = false
     @State private var saveTask: Task<Void, Never>?
     @State private var saveOperationID: UUID?
@@ -306,6 +307,7 @@ struct VisualProgressView: View {
                         pose = resolved.pose
                         note = resolved.note
                         capturedWeightKG = resolved.resolvedWeightKG
+                        capturedFraming = resolved.framing
                         captureIntent = nil
                         captureOperation = nil
                         captureRequestID = nil
@@ -383,6 +385,7 @@ struct VisualProgressView: View {
                   let image = UIImage(data: data) else { return }
             selectedImage = image
             capturedWeightKG = nil
+            capturedFraming = .full
         } catch is CancellationError {
             return
         } catch {
@@ -418,6 +421,7 @@ struct VisualProgressView: View {
                 width: Int(normalized.size.width),
                 height: Int(normalized.size.height),
                 pose: pose,
+                framing: capturedFraming,
                 note: note,
                 weightKG: capturedWeightKG,
                 operation: operation

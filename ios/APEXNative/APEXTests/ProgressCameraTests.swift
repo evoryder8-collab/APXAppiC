@@ -489,4 +489,69 @@ final class ProgressCameraTests: XCTestCase {
         XCTAssertEqual(direct.count, 1, "a photo that could not be read was dropped without a word")
         controller.stop()
     }
+
+    /// A 3:4 sensor frame, green with a magenta band down each side edge.
+    private func sensorFrame(sideways: Bool) throws -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let upright = UIGraphicsImageRenderer(size: CGSize(width: 600, height: 800), format: format).image { context in
+            UIColor.green.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 600, height: 800))
+            UIColor.magenta.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 60, height: 800))
+            context.fill(CGRect(x: 540, y: 0, width: 60, height: 800))
+        }
+        guard sideways else { return upright }
+        /* The way the camera delivers it: sensor rows, turned for display. */
+        let turned = UIGraphicsImageRenderer(size: CGSize(width: 800, height: 600), format: format).image { context in
+            context.cgContext.translateBy(x: 0, y: 600)
+            context.cgContext.rotate(by: -.pi / 2)
+            upright.draw(at: .zero)
+        }
+        return UIImage(cgImage: try XCTUnwrap(turned.cgImage), scale: 1, orientation: .right)
+    }
+
+    /// C5. The saved picture is the one that was framed. The preview shows the
+    /// middle of a wider sensor frame, and the save used to keep all of it.
+    func testACaptureIsCutToThePictureThatWasFramed() throws {
+        let preview = 393.0 / 852.0
+        for sideways in [false, true] {
+            let frame = try sensorFrame(sideways: sideways)
+            XCTAssertEqual(frame.size, CGSize(width: 600, height: 800))
+            XCTAssertGreaterThan(try colour(of: frame, at: CGPoint(x: 0.02, y: 0.5)).red, 200, "fixture edge is magenta")
+
+            for framing in [ProgressPhotoEngine.FramingMode.full, .free] {
+                let saved = frame.progressCapture(framing: framing, previewAspectRatio: preview)
+                XCTAssertEqual(saved.size.height, 800, accuracy: 1, framing.rawValue)
+                XCTAssertEqual(saved.size.width / saved.size.height, preview, accuracy: 0.005, framing.rawValue)
+                for x in [0.01, 0.5, 0.99] {
+                    let pixel = try colour(of: saved, at: CGPoint(x: x, y: 0.5))
+                    XCTAssertTrue(
+                        pixel.green > 200 && pixel.red < 60,
+                        "\(framing.rawValue): the part of the frame the preview never showed was saved (x \(x): \(pixel))"
+                    )
+                }
+            }
+
+            let torso = frame.progressCapture(framing: .torso, previewAspectRatio: preview)
+            XCTAssertEqual(torso.size.width, 600, accuracy: 1)
+            XCTAssertEqual(torso.size.width / torso.size.height, 0.8, accuracy: 0.005)
+            XCTAssertGreaterThan(
+                try colour(of: torso, at: CGPoint(x: 0.02, y: 0.5)).red, 200,
+                "a torso photo keeps the full width, for room around the arms"
+            )
+        }
+    }
+
+    /// C5. The crop is measured against the live preview, which is the whole
+    /// screen and not just the area inside the safe margins.
+    func testThePreviewTheCropIsMeasuredAgainstFillsTheScreen() async throws {
+        for phone in Self.phones {
+            let layout = try await layOut(
+                try camera(ghost: nil), size: phone.size, expecting: ["preview", "shutter"],
+                named: "camera, \(phone.name), preview"
+            )
+            XCTAssertEqual(layout.frames["preview"], CGRect(origin: .zero, size: phone.size), phone.name)
+        }
+    }
 }

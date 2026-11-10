@@ -214,6 +214,50 @@ final class ProgressParityTests: XCTestCase {
         XCTAssertNil(reference("side", [front, stranger]), "another account's photo is never a ghost")
     }
 
+    /// C5. The framing chosen in the camera has no column of its own. It is
+    /// carried in the row's key, which is where every reader looks for it.
+    func testASavedPhotoKeepsTheFramingItWasTakenWith() throws {
+        let owner = UUID()
+        func saved(_ framing: ProgressPhotoEngine.FramingMode) -> ProgressPhoto {
+            ProgressPhotoEngine.checkpoint(
+                id: UUID(), userID: owner, takenAt: Date(timeIntervalSince1970: 1_790_000_000), pose: "front",
+                framing: framing, width: 1200, height: 1500, referencePhotoID: nil, weightKG: 71.5,
+                note: "  after training \n"
+            )
+        }
+        for framing in ProgressPhotoEngine.FramingMode.allCases {
+            XCTAssertEqual(ProgressPhotoEngine.framingMode(saved(framing)), framing, framing.rawValue)
+        }
+        XCTAssertNotEqual(
+            saved(.torso).clientIdempotencyKey, saved(.torso).clientIdempotencyKey,
+            "two photos must never share a key, or the second replaces the first"
+        )
+        let row = saved(.torso)
+        XCTAssertEqual(row.userID, owner)
+        XCTAssertEqual(row.aspectRatio, 0.8, accuracy: 0.0001)
+        XCTAssertEqual(row.note, "after training")
+        XCTAssertEqual(row.weightKG, 71.5)
+        XCTAssertTrue(row.storagePath.hasPrefix(owner.uuidString.lowercased() + "/"))
+    }
+
+    /// C5. A torso photo keeps the sensor's full width, so it is a little
+    /// shorter than the preview. Its ghost is drawn that much smaller, or it
+    /// would sit larger than the live picture it is meant to line up with.
+    func testATorsoGhostIsDrawnAtTheSizeItWasTaken() {
+        func row(key: String, aspectRatio: Double) -> ProgressPhoto {
+            ProgressPhoto(
+                id: UUID(), userID: UUID(), localDate: "2026-10-01", capturedAt: "2026-10-01T07:00:00Z",
+                pose: "front", storagePath: "a", thumbnailPath: "b", width: 4, height: 5,
+                aspectRatio: aspectRatio, cropX: 0.5, cropY: 0.5, cropScale: 1, referencePhotoID: nil,
+                weightKG: nil, note: "", clientIdempotencyKey: key
+            )
+        }
+        XCTAssertEqual(ProgressPhotoEngine.ghostScale(row(key: "framing:torso:1", aspectRatio: 0.8)), 0.9375, accuracy: 0.0001)
+        XCTAssertEqual(ProgressPhotoEngine.ghostScale(row(key: "framing:full:1", aspectRatio: 0.46)), 1)
+        XCTAssertEqual(ProgressPhotoEngine.ghostScale(row(key: "ios-progress-1", aspectRatio: 0.75)), 1)
+        XCTAssertEqual(ProgressPhotoEngine.ghostScale(row(key: "framing:torso:1", aspectRatio: 0.6)), 1, "never enlarged")
+    }
+
     /// A comparison must never borrow a score recorded after the photo.
     func testSnapshotNeverComesFromTheFuture() {
         let snapshots = [("2026-05-01", 4.0), ("2026-06-20", 6.0), ("2026-09-01", 9.0)].map { date, level in

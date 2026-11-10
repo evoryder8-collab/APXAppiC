@@ -187,6 +187,26 @@ extension ProgressCameraController: AVCapturePhotoCaptureDelegate {
     }
 }
 
+extension UIImage {
+    /* The picture a capture is saved as. The preview fills the screen with
+       the middle of a wider sensor frame, so the photo is cut to the shape
+       that was on screen (or to the roomier torso frame) and stored upright.
+       Saving the whole frame kept a wider picture than the one lined up. */
+    func progressCapture(framing: ProgressPhotoEngine.FramingMode, previewAspectRatio: Double) -> UIImage {
+        let ratio = ProgressPhotoEngine.captureAspectRatio(framing, previewAspectRatio: previewAspectRatio)
+        guard let crop = ProgressPhotoEngine.coverCrop(
+            width: size.width, height: size.height, targetAspectRatio: ratio
+        ) else { return self }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = scale
+        format.opaque = true
+        let target = CGSize(width: crop.width.rounded(), height: crop.height.rounded())
+        return UIGraphicsImageRenderer(size: target, format: format).image { _ in
+            draw(at: CGPoint(x: -crop.sx, y: -crop.sy))
+        }
+    }
+}
+
 struct CameraPreviewLayer: UIViewRepresentable {
     let session: AVCaptureSession
 
@@ -235,6 +255,8 @@ struct ProgressCameraView: View {
     @State private var ghost: Double = 0.25
     @State private var showLibrary = false
     @State private var captureFailed = false
+    /// Width over height of the live preview, which fills the screen.
+    @State private var previewAspectRatio = 9.0 / 19.5
     @State private var libraryImage: UIImage?
 
     var intent: ProgressCaptureIntent
@@ -286,7 +308,12 @@ struct ProgressCameraView: View {
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            CameraPreviewLayer(session: controller.session).ignoresSafeArea()
+            CameraPreviewLayer(session: controller.session)
+                .onGeometryChange(for: Double.self) { $0.size.width / max($0.size.height, 1) } action: {
+                    previewAspectRatio = $0
+                }
+                .layoutFrame("preview")
+                .ignoresSafeArea()
 
             if let referenceImage, ghost > 0 {
                 /* Drawn over a layer that is exactly the screen. A filled
@@ -300,6 +327,7 @@ struct ProgressCameraView: View {
                             /* The selfie preview is a mirror and saved photos
                                are not, so under it the ghost is mirrored. */
                             .scaleEffect(x: controller.position == .front ? -1 : 1, y: 1)
+                            .scaleEffect(reference.map { ProgressPhotoEngine.ghostScale($0) } ?? 1)
                     }
                     .clipped()
                     .opacity(ghost)
@@ -697,7 +725,10 @@ struct ProgressCameraView: View {
                     captureFailed = true
                     return
                 }
-                onCaptured(image, resolvedIntent)
+                onCaptured(
+                    image.progressCapture(framing: framing, previewAspectRatio: previewAspectRatio),
+                    resolvedIntent
+                )
             }
         }
     }

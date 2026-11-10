@@ -143,11 +143,57 @@ enum ProgressPhotoEngine {
         "framing:\(mode.rawValue):\(id.uuidString.lowercased())"
     }
 
+    /* A torso photo is cut wider than the sensor frame, so it keeps the full
+       width and loses a little height. Drawn to fill the screen its ghost
+       would sit larger than the live picture, so it is drawn this much
+       smaller. Every other photo fills the preview as it was taken. */
+    static func ghostScale(_ photo: ProgressPhoto, sensorAspectRatio: Double = 3.0 / 4.0) -> Double {
+        guard framingMode(photo) == .torso, photo.aspectRatio > sensorAspectRatio else { return 1 }
+        return sensorAspectRatio / photo.aspectRatio
+    }
+
     /* Full and free keep the camera preview crop from before framing modes
        existed. Torso deliberately saves a wider 4:5 source, for room around
        the shoulders and arms in a side-by-side. */
     static func captureAspectRatio(_ mode: FramingMode, previewAspectRatio: Double) -> Double {
         mode == .torso ? 4.0 / 5.0 : previewAspectRatio
+    }
+
+    /// The row a new photo is stored as.
+    static func checkpoint(
+        id: UUID,
+        userID: UUID,
+        takenAt: Date,
+        pose: String,
+        framing: FramingMode,
+        width: Int,
+        height: Int,
+        referencePhotoID: UUID?,
+        weightKG: Double?,
+        note: String
+    ) -> ProgressPhoto {
+        let owner = userID.uuidString.lowercased()
+        let month = String(takenAt.apexDateKey.prefix(7))
+        let stem = id.uuidString.lowercased()
+        return ProgressPhoto(
+            id: id,
+            userID: userID,
+            localDate: takenAt.apexDateKey,
+            capturedAt: takenAt.ISO8601Format(),
+            pose: pose,
+            storagePath: "\(owner)/\(month)/\(stem)-original.jpg",
+            thumbnailPath: "\(owner)/\(month)/\(stem)-thumb.jpg",
+            width: width,
+            height: height,
+            aspectRatio: Double(width) / Double(max(height, 1)),
+            cropX: 0.5,
+            cropY: 0.5,
+            cropScale: 1,
+            referencePhotoID: referencePhotoID,
+            weightKG: weightKG,
+            note: note.trimmingCharacters(in: .whitespacesAndNewlines),
+            clientIdempotencyKey: idempotencyKey(framing, id: id)
+        )
     }
 
     /* Parity: formatProgressPhotoMoment. "19 Aug 2026 at 06:37", from the
