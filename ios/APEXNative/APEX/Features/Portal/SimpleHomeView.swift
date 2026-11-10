@@ -876,26 +876,10 @@ struct SimpleHomeView: View {
 
     private func toggle(_ group: SimpleSupplementGroup) {
         guard let operation = session.accountOperationLease() else { return }
-        let completed = groupDone(group)
+        let date = selectedDate
         Task {
             do {
-                for supplement in group.supplements {
-                    try Task.checkCancellation()
-                    guard session.accountOperationIsCurrent(operation) else {
-                        throw CancellationError()
-                    }
-                    let isDone = session.data.supplementLogs.contains {
-                        $0.userID == operation.ownerID
-                            && $0.date == today
-                            && $0.supplementID == supplement.id
-                    }
-                    if completed || !isDone {
-                        try await session.toggleSupplement(
-                            supplement,
-                            operation: operation
-                        )
-                    }
-                }
+                try await session.toggleSupplementGroup(group.supplements, on: date, operation: operation)
             } catch is CancellationError {
                 return
             } catch {

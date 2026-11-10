@@ -2692,7 +2692,7 @@ final class AppSession {
 
     func toggleSupplement(
         _ supplement: Supplement,
-        on date: Date = .now,
+        on date: Date,
         operation: AccountOperationLease
     ) async throws {
         try requireCurrentAccountOperation(operation)
@@ -2711,6 +2711,27 @@ final class AppSession {
         try requireCurrentAccountOperation(operation)
         try await refreshNudges(operation: operation)
         try requireCurrentAccountOperation(operation)
+    }
+
+    /// "Mark group done" for one day: ticks what is still open, or clears the group once all of it is ticked.
+    /// The day is read and written from the same value, the day the screen shows.
+    func toggleSupplementGroup(
+        _ supplements: [Supplement],
+        on date: Date,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        let day = date.apexDateKey
+        func taken(_ supplement: Supplement) -> Bool {
+            data.supplementLogs.contains {
+                $0.userID == operation.ownerID && $0.date == day && $0.supplementID == supplement.id
+            }
+        }
+        let completed = !supplements.isEmpty && supplements.allSatisfy(taken)
+        for supplement in supplements where completed || !taken(supplement) {
+            try Task.checkCancellation()
+            try await toggleSupplement(supplement, on: date, operation: operation)
+        }
     }
 
     /// Explicit values make the immediate and durable Watch delivery paths

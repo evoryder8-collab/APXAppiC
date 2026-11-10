@@ -79,4 +79,33 @@ final class HydrationDayTests: XCTestCase {
 
         XCTAssertEqual(session.browsingDate.apexDateKey, Date().apexDateKey)
     }
+
+    func testMarkGroupDoneTicksTheDayOnScreenAndLeavesTodayAlone() async throws {
+        let (session, operation) = try sandbox()
+        let group = Array(session.activeSupplements.prefix(2))
+        XCTAssertEqual(group.count, 2)
+        let ids = Set(group.map(\.id))
+        let today = Date()
+        let browsed = try date(emptyDay)
+        for supplement in group where !ticked(session, on: today.apexDateKey).contains(supplement.id) {
+            try await session.toggleSupplement(supplement, on: today, operation: operation)
+        }
+        let todayBefore = ticked(session, on: today.apexDateKey)
+        XCTAssertTrue(todayBefore.isSuperset(of: ids))
+
+        // Nothing ticked on the browsed day: the group is ticked there.
+        try await session.toggleSupplementGroup(group, on: browsed, operation: operation)
+        XCTAssertEqual(ticked(session, on: emptyDay), ids)
+        XCTAssertEqual(ticked(session, on: today.apexDateKey), todayBefore, "today's ticks are untouched")
+
+        // One still open on the browsed day: the group completes it.
+        try await session.toggleSupplement(group[0], on: browsed, operation: operation)
+        try await session.toggleSupplementGroup(group, on: browsed, operation: operation)
+        XCTAssertEqual(ticked(session, on: emptyDay), ids)
+
+        // All ticked: the group clears that day and only that day.
+        try await session.toggleSupplementGroup(group, on: browsed, operation: operation)
+        XCTAssertTrue(ticked(session, on: emptyDay).isEmpty)
+        XCTAssertEqual(ticked(session, on: today.apexDateKey), todayBefore)
+    }
 }
