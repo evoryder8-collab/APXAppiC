@@ -159,8 +159,9 @@ final class AvatarScoreInputTests: XCTestCase {
     func testEveningCalibrationWestOfGreenwichBelongsToTheLocalDay() throws {
         let losAngeles = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
         let record = evidence(.cardioCapacityScore, value: 62, measuredAt: "2026-11-10T02:30:00Z")
+        let profile = try XCTUnwrap(FitnessBrainService.engineInput(from: dashboard())).profile
         let anchors = FitnessBrainService.capacityCalibrationEvidence(
-            from: [record], ownerID: owner, timeZone: losAngeles)
+            from: [record], profile: profile, timeZone: losAngeles)
         XCTAssertEqual(anchors.map(\.measuredOn), ["2026-11-09"])
     }
 
@@ -172,6 +173,26 @@ final class AvatarScoreInputTests: XCTestCase {
                                          protocolName: "apex_onboarding_pulse_v1")]
         let input = try XCTUnwrap(FitnessBrainService.engineInput(from: data, timeZone: losAngeles))
         XCTAssertTrue(input.capacityCalibrationEvidence.isEmpty)
+    }
+
+    func testOnboardingAnswersNeverAlterChosenStartingPointsWhereverThePhoneIs() throws {
+        let zones = ["America/Los_Angeles", "UTC", "Asia/Tokyo"].compactMap(TimeZone.init(identifier:))
+        func kept(answeredAt: String) throws -> [Int] {
+            var data = dashboard(baseline: "2026-11-09")
+            data.profile?.avatarStartingPoints = AvatarStartingPoints.balanced
+            data.fitnessEvidence = [evidence(.cardioCapacityScore, value: 77, measuredAt: answeredAt,
+                                             protocolName: "apex_onboarding_pulse_v1")]
+            return try zones.map { zone in
+                try XCTUnwrap(FitnessBrainService.engineInput(from: data, timeZone: zone))
+                    .capacityCalibrationEvidence.count
+            }
+        }
+        // 08:00 in Tokyo, on an account an earlier build dated by the server's UTC day.
+        XCTAssertEqual(try kept(answeredAt: "2026-11-09T23:00:00Z"), [0, 0, 0])
+        // 18:30 in Los Angeles, replayed later with the phone somewhere else.
+        XCTAssertEqual(try kept(answeredAt: "2026-11-10T02:30:00Z"), [0, 0, 0])
+        // A pulse answered days after joining is new evidence everywhere.
+        XCTAssertEqual(try kept(answeredAt: "2026-11-12T12:00:00Z"), [1, 1, 1])
     }
 
     func testScoresShowOnSignupDayWhenTheStoredBaselineIsAheadOfTheDeviceDate() throws {

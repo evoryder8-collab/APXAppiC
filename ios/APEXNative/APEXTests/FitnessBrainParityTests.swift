@@ -348,9 +348,7 @@ final class FitnessBrainParityTests: XCTestCase {
             importedActivities: input.imported_activities,
             // The web reads the UTC day of each record, so the fixture is replayed in UTC.
             capacityCalibrationEvidence: FitnessBrainService.capacityCalibrationEvidence(
-                from: input.fitness_evidence ?? [],
-                ownerID: UUID(uuidString: input.profile.userID) ?? UUID(),
-                timeZone: TimeZone(secondsFromGMT: 0) ?? .current),
+                from: input.fitness_evidence ?? [], profile: input.profile, timeZone: .gmt),
             recoveryHistory: input.settings_addons?.recovery_history ?? [],
             mealRhythmHistory: input.settings_addons?.meal_rhythm_history ?? [:]
         )

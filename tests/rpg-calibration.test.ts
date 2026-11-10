@@ -94,6 +94,28 @@ test('chosen starting points replace the onboarding estimate and keep later capa
   assert.ok(computeEngine(data, '2026-08-31').snapshots.at(-1)!.endurance > 65)
 })
 
+test('onboarding answers never alter chosen starting points, on the signup night or any day after', () => {
+  const start = { health: 50, joint: 50, flexibility: 50, endurance: 35, strength_lower: 30, strength_upper: 85 }
+  const endurance = (answeredAt: string, through: string) => {
+    const data = dashboard([{
+      ...evidence('cardio_capacity_score', ownerID, 77, answeredAt),
+      measured_at: answeredAt,
+      protocol: 'apex_onboarding_pulse_v1',
+      metadata: { lower_bound: 70 },
+    }])
+    data.profile = { ...profile, avatar_starting_points: start }
+    return computeEngine(data, through).snapshots.at(-1)?.endurance
+  }
+  // 20:00 in Los Angeles on the baseline day is already the next UTC day.
+  assert.equal(endurance('2026-08-31T03:00:00.000Z', '2026-08-30'), 35)
+  assert.equal(endurance('2026-08-31T03:00:00.000Z', '2026-08-31'), 35)
+  assert.equal(endurance('2026-08-31T03:00:00.000Z', '2026-09-04'), 35)
+  // 08:00 in Tokyo on the baseline day is still the previous UTC day.
+  assert.equal(endurance('2026-08-29T23:00:00.000Z', '2026-09-04'), 35)
+  // A pulse answered days after joining is new evidence.
+  assert.equal(endurance('2026-09-02T08:00:00.000Z', '2026-09-04'), 49.7)
+})
+
 test('a later self-check lifts a score below its band once and never lowers an earned score', () => {
   const start = { health: 50, joint: 50, flexibility: 50, endurance: 35, strength_lower: 30, strength_upper: 85 }
   const answer = (metric: FitnessEvidenceRecord['metric'], value: number, lowerBound: number, day: string) => ({

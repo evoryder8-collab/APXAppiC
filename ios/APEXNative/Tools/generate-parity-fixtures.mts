@@ -320,12 +320,31 @@ for (const persona of ['june', 'matthew'] as PersonaSlug[]) {
   scenarios.push({ name: 'bespoke_partly_logged_day', persona: 'constantine', throughDate: '2026-07-01', data: d })
 }
 
+/* 10: answers given while joining never alter chosen starting points, whatever UTC day they carry */
+{
+  const d = base('constantine')
+  d.profile = {
+    ...d.profile!,
+    avatar_starting_points: { health: 75, joint: 75, flexibility: 45, endurance: 35, strength_upper: 40, strength_lower: 30 },
+  }
+  const onboarding = 'apex_onboarding_pulse_v1'
+  /* an evening west of Greenwich on the baseline day is stamped with the next UTC day */
+  selfCheck(d, 'cardio_capacity_score', 77, 70, `${addDays(BASELINE, 1)}T03:00:00.000Z`, onboarding)
+  /* a morning east of Greenwich is stamped with the previous UTC day */
+  selfCheck(d, 'upper_body_strength_score', 77, 70, `${addDays(BASELINE, -1)}T23:00:00.000Z`, onboarding)
+  /* a pulse answered after that is new evidence, from the first UTC day no joining answer can carry */
+  selfCheck(d, 'flexibility_score', 62, 55, `${addDays(BASELINE, 2)}T00:30:00.000Z`, onboarding)
+  selfCheck(d, 'lower_body_strength_score', 62, 55, '2026-06-05T08:00:00.000Z', onboarding)
+  scenarios.push({ name: 'joining_answers_and_chosen_start', persona: 'constantine', throughDate: THROUGH, data: d })
+}
+
 function selfCheck(
   data: AppData,
   metric: FitnessEvidenceRecord['metric'],
   value: number,
   lowerBound: number,
   measuredAt: string,
+  protocol = 'apex_baseline_calibration_v1',
 ): void {
   const id = fid()
   data.fitness_evidence.push({
@@ -335,7 +354,7 @@ function selfCheck(
     value,
     unit: 'score_0_100',
     source: 'structured_self_report',
-    protocol: 'apex_baseline_calibration_v1',
+    protocol,
     device: null,
     measured_at: measuredAt,
     imported_at: measuredAt,

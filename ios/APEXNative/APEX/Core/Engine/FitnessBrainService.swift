@@ -69,8 +69,6 @@ enum FitnessBrainService {
         )
 
         fbProfile.avatarStartingPoints = profile.avatarStartingPoints
-        let hasChosenStart = ProfileIntegrityPolicy.authorizedProtocol(for: profile) == nil
-            && AvatarStartingPoints.stats(profile.avatarStartingPoints) != nil
         let ownerID = profile.userID
         let programDays = data.programDays.compactMap { day -> FBProgramDayRef? in
             // A coach plan has no day category of its own. Its performed movements earn the
@@ -175,14 +173,7 @@ enum FitnessBrainService {
             healthMetrics: metrics,
             importedActivities: imports,
             capacityCalibrationEvidence: capacityCalibrationEvidence(
-                from: (data.fitnessEvidence ?? []).filter { record in
-                    !hasChosenStart
-                        || record.protocol != "apex_onboarding_pulse_v1"
-                        || localDay(of: record.measuredAt, in: timeZone) > profile.baselineDate
-                },
-                ownerID: profile.userID,
-                timeZone: timeZone
-            ),
+                from: data.fitnessEvidence ?? [], profile: fbProfile, timeZone: timeZone),
             recoveryHistory: recoveryHistory(from: data.settings?.addons),
             mealRhythmHistory: mealRhythmHistory(from: data.settings?.addons),
             trainingGoal: nutritionPlanContext?.trainingGoal,
@@ -249,9 +240,16 @@ enum FitnessBrainService {
 
     static func capacityCalibrationEvidence(
         from records: [FitnessEvidenceRecord],
-        ownerID: UUID,
+        profile: FBProfile,
         timeZone: TimeZone = .current
     ) -> [FBCapacityCalibrationEvidence] {
+        let ownerID = UUID(uuidString: profile.userID)
+        // Answers given while joining are already in the chosen starting points. Their UTC stamp
+        // is at most one day past the baseline in every time zone, so this rule gives the same
+        // answer wherever the phone is when the history is replayed.
+        let chosenStart = profile.authorizedProtocol == nil
+            && AvatarStartingPoints.stats(profile.avatarStartingPoints) != nil
+        let joinedBy = chosenStart ? FBDate.addDays(profile.baselineDate, 1) : nil
         let supportedProtocols: Set<String> = [
             "apex_onboarding_pulse_v1",
             "apex_baseline_calibration_v1",
@@ -274,6 +272,8 @@ enum FitnessBrainService {
                   supportedProtocols.contains(protocolName),
                   let metric = metrics[record.metric],
                   record.measuredAt.count >= 10 else { return nil }
+            if protocolName == "apex_onboarding_pulse_v1", let joinedBy,
+               localDay(of: record.measuredAt, in: .gmt) <= joinedBy { return nil }
 
             let measuredOn = localDay(of: record.measuredAt, in: timeZone)
             guard measuredOn.count == 10,

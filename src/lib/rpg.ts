@@ -231,7 +231,7 @@ function capacityCalibrationTimeline(
       || record.confidence !== 'low'
       || record.unit !== 'score_0_100'
       || !capacityCalibrationProtocols.has(record.protocol ?? '')
-      || (record.protocol === 'apex_onboarding_pulse_v1' && ignoreOnboardingThrough != null && measuredOn <= ignoreOnboardingThrough)
+      || (record.protocol === 'apex_onboarding_pulse_v1' && ignoreOnboardingThrough != null && stamped <= ignoreOnboardingThrough)
       || !Number.isFinite(record.value)
       || record.value < 0
       || record.value > 100
@@ -572,7 +572,13 @@ export function computeEngine(data: AppData, throughDate: string,
   function observe(key: keyof StatBlock, day: string) { firstObserved[key] ??= day }
   if (authored || allocated) for (const key of Object.keys(s) as (keyof StatBlock)[]) observe(key, start)
   let lastLegsOffset = -99 // day index of the last completed leg session
-  const calibrationTimeline = capacityCalibrationTimeline(data, start, throughDate, allocated ? profile.baseline_date : undefined)
+  // Answers given while joining are already in the chosen starting points. Their UTC stamp is
+  // at most one day past the baseline in every time zone, so this rule gives the same answer
+  // wherever the history is replayed.
+  const joinedBy = allocated
+    ? new Date(Date.parse(`${profile.baseline_date}T12:00:00Z`) + 86_400_000).toISOString().slice(0, 10)
+    : undefined
+  const calibrationTimeline = capacityCalibrationTimeline(data, start, throughDate, joinedBy)
   const creditedSelfChecks = new Map<CapacityCalibrationMetric, number>()
   const atBaseline = applyCapacityCalibration(s, calibrationTimeline.beforeBaseline, firstObserved, creditedSelfChecks)
   for (const metric of atBaseline) observe(calibratedStat[metric], start)
