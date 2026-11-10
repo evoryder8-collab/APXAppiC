@@ -132,6 +132,9 @@ enum FitnessBrainService {
                   ) else { return nil }
             return .init(id: session.id, startedAt: startedAt)
         }
+        let completedByDate = Dictionary(grouping: ownedSessions.filter(\.completed), by: \.date)
+        let modesBySession = Dictionary(grouping: data.workoutLogs.filter { $0.userID == ownerID }, by: \.sessionID)
+            .mapValues(TrainingProfile90.modes(of:))
         let imports = data.importedActivities.compactMap { activity -> FBImportedActivity? in
             guard activity.userID == profile.userID,
                   activity.isVisibleInAPEX,
@@ -140,6 +143,10 @@ enum FitnessBrainService {
                     activity,
                     apexSessions: apexSessionIdentities
                   ) == false,
+                  // An unlinked Watch recording of an app workout is that workout, not a second one.
+                  completedByDate[activity.date]?.contains(where: {
+                      TrainingProfile90.recordsSameWorkout(activity, as: $0, modes: modesBySession[$0.id] ?? [])
+                  }) != true,
                   let kind = FBImportKind(rawValue: activity.kind) else { return nil }
             return FBImportedActivity(
                 date: activity.date, kind: kind, durationMin: Double(activity.durationMinutes))

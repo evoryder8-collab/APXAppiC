@@ -105,4 +105,22 @@ final class AvatarScoreInputTests: XCTestCase {
         data.workoutLogs.append(set("barbell_back_squat", session: evening.id))
         XCTAssertGreaterThan(try latest(data).strengthLower, once.strengthLower)
     }
+
+    func testUnlinkedWatchRecordingOfAnAppWorkoutIsNotASecondWorkout() throws {
+        var data = dashboard()
+        let session = workout()
+        data.workoutSessions = [session]
+        data.workoutLogs = [set("barbell_back_squat", session: session.id)]
+        func watch(_ start: String, _ end: String) -> ImportedActivity {
+            ImportedActivity(
+                id: UUID(), userID: owner, date: session.date, kind: "strength",
+                activity: "Traditional Strength Training", durationMinutes: 56, source: "Apple Watch",
+                healthKitWorkoutID: UUID(), startedAt: start, endedAt: end,
+                sourceBundleIdentifier: "com.apple.health")
+        }
+        data.importedActivities = [watch("2026-10-05T08:02:00Z", "2026-10-05T08:58:00Z")]
+        XCTAssertTrue(try XCTUnwrap(FitnessBrainService.engineInput(from: data)).importedActivities.isEmpty)
+        data.importedActivities = [watch("2026-10-05T18:00:00Z", "2026-10-05T18:56:00Z")]
+        XCTAssertEqual(try XCTUnwrap(FitnessBrainService.engineInput(from: data)).importedActivities.count, 1)
+    }
 }
