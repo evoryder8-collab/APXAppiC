@@ -3038,39 +3038,10 @@ final class AppSession {
     func refreshNudges(operation: AccountOperationLease) async throws {
         if isDeveloperSandbox { return }
         try requireCurrentAccountOperation(operation)
-        guard let profile, profile.userID == operation.ownerID else { throw CancellationError() }
+        guard profile?.userID == operation.ownerID else { throw CancellationError() }
         NudgeCenter.shared.activate(ownerID: operation.ownerID)
-        let today = Date().apexDateKey
-        let logs = data.activityLogs.filter {
-            $0.userID == operation.ownerID && $0.date == today
-        }
-        let targets = EnergyEngine.targets(
-            profile: profile,
-            logs: logs,
-            catalog: data.activityTypes,
-            planContext: NutritionGoalPolicy.context(from: data.settings),
-            settings: data.settings,
-            wearableActiveCalories: WearableActivityRecord.activeCalories(
-                on: today,
-                settings: data.settings,
-                ownerID: operation.ownerID
-            )
-        )
-        let consumed = data.loggedMeals
-            .filter { $0.userID == operation.ownerID && $0.localDate == today }
-            .reduce(0.0) { $0 + $1.totalProteinG }
-        let creatine = activeSupplements.first { $0.name.lowercased().contains("creatine") }
-        let creatineLogged = creatine.map { supplement in
-            data.supplementLogs.contains { $0.date == today && $0.supplementID == supplement.id }
-        } ?? false
-
         await NudgeCenter.shared.refresh(
-            proteinConsumedG: consumed,
-            proteinTargetG: Double(targets.proteinG),
-            goal: profile.goal.rawValue,
-            bodyweightKG: profile.weightKG,
-            creatineInStack: creatine != nil,
-            creatineLoggedToday: creatineLogged
+            DailyNudges.nudges(ownerID: operation.ownerID, data: data, today: Date().apexDateKey)
         )
         try requireCurrentAccountOperation(operation)
     }

@@ -193,31 +193,9 @@ final class NudgeCenter {
         return authorised
     }
 
-    /// Recompute the day and re-register the evening reminder.
-    func refresh(
-        proteinConsumedG: Double,
-        proteinTargetG: Double,
-        goal: String,
-        bodyweightKG: Double,
-        creatineInStack: Bool,
-        creatineLoggedToday: Bool
-    ) async {
-        var nudges: [DailyNudges.Nudge] = []
-        if let protein = DailyNudges.proteinShortfall(
-            consumedG: proteinConsumedG,
-            targetG: proteinTargetG,
-            goal: goal,
-            bodyweightKG: bodyweightKG
-        ) {
-            nudges.append(protein)
-        }
-        if let creatine = DailyNudges.creatineMissed(
-            loggedToday: creatineLoggedToday,
-            inStack: creatineInStack
-        ) {
-            nudges.append(creatine)
-        }
-        /* Computed without suspending, so what the bell shows is always the
+    /// Show the day's reminders and re-register the evening one.
+    func refresh(_ nudges: [DailyNudges.Nudge]) async {
+        /* Set without suspending, so what the bell shows is always the
            newest answer even if the scheduling below is overtaken. */
         pending = nudges
 

@@ -1334,7 +1334,11 @@ private struct BodyAssessmentCard: View {
             language.lowercased(activity.level.title),
             targets.targetCalories
         ))
-        if protein < Int(Double(targets.proteinG) * 0.75) {
+        if DailyNudges.proteinIsShort(
+            consumedG: Double(protein),
+            targetG: Double(targets.proteinG),
+            losingWeight: profile.goal == .recomp
+        ) {
             statements.append(language.format(
                 "Protein is currently the clearest nutrition gap. Aim toward %d g to protect recovery and lean mass.",
                 targets.proteinG

@@ -116,6 +116,107 @@ extension DailyNudgesTests {
     }
 }
 
+// MARK: - The day's reminders, from the day's records
+
+extension DailyNudgesTests {
+    private static let owner = UUID(uuidString: "00000000-0000-0000-0000-0000000000aa")!
+    private static let day = "2026-11-10"
+
+    /// An 80 kg man on Maintain, moderately active: 152 g of protein a day.
+    private func dayData(goal: Goal = .maintain, addons: [String: JSONValue] = [:]) -> DashboardData {
+        var data = DashboardData()
+        data.profile = Profile(
+            id: Self.owner, userID: Self.owner, persona: .iulian, profileKind: .standard, bespokeProtocolID: nil,
+            displayName: "Test User", sex: "male", weightKG: 80, bodyFatPercent: nil, bodyFatSource: nil,
+            bodyFatMeasuredAt: nil, customBMR: nil, heightCM: 180, birthdate: "1996-01-01",
+            activityLevel: .moderate, goal: goal, targetKcal: nil, targetProteinG: nil,
+            targetFatG: nil, targetCarbsG: nil, trainingTime: "07:00", baselineDate: "2026-01-01",
+            profileNote: "", seedVersion: 1, calibrationK: 1, calibrationHistory: [],
+            updatedAt: "2026-01-01T00:00:00Z"
+        )
+        data.settings = UserSettings(
+            userID: Self.owner, voiceOn: false, ticksOn: false, notificationsOn: false, guardianFactor: 1,
+            addons: addons
+        )
+        return data
+    }
+
+    private func meal(kcal: Double, protein: Double) -> LoggedMeal {
+        LoggedMeal(
+            id: UUID(), userID: Self.owner, localDate: Self.day, mealSlot: "lunch", displayName: "Meal",
+            sourcePresetID: nil, sourcePlannedMealID: nil, loggedAt: "\(Self.day)T12:00:00Z",
+            clientIdempotencyKey: UUID().uuidString, loggedAs: "manual",
+            totalKcal: kcal, totalProteinG: protein, totalCarbsG: 0, totalFatG: 0
+        )
+    }
+
+    private func manualTotal(kcal: Int, protein: Int?) -> DailyLog {
+        DailyLog(
+            id: UUID(), userID: Self.owner, date: Self.day, kcal: kcal, proteinG: protein, fatG: nil,
+            carbsG: nil, waterL: 0, estimatedTDEE: nil, computedPAL: nil, activityMode: "quick",
+            weightKG: nil
+        )
+    }
+
+    private func nudges(_ data: DashboardData) -> [DailyNudges.Nudge] {
+        DailyNudges.nudges(ownerID: Self.owner, data: data, today: Self.day)
+    }
+
+    func testProteinIsNotJudgedUntilTheDayIsFullyLogged() {
+        var data = dayData()
+        XCTAssertEqual(
+            EnergyEngine.targets(profile: data.profile!, logs: [], catalog: []).proteinG, 152,
+            "The fixture's protein target"
+        )
+        XCTAssertEqual(nudges(data), [], "08:00 with nothing logged is not a shortfall")
+
+        data.loggedMeals = [meal(kcal: 600, protein: 30)]
+        XCTAssertEqual(nudges(data), [], "Breakfast alone is a partly logged day")
+
+        data.loggedMeals = [meal(kcal: 600, protein: 30), meal(kcal: 600, protein: 30), meal(kcal: 600, protein: 30)]
+        XCTAssertEqual(nudges(data).map(\.kind), [.proteinShort], "A full day of meals that is short is worth saying")
+        XCTAssertEqual(nudges(data).first?.shortfallG, 62)
+        XCTAssertEqual(nudges(data).first?.date, Self.day)
+
+        data.loggedMeals = [meal(kcal: 700, protein: 50), meal(kcal: 700, protein: 50), meal(kcal: 700, protein: 50)]
+        XCTAssertEqual(nudges(data), [], "150 g of 152 g is covered")
+
+        data.loggedMeals = []
+        data.dailyLogs = [manualTotal(kcal: 2_000, protein: 60)]
+        XCTAssertEqual(nudges(data).first?.shortfallG, 92, "A manual daily total counts as a full day")
+
+        data.dailyLogs = [manualTotal(kcal: 2_000, protein: nil)]
+        XCTAssertEqual(nudges(data), [], "A total with no protein figure cannot be judged")
+    }
+
+    func testAPlanWithTwoMealsIsJudgedAfterTwo() {
+        var data = dayData(addons: ["meal_blocks": .object(["blocks": .array(
+            ["breakfast", "snack", "post_workout"].map { .object(["id": .string($0), "enabled": .bool(false)]) }
+        )])])
+        XCTAssertEqual(MealBlocks.enabled(data.settings?.addons["meal_blocks"]).count, 2)
+        data.loggedMeals = [meal(kcal: 900, protein: 30), meal(kcal: 900, protein: 30)]
+        XCTAssertEqual(nudges(data).map(\.kind), [.proteinShort])
+    }
+
+    func testTheReminderAndTheAssessmentShareOneProteinLine() {
+        for losing in [true, false] {
+            for consumed in stride(from: 0.0, through: 160, by: 2.5) {
+                XCTAssertEqual(
+                    DailyNudges.proteinShortfall(
+                        consumedG: consumed, targetG: 150, goal: losing ? "recomp" : "maintain", bodyweightKG: 80
+                    ) != nil,
+                    DailyNudges.proteinIsShort(consumedG: consumed, targetG: 150, losingWeight: losing),
+                    "\(consumed) g of 150 g, losing weight: \(losing)"
+                )
+            }
+        }
+        // 80 %: on track while maintaining, the next gain on a cut.
+        XCTAssertFalse(DailyNudges.proteinIsShort(consumedG: 120, targetG: 150, losingWeight: false))
+        XCTAssertTrue(DailyNudges.proteinIsShort(consumedG: 120, targetG: 150, losingWeight: true))
+        XCTAssertFalse(DailyNudges.proteinIsShort(consumedG: 0, targetG: 0, losingWeight: true), "No target, nothing to judge")
+    }
+}
+
 @MainActor
 extension DailyNudgesTests {
 
@@ -146,14 +247,7 @@ extension DailyNudgesTests {
             defaults: defaults
         )
         centre.activate(ownerID: UUID())
-        await centre.refresh(
-            proteinConsumedG: 0,
-            proteinTargetG: 150,
-            goal: "cut",
-            bodyweightKG: 80,
-            creatineInStack: false,
-            creatineLoggedToday: true
-        )
+        await centre.refresh([DailyNudges.Nudge(kind: .proteinShort, date: DailyNudges.today())])
         XCTAssertFalse(centre.pending.isEmpty)
 
         centre.clearAccountBoundary()
@@ -309,14 +403,7 @@ extension DailyNudgesTests {
         scheduler.onPendingRequests = { centre.activate(ownerID: secondOwner) }
         centre.activate(ownerID: firstOwner)
 
-        await centre.refresh(
-            proteinConsumedG: 0,
-            proteinTargetG: 150,
-            goal: "cut",
-            bodyweightKG: 80,
-            creatineInStack: false,
-            creatineLoggedToday: true
-        )
+        await centre.refresh([DailyNudges.Nudge(kind: .proteinShort, date: DailyNudges.today())])
 
         XCTAssertTrue(scheduler.addedIdentifiers.isEmpty)
         XCTAssertTrue(centre.pending.isEmpty)
@@ -330,14 +417,7 @@ extension DailyNudgesTests {
 
         let granted = await centre.requestPermission(ownerID: ownerID)
         XCTAssertTrue(granted)
-        await centre.refresh(
-            proteinConsumedG: 0,
-            proteinTargetG: 150,
-            goal: "cut",
-            bodyweightKG: 80,
-            creatineInStack: false,
-            creatineLoggedToday: true
-        )
+        await centre.refresh([DailyNudges.Nudge(kind: .proteinShort, date: DailyNudges.today())])
 
         XCTAssertTrue(
             scheduler.addedIdentifiers.allSatisfy { $0.contains(ownerID.uuidString.lowercased()) },
@@ -374,14 +454,7 @@ extension DailyNudgesTests {
         let secondOwner = UUID(uuidString: "00000000-0000-0000-0000-000000000002")!
 
         centre.activate(ownerID: secondOwner)
-        await centre.refresh(
-            proteinConsumedG: 0,
-            proteinTargetG: 150,
-            goal: "cut",
-            bodyweightKG: 80,
-            creatineInStack: false,
-            creatineLoggedToday: true
-        )
+        await centre.refresh([DailyNudges.Nudge(kind: .proteinShort, date: DailyNudges.today())])
         XCTAssertEqual(centre.unreadCount, 1)
         scheduler.readPermissionCallCount = 0
 

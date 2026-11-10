@@ -54,6 +54,15 @@ enum DailyNudges {
         return max(20, min(60, Int((cap / 5).rounded() * 5)))
     }
 
+    /// The line below which a day's protein is short: under 85% of target
+    /// while losing weight, under 70% otherwise.
+    ///
+    /// One rule for the evening reminder and the assessment on the Nutrition
+    /// screen, so the screen never reads "on track" while the bell says short.
+    static func proteinIsShort(consumedG: Double, targetG: Double, losingWeight: Bool) -> Bool {
+        targetG > 0 && consumedG / targetG < (losingWeight ? 0.85 : 0.70)
+    }
+
     /// Whether the day is short enough on protein to be worth saying so.
     ///
     /// Deliberately not a nudge for being a little under: a reminder that fires
@@ -62,21 +71,18 @@ enum DailyNudges {
         consumedG: Double,
         targetG: Double,
         goal: String,
-        bodyweightKG: Double
+        bodyweightKG: Double,
+        date: String = today()
     ) -> Nudge? {
-        guard targetG > 0 else { return nil }
-        let shortfall = targetG - consumedG
-        guard shortfall > 0 else { return nil }
-
         let losing = ["cut", "recomp", "lean", "fat_loss", "weight_loss"]
             .contains { goal.lowercased().contains($0) }
-        // Under 85% while losing weight, under 70% otherwise.
-        guard consumedG / targetG < (losing ? 0.85 : 0.70) else { return nil }
+        guard proteinIsShort(consumedG: consumedG, targetG: targetG, losingWeight: losing) else { return nil }
+        let shortfall = targetG - consumedG
 
         let cap = singleSittingCapGrams(bodyweightKG: bodyweightKG)
         return Nudge(
             kind: .proteinShort,
-            date: Self.today(),
+            date: date,
             shortfallG: Int(shortfall.rounded()),
             tonightG: min(Int(shortfall.rounded()), cap),
             capG: cap,
@@ -89,9 +95,45 @@ enum DailyNudges {
     /// Creatine works by staying saturated, so the miss that matters is the
     /// habit rather than the single day. Worth one quiet reminder in the
     /// evening and nothing more.
-    static func creatineMissed(loggedToday: Bool, inStack: Bool) -> Nudge? {
+    static func creatineMissed(loggedToday: Bool, inStack: Bool, date: String = today()) -> Nudge? {
         guard inStack, !loggedToday else { return nil }
-        return Nudge(kind: .creatineMissed, date: Self.today())
+        return Nudge(kind: .creatineMissed, date: date)
+    }
+
+    // MARK: - The day
+
+    /// Today's reminders, decided from the day's own records.
+    static func nudges(ownerID: UUID, data: DashboardData, today: String) -> [Nudge] {
+        guard let profile = data.profile, profile.userID == ownerID else { return [] }
+        var nudges: [Nudge] = []
+        /* Protein is judged by the report's own rules: only a fully logged day
+           counts, so a morning with nothing entered yet is not a shortfall,
+           and the eaten figure and its target are the ones the report shows. */
+        if let day = NutritionReport.summarize(ownerID: ownerID, data: data, dates: today...today),
+           day.loggedDays == 1,
+           let protein = day.macros.first(where: { $0.kind == .protein }),
+           protein.underDays == 1,
+           let target = protein.target,
+           let short = proteinShortfall(
+               consumedG: protein.average,
+               targetG: target,
+               goal: profile.goal.rawValue,
+               bodyweightKG: profile.weightKG,
+               date: today
+           ) {
+            nudges.append(short)
+        }
+        let creatine = data.supplements
+            .filter { $0.userID == ownerID && !$0.archived }
+            .sorted { $0.sortOrder < $1.sortOrder }
+            .first { $0.name.lowercased().contains("creatine") }
+        let creatineLogged = creatine.map { supplement in
+            data.supplementLogs.contains { $0.date == today && $0.supplementID == supplement.id }
+        } ?? false
+        if let missed = creatineMissed(loggedToday: creatineLogged, inStack: creatine != nil, date: today) {
+            nudges.append(missed)
+        }
+        return nudges
     }
 
     /// Evening, late enough that the day is a fair judgement and early enough
@@ -116,7 +158,7 @@ enum DailyNudges {
         DateComponents(hour: eveningHour, minute: eveningMinute)
     }
 
-    private static func today() -> String {
+    static func today() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: Date())
