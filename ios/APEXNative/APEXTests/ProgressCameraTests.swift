@@ -594,7 +594,11 @@ final class ProgressCameraTests: XCTestCase {
         let view = VisualProgressView(ticked: ticked) { earlier in
             await older.page(below: session.data.progressPhotos, after: earlier)
         }
-        return try show(view.environment(session), size: CGSize(width: 393, height: 20_000)).frames
+        /* The screen reports its own frame too, so every new width is a
+           fresh report of everything on it. */
+        return try show(
+            view.environment(session).layoutFrame("screen"), size: CGSize(width: 393, height: 20_000)
+        ).frames
     }
 
     private func shows(_ photo: ProgressPhoto, in frames: Frames) -> Bool {
@@ -608,8 +612,9 @@ final class ProgressCameraTests: XCTestCase {
         let width = window?.frame.width ?? 0
         for turn in 0..<80 where !reached() {
             try await Task.sleep(for: .milliseconds(50))
-            /* The lazy list goes on reporting a row it has removed until it
-               is laid out at a new width, so it is given one. */
+            /* A row removed while the screen was already updating stays in
+               the last report until the frames next change, so the window
+               is given a new width. */
             window?.frame.size.width = width + CGFloat(turn % 2)
             window?.rootViewController?.view.layoutIfNeeded()
         }
@@ -642,6 +647,34 @@ final class ProgressCameraTests: XCTestCase {
 
         try await wait(for: "the photos that left the first page are still on the timeline") {
             firstPage.suffix(2).allSatisfy { shows($0, in: frames) } && shows(baseline, in: frames)
+        }
+    }
+
+    /// Older photos are loaded by this screen and kept by it. They belong to
+    /// the account they were loaded for, and leave the timeline when it does.
+    func testOlderPhotosLeaveWithTheAccountTheyWereLoadedFor() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(session.accountOperationLease()).ownerID
+        let firstPage = (0..<120).map { row(owner: owner, date: Self.day(200 - $0)) }
+        let earlier = (0..<3).map { row(owner: owner, date: Self.day(10 - $0)) }
+        session.data.progressPhotos = firstPage
+        let older = OlderPhotos(firstPage + earlier)
+        let frames = try timeline(of: session, older: older)
+        try await wait(for: "the older photos load") { earlier.allSatisfy { shows($0, in: frames) } }
+
+        /* The next account's first page ends on the same day, so only the
+           change of account says the older photos are not its own. */
+        let next = AppSession(developerSandboxRole: .invitedClient)
+        let nextOwner = try XCTUnwrap(next.accountOperationLease()).ownerID
+        XCTAssertNotEqual(nextOwner, owner)
+        let nextPage = (0..<120).map { row(owner: nextOwner, date: Self.day(200 - $0)) }
+        var data = next.data
+        data.progressPhotos = nextPage
+        older.all = nextPage
+        session.data = data
+        try await wait(for: "the next account's photos are on the timeline") { shows(nextPage[0], in: frames) }
+        try await wait(for: "the older photos of the account that left are off the timeline") {
+            !earlier.contains { shows($0, in: frames) }
         }
     }
 
