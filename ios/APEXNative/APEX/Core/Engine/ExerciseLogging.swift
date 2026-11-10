@@ -279,7 +279,8 @@ enum ExerciseLogging {
         case "cardio_modality":
             return .cardio
         case "movement_sequence":
-            return .circuit
+            // A mobility or yoga flow is done or not done, like any other mobility work.
+            return movement.disciplines.contains { $0 == "mobility" || $0 == "yoga" } ? .mobility : .circuit
         case "conditioning_complex":
             return .interval
         case "balance_drill", "mobility_drill", "skill_drill", "yoga_pose":

@@ -15,9 +15,29 @@ final class ExerciseLoggingTests: XCTestCase {
         XCTAssertEqual(counts[.isometric], 17)
         XCTAssertEqual(counts[.carry], 24)
         XCTAssertEqual(counts[.cardio], 15)
-        XCTAssertEqual(counts[.mobility], 90)
+        XCTAssertEqual(counts[.mobility], 91)
         XCTAssertEqual(counts[.interval], 28)
-        XCTAssertEqual(counts[.circuit], 1)
+        XCTAssertNil(counts[.circuit], "the one catalogued sequence is a mobility flow")
+    }
+
+    func testOwnRecoveryRoutineCanBeLoggedAsDone() throws {
+        let owner = UUID()
+        var data = DashboardData.empty
+        data.programs = [Program(id: UUID(), userID: owner, slug: "main", name: "Main Phase", description: "")]
+        let row = try XCTUnwrap(RecoveryPlanner.build(
+            data: data, ownerID: owner, startDate: "2026-09-02", target: .flexibility, source: .external
+        ).exercises.first)
+        let draft = TrackedWorkout.setInputs(for: [row])[0]
+
+        XCTAssertTrue(ExerciseLogging.descriptor(movementNamed: row.name, movementID: row.movementID).isSupported)
+        XCTAssertTrue(TrackedWorkout.isReadyToFinish([draft]), "finishing your own routine needs no skip")
+        XCTAssertEqual(
+            SessionBriefing.knowledgeContext(
+                dayType: "mobility", exerciseNames: [row.name], date: nil,
+                completedSessionDates: [], completedSessionCount: 0, addons: nil
+            ).movementFamilies,
+            [.mobility]
+        )
     }
 
     func testResolverClassifiesCanonicalMovementMetadataWithoutStoredKind() {
@@ -32,7 +52,7 @@ final class ExerciseLoggingTests: XCTestCase {
             ("ASSAULT BIKE SPRINT", .cardio),
             ("Couch Stretch", .mobility),
             ("Burpee", .interval),
-            ("Sun Salutation A", .circuit),
+            ("Sun Salutation A", .mobility),
         ]
 
         for (name, expected) in cases {
@@ -73,7 +93,11 @@ final class ExerciseLoggingTests: XCTestCase {
             ExerciseLogging.descriptor(movementNamed: "Burpee").fields,
             [.rounds, .work, .recovery]
         )
-        XCTAssertFalse(ExerciseLogging.descriptor(movementNamed: "Sun Salutation A").isSupported)
+        XCTAssertEqual(
+            ExerciseLogging.descriptor(movementNamed: "Sun Salutation A").fields,
+            [.duration, .completion]
+        )
+        XCTAssertFalse(groupedRounds.isSupported, "a sequence that is not a mobility flow still waits for grouped rounds")
     }
 
     func testPaceIsDerivedOnlyFromDistanceAndDuration() {
@@ -403,19 +427,19 @@ final class ExerciseLoggingTests: XCTestCase {
         XCTAssertTrue(ExerciseLogging.isValid(input(
             name: "Burpee", rounds: 8, workSeconds: 30, recoverySeconds: 20
         )))
-        XCTAssertFalse(ExerciseLogging.isValid(input(name: "Sun Salutation A")))
+        XCTAssertFalse(ExerciseLogging.isValid(input(name: "Grouped rounds"), descriptor: groupedRounds))
     }
 
     func testDeferredCircuitCanResolveOnlyThroughAnExplicitSkip() {
-        let unsupported = input(
-            name: "Sun Salutation A", weightKG: 20, reps: 8,
+        var unsupported = input(
+            name: "Grouped rounds", weightKG: 20, reps: 8,
             durationSeconds: 30, distanceMeters: 20, rounds: 2,
             workSeconds: 30, recoverySeconds: 15
         )
-        XCTAssertFalse(ExerciseLogging.isResolved(unsupported))
+        XCTAssertFalse(ExerciseLogging.isValid(unsupported, descriptor: groupedRounds))
 
-        let skipped = ExerciseLogging.resolvingAsSkipped(unsupported)
-        XCTAssertTrue(ExerciseLogging.isResolved(skipped))
+        unsupported.skipped = true
+        let skipped = ExerciseLogging.normalized(unsupported, descriptor: groupedRounds)
         XCTAssertTrue(skipped.skipped)
         XCTAssertNil(skipped.weightKG)
         XCTAssertNil(skipped.reps)
@@ -521,6 +545,16 @@ final class ExerciseLoggingTests: XCTestCase {
             overrideFlag: false,
             createdAt: "2026-08-23T08:00:00Z"
         )
+    }
+
+    /// No catalogued movement is a grouped sequence any more, so the deferred kind is built here.
+    private var groupedRounds: ExerciseLoggingDescriptor {
+        ExerciseLogging.descriptor(for: MovementTiming.Movement(
+            id: "grouped_rounds", name: "Grouped rounds", setupSeconds: 0, fatigueCost: 1,
+            unilateral: false, repositioning: false, prescriptionMode: "rounds", loadable: true,
+            entityType: "movement_sequence", disciplines: ["strength"], prescription: "rounds_duration",
+            primaryMuscles: nil
+        ))
     }
 
     private func input(

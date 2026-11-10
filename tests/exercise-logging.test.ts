@@ -38,7 +38,7 @@ test('the supported kinds classify all 549 selectable catalogue rows', () => {
   }
   assert.deepEqual(Object.fromEntries(counts), {
     strength: 242, bodyweight: 132, isometric: 17, carry: 24,
-    mobility: 90, interval: 28, circuit: 1, cardio: 15,
+    mobility: 91, interval: 28, cardio: 15,
   })
   assert.equal([...counts.values()].reduce((sum, count) => sum + count, 0), 549)
 })
@@ -53,7 +53,7 @@ test('one descriptor drives the facts shown by manual, guided and tracked loggin
   assert.equal(descriptorForExercise({ name: 'Assault Bike Sprint' }).movementId, 'air_bike')
   assert.deepEqual(descriptorForExercise({ name: 'Couch Stretch' }).fields, ['duration', 'completion'])
   assert.deepEqual(descriptorForExercise({ name: 'Burpee' }).fields, ['rounds', 'work', 'recovery'])
-  assert.equal(descriptorForExercise({ name: 'Sun Salutation A' }).supported, false)
+  assert.equal(descriptorForExercise({ name: 'Sun Salutation A' }).supported, true)
 })
 
 test('supplementary load and RIR cannot make an otherwise blank set complete', () => {
@@ -80,7 +80,7 @@ test('the shared save boundary requires a complete fact set for each kind', () =
   const cardio = descriptorForExercise({ name: 'Stationary Bike' })
   const carry = descriptorForExercise({ name: "Farmer's Carry" })
   const interval = descriptorForExercise({ name: 'Burpee' })
-  const circuit = descriptorForExercise({ name: 'Sun Salutation A' })
+  const flow = descriptorForExercise({ name: 'Sun Salutation A' })
 
   assert.equal(isValidExerciseFacts({ weight: null, reps: null, rir: null, durationSeconds: 600 }, cardio), false)
   assert.equal(isValidExerciseFacts({ weight: null, reps: null, rir: null, durationSeconds: 600, distanceMeters: 3_000 }, cardio), true)
@@ -89,7 +89,7 @@ test('the shared save boundary requires a complete fact set for each kind', () =
   assert.equal(isValidExerciseFacts({ weight: 24, reps: null, rir: null, durationSeconds: 30, distanceMeters: 20 }, carry), false)
   assert.equal(isValidExerciseFacts({ weight: null, reps: null, rir: null, rounds: 8, workSeconds: 30 }, interval), false)
   assert.equal(isValidExerciseFacts({ weight: null, reps: null, rir: null, rounds: 8, workSeconds: 30, recoverySeconds: 20 }, interval), true)
-  assert.equal(isValidExerciseFacts({ weight: null, reps: null, rir: null }, circuit), false)
+  assert.equal(isValidExerciseFacts({ weight: null, reps: null, rir: null }, flow), true)
 
   assert.throws(() => buildSessionRecords({
     sessionId: 'invalid', userId: 'user', date: '2026-08-23', programDayId: 'day',

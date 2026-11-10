@@ -73,7 +73,9 @@ const CARDIO_ALIAS_BY_NAME = new Map(Object.entries(CARDIO_ALIASES).map(([name, 
 
 function kindForMovement(movement: Movement): ExerciseLoggingKind {
   switch (movement.entityType) {
-    case 'movement_sequence': return 'circuit'
+    // A mobility or yoga flow is done or not done, like any other mobility work.
+    case 'movement_sequence':
+      return movement.disciplines.some((discipline) => discipline === 'mobility' || discipline === 'yoga') ? 'mobility' : 'circuit'
     case 'conditioning_complex': return 'interval'
     case 'balance_drill':
     case 'mobility_drill':
