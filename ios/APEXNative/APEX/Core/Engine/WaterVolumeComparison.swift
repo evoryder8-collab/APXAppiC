@@ -33,12 +33,13 @@ enum WaterVolumeComparison {
 
     private static func match(litres: Double) -> (landmark: Landmark, count: Int?)? {
         for count in 1...6 {
-            let candidates = count == 1 ? landmarks : landmarks.filter { $0.plural != nil }
-            func difference(_ landmark: Landmark) -> Double {
-                abs(litres - Double(count) * landmark.litres)
+            // "Enough to fill" is a claim, so only containers the total really fills are candidates.
+            let candidates = landmarks.filter { (count == 1 || $0.plural != nil) && Double(count) * $0.litres <= litres }
+            func shortfall(_ landmark: Landmark) -> Double {
+                litres - Double(count) * landmark.litres
             }
-            if let best = candidates.min(by: { difference($0) < difference($1) }),
-               difference(best) / litres <= (count == 1 ? 0.12 : 0.08) {
+            if let best = candidates.min(by: { shortfall($0) < shortfall($1) }),
+               shortfall(best) / litres <= (count == 1 ? 0.12 : 0.08) {
                 return (best, count)
             }
         }
