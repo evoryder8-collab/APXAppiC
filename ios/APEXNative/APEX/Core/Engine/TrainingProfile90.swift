@@ -108,11 +108,13 @@ struct TrainingProfile90: Sendable {
         var modes: [Receipt: Set<Mode>] = [:]
         var runs: Set<Receipt> = []
         var seen = Set<UUID>()
+        var performed = Set<UUID>()
         var repsBySession: [UUID: Int] = [:]
         var loadLogs: [Int: [WorkoutLog]] = [:]
 
         for log in data.workoutLogs where log.userID == ownerID && !log.skipped {
             guard let session = byID[log.sessionID], window.contains(session.date), seen.insert(log.id).inserted else { continue }
+            performed.insert(session.id)
             let movement = MovementTiming.movement(named: log.exerciseName, movementID: log.movementID)
             let descriptor = ExerciseLogging.descriptor(for: movement)
             if log.exerciseName.contains(" · "), let treadmill = ManualWorkout.parseTreadmill(log.exerciseName),
@@ -139,6 +141,17 @@ struct TrainingProfile90: Sendable {
                 modes[.session(session.id), default: []].insert(.resistance)
                 if session.date >= split { repsBySession[session.id, default: 0] += reps }
                 if load.isFinite && load > 0 { loadLogs[reps, default: []].append(log) }
+            default: break
+            }
+        }
+
+        // Performed work the catalogue cannot identify is the day it was planned as, the rule the Avatar scores use.
+        let dayTypes = Dictionary(data.programDays.map { ($0.id, $0.dayType) }, uniquingKeysWith: { first, _ in first })
+        for id in performed where modes[.session(id)] == nil {
+            switch byID[id].flatMap({ dayTypes[$0.programDayID] }).flatMap(FBDayType.init(rawValue:))?.activityDomain {
+            case .upper, .legsA: modes[.session(id)] = [.resistance]
+            case .mobility: modes[.session(id)] = [.mobility]
+            case .cardio: modes[.session(id)] = [.cardio]
             default: break
             }
         }
