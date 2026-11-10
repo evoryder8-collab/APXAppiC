@@ -232,8 +232,14 @@ struct ProgressCameraView: View {
     @State private var libraryImage: UIImage?
 
     var intent: ProgressCaptureIntent
+    /// Every photo the ghost may be chosen from.
+    var photos: [ProgressPhoto]
     /// The previous photo in the same pose, shown underneath for alignment.
-    var reference: ProgressPhoto?
+    private var reference: ProgressPhoto? {
+        ProgressPhotoEngine.reference(
+            pose: pose, framing: framing, photos: photos, ownerID: operation.ownerID
+        )
+    }
     let operation: AccountOperationLease
     /// Replaces the signed download of the previous photo, for layout checks.
     var loadReferenceImage: ((ProgressPhoto) async throws -> UIImage?)?
@@ -253,7 +259,7 @@ struct ProgressCameraView: View {
 
     init(
         intent: ProgressCaptureIntent,
-        reference: ProgressPhoto? = nil,
+        photos: [ProgressPhoto] = [],
         operation: AccountOperationLease,
         controller: ProgressCameraController = ProgressCameraController(),
         loadReferenceImage: ((ProgressPhoto) async throws -> UIImage?)? = nil,
@@ -261,7 +267,7 @@ struct ProgressCameraView: View {
         onCaptured: @escaping (UIImage, ProgressCaptureIntent) -> Void
     ) {
         self.intent = intent
-        self.reference = reference
+        self.photos = photos
         self.operation = operation
         _controller = State(initialValue: controller)
         self.loadReferenceImage = loadReferenceImage
@@ -317,6 +323,10 @@ struct ProgressCameraView: View {
             }
         }
         .task(id: reference?.id) {
+            /* Switching pose in the camera changes the reference. The old
+               pose's photo must not linger while the new one loads, or when
+               there is none. */
+            referenceImage = nil
             guard session.accountOperationIsCurrent(operation),
                   let reference else { return }
             do {

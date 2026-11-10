@@ -180,6 +180,22 @@ enum ProgressPhotoEngine {
         return Int((abs(second.timeIntervalSince(first)) / 86_400).rounded())
     }
 
+    /* The photo ghosted under the live preview: the most recent one in the
+       same pose, taken with the same framing when there is one. Another pose
+       is never a stand-in, because a ghost that cannot be lined up with is
+       worse than none. */
+    static func reference(
+        pose: String,
+        framing: FramingMode,
+        photos: [ProgressPhoto],
+        ownerID: UUID
+    ) -> ProgressPhoto? {
+        let samePose = photos
+            .filter { $0.userID == ownerID && $0.pose == pose }
+            .sorted { $0.localDate > $1.localDate }
+        return samePose.first { framingMode($0) == framing } ?? samePose.first
+    }
+
     /// Same pose first, then most recent: the comparison a person means.
     static func preferSamePose(reference: ProgressPhoto, photos: [ProgressPhoto]) -> [ProgressPhoto] {
         photos.sorted { left, right in

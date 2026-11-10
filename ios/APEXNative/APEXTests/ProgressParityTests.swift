@@ -175,6 +175,45 @@ final class ProgressParityTests: XCTestCase {
         )
     }
 
+    /// C4. The ghost has to be the same pose, or nothing.
+    func testTheGhostIsTheLatestPhotoOfTheSamePoseOrNothing() {
+        let owner = UUID()
+        func row(_ pose: String, _ date: String, key: String = "ios-progress-1", user: UUID? = nil) -> ProgressPhoto {
+            ProgressPhoto(
+                id: UUID(), userID: user ?? owner, localDate: date, capturedAt: "\(date)T07:00:00Z", pose: pose,
+                storagePath: "a", thumbnailPath: "b", width: 3, height: 4, aspectRatio: 0.75,
+                cropX: 0.5, cropY: 0.5, cropScale: 1, referencePhotoID: nil, weightKG: nil, note: "",
+                clientIdempotencyKey: key
+            )
+        }
+        func reference(
+            _ pose: String, _ photos: [ProgressPhoto], framing: ProgressPhotoEngine.FramingMode = .full
+        ) -> ProgressPhoto? {
+            ProgressPhotoEngine.reference(pose: pose, framing: framing, photos: photos, ownerID: owner)
+        }
+
+        let front = row("front", "2026-10-01")
+        XCTAssertNil(reference("side", [front]), "a front photo must never ghost a side shot")
+        XCTAssertNil(reference("back", [front]))
+        XCTAssertEqual(reference("front", [front])?.id, front.id)
+        XCTAssertNil(reference("front", []))
+
+        let olderFront = row("front", "2026-08-01")
+        let side = row("side", "2026-10-05")
+        XCTAssertEqual(reference("front", [olderFront, side, front])?.id, front.id, "the most recent of the pose")
+        XCTAssertEqual(reference("side", [olderFront, side, front])?.id, side.id)
+
+        /* The outline for a torso shot is a different shape, so a torso photo
+           is the better ghost for one even when a full-body photo is newer. */
+        let torso = row("front", "2026-09-01", key: "framing:torso:1")
+        XCTAssertEqual(reference("front", [front, torso, olderFront], framing: .torso)?.id, torso.id)
+        XCTAssertEqual(reference("front", [front, torso, olderFront], framing: .full)?.id, front.id)
+        XCTAssertEqual(reference("front", [front, torso], framing: .free)?.id, front.id, "same pose still beats nothing")
+
+        let stranger = row("side", "2026-11-01", user: UUID())
+        XCTAssertNil(reference("side", [front, stranger]), "another account's photo is never a ghost")
+    }
+
     /// A comparison must never borrow a score recorded after the photo.
     func testSnapshotNeverComesFromTheFuture() {
         let snapshots = [("2026-05-01", 4.0), ("2026-06-20", 6.0), ("2026-09-01", 9.0)].map { date, level in

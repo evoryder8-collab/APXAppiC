@@ -189,6 +189,7 @@ final class ProgressCameraTests: XCTestCase {
 
     private func camera(
         ghost: UIImage?,
+        pose: String = "front",
         framing: ProgressPhotoEngine.FramingMode = .full,
         frontCameraAllowed: Bool = false,
         cameraAllowed: Bool = true
@@ -199,10 +200,11 @@ final class ProgressCameraTests: XCTestCase {
         let previous = row(owner: operation.ownerID)
         session.data.progressPhotos = ghost == nil ? [] : [previous]
         var intent = ProgressCaptureIntent()
+        intent.pose = pose
         intent.framing = framing
         return ProgressCameraView(
             intent: intent,
-            reference: ghost == nil ? nil : previous,
+            photos: session.data.progressPhotos,
             operation: operation,
             controller: ProgressCameraController(accessAnswer: { cameraAllowed }),
             loadReferenceImage: { _ in ghost },
@@ -337,6 +339,25 @@ final class ProgressCameraTests: XCTestCase {
                 named: "camera, \(phone.name), camera allowed"
             )
             XCTAssertNil(normal.frames["cameraDenied"], "\(phone.name): the notice shows although the camera is allowed")
+        }
+    }
+
+    /// C4. The ghost is there to line a pose up with the same pose. A front
+    /// photo under a side shot is worse than no ghost at all.
+    func testTheCameraNeverGhostsAPhotoOfAnotherPose() async throws {
+        let size = Self.phones[1].size
+        let front = try await layOut(
+            try camera(ghost: photo(Self.ghosts[0].size), pose: "front"), size: size,
+            expecting: ["shutter", "ghostSlider"], named: "camera, front pose, front photo owned"
+        )
+        XCTAssertNotNil(front.frames["ghostSlider"], "the previous front photo should ghost a front shot")
+
+        for pose in ["side", "back"] {
+            let other = try await layOut(
+                try camera(ghost: photo(Self.ghosts[0].size), pose: pose), size: size,
+                expecting: ["shutter"], named: "camera, \(pose) pose, front photo owned"
+            )
+            XCTAssertNil(other.frames["ghostSlider"], "a front photo is ghosted under a \(pose) shot")
         }
     }
 }

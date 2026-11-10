@@ -30,16 +30,6 @@ struct VisualProgressView: View {
         _selectedImage = State(initialValue: image)
     }
 
-    /* The ghost is the last photo in the same pose. Without it the overlay
-       has nothing to align to, which is most of why the camera exists. */
-    private func referencePhoto(for pose: String) -> ProgressPhoto? {
-        guard let ownerID = session.profile?.userID ?? session.data.settings?.userID else { return nil }
-        let sorted = session.data.progressPhotos
-            .filter { $0.userID == ownerID }
-            .sorted { $0.localDate > $1.localDate }
-        return sorted.first { $0.pose == pose } ?? sorted.first
-    }
-
     /// The two chosen photos, oldest first so BEFORE really is before.
     private var comparisonPair: (before: ProgressPhoto, after: ProgressPhoto)? {
         let chosen = comparisonSelection.compactMap { id in
@@ -293,7 +283,7 @@ struct VisualProgressView: View {
                session.accountOperationIsCurrent(operation) {
                 ProgressCameraView(
                     intent: intent,
-                    reference: referencePhoto(for: intent.pose),
+                    photos: session.data.progressPhotos,
                     operation: operation,
                     onClose: {
                         guard captureRequestID == requestID else { return }
