@@ -2445,6 +2445,10 @@
 "Protect a consistent sleep window and aim for at least seven hours." = "一貫した眠り窓を保護し、7時間以上を目指します。";
 "Protect both weekly lower-body exposures while keeping fatigue controlled and technique honest." = "疲労をコントロールし、正直に保ちながら、毎週下半身の露出を守ります。";
 "Protect the priority work" = "優先業務の保護";
+"Also counted today: %@" = "今日はこれも考慮しています：%@";
+"low scores on consecutive mornings" = "朝のスコアが続けて低い";
+"short sleep on recent nights" = "ここ数日の睡眠が短い";
+"an elevated joint check-in" = "関節チェックが高め";
 "Protein is currently the clearest nutrition gap. Aim toward %d g to protect recovery and lean mass." = "タンパク質は現在最も明確な栄養ギャップです。 目指す %d g 回復および細い固まりを保護するため。";
 "Protein is the one target worth closing even on a busy day." = "忙しい日でも、優先して満たしたい栄養目標はタンパク質です。";
 "Protein opportunity is open" = "タンパク質を補給する好機です";

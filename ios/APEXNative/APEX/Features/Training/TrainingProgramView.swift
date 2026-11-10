@@ -123,7 +123,7 @@ struct TrainingProgramView: View {
     /// Last night, if the watch had something to say about it.
     private var readiness: RecoveryAssessment.Verdict? {
         RecoveryAssessment.todaysCheckin(session.data, date: selectedDate)
-            .map { RecoveryAssessment.assess($0) }
+            .map { RecoveryAssessment.verdict(for: $0, addons: session.data.settings?.addons) }
     }
 
     private func readinessTint(_ state: RecoveryAssessment.State) -> Color {
@@ -161,6 +161,15 @@ struct TrainingProgramView: View {
                                 .font(APEXFont.body(11, weight: .medium))
                                 .foregroundStyle(APEXColor.secondaryInk)
                                 .fixedSize(horizontal: false, vertical: true)
+                            if !readiness.reasons.isEmpty {
+                                Text(language.format(
+                                    "Also counted today: %@",
+                                    readiness.reasons.map { language.text($0) }.joined(separator: " · ")
+                                ))
+                                .font(APEXFont.body(10, weight: .semibold))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                                .fixedSize(horizontal: false, vertical: true)
+                            }
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)

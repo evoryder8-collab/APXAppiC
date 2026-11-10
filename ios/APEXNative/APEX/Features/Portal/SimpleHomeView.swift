@@ -2738,7 +2738,7 @@ private struct RecoveryMorningCard: View {
     }
 
     private var verdict: RecoveryAssessment.Verdict? {
-        checkin.map { RecoveryAssessment.assess($0) }
+        checkin.map { RecoveryAssessment.verdict(for: $0, addons: session.data.settings?.addons) }
     }
 
     private var headlineScore: Int? {
@@ -2868,6 +2868,14 @@ private struct RecoveryMorningCard: View {
 
     private var editor: some View {
         VStack(alignment: .leading, spacing: 9) {
+            if let reasons = verdict?.reasons, !reasons.isEmpty {
+                Text(language.format(
+                    "Also counted today: %@", reasons.map { language.text($0) }.joined(separator: " · ")
+                ))
+                .font(APEXFont.body(9, weight: .semibold))
+                .foregroundStyle(statusTint)
+                .fixedSize(horizontal: false, vertical: true)
+            }
             HStack {
                 scoreField(
                     language.text(source == "other" ? "Sleep" : "Watch Sleep Score"),

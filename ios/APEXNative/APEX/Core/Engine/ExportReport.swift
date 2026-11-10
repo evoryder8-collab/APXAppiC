@@ -202,11 +202,12 @@ enum ExportReport {
         if !checkins.isEmpty {
             lines.append("## Recovery readiness")
             for checkin in checkins {
-                let verdict = RecoveryAssessment.assess(checkin)
+                let verdict = RecoveryAssessment.verdict(for: checkin, addons: data.settings?.addons)
+                let counted = verdict.reasons.isEmpty ? "" : " Also counted: \(verdict.reasons.joined(separator: ", "))."
                 let reading = checkin.source == "apple"
                     ? "sleep score \(checkin.sleepScore.map(String.init) ?? "?")"
                     : "recovery \(checkin.recoveryPercent.map(String.init) ?? "?")%"
-                lines.append("- \(checkin.date): \(reading) (\(checkin.source)) → \(verdict.state.rawValue). \(verdict.title).")
+                lines.append("- \(checkin.date): \(reading) (\(checkin.source)) → \(verdict.state.rawValue). \(verdict.title).\(counted)")
             }
             lines.append("")
         }

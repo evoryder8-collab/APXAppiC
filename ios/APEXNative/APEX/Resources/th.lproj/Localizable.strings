@@ -4703,6 +4703,10 @@
 "Progress only after every rep is controlled." = "ความคืบหน้าหลังจากที่ทุกตัวแทนถูกควบคุม";
 "Protect a consistent sleep window and aim for at least seven hours." = "ป้องกันหน้าต่างหลับที่สอดคล้องกัน และเล็งอย่างน้อย 7 ชั่วโมง";
 "Protect the priority work" = "ป้องกันงานลําดับความสําคัญ";
+"Also counted today: %@" = "วันนี้นับรวมด้วย: %@";
+"low scores on consecutive mornings" = "คะแนนต่ำติดต่อกันหลายเช้า";
+"short sleep on recent nights" = "นอนน้อยในคืนที่ผ่านมา";
+"an elevated joint check-in" = "เช็กอินข้อมีคะแนนสูง";
 "Protein opportunity is open" = "ช่วงเสริมโปรตีนเปิดอยู่";
 "Protein powder can help when meals miss your protein target." = "แป้งโปรตินช่วยได้ ถ้าอาหารขาดโปรตีน";
 "Protein shake" = "หมุน & 90";

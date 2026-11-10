@@ -65,6 +65,15 @@ enum RecoveryAssessment {
                 repeatedShortSleep,
             ].filter { $0 }.count
         }
+
+        /// The signals read from stored history, in the words shown beside a stricter verdict.
+        var reasons: [String] {
+            [
+                consecutiveLowMornings >= 2 ? "low scores on consecutive mornings" : nil,
+                repeatedShortSleep ? "short sleep on recent nights" : nil,
+                increasedJointDiscomfort ? "an elevated joint check-in" : nil,
+            ].compactMap { $0 }
+        }
     }
 
     struct Verdict: Equatable, Sendable {
@@ -72,6 +81,58 @@ enum RecoveryAssessment {
         let source: String
         let title: String
         let guidance: String
+        /// Why the verdict is stricter than the score's own band; empty when it is not.
+        var reasons: [String] = []
+    }
+
+    /// The morning verdict for a stored check-in, weighed against the days around it.
+    static func verdict(for entry: Checkin, addons: [String: JSONValue]?) -> Verdict {
+        assess(entry, context: context(for: entry, addons: addons))
+    }
+
+    /// What stored history says about the days up to a morning: low scores in a row, short measured
+    /// nights and the joint check-in still in force. Two of them make a low morning recovery first.
+    static func context(for entry: Checkin, addons: [String: JSONValue]?) -> Context {
+        var context = Context()
+        let mornings = Dictionary(
+            history(from: addons).filter { $0.source == entry.source }.map { ($0.date, $0) },
+            uniquingKeysWith: { _, later in later }
+        )
+        var day = entry.date
+        while context.consecutiveLowMornings < 14, let morning = mornings[day],
+              let score = entry.source == "apple" ? morning.sleepScore : morning.recoveryPercent,
+              score <= (entry.source == "apple" ? 60 : 33) {
+            context.consecutiveLowMornings += 1
+            let before = APEXDateMath.adding(days: -1, to: day)
+            guard before != day else { break }
+            day = before
+        }
+
+        // Short sleep is under six hours; repeated is two of the three nights up to this morning.
+        let nights = sleepHistory(from: addons)
+        let recent = (0..<3).compactMap { nights[APEXDateMath.adding(days: -$0, to: entry.date)] }
+        context.repeatedShortSleep = recent.filter { $0 < 6 }.count >= 2
+
+        context.increasedJointDiscomfort = StrengthProgress.currentCheckin(
+            StrengthProgress.checkins(from: addons), on: entry.date
+        )?.isElevated ?? false
+        return context
+    }
+
+    /// Measured hours asleep per night, keyed by the morning's date. The one night an older build
+    /// kept in the recovery context counts as well.
+    static func sleepHistory(from addons: [String: JSONValue]?) -> [String: Double] {
+        var nights: [String: Double] = [:]
+        func add(_ date: JSONValue?, _ hours: JSONValue?) {
+            guard let date = date?.stringValue, let hours = hours?.numberValue, hours.isFinite, hours >= 0 else { return }
+            nights[date] = max(hours, nights[date] ?? 0)
+        }
+        let latest = addons?["apple_recovery_context"]?.objectValue
+        add(latest?["date"], latest?["sleep_duration_hours"])
+        for row in addons?["apple_sleep_history"]?.arrayValue ?? [] {
+            add(row.objectValue?["date"], row.objectValue?["hours"])
+        }
+        return nights
     }
 
     static func assess(_ entry: Checkin, context: Context = Context()) -> Verdict {
@@ -90,9 +151,11 @@ enum RecoveryAssessment {
             if (entry.sleepPercent ?? 100) <= 40, state == .strong { state = .normal }
         }
 
+        let band = state
         let escalation = context.escalators
         if state == .low, escalation >= 2 { state = .veryLow }
         if state == .normal, escalation >= 3 { state = .low }
+        let reasons = state == band ? [] : context.reasons
 
         switch state {
         case .strong:
@@ -111,13 +174,15 @@ enum RecoveryAssessment {
             return Verdict(
                 state: state, source: entry.source,
                 title: "Protect the priority work",
-                guidance: "Keep the priority strength work, reduce optional volume and prefer Stretch over optional conditioning."
+                guidance: "Keep the priority strength work, reduce optional volume and prefer Stretch over optional conditioning.",
+                reasons: reasons
             )
         case .veryLow:
             return Verdict(
                 state: state, source: entry.source,
                 title: "Recovery first today",
-                guidance: "Use reduced volume, Stretch or rest. Avoid adding extra training."
+                guidance: "Use reduced volume, Stretch or rest. Avoid adding extra training.",
+                reasons: reasons
             )
         }
     }
@@ -189,6 +254,14 @@ enum RecoveryAssessment {
         let stored = addons["apple_recovery_context"]?.objectValue
         let storedHours = stored?["date"]?.stringValue == date ? stored?["sleep_duration_hours"]?.numberValue : nil
         let hours = [sleepHours, storedHours].compactMap { $0 }.max()
+        if let hours {
+            // Each night is kept, so the morning verdict can see a run of short ones.
+            var nights = sleepHistory(from: addons)
+            nights[date] = hours
+            addons["apple_sleep_history"] = .array(nights.sorted { $0.key < $1.key }.suffix(730).map {
+                .object(["date": .string($0.key), "hours": .number($0.value)])
+            })
+        }
         addons["apple_recovery_context"] = .object([
             "date": .string(date),
             "sleep_duration_hours": hours.map(JSONValue.number) ?? .null,

@@ -4703,6 +4703,10 @@
 "Progress only after every rep is controlled." = "Progresul numai după ce fiecare reprezentant este controlat.";
 "Protect a consistent sleep window and aim for at least seven hours." = "Protejaţi o fereastră de somn consistentă şi ţintiţi cel puţin şapte ore.";
 "Protect the priority work" = "Protejarea activității prioritare";
+"Also counted today: %@" = "Azi contează și: %@";
+"low scores on consecutive mornings" = "scoruri mici în dimineți la rând";
+"short sleep on recent nights" = "somn scurt în ultimele nopți";
+"an elevated joint check-in" = "un check-in ridicat pentru articulații";
 "Protein opportunity is open" = "Este momentul potrivit pentru proteine";
 "Protein powder can help when meals miss your protein target." = "Pulberea proteică poate ajuta atunci când mesele pierd obiectivul proteinei.";
 "Protein shake" = "Agitaţie proteică";

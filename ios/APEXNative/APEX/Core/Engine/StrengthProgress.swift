@@ -319,6 +319,9 @@ enum StrengthProgress {
             case .legs: legs
             }
         }
+
+        /// A region rated 4 or more: the level the briefing and the morning verdict both act on.
+        var isElevated: Bool { max(arms, core, legs) >= 4 }
     }
 
     struct JointAssessment: Hashable, Sendable {

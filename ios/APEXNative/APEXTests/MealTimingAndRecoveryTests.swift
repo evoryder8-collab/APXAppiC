@@ -372,6 +372,144 @@ final class RecoveryAssessmentTests: XCTestCase {
         XCTAssertEqual(addons["apple_recovery_context"]?.objectValue?["date"]?.stringValue, "2026-11-11")
     }
 
+    private func morning(_ date: String, _ score: Int, source: String = "apple") -> JSONValue {
+        .object([
+            "date": .string(date), "source": .string(source),
+            "sleep_score": source == "apple" ? .number(Double(score)) : .null,
+            "sleep_pct": source == "other" ? .number(70) : .null,
+            "recovery_pct": source == "other" ? .number(Double(score)) : .null,
+            "updated_at": .string("\(date)T07:00:00Z"),
+        ])
+    }
+
+    private func night(_ date: String, _ hours: Double) -> JSONValue {
+        .object(["date": .string(date), "hours": .number(hours)])
+    }
+
+    private func joints(_ date: String, legs: Int) -> JSONValue {
+        .object(["date": .string(date), "arms": .number(1), "core": .number(1), "legs": .number(Double(legs))])
+    }
+
+    private func context(on date: String, _ addons: [String: JSONValue]) throws -> RecoveryAssessment.Context {
+        let entry = try XCTUnwrap(RecoveryAssessment.history(from: addons).last { $0.date == date })
+        return RecoveryAssessment.context(for: entry, addons: addons)
+    }
+
+    private func verdict(on date: String, _ addons: [String: JSONValue]) throws -> RecoveryAssessment.Verdict {
+        let entry = try XCTUnwrap(RecoveryAssessment.history(from: addons).last { $0.date == date })
+        return RecoveryAssessment.assess(entry, context: RecoveryAssessment.context(for: entry, addons: addons))
+    }
+
+    func testBadNightsAndSoreJointsMakeALowMorningRecoveryFirst() throws {
+        let lowAgain: [String: JSONValue] = [
+            "recovery_history": .array([morning("2026-11-09", 52), morning("2026-11-10", 55)]),
+        ]
+        XCTAssertEqual(try verdict(on: "2026-11-10", lowAgain).state, .low, "one signal alone leaves the score's own band")
+        XCTAssertEqual(try verdict(on: "2026-11-10", lowAgain).reasons, [])
+
+        var tired = lowAgain
+        tired["apple_sleep_history"] = .array([night("2026-11-08", 5.4), night("2026-11-09", 7.6), night("2026-11-10", 5.1)])
+        let shortNights = try verdict(on: "2026-11-10", tired)
+        XCTAssertEqual(shortNights.state, .veryLow)
+        XCTAssertEqual(shortNights.title, "Recovery first today")
+        XCTAssertEqual(shortNights.reasons, ["low scores on consecutive mornings", "short sleep on recent nights"])
+
+        let sore: [String: JSONValue] = [
+            "recovery_history": .array([morning("2026-11-09", 78), morning("2026-11-10", 55)]),
+            "apple_sleep_history": .array([night("2026-11-09", 5.9), night("2026-11-10", 5.0)]),
+            "joint_checkins": .array([joints("2026-11-04", legs: 7)]),
+        ]
+        let soreAndTired = try verdict(on: "2026-11-10", sore)
+        XCTAssertEqual(soreAndTired.state, .veryLow)
+        XCTAssertEqual(soreAndTired.reasons, ["short sleep on recent nights", "an elevated joint check-in"])
+        XCTAssertEqual(try verdict(on: "2026-11-09", sore).state, .normal, "a normal morning keeps its band")
+        XCTAssertEqual(try verdict(on: "2026-11-09", sore).reasons, [])
+    }
+
+    func testOnlyEvidenceFromTheDaysAroundAMorningCounts() throws {
+        func addons(nights: [JSONValue] = [], checkins: [JSONValue] = [], mornings: [JSONValue] = []) -> [String: JSONValue] {
+            [
+                "recovery_history": .array(mornings + [morning("2026-11-10", 55)]),
+                "apple_sleep_history": .array(nights),
+                "joint_checkins": .array(checkins),
+            ]
+        }
+        XCTAssertEqual(try context(on: "2026-11-10", addons()).escalators, 0)
+
+        XCTAssertFalse(try context(on: "2026-11-10", addons(nights: [night("2026-11-10", 4.5)])).repeatedShortSleep,
+                       "one short night is not a pattern")
+        XCTAssertFalse(try context(on: "2026-11-10", addons(nights: [night("2026-11-06", 4), night("2026-11-07", 4)])).repeatedShortSleep,
+                       "last week's nights say nothing about today")
+        XCTAssertFalse(try context(on: "2026-11-10", addons(nights: [night("2026-11-11", 4), night("2026-11-12", 4)])).repeatedShortSleep,
+                       "later nights do not rewrite an earlier morning")
+        XCTAssertTrue(try context(on: "2026-11-10", addons(nights: [night("2026-11-08", 5.5), night("2026-11-09", 5.9)])).repeatedShortSleep)
+        var beforeHistory = addons(nights: [night("2026-11-09", 5.2)])
+        beforeHistory["apple_recovery_context"] = .object(["date": .string("2026-11-10"), "sleep_duration_hours": .number(4.8)])
+        XCTAssertTrue(try context(on: "2026-11-10", beforeHistory).repeatedShortSleep,
+                      "the single night an older build stored still counts")
+
+        XCTAssertTrue(try context(on: "2026-11-10", addons(checkins: [joints("2026-10-27", legs: 4)])).increasedJointDiscomfort,
+                      "the level the briefing calls elevated")
+        XCTAssertFalse(try context(on: "2026-11-10", addons(checkins: [joints("2026-10-26", legs: 9)])).increasedJointDiscomfort,
+                       "a check-in older than two weeks has lapsed")
+        XCTAssertFalse(try context(on: "2026-11-10", addons(checkins: [joints("2026-11-01", legs: 8), joints("2026-11-08", legs: 3)])).increasedJointDiscomfort,
+                       "the latest check-in speaks, not an earlier sore week")
+
+        XCTAssertEqual(try context(on: "2026-11-10", addons(mornings: [morning("2026-11-08", 40), morning("2026-11-09", 60)])).consecutiveLowMornings, 3)
+        XCTAssertEqual(try context(on: "2026-11-10", addons(mornings: [morning("2026-11-08", 40)])).consecutiveLowMornings, 1,
+                       "a missing morning ends the run")
+        let wearable: [String: JSONValue] = ["recovery_history": .array([
+            morning("2026-11-09", 30, source: "other"), morning("2026-11-10", 33, source: "other"),
+        ])]
+        XCTAssertEqual(try context(on: "2026-11-10", wearable).consecutiveLowMornings, 2, "a wearable's own low band")
+    }
+
+    func testHealthReadKeepsEachNightForTheMorningVerdict() throws {
+        func read(_ addons: [String: JSONValue], _ date: String, _ hours: Double?) -> [String: JSONValue] {
+            RecoveryAssessment.addons(
+                addons, storingHealthRead: date, sleepHours: hours,
+                heartRateVariabilityMS: nil, restingHeartRate: nil, updatedAt: "\(date)T08:00:00Z"
+            )
+        }
+        var addons: [String: JSONValue] = ["recovery_history": .array([morning("2026-11-10", 55)])]
+        addons = read(addons, "2026-11-08", 5.2)
+        addons = read(addons, "2026-11-09", 5.6)
+        addons = read(addons, "2026-11-09", 3.0)
+        addons = read(addons, "2026-11-10", nil)
+        addons = read(addons, "2026-11-10", 7.4)
+
+        let nights = try XCTUnwrap(addons["apple_sleep_history"]?.arrayValue)
+        XCTAssertEqual(nights.compactMap { $0.objectValue?["date"]?.stringValue }, ["2026-11-08", "2026-11-09", "2026-11-10"])
+        XCTAssertEqual(nights.compactMap { $0.objectValue?["hours"]?.numberValue }, [5.2, 5.6, 7.4])
+        XCTAssertTrue(try context(on: "2026-11-10", addons).repeatedShortSleep)
+    }
+
+    func testEveryScreenWeighsTheMorningAgainstStoredHistoryInEveryLanguage() throws {
+        let app = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "APEX")
+        for file in ["Features/Training/TrainingProgramView.swift", "Features/Portal/SimpleHomeView.swift",
+                     "Core/Engine/ExportReport.swift"] {
+            let source = try String(contentsOf: app.appending(path: file))
+            XCTAssertTrue(source.contains("RecoveryAssessment.verdict(for:"), file)
+            XCTAssertFalse(source.contains("RecoveryAssessment.assess("), "\(file) judges the morning without its history")
+        }
+
+        var everything = RecoveryAssessment.Context()
+        everything.consecutiveLowMornings = 2
+        everything.repeatedShortSleep = true
+        everything.increasedJointDiscomfort = true
+        for language in ["de", "de-CH", "it", "es", "pt", "ja", "ro", "th"] {
+            let url = try XCTUnwrap(Bundle.main.url(
+                forResource: "Localizable", withExtension: "strings", subdirectory: nil, localization: language
+            ))
+            let table = try XCTUnwrap(NSDictionary(contentsOf: url) as? [String: String])
+            for key in everything.reasons {
+                XCTAssertFalse(table[key, default: ""].isEmpty, "\(language) has no words for \"\(key)\"")
+            }
+            XCTAssertEqual(table["Also counted today: %@"]?.components(separatedBy: "%@").count, 2, language)
+        }
+    }
+
     private func apple(_ score: Int) -> RecoveryAssessment.Checkin {
         RecoveryAssessment.Checkin(
             date: "2026-01-05", source: "apple", sleepScore: score,

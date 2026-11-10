@@ -115,9 +115,7 @@ extension SessionBriefing {
         let latestCheckin = StrengthProgress.currentCheckin(
             StrengthProgress.checkins(from: addons), on: date ?? Date().apexDateKey
         )
-        let elevatedJointCheckIn = latestCheckin.map {
-            max($0.arms, $0.core, $0.legs) >= 4
-        } ?? false
+        let elevatedJointCheckIn = latestCheckin?.isElevated ?? false
 
         let structuredHypermobility = addons?["hypermobility_baseline"]?
             .objectValue?["reported"]?.boolValue
