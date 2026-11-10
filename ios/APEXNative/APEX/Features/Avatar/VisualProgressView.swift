@@ -12,6 +12,8 @@ struct VisualProgressView: View {
     @State private var note = ""
     @State private var capturedWeightKG: Double?
     @State private var capturedFraming = ProgressPhotoEngine.FramingMode.full
+    /// When an imported photo was taken. Nil for a photo taken just now.
+    @State private var capturedDate: Date?
     @State private var isSaving = false
     @State private var saveTask: Task<Void, Never>?
     @State private var saveOperationID: UUID?
@@ -292,7 +294,7 @@ struct VisualProgressView: View {
                         captureOperation = nil
                         captureRequestID = nil
                     },
-                    onCaptured: { image, resolved in
+                    onCaptured: { image, resolved, takenAt in
                         guard captureRequestID == requestID,
                               captureOperation == operation,
                               session.accountOperationIsCurrent(operation) else {
@@ -308,6 +310,7 @@ struct VisualProgressView: View {
                         note = resolved.note
                         capturedWeightKG = resolved.resolvedWeightKG
                         capturedFraming = resolved.framing
+                        capturedDate = takenAt
                         captureIntent = nil
                         captureOperation = nil
                         captureRequestID = nil
@@ -386,6 +389,7 @@ struct VisualProgressView: View {
             selectedImage = image
             capturedWeightKG = nil
             capturedFraming = .full
+            capturedDate = ProgressPhotoEngine.takenAt(imageData: data)
         } catch is CancellationError {
             return
         } catch {
@@ -424,6 +428,7 @@ struct VisualProgressView: View {
                 framing: capturedFraming,
                 note: note,
                 weightKG: capturedWeightKG,
+                date: capturedDate ?? .now,
                 operation: operation
             )
             guard saveOperationID == requestID,

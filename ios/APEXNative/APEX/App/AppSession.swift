@@ -5744,7 +5744,7 @@ final class AppSession {
         framing: ProgressPhotoEngine.FramingMode,
         note: String,
         weightKG: Double? = nil,
-        date: Date = .now,
+        date: Date,
         operation: AccountOperationLease
     ) async throws {
         if isDeveloperSandbox { throw CancellationError() }

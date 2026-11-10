@@ -1,4 +1,5 @@
 import Foundation
+import ImageIO
 
 /*
  * Port of the portable half of src/lib/progressPhoto.ts and
@@ -157,6 +158,23 @@ enum ProgressPhotoEngine {
        the shoulders and arms in a side-by-side. */
     static func captureAspectRatio(_ mode: FramingMode, previewAspectRatio: Double) -> Double {
         mode == .torso ? 4.0 / 5.0 : previewAspectRatio
+    }
+
+    /* When an imported picture was taken, read from the file itself, as the
+       wall-clock time the camera stamped. Nil when the file does not say or
+       names a moment that has not happened yet, and the photo is then filed
+       under today. */
+    static func takenAt(imageData: Data, now: Date = .now) -> Date? {
+        guard let source = CGImageSourceCreateWithData(imageData as CFData, nil),
+              let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
+              let exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any],
+              let stamp = exif[kCGImagePropertyExifDateTimeOriginal] as? String else { return nil }
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy:MM:dd HH:mm:ss"
+        guard let date = formatter.date(from: stamp), date <= now else { return nil }
+        return date
     }
 
     /// The row a new photo is stored as.

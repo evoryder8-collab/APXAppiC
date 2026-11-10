@@ -258,6 +258,7 @@ struct ProgressCameraView: View {
     /// Width over height of the live preview, which fills the screen.
     @State private var previewAspectRatio = 9.0 / 19.5
     @State private var libraryImage: UIImage?
+    @State private var libraryTakenAt: Date?
 
     var intent: ProgressCaptureIntent
     /// Every photo the ghost may be chosen from.
@@ -277,7 +278,9 @@ struct ProgressCameraView: View {
     private var allowsFrontCamera: Bool {
         session.data.settings?.addons["allow_front_camera_scanning"]?.boolValue ?? false
     }
-    var onCaptured: (UIImage, ProgressCaptureIntent) -> Void
+    /// The photo, what was chosen for it, and when it was taken if it came
+    /// from the library and says so. Nil means now.
+    var onCaptured: (UIImage, ProgressCaptureIntent, Date?) -> Void
 
     @Environment(AppSession.self) private var session
     @State private var referenceImage: UIImage?
@@ -292,7 +295,7 @@ struct ProgressCameraView: View {
         controller: ProgressCameraController = ProgressCameraController(),
         loadReferenceImage: ((ProgressPhoto) async throws -> UIImage?)? = nil,
         onClose: @escaping () -> Void,
-        onCaptured: @escaping (UIImage, ProgressCaptureIntent) -> Void
+        onCaptured: @escaping (UIImage, ProgressCaptureIntent, Date?) -> Void
     ) {
         self.intent = intent
         self.photos = photos
@@ -409,11 +412,11 @@ struct ProgressCameraView: View {
         }
         .animation(.snappy(duration: 0.2), value: countdown)
         .sheet(isPresented: $showLibrary) {
-            ProgressLibraryPicker(image: $libraryImage)
+            ProgressLibraryPicker(image: $libraryImage, takenAt: $libraryTakenAt)
         }
         .onChange(of: libraryImage) { _, image in
             guard session.accountOperationIsCurrent(operation), let image else { return }
-            onCaptured(image, resolvedIntent)
+            onCaptured(image, resolvedIntent, libraryTakenAt)
         }
     }
 
@@ -727,7 +730,8 @@ struct ProgressCameraView: View {
                 }
                 onCaptured(
                     image.progressCapture(framing: framing, previewAspectRatio: previewAspectRatio),
-                    resolvedIntent
+                    resolvedIntent,
+                    nil
                 )
             }
         }
@@ -737,6 +741,7 @@ struct ProgressCameraView: View {
 struct ProgressLibraryPicker: UIViewControllerRepresentable {
     @Environment(\.dismiss) private var dismiss
     @Binding var image: UIImage?
+    @Binding var takenAt: Date?
 
     func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
 
@@ -756,6 +761,11 @@ struct ProgressLibraryPicker: UIViewControllerRepresentable {
             _ picker: UIImagePickerController,
             didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
         ) {
+            /* The date lives in the file, not in the decoded image, and it is
+               set first so the photo arrives with it. */
+            parent.takenAt = (info[.imageURL] as? URL)
+                .flatMap { try? Data(contentsOf: $0) }
+                .flatMap { ProgressPhotoEngine.takenAt(imageData: $0) }
             parent.image = info[.originalImage] as? UIImage
             parent.dismiss()
         }

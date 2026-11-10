@@ -2,6 +2,8 @@
  * Golden parity for ProgressPhotoEngine and ProgressComparison against
  * src/lib/progressPhoto.ts and src/lib/progressComparison.ts.
  */
+import ImageIO
+import UniformTypeIdentifiers
 import XCTest
 @testable import APEX
 
@@ -256,6 +258,62 @@ final class ProgressParityTests: XCTestCase {
         XCTAssertEqual(ProgressPhotoEngine.ghostScale(row(key: "framing:full:1", aspectRatio: 0.46)), 1)
         XCTAssertEqual(ProgressPhotoEngine.ghostScale(row(key: "ios-progress-1", aspectRatio: 0.75)), 1)
         XCTAssertEqual(ProgressPhotoEngine.ghostScale(row(key: "framing:torso:1", aspectRatio: 0.6)), 1, "never enlarged")
+    }
+
+    /// A small JPEG, stamped the way a camera stamps the moment it was taken.
+    private func jpeg(takenAt stamp: String?) throws -> Data {
+        let image = UIGraphicsImageRenderer(size: CGSize(width: 12, height: 16)).image { context in
+            UIColor.gray.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 12, height: 16))
+        }
+        let data = NSMutableData()
+        let destination = try XCTUnwrap(
+            CGImageDestinationCreateWithData(data, UTType.jpeg.identifier as CFString, 1, nil)
+        )
+        var properties: [CFString: Any] = [:]
+        if let stamp {
+            properties[kCGImagePropertyExifDictionary] = [kCGImagePropertyExifDateTimeOriginal: stamp]
+        }
+        CGImageDestinationAddImage(destination, try XCTUnwrap(image.cgImage), properties as CFDictionary)
+        XCTAssertTrue(CGImageDestinationFinalize(destination))
+        return data as Data
+    }
+
+    /// C6. A baseline imported from the library belongs on the day it was
+    /// taken. Filed under today, every "days apart" and BEFORE/AFTER built on
+    /// it is wrong.
+    func testAnImportedPhotoIsFiledUnderTheDayItWasTaken() throws {
+        let now = try XCTUnwrap(APEXDateMath.date(from: "2026-11-10"))
+        let taken = try XCTUnwrap(
+            ProgressPhotoEngine.takenAt(imageData: try jpeg(takenAt: "2025:06:14 08:30:00"), now: now),
+            "the date the file carries was not read"
+        )
+        XCTAssertEqual(taken.apexDateKey, "2025-06-14")
+
+        let owner = UUID()
+        func row(_ date: Date) -> ProgressPhoto {
+            ProgressPhotoEngine.checkpoint(
+                id: UUID(), userID: owner, takenAt: date, pose: "front", framing: .full,
+                width: 3, height: 4, referencePhotoID: nil, weightKG: nil, note: ""
+            )
+        }
+        let imported = row(taken)
+        XCTAssertEqual(imported.localDate, "2025-06-14")
+        XCTAssertTrue(imported.storagePath.contains("/2025-06/"))
+        XCTAssertEqual(ProgressPhotoEngine.daysBetween(imported, row(now)), 514)
+        XCTAssertTrue(
+            ProgressPhotoEngine.moment(imported, language: .english).contains("14 Jun 2025"),
+            ProgressPhotoEngine.moment(imported, language: .english)
+        )
+
+        /* Today is the answer only when the file does not know better. */
+        XCTAssertNil(ProgressPhotoEngine.takenAt(imageData: try jpeg(takenAt: nil), now: now))
+        XCTAssertNil(ProgressPhotoEngine.takenAt(imageData: Data("not a picture".utf8), now: now))
+        XCTAssertNil(ProgressPhotoEngine.takenAt(imageData: try jpeg(takenAt: "not a date"), now: now))
+        XCTAssertNil(
+            ProgressPhotoEngine.takenAt(imageData: try jpeg(takenAt: "2031:01:01 09:00:00"), now: now),
+            "a camera clock set in the future must not file a photo after today"
+        )
     }
 
     /// A comparison must never borrow a score recorded after the photo.

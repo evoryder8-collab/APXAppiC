@@ -260,7 +260,7 @@ final class ProgressCameraTests: XCTestCase {
             controller: ProgressCameraController(accessAnswer: { cameraAllowed }),
             loadReferenceImage: { _ in ghost },
             onClose: {},
-            onCaptured: { _, _ in }
+            onCaptured: { _, _, _ in }
         )
         .environment(session)
     }
