@@ -338,6 +338,24 @@ for (const persona of ['june', 'matthew'] as PersonaSlug[]) {
   scenarios.push({ name: 'joining_answers_and_chosen_start', persona: 'constantine', throughDate: THROUGH, data: d })
 }
 
+/* 11: answers given on one day apply oldest first, whatever order they are stored in */
+{
+  const d = base('constantine')
+  /* evidence first, then a lift; a repeat and a lower answer that day change nothing */
+  session(d, '2026-06-02', 'push')
+  selfCheck(d, 'upper_body_strength_score', 77, 70, '2026-06-05T08:00:00.000Z')
+  selfCheck(d, 'upper_body_strength_score', 77, 70, '2026-06-05T10:00:00.000Z')
+  selfCheck(d, 'upper_body_strength_score', 47, 40, '2026-06-05T09:00:00.000Z')
+  /* no evidence yet: the first answer sets the estimate and a higher one that day lifts it again */
+  selfCheck(d, 'flexibility_score', 30, 20, '2026-06-05T10:00:00.000Z')
+  selfCheck(d, 'flexibility_score', 62, 55, '2026-06-05T09:00:00.000Z')
+  selfCheck(d, 'flexibility_score', 30, 20, '2026-06-05T08:00:00.000Z')
+  /* the same holds on the baseline day */
+  selfCheck(d, 'cardio_capacity_score', 62, 55, `${BASELINE}T08:00:00.000Z`)
+  selfCheck(d, 'cardio_capacity_score', 30, 20, `${BASELINE}T09:00:00.000Z`)
+  scenarios.push({ name: 'same_day_self_checks', persona: 'constantine', throughDate: THROUGH, data: d })
+}
+
 function selfCheck(
   data: AppData,
   metric: FitnessEvidenceRecord['metric'],

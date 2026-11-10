@@ -179,9 +179,10 @@ interface CapacityCalibrationAnchor {
   lowerBound: number
 }
 
+/* Each list holds every answer for its day, oldest first. */
 interface CapacityCalibrationTimeline {
-  beforeBaseline: Map<CapacityCalibrationMetric, CapacityCalibrationAnchor>
-  byDate: Map<string, Map<CapacityCalibrationMetric, CapacityCalibrationAnchor>>
+  beforeBaseline: CapacityCalibrationAnchor[]
+  byDate: Map<string, CapacityCalibrationAnchor[]>
 }
 
 const capacityCalibrationMetrics: Partial<Record<FitnessEvidenceRecord['metric'], CapacityCalibrationMetric>> = {
@@ -215,8 +216,7 @@ function capacityCalibrationTimeline(
   const ownerID = data.profile?.user_id
   const owned = data.fitness_evidence.filter((record) => record.user_id === ownerID)
   const supersededIDs = new Set(owned.flatMap((record) => record.supersedes_id ? [record.supersedes_id] : []))
-  const beforeBaseline = new Map<CapacityCalibrationMetric, CapacityCalibrationAnchor>()
-  const byDate = new Map<string, Map<CapacityCalibrationMetric, CapacityCalibrationAnchor>>()
+  const answers: CapacityCalibrationAnchor[] = []
 
   for (const record of owned) {
     const metric = capacityCalibrationMetrics[record.metric]
@@ -239,7 +239,7 @@ function capacityCalibrationTimeline(
     ) continue
     const coverage = calibrationCoverage(record)
     if (coverage <= 0) continue
-    const anchor: CapacityCalibrationAnchor = {
+    answers.push({
       id: record.id,
       metric,
       value: record.value,
@@ -247,17 +247,16 @@ function capacityCalibrationTimeline(
       importedAt: record.imported_at,
       coverage,
       lowerBound: typeof record.metadata.lower_bound === 'number' ? record.metadata.lower_bound : record.value,
-    }
-    const destination = measuredOn <= baselineDate
-      ? beforeBaseline
-      : (byDate.get(measuredOn) ?? new Map<CapacityCalibrationMetric, CapacityCalibrationAnchor>())
-    const existing = destination.get(metric)
-    const chronology = `${anchor.measuredOn}:${anchor.importedAt}:${anchor.id}`
-    const existingChronology = existing
-      ? `${existing.measuredOn}:${existing.importedAt}:${existing.id}`
-      : ''
-    if (!existing || chronology > existingChronology) destination.set(metric, anchor)
-    if (measuredOn > baselineDate) byDate.set(measuredOn, destination)
+    })
+  }
+  // Every answer counts, oldest first, so a repeat or a lower one later the same day changes nothing.
+  const order = (anchor: CapacityCalibrationAnchor) => `${anchor.measuredOn}:${anchor.importedAt}:${anchor.id}`
+  answers.sort((a, b) => (order(a) < order(b) ? -1 : order(a) > order(b) ? 1 : 0))
+  const beforeBaseline: CapacityCalibrationAnchor[] = []
+  const byDate = new Map<string, CapacityCalibrationAnchor[]>()
+  for (const anchor of answers) {
+    if (anchor.measuredOn <= baselineDate) beforeBaseline.push(anchor)
+    else byDate.set(anchor.measuredOn, [...(byDate.get(anchor.measuredOn) ?? []), anchor])
   }
   return { beforeBaseline, byDate }
 }
@@ -273,20 +272,20 @@ const calibratedStat: Record<CapacityCalibrationMetric, keyof StatBlock> = {
  * A self-check sets the first estimate of a domain that has no evidence yet. Once a domain
  * has evidence, an answer only lifts a score that sits below the answered band, and the same
  * or a lower answer given again lifts nothing. It never takes away what the log earned.
+ * The first answer of a day is that evidence for the ones that follow it.
  */
 function applyCapacityCalibration(
   stats: StatBlock,
-  evidence: Map<CapacityCalibrationMetric, CapacityCalibrationAnchor>,
+  evidence: CapacityCalibrationAnchor[],
   observed: EngineResult['firstObserved'],
   credited: Map<CapacityCalibrationMetric, number>,
 ): Set<CapacityCalibrationMetric> {
   const applied = new Set<CapacityCalibrationMetric>()
-  for (const metric of [...evidence.keys()].sort()) {
-    const anchor = evidence.get(metric)
-    if (!anchor) continue
+  for (const anchor of evidence) {
+    const metric = anchor.metric
     const stat = calibratedStat[metric]
     const value = clamp(anchor.value)
-    const lifts = observed[stat] == null
+    const lifts = (observed[stat] == null && !credited.has(metric))
       || (stats[stat] < anchor.lowerBound && value > (credited.get(metric) ?? -Infinity))
     if (lifts) stats[stat] += (value - stats[stat]) * Math.min(0.55, Math.max(0, anchor.coverage))
     credited.set(metric, Math.max(credited.get(metric) ?? value, value))
@@ -644,7 +643,7 @@ export function computeEngine(data: AppData, throughDate: string,
 
       const calibrated = applyCapacityCalibration(
         s,
-        calibrationTimeline.byDate.get(date) ?? new Map(),
+        calibrationTimeline.byDate.get(date) ?? [],
         firstObserved,
         creditedSelfChecks,
       )

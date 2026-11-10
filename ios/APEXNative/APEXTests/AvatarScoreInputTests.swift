@@ -330,6 +330,35 @@ final class AvatarScoreInputTests: XCTestCase {
         XCTAssertEqual(try latest(data).strengthUpper, 51.7)
     }
 
+    func testALowerOrRepeatedSelfCheckLaterTheSameDayChangesNothing() throws {
+        func answer(_ value: Double, lowerBound: Double, at time: String,
+                    _ metric: FitnessEvidenceMetric = .upperBodyStrengthScore) -> FitnessEvidenceRecord {
+            evidence(metric, value: value, measuredAt: time, lowerBound: lowerBound)
+        }
+        // A day after joining, then the joining day itself.
+        for day in ["2026-10-03", "2026-10-01"] {
+            var data = dashboard()
+            data.profile?.avatarStartingPoints = AvatarStartingPoints.balanced
+            let first = answer(77, lowerBound: 70, at: "\(day)T12:00:00Z")
+            let lower = answer(47, lowerBound: 40, at: "\(day)T13:00:00Z")
+            let repeated = answer(77, lowerBound: 70, at: "\(day)T14:00:00Z")
+            data.fitnessEvidence = [first]
+            XCTAssertEqual(try latest(data).strengthUpper, 64.9)
+            data.fitnessEvidence = [first, lower]
+            XCTAssertEqual(try latest(data).strengthUpper, 64.9)
+            data.fitnessEvidence = [lower, first, repeated]
+            XCTAssertEqual(try latest(data).strengthUpper, 64.9)
+            // A score with no evidence yet takes its first answer, and a higher one that day lifts it again.
+            data.profile?.avatarStartingPoints = nil
+            data.fitnessEvidence = [
+                answer(30, lowerBound: 20, at: "\(day)T12:00:00Z", .flexibilityScore),
+                answer(62, lowerBound: 55, at: "\(day)T13:00:00Z", .flexibilityScore),
+                answer(30, lowerBound: 20, at: "\(day)T14:00:00Z", .flexibilityScore),
+            ]
+            XCTAssertEqual(try latest(data).flexibility, 51.7)
+        }
+    }
+
     func testPartlyLoggedFoodDayCostsNoStrengthGain() {
         let bespoke = FBProfile(
             userID: "9a0fffbc-bb02-40ac-834a-d4e339b32574", persona: .constantine, sex: "male", weightKG: 80,

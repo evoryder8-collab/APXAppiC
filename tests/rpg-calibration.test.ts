@@ -78,7 +78,7 @@ test('account-owned baseline calibration changes only its visible Avatar capacit
 
   assert.ok(snapshot)
   assert.ok(uncalibrated)
-  assert.equal(snapshot.endurance, 39)
+  assert.equal(snapshot.endurance, 64.9)
   assert.equal(snapshot.strength_upper, 39)
   assert.equal(snapshot.strength_lower, 39)
   assert.equal(snapshot.flexibility, 39)
@@ -141,4 +141,32 @@ test('a later self-check lifts a score below its band once and never lowers an e
     answer('cardio_capacity_score', 62, 55, '2026-08-31'),
     answer('cardio_capacity_score', 77, 70, '2026-09-02'),
   ]).endurance > once)
+})
+
+test('answers given on one day apply oldest first, so a repeat or a lower one changes nothing', () => {
+  const balanced = { health: 50, joint: 50, flexibility: 50, endurance: 50, strength_lower: 50, strength_upper: 50 }
+  const answer = (metric: FitnessEvidenceRecord['metric'], value: number, lowerBound: number, at: string) => ({
+    ...evidence(metric, ownerID, value, at),
+    measured_at: at,
+    metadata: { answered_count: 3, lower_bound: lowerBound },
+  })
+  const latest = (records: FitnessEvidenceRecord[], startingPoints?: typeof balanced) => {
+    const data = dashboard(records)
+    if (startingPoints) data.profile = { ...profile, avatar_starting_points: startingPoints }
+    return computeEngine(data, '2026-09-04').snapshots.at(-1)!
+  }
+  for (const day of ['2026-09-02', profile.baseline_date]) {
+    const first = answer('upper_body_strength_score', 77, 70, `${day}T12:00:00.000Z`)
+    const lower = answer('upper_body_strength_score', 47, 40, `${day}T13:00:00.000Z`)
+    const repeat = answer('upper_body_strength_score', 77, 70, `${day}T14:00:00.000Z`)
+    assert.equal(latest([first], balanced).strength_upper, 64.9)
+    assert.equal(latest([first, lower], balanced).strength_upper, 64.9)
+    assert.equal(latest([lower, first, repeat], balanced).strength_upper, 64.9)
+    // A score with no evidence yet takes its first answer, and a higher one that day lifts it again.
+    assert.equal(latest([
+      answer('flexibility_score', 30, 20, `${day}T12:00:00.000Z`),
+      answer('flexibility_score', 62, 55, `${day}T13:00:00.000Z`),
+      answer('flexibility_score', 30, 20, `${day}T14:00:00.000Z`),
+    ]).flexibility, 51.7)
+  }
 })
