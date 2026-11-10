@@ -449,7 +449,8 @@ export function computeEngine(data: AppData, throughDate: string,
   const exerciseDayById = new Map(exercises.map((e) => [e.id, e.program_day_id]))
   for (const [exId, arr] of byExercise) {
     const byDate = new Map<string, number>()
-    for (const { date, w } of arr) byDate.set(date, Math.max(byDate.get(date) ?? 0, w))
+    // Seeded with the first load, not zero: an assisted lift is logged below zero.
+    for (const { date, w } of arr) byDate.set(date, Math.max(byDate.get(date) ?? w, w))
     const dates = [...byDate.keys()].sort()
     for (let i = 1; i < dates.length; i++) {
       if ((byDate.get(dates[i]) ?? 0) > (byDate.get(dates[i - 1]) ?? 0)) {

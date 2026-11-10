@@ -349,8 +349,9 @@ public enum FitnessBrainEngine {
         for e in input.exercises { exerciseDayByID[e.id] = e.programDayID }
         for exID in exerciseOrder {
             var byDate: [String: Double] = [:]
+            // Seeded with the first load, not zero: an assisted lift is logged below zero.
             for entry in byExercise[exID] ?? [] {
-                byDate[entry.date] = max(byDate[entry.date] ?? 0, entry.w)
+                byDate[entry.date] = max(byDate[entry.date] ?? entry.w, entry.w)
             }
             let dates = byDate.keys.sorted()
             for i in 1..<max(1, dates.count) where dates.count > 1 {

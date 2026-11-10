@@ -194,4 +194,15 @@ final class AvatarScoreInputTests: XCTestCase {
         let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
         XCTAssertEqual(json["baseline_date"] as? String, Date().apexDateKey)
     }
+
+    func testEasingAssistanceCountsAsProgress() throws {
+        var input = try engineInput(dayType: "pull")
+        input.exercises = [FBExerciseRef(id: "pull-up", programDayID: dayID.uuidString.lowercased())]
+        input.workoutSessions = [fbSession("first", date: "2026-10-02"), fbSession("second")]
+        input.workoutLogs = [fbSet(nil, session: "first", weight: -30, exercise: "pull-up"),
+                             fbSet(nil, session: "second", weight: -30, exercise: "pull-up")]
+        let level = try scores(input).strengthUpper
+        input.workoutLogs[1].weightKG = -20
+        XCTAssertGreaterThan(try scores(input).strengthUpper, level)
+    }
 }

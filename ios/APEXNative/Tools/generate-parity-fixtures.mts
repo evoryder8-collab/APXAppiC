@@ -254,6 +254,17 @@ for (const persona of ['june', 'matthew'] as PersonaSlug[]) {
   scenarios.push({ name: 'stamps_ahead_of_device_date', persona: 'constantine', throughDate: THROUGH, data: d })
 }
 
+/* 7: loads and movements that a day's label does not describe */
+{
+  const d = base('constantine')
+  const pullDay = d.program_days.find((p) => p.day_type === 'pull')!
+  const pullUp = d.exercises.find((e) => e.program_day_id === pullDay.id && !e.is_lite)!
+  /* easing the assistance on a lift is progress */
+  log(d, session(d, '2026-06-02', 'pull'), { exercise_name: pullUp.name, exercise_id: pullUp.id, weight_kg: -30 })
+  log(d, session(d, '2026-06-09', 'pull'), { exercise_name: pullUp.name, exercise_id: pullUp.id, weight_kg: -20 })
+  scenarios.push({ name: 'performed_movements_and_loads', persona: 'constantine', throughDate: THROUGH, data: d })
+}
+
 function selfCheck(
   data: AppData,
   metric: FitnessEvidenceRecord['metric'],
