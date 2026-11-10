@@ -36,9 +36,16 @@ struct VisualProgressView: View {
         ProgressPhotoEngine.timeline(session.data.progressPhotos, earlier: earlierPhotos)
     }
 
+    /// Replaces the server's answer for older photos, for layout checks.
+    var loadEarlier: (([ProgressPhoto]) async throws -> (photos: [ProgressPhoto], reachedEnd: Bool))?
+
     /// Opens straight on the review of a photo already in hand.
-    init(reviewing image: UIImage? = nil) {
+    init(
+        reviewing image: UIImage? = nil,
+        loadEarlier: (([ProgressPhoto]) async throws -> (photos: [ProgressPhoto], reachedEnd: Bool))? = nil
+    ) {
         _selectedImage = State(initialValue: image)
+        self.loadEarlier = loadEarlier
     }
 
     /// The two chosen photos, oldest first so BEFORE really is before.
@@ -399,10 +406,25 @@ struct VisualProgressView: View {
     private func loadEarlierPhotos() async {
         guard let operation = session.accountOperationLease() else { return }
         do {
-            let page = try await session.earlierProgressPhotos(after: earlierPhotos, operation: operation)
-            guard session.accountOperationIsCurrent(operation) else { return }
-            earlierPhotos = ProgressPhotoEngine.timeline(earlierPhotos, earlier: page.photos)
-            reachedFirstPhoto = page.reachedEnd
+            while !Task.isCancelled {
+                let reach = ProgressPhotoEngine.firstPageReach(session.data.progressPhotos)
+                let asked = earlierPhotos
+                let page: (photos: [ProgressPhoto], reachedEnd: Bool)
+                if let loadEarlier {
+                    page = try await loadEarlier(asked)
+                } else {
+                    page = try await session.earlierProgressPhotos(after: asked, operation: operation)
+                }
+                guard session.accountOperationIsCurrent(operation) else { return }
+                /* A page is what comes after the photos loaded when it was
+                   asked for. If those have changed since, it would leave a
+                   hole where it no longer joins on, so it is asked again. */
+                guard asked == earlierPhotos,
+                      reach == ProgressPhotoEngine.firstPageReach(session.data.progressPhotos) else { continue }
+                earlierPhotos = ProgressPhotoEngine.timeline(earlierPhotos, earlier: page.photos)
+                reachedFirstPhoto = page.reachedEnd
+                return
+            }
         } catch {
             /* Asked again the next time the end of the list scrolls into view. */
         }
