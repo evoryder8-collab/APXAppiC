@@ -250,6 +250,33 @@ final class AvatarScoreInputTests: XCTestCase {
         XCTAssertEqual(input.workoutSessions.map(\.isDeload), [true, false])
     }
 
+    @MainActor
+    func testWorkoutSavedInAScheduledDeloadWeekIsFlaggedAsADeload() async throws {
+        let app = AppSession(developerSandboxRole: .coach)
+        let operation = try XCTUnwrap(app.accountOperationLease())
+        var data = APEXDebugFixture.dashboard(userID: operation.ownerID)
+        let main = try XCTUnwrap(data.programs.first { $0.slug == "main" })
+        let day = ProgramDay(id: dayID, userID: operation.ownerID, programID: main.id, weekday: 1, name: "Day",
+                             dayType: "push", estimatedMinutes: 45, warmupNote: "", sortOrder: 0)
+        data.programDays = [day]
+        data.deloadMarks = []
+        data.settings?.addons["training_protocol"] = .object(["start_date": .string("2026-09-07")])
+        app.data = data
+        func saved(on date: String) async throws -> WorkoutSession {
+            let start = try XCTUnwrap(ISO8601DateFormatter().date(from: "\(date)T08:00:00Z"))
+            let set = WorkoutSetInput(exerciseID: nil, exerciseName: "Press", setNumber: 1,
+                                      weightKG: nil, reps: nil, rir: nil, skipped: true)
+            let id = try await app.completeWorkout(
+                day: day, setInputs: [set], lite: false, startedAt: start,
+                finishedAt: start.addingTimeInterval(2_700), completionDate: date, operation: operation)
+            return try XCTUnwrap(app.data.workoutSessions.first { $0.id == id })
+        }
+        let deloadWeek = try await saved(on: "2026-09-30")
+        let trainingWeek = try await saved(on: "2026-10-07")
+        XCTAssertTrue(deloadWeek.isDeload)
+        XCTAssertFalse(trainingWeek.isDeload)
+    }
+
     func testFullBodyDayCreditsEachBodyAreaItsMovementsTrained() throws {
         var input = try engineInput(dayType: "upper")
         let rested = try scores(input)
