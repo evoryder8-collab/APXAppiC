@@ -481,8 +481,10 @@ enum HydrationHealthReconciler {
         current: [HydrationHealthSampleAnchor],
         deletedSampleIDs: Set<UUID> = []
     ) -> HydrationHealthOverlayUpdate {
+        // The phone mirrors the day's food water to Health under a sample id no event carries.
+        // The snapshot total already holds it as the food event, so it is never an unabsorbed drink.
         let acknowledged = unacknowledged(
-            existing,
+            existing.filter { $0.sample.kind != .food },
             snapshotOwnerID: ownerID,
             snapshotLocalDate: localDate,
             snapshotEventIDs: canonicalSampleIDs
@@ -521,7 +523,7 @@ enum HydrationHealthReconciler {
             }
         }
 
-        for sample in current where anchorByID[sample.id] == nil {
+        for sample in current where anchorByID[sample.id] == nil && sample.kind != .food {
             if canonicalSampleIDs.contains(sample.id) {
                 if mutationsByID[sample.id]?.action == .delete {
                     mutationsByID.removeValue(forKey: sample.id)

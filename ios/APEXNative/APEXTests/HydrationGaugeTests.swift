@@ -491,6 +491,67 @@ final class WatchHydrationFillStateTests: XCTestCase {
         XCTAssertEqual(unanchored.composition, baseComposition)
     }
 
+    func testThePhonesFoodWaterMirrorInHealthIsNotCountedOnTopOfTheSnapshotTotal() throws {
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+        let day = "2026-08-27"
+        func event(_ id: String, _ milliliters: Int, _ kind: HydrationKind, _ source: HydrationSource) -> HydrationEvent {
+            HydrationEvent(
+                id: UUID(uuidString: id)!, userID: ownerID, clientIdempotencyKey: id, localDate: day,
+                occurredAt: "\(day)T12:00:00Z", amountML: milliliters, kind: kind,
+                paletteToken: kind == .food ? "food" : "aqua", iconToken: kind == .food ? "fork.knife" : "drop.fill",
+                source: source, healthKitSampleID: nil, createdAt: "\(day)T12:00:00Z", updatedAt: "\(day)T12:00:00Z"
+            )
+        }
+        // The phone's snapshot already holds the day's food water as its food event.
+        let snapshot = HydrationCompanionSnapshot.make(
+            ownerID: ownerID, date: day,
+            events: [
+                event("00000000-0000-0000-0000-00000000000A", 1_000, .water, .iPhone),
+                event("00000000-0000-0000-0000-00000000000F", 400, .food, .food),
+            ],
+            presets: [], preferences: .default, legacyDrinkLiters: 0, revision: "\(day)T12:00:00.000Z"
+        )
+        XCTAssertEqual(snapshot.totalML, 1_400)
+        let canonical = Set(HydrationWidgetState(snapshot: snapshot).canonicalSampleIDs ?? [])
+        // The phone also mirrors that food water to Health under a sample id no event carries.
+        let foodMirror = healthSample("00000000-0000-0000-0000-0000000000F1", milliliters: 400,
+                                      kind: .food, palette: "external", icon: "heart.fill")
+        let coffee = healthSample("00000000-0000-0000-0000-0000000000C1", milliliters: 100,
+                                  kind: .coffee, palette: "espresso", icon: "cup.and.saucer.fill")
+        func total(_ overlay: [HydrationPendingMutation]) -> Int {
+            HydrationHealthReconciler.applying(overlay, toTotalML: snapshot.totalML, composition: snapshot.composition).totalML
+        }
+
+        let arrived = HydrationHealthReconciler.updatedHealthOverlay(
+            [], ownerID: ownerID, localDate: day, canonicalSampleIDs: canonical,
+            anchor: [], current: [foodMirror, coffee]
+        )
+        XCTAssertEqual(total(arrived.mutations), 1_500, "food water counted once, the new coffee still added")
+        XCTAssertEqual(arrived.mutations.map(\.sample.id), [coffee.id])
+
+        // A meal edit replaces the mirror with a new sample id.
+        let editedMirror = healthSample("00000000-0000-0000-0000-0000000000F2", milliliters: 400,
+                                        kind: .food, palette: "external", icon: "heart.fill")
+        let edited = HydrationHealthReconciler.updatedHealthOverlay(
+            arrived.mutations, ownerID: ownerID, localDate: day, canonicalSampleIDs: canonical,
+            anchor: arrived.nextAnchor, current: [editedMirror, coffee], deletedSampleIDs: [foodMirror.id]
+        )
+        XCTAssertEqual(total(edited.mutations), 1_500)
+
+        // An overlay saved by an earlier build drops its food entry on the next refresh.
+        let saved = [HydrationPendingMutation(ownerID: ownerID, localDate: day, action: .upsert, sample: foodMirror)]
+        XCTAssertEqual(total(saved), 1_800)
+        let healed = HydrationHealthReconciler.updatedHealthOverlay(
+            saved, ownerID: ownerID, localDate: day, canonicalSampleIDs: canonical,
+            anchor: [foodMirror], current: [foodMirror]
+        )
+        XCTAssertEqual(
+            HydrationHealthReconciler.replacingOverlay(saved, with: healed.mutations, inTotalML: 1_800,
+                                                       composition: snapshot.composition).totalML,
+            1_400
+        )
+    }
+
     func testEmptyHydrationAdjustmentsPreserveNewestFirstCanonicalCompositionExactly() {
         let newestFirst = [
             HydrationCompositionBand(
