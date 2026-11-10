@@ -232,6 +232,33 @@ final class NutritionDayTests: XCTestCase {
         XCTAssertEqual(bodyweight(fixture, on: afterUpdating), 83.5, "The person's own entry outranks a reading of the same day")
     }
 
+    func testAWeightTheTargetsCannotUseNeverBecomesTheBodyweight() throws {
+        // A slip of the finger in the weight field, then a Health sample no scale would give.
+        var fixture = data()
+        fixture.dailyLogs = [weighIn("2026-11-12", 78), weighIn("2026-11-14", 27)]
+        fixture.healthMetrics = [health("2026-11-15", 310)]
+        XCTAssertEqual(bodyweight(fixture, on: afterUpdating), 78, "The last weight the targets accept stands")
+        let targets = EnergyEngine.targets(
+            profile: try XCTUnwrap(fixture.weighedProfile(on: afterUpdating)), logs: [], catalog: []
+        )
+        XCTAssertTrue(targets.reviewReasons.isEmpty, "One wrong entry does not block the day's targets")
+        XCTAssertEqual(targets.proteinG, 148, "1.9 g per kg of 78 kg")
+        XCTAssertEqual(
+            Bodyweight.weighIns(ownerID: owner, data: fixture).map(\.kg), [78, 27, 310],
+            "What was entered is still on its day"
+        )
+
+        fixture.dailyLogs = [weighIn("2026-11-14", 27)]
+        fixture.healthMetrics = []
+        XCTAssertEqual(bodyweight(fixture, on: afterUpdating), 80, "With nothing usable since, the profile's weight stands")
+
+        // The edges of what the targets accept are weights like any other.
+        for edge in [30.0, 300.0] {
+            fixture.dailyLogs = [weighIn("2026-11-14", edge)]
+            XCTAssertEqual(bodyweight(fixture, on: afterUpdating), edge)
+        }
+    }
+
     // MARK: Writes, through a local sandbox session
 
     private func sandbox() throws -> (AppSession, AccountOperationLease) {
