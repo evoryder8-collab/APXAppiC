@@ -650,6 +650,39 @@ final class ProgressCameraTests: XCTestCase {
         }
     }
 
+    /// An old photo imported from the library is filed under its own date,
+    /// below the first page. The refresh that follows a save brings the newest
+    /// 120 again, and the import then has to be found among the older photos.
+    /// It used to be in neither, gone until the screen was opened again.
+    func testAnImportedOldPhotoIsStillOnTheTimelineAfterTheRefreshThatFollowsItsSave() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(session.accountOperationLease()).ownerID
+        let firstPage = (0..<120).map { row(owner: owner, date: Self.day(200 - $0)) }
+        let earlier = (0..<3).map { row(owner: owner, date: Self.day(10 - $0)) }
+        session.data.progressPhotos = firstPage
+        let older = OlderPhotos(firstPage + earlier)
+        let frames = try timeline(of: session, older: older)
+        try await wait(for: "the older photos load") { earlier.allSatisfy { shows($0, in: frames) } }
+
+        /* Saving uploads the photo, then adds it to the photos in memory. */
+        let imported = row(owner: owner, date: Self.day(2))
+        older.all.append(imported)
+        session.data.progressPhotos.insert(imported, at: 0)
+        try await wait(for: "the imported photo is on the timeline") { shows(imported, in: frames) }
+
+        /* The refresh: the first page is the newest 120 again. */
+        let asked = older.asked
+        older.hold()
+        session.data.progressPhotos = firstPage
+        try await wait(for: "the older photos are asked for again once a photo has left the first page") {
+            older.asked > asked
+        }
+        older.release()
+        try await wait(for: "the imported photo is on the timeline, among the older photos") {
+            older.asked > asked && shows(imported, in: frames) && earlier.allSatisfy { shows($0, in: frames) }
+        }
+    }
+
     /// Older photos are loaded by this screen and kept by it. They belong to
     /// the account they were loaded for, and leave the timeline when it does.
     func testOlderPhotosLeaveWithTheAccountTheyWereLoadedFor() async throws {

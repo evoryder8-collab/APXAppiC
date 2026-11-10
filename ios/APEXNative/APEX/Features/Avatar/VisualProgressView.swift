@@ -275,6 +275,15 @@ struct VisualProgressView: View {
         .onChange(of: ProgressPhotoEngine.firstPageReach(session.data.progressPhotos)) { _, _ in
             reloadEarlierPhotos()
         }
+        .onChange(of: session.data.progressPhotos.map(\.id)) { before, _ in
+            /* A photo that has left the first page and is not among the
+               older ones may still be on the server. An old photo imported
+               here is added to the first page in memory, and the refresh
+               that follows keeps only the newest. The older pages were
+               loaded without it, so they load again. */
+            let shown = Set(photos.map(\.id))
+            if before.contains(where: { !shown.contains($0) }) { reloadEarlierPhotos() }
+        }
         .onChange(of: session.profile?.userID) { _, _ in
             preparationTask?.cancel()
             preparationTask = nil
