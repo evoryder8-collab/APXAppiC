@@ -911,13 +911,10 @@ struct MealComposerView: View {
             )
         )
         guard targets.isPublishable else { return nil }
-        let share: Double
-        switch draft.mealSlot {
-        case "breakfast": share = 0.25
-        case "lunch", "dinner": share = 0.30
-        case "post_workout", "post-workout": share = 0.15
-        default: share = 0.10
-        }
+        let share = MealBlocks.guideShare(
+            for: draft.mealSlot,
+            enabled: MealBlocks.enabled(session.data.settings?.addons["meal_blocks"])
+        )
         return (Double(targets.proteinG) * share, Double(targets.carbsG) * share, Double(targets.fatG) * share)
     }
 

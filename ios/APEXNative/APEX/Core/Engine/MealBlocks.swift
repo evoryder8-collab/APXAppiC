@@ -90,6 +90,23 @@ enum MealBlocks {
         return blocks
     }
 
+    private static func guideWeight(_ kind: String) -> Double {
+        switch kind {
+        case "breakfast": 0.25
+        case "lunch", "dinner": 0.30
+        case "post_workout", "post-workout": 0.15
+        default: 0.10
+        }
+    }
+
+    /// The share of the day's macros one meal's guide carries. The weights
+    /// are divided by the enabled blocks' total, so hitting every meal guide
+    /// lands on the day's target whichever blocks are switched on.
+    static func guideShare(for slot: String, enabled blocks: [Block]) -> Double {
+        let total = blocks.reduce(0) { $0 + guideWeight($1.kind) }
+        return total > 0 ? guideWeight(slot) / total : guideWeight(slot)
+    }
+
     static func enabled(_ value: JSONValue?) -> [Block] {
         normalized(value).filter(\.enabled).sorted { $0.time < $1.time }
     }

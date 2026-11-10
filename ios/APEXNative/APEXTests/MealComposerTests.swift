@@ -579,6 +579,39 @@ final class MealComposerTests: XCTestCase {
         XCTAssertEqual(replaySnapshot.replayed, [poison.id, valid.id])
     }
 
+    func testMealGuidesAddUpToTheDayWhateverBlocksAreEnabled() {
+        func blocks(off: [String]) -> [MealBlocks.Block] {
+            MealBlocks.enabled(.object(["blocks": .array(
+                off.map { .object(["id": .string($0), "enabled": .bool(false)]) }
+            )]))
+        }
+        func total(_ enabled: [MealBlocks.Block]) -> Double {
+            enabled.reduce(0) { $0 + MealBlocks.guideShare(for: $1.kind, enabled: enabled) }
+        }
+
+        let all = blocks(off: [])
+        XCTAssertEqual(all.count, 5, "Every block is on by default")
+        XCTAssertEqual(total(all), 1, accuracy: 1e-9, "Hitting every meal guide is the day's target, not 110 % of it")
+
+        let three = blocks(off: ["snack", "post_workout"])
+        XCTAssertEqual(three.map(\.kind), ["breakfast", "lunch", "dinner"])
+        XCTAssertEqual(total(three), 1, accuracy: 1e-9, "Three meals carry the whole day, not 85 % of it")
+        XCTAssertEqual(152 * total(three), 152, accuracy: 1e-6)
+
+        let one = blocks(off: ["breakfast", "dinner", "snack", "post_workout"])
+        XCTAssertEqual(MealBlocks.guideShare(for: "lunch", enabled: one), 1, accuracy: 1e-9)
+
+        // The meals keep their relative size: lunch stays a fifth larger than breakfast.
+        XCTAssertEqual(
+            MealBlocks.guideShare(for: "lunch", enabled: three) / MealBlocks.guideShare(for: "breakfast", enabled: three),
+            0.30 / 0.25, accuracy: 1e-9
+        )
+        XCTAssertEqual(
+            MealBlocks.guideShare(for: "post-workout", enabled: all),
+            MealBlocks.guideShare(for: "post_workout", enabled: all)
+        )
+    }
+
     func testDraftTotalsFollowEditedQuantities() {
         let oats = food(
             name: "Oats",
