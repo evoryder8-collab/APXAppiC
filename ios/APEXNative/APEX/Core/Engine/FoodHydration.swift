@@ -197,6 +197,14 @@ enum FoodHydration {
         return (waterPer100 * equivalentAmount).rounded() / 100
     }
 
+    /// Millilitres of water a logged portion counts for. The home gauge and the score engine
+    /// both sum this, so they round a day to the same millilitre.
+    static func loggedWater(_ entry: LoggedFoodEntry) -> Double? {
+        guard let water = entry.waterML ?? portionWater(entry.snapshotWaterML100, equivalentAmount: entry.equivalentAmount),
+              water.isFinite, water > 0 else { return nil }
+        return water
+    }
+
     /// A food with its water filled in, so a scanned or hand-entered product
     /// still contributes hydration.
     static func resolved(_ food: Food) -> Food {

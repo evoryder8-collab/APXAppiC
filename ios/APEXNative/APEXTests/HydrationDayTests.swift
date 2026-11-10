@@ -171,4 +171,28 @@ final class HydrationDayTests: XCTestCase {
         XCTAssertEqual(watchTotal(), 6_750)
         XCTAssertEqual(scoreEngineTotal(), 6_750)
     }
+
+    func testTheGaugeAndTheScoreEngineRoundFoodWaterToTheSameMillilitre() async throws {
+        let (session, operation) = try sandbox()
+        let day = try date(emptyDay)
+        func scoreEngineTotal() -> Int? {
+            FitnessBrainService.waterTotals(session.data, ownerID: operation.ownerID)[emptyDay]
+        }
+        try await session.logHydration(amountML: 2_250, on: day, operation: operation)
+        let foods = try await session.searchFoods(query: "Oats", operation: operation)
+        try await session.logFood(try XCTUnwrap(foods.first), amount: 400, unit: "g", mealSlot: "breakfast", date: day, operation: operation)
+        let entry = try XCTUnwrap(session.data.loggedFoodEntries.indices.last)
+        XCTAssertEqual(session.data.loggedFoodEntries[entry].equivalentAmount, 400)
+
+        // Food water ending on half a millilitre: the gauge rounds it up as the engine does, so a 2,751 ml goal is met on both.
+        session.data.loggedFoodEntries[entry].waterML = 500.5
+        XCTAssertEqual(scoreEngineTotal(), 2_751)
+        XCTAssertEqual(session.hydrationIntakeML(on: day), 2_751)
+
+        // A portion worked out from water per 100 g is rounded the way the engine rounds it.
+        session.data.loggedFoodEntries[entry].waterML = nil
+        session.data.loggedFoodEntries[entry].snapshotWaterML100 = 87.374
+        XCTAssertEqual(scoreEngineTotal(), 2_600)
+        XCTAssertEqual(session.hydrationIntakeML(on: day), 2_600)
+    }
 }

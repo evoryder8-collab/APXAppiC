@@ -3166,17 +3166,18 @@ final class AppSession {
     /// deliberately kept separate from `DailyLog.waterL`, which represents
     /// drinks and Apple Health dietary-water samples.
     func foodHydrationLiters(on date: Date) -> Double {
+        foodHydrationML(on: date) / 1_000
+    }
+
+    /// The same water in millilitres, summed portion by portion as the score engine sums it.
+    /// Whole-millilitre figures are rounded from this, never from litres.
+    func foodHydrationML(on date: Date) -> Double {
         let day = date.apexDateKey
         let mealIDs = Set(data.loggedMeals.lazy.filter { $0.localDate == day }.map(\.id))
         guard !mealIDs.isEmpty else { return 0 }
-        let milliliters = data.loggedFoodEntries.lazy
+        return data.loggedFoodEntries.lazy
             .filter { mealIDs.contains($0.mealID) }
-            .reduce(0.0) { result, entry in
-                if let measured = entry.waterML { return result + max(0, measured) }
-                guard let per100 = entry.snapshotWaterML100 else { return result }
-                return result + max(0, per100) * max(0, entry.equivalentAmount) / 100
-            }
-        return milliliters / 1_000
+            .reduce(0.0) { $0 + (FoodHydration.loggedWater($1) ?? 0) }
     }
 
     func hydrationResolution(on date: Date) -> HydrationDayResolution {
@@ -3191,7 +3192,7 @@ final class AppSession {
 
     /// The day's water the home gauge shows, from the calculation the score engine uses.
     func hydrationIntakeML(on date: Date) -> Int {
-        hydrationResolution(on: date).intakeML(loggedFoodML: foodHydrationLiters(on: date) * 1_000)
+        hydrationResolution(on: date).intakeML(loggedFoodML: foodHydrationML(on: date))
     }
 
     private func hydrationResolution(ownerID: UUID, on date: Date) -> HydrationDayResolution {
@@ -3898,7 +3899,7 @@ final class AppSession {
         guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
         let day = date.apexDateKey
         let key = "food:\(day)"
-        let amountML = Int((foodHydrationLiters(on: date) * 1_000).rounded())
+        let amountML = Int(foodHydrationML(on: date).rounded())
         let existing = (data.hydrationEvents ?? []).first {
             $0.userID == ownerID && $0.clientIdempotencyKey == key
         }
