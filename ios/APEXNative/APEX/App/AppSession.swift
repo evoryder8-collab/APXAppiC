@@ -5850,7 +5850,7 @@ final class AppSession {
         let isDeload = TrainingAdjustmentEngine.isDeload(
             on: completedDate,
             marks: (data.deloadMarks ?? []).filter { $0.userID == ownerID }
-        )
+        ) || TrainingPlanEngine.isScheduledDeload(data, programID: day.programID, date: completedDate)
         var workout = existingWorkout ?? WorkoutSession(
             id: APEXStableID.scopedUUID(
                 namespace: "guided-workout-receipt",

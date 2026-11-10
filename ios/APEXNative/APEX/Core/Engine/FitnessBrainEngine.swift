@@ -552,6 +552,7 @@ public enum FitnessBrainEngine {
                         label: "Closed-day meal completion was \(Int(completion))%. Training adaptation credit was tempered until the missing intake is corrected"))
                 }
 
+                var deloadBanked = false
                 for t in a.types {
                     let q = max(0, min(1, t.quality)) * streakMult
                     if t.recovery {
@@ -559,7 +560,8 @@ public enum FitnessBrainEngine {
                         fedJoint = true
                         continue
                     }
-                    if t.deload {
+                    if t.deload && !deloadBanked {
+                        deloadBanked = true
                         s.joint += 2.5 * q * headroom(s.joint)
                         fedJoint = true
                         synergies.append(FBSynergyEvent(

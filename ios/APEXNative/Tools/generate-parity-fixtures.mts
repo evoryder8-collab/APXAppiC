@@ -262,6 +262,9 @@ for (const persona of ['june', 'matthew'] as PersonaSlug[]) {
   /* easing the assistance on a lift is progress */
   log(d, session(d, '2026-06-02', 'pull'), { exercise_name: pullUp.name, exercise_id: pullUp.id, weight_kg: -30 })
   log(d, session(d, '2026-06-09', 'pull'), { exercise_name: pullUp.name, exercise_id: pullUp.id, weight_kg: -20 })
+  /* a deload day with two sessions banks its joint credit once */
+  session(d, '2026-06-16', 'push', { is_deload: true })
+  session(d, '2026-06-16', 'pull', { is_deload: true })
   scenarios.push({ name: 'performed_movements_and_loads', persona: 'constantine', throughDate: THROUGH, data: d })
 }
 

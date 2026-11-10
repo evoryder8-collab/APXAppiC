@@ -205,4 +205,26 @@ final class AvatarScoreInputTests: XCTestCase {
         input.workoutLogs[1].weightKG = -20
         XCTAssertGreaterThan(try scores(input).strengthUpper, level)
     }
+
+    func testDeloadDayBanksItsJointCreditOnce() throws {
+        var input = try engineInput(dayType: "push")
+        input.workoutSessions = [fbSession("morning", deload: true)]
+        let one = FitnessBrainEngine.compute(input, throughDate: "2026-10-06")
+        input.workoutSessions.append(fbSession("evening", deload: true))
+        let two = FitnessBrainEngine.compute(input, throughDate: "2026-10-06")
+        XCTAssertEqual(two.synergies.filter { $0.kind == .deloadHonored }.count, 1)
+        XCTAssertEqual(two.snapshots.last?.joint, one.snapshots.last?.joint)
+    }
+
+    func testWorkoutInAScheduledDeloadWeekEarnsTheDeloadCredit() throws {
+        var data = dashboard(dayType: "push")
+        let main = try XCTUnwrap(data.programs.first { $0.slug == "main" })
+        data.programDays = [ProgramDay(id: dayID, userID: owner, programID: main.id, weekday: 1, name: "Day",
+                                       dayType: "push", estimatedMinutes: 45, warmupNote: "", sortOrder: 0)]
+        data.settings?.addons["training_protocol"] = .object(["start_date": .string("2026-09-07")])
+        data.workoutSessions = [workout(date: "2026-09-30", completedAt: "2026-09-30T09:00:00Z"),
+                                workout(date: "2026-10-07", completedAt: "2026-10-07T09:00:00Z")]
+        let input = try XCTUnwrap(FitnessBrainService.engineInput(from: data))
+        XCTAssertEqual(input.workoutSessions.map(\.isDeload), [true, false])
+    }
 }

@@ -659,6 +659,7 @@ export function computeEngine(data: AppData, throughDate: string,
           })
         }
 
+        let deloadBanked = false
         for (const t of a.types) {
           const q = Math.max(0, Math.min(1, t.quality)) * streakMult
           if (t.recovery) {
@@ -666,7 +667,8 @@ export function computeEngine(data: AppData, throughDate: string,
             fed.joint = true
             continue
           }
-          if (t.deload) {
+          if (t.deload && !deloadBanked) {
+            deloadBanked = true
             s.joint += 2.5 * q * headroom(s.joint)
             fed.joint = true
             synergies.push({ date, kind: 'deload_honored', label: 'Deload honored. Joint Health banked the recovery' })

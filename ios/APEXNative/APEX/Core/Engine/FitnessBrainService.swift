@@ -87,15 +87,22 @@ enum FitnessBrainService {
         }
         let ownedSessions = StrengthProgress.withoutReplays(data.workoutSessions.filter { $0.userID == ownerID })
         let ownedSessionIDs = Set(ownedSessions.map(\.id))
-        let sessions = ownedSessions.map {
-            FBWorkoutSession(
-                id: $0.id.uuidString.lowercased(),
-                date: $0.date,
-                programDayID: $0.programDayID.uuidString.lowercased(),
-                isDeload: $0.isDeload,
-                isEventRecovery: $0.isEventRecovery,
-                completed: $0.completed,
-                qualityScore: $0.qualityScore, notes: $0.notes)
+        let programByDay = Dictionary(
+            data.programDays.map { ($0.id, $0.programID) }, uniquingKeysWith: { first, _ in first })
+        let sessions = ownedSessions.map { session in
+            // Receipts saved before the app flagged scheduled deload weeks are recognised
+            // by the plan's own rule, so past deload weeks earn their credit too.
+            let scheduledDeload = programByDay[session.programDayID].map {
+                TrainingPlanEngine.isScheduledDeload(data, programID: $0, date: session.date)
+            } ?? false
+            return FBWorkoutSession(
+                id: session.id.uuidString.lowercased(),
+                date: session.date,
+                programDayID: session.programDayID.uuidString.lowercased(),
+                isDeload: session.isDeload || scheduledDeload,
+                isEventRecovery: session.isEventRecovery,
+                completed: session.completed,
+                qualityScore: session.qualityScore, notes: session.notes)
         }
         let logs = data.workoutLogs
             .filter { $0.userID == ownerID && ownedSessionIDs.contains($0.sessionID) }
