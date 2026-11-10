@@ -58,7 +58,7 @@ function session(
   if (!day) throw new Error(`no program day of type ${dayType}`)
   const s: WorkoutSession = {
     id: fid(),
-    user_id: USER,
+    user_id: data.profile!.user_id,
     date,
     program_day_id: day.id,
     is_lite: false,
@@ -227,7 +227,7 @@ scenarios.push({ name: 'baseline_decay', persona: 'constantine', throughDate: TH
       '2026-06-18': rhythmDay('2026-06-18', 'no_meals', 0, 0),
     },
   }
-  /* meal completion tempering strength on a training day */
+  /* a partly logged food day under a training session */
   session(d, '2026-06-17', 'push')
   scenarios.push({ name: 'imports_recovery_rhythm', persona: 'constantine', throughDate: THROUGH, data: d })
 }
@@ -300,6 +300,24 @@ for (const persona of ['june', 'matthew'] as PersonaSlug[]) {
   selfCheck(d, 'lower_body_strength_score', 47, 40, '2026-06-05T08:00:00.000Z')
   selfCheck(d, 'lower_body_strength_score', 77, 70, '2026-06-12T08:00:00.000Z')
   scenarios.push({ name: 'self_checks', persona: 'constantine', throughDate: THROUGH, data: d })
+}
+
+/* 9: a bespoke profile decays, and a partly logged food day under a strength session costs nothing */
+{
+  const d = buildSeedData('9a0fffbc-bb02-40ac-834a-d4e339b32574', 'constantine')
+  d.profile = {
+    ...d.profile!,
+    baseline_date: BASELINE,
+    updated_at: TS,
+    profile_kind: 'bespoke',
+    bespoke_protocol_id: 'constantine-v8.5',
+  }
+  session(d, '2026-06-03', 'legs_a')
+  d.settings!.addons = {
+    ...d.settings!.addons,
+    meal_rhythm_history: { '2026-06-03': rhythmDay('2026-06-03', 'missed_meals', 14, 20) },
+  }
+  scenarios.push({ name: 'bespoke_partly_logged_day', persona: 'constantine', throughDate: '2026-07-01', data: d })
 }
 
 function selfCheck(

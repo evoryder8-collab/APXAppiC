@@ -312,7 +312,6 @@ interface DayActivity {
   recoveryScore: number | null
   recoverySource: RecoveryDataSource | null
   mealRhythmScore: number | null
-  mealCompletionScore: number | null
   mealRhythmVerdict: MealRhythmVerdict | null
   streak: number
 }
@@ -364,7 +363,7 @@ export function computeEngine(data: AppData, throughDate: string,
         waterL: null, kcal: null, protein: null,
         importStrengthMin: 0, importEnduranceMin: 0, importMobilityMin: 0,
         vo2: null, recoveryScore: null, recoverySource: null, streak: 0,
-        mealRhythmScore: null, mealCompletionScore: null, mealRhythmVerdict: null,
+        mealRhythmScore: null, mealRhythmVerdict: null,
       }
       activity.set(date, a)
     }
@@ -538,7 +537,6 @@ export function computeEngine(data: AppData, throughDate: string,
     if (!rhythm.finalized || rhythm.date > throughDate) continue
     const day = getDay(rhythm.date)
     day.mealRhythmScore = rhythm.rhythm_score
-    day.mealCompletionScore = rhythm.completion_score
     day.mealRhythmVerdict = rhythm.verdict
   }
 
@@ -688,14 +686,6 @@ export function computeEngine(data: AppData, throughDate: string,
         if (hasStrengthSession && deepDeficit) {
           strengthMult *= 0.85
           synergies.push({ date, kind: 'deficit_strength', label: 'Deep calorie deficit under a strength session. XP tempered -15%, recovery costs energy' })
-        }
-        if (authored && hasStrengthSession && a.mealCompletionScore != null && a.mealCompletionScore < 60) {
-          strengthMult *= 0.94
-          synergies.push({
-            date,
-            kind: 'meal_rhythm',
-            label: `Closed-day meal completion was ${a.mealCompletionScore}%. Training adaptation credit was tempered until the missing intake is corrected`,
-          })
         }
 
         let deloadBanked = false

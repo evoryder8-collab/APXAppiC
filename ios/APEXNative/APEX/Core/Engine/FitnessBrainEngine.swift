@@ -184,7 +184,6 @@ public enum FitnessBrainEngine {
         var recoveryScore: Double?
         var recoverySource: FBRecoverySource?
         var mealRhythmScore: Double?
-        var mealCompletionScore: Double?
         var mealRhythmVerdict: FBMealRhythmVerdict?
         var streak = 0
     }
@@ -420,7 +419,6 @@ public enum FitnessBrainEngine {
             guard rhythm.finalized, rhythm.date <= throughDate else { continue }
             let d = day(rhythm.date)
             d.mealRhythmScore = rhythm.rhythmScore
-            d.mealCompletionScore = rhythm.completionScore
             d.mealRhythmVerdict = rhythm.verdict
         }
 
@@ -574,12 +572,6 @@ public enum FitnessBrainEngine {
                     synergies.append(FBSynergyEvent(
                         date: date, kind: .deficitStrength,
                         label: "Deep calorie deficit under a strength session. XP tempered -15%, recovery costs energy"))
-                }
-                if authored, hasStrengthSession, let completion = a.mealCompletionScore, completion < 60 {
-                    strengthMult *= 0.94
-                    synergies.append(FBSynergyEvent(
-                        date: date, kind: .mealRhythm,
-                        label: "Closed-day meal completion was \(Int(completion))%. Training adaptation credit was tempered until the missing intake is corrected"))
                 }
 
                 var deloadBanked = false

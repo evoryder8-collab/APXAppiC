@@ -147,6 +147,8 @@ struct NutritionReport: Sendable, Equatable {
         var over: [Kind: Int] = [:]
         let settings = data.settings?.userID == ownerID ? data.settings : nil
         let expectedMeals = FitnessBrainService.mealRhythmHistory(from: settings?.addons).compactMapValues { $0.expectedMeals }
+        // Only the web stores a day's expected meal count; without one the plan's enabled meals stand in.
+        let plannedMeals = MealBlocks.enabled(settings?.addons["meal_blocks"]).count
         var loggedDays = 0
         var partialDays = 0
         var firstEvidence: String?
@@ -172,7 +174,7 @@ struct NutritionReport: Sendable, Equatable {
             firstEvidence = firstEvidence ?? day
             // The app does not penalise an incomplete diary, so a day with fewer meals than a full day
             // of eating is a partial log, not a day of under-eating. A manual daily total counts as full.
-            guard meals.isEmpty || meals.count >= min(fullDayMeals, Int(expectedMeals[day] ?? Double(fullDayMeals))) else {
+            guard meals.isEmpty || meals.count >= min(fullDayMeals, Int(expectedMeals[day] ?? Double(plannedMeals))) else {
                 partialDays += 1
                 continue
             }

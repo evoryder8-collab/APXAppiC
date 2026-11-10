@@ -307,4 +307,46 @@ final class AvatarScoreInputTests: XCTestCase {
         data.fitnessEvidence?.append(selfCheck(62, lowerBound: 55, on: "2026-10-05"))
         XCTAssertEqual(try latest(data).strengthUpper, 51.7)
     }
+
+    func testPartlyLoggedFoodDayCostsNoStrengthGain() {
+        let bespoke = FBProfile(
+            userID: "9a0fffbc-bb02-40ac-834a-d4e339b32574", persona: .constantine, sex: "male", weightKG: 80,
+            bodyFatPct: 22.5, customBMR: nil, heightCM: 177, birthdate: "1990-01-01", activityLevel: .moderate,
+            goal: .recomp, baselineDate: "2026-01-01", profileKind: "bespoke",
+            bespokeProtocolID: "constantine-v8.5", bodyFatSource: "dexa")
+        var input = FBEngineInput(
+            profile: bespoke,
+            programDays: [FBProgramDayRef(id: "legs", dayType: .legsA)],
+            workoutSessions: [FBWorkoutSession(id: "session", date: "2026-01-02", programDayID: "legs",
+                                               isDeload: false, isEventRecovery: false, completed: true, qualityScore: 1)])
+        let fullyLogged = FitnessBrainEngine.compute(input, throughDate: "2026-01-03")
+        input.mealRhythmHistory["2026-01-02"] = FBMealRhythmDayRaw(
+            finalized: true, expectedMeals: 5, loggedMeals: 1, completionScore: 20, rhythmScore: 14,
+            verdict: "missed_meals")
+        let partlyLogged = FitnessBrainEngine.compute(input, throughDate: "2026-01-03")
+        XCTAssertEqual(partlyLogged.snapshots, fullyLogged.snapshots)
+        XCTAssertFalse(partlyLogged.synergies.contains { $0.kind == .mealRhythm })
+    }
+
+    func testTwoMealPlanMakesTwoMealsAFullDay() throws {
+        var data = DashboardData()
+        func meal(_ kcal: Double) -> LoggedMeal {
+            LoggedMeal(
+                id: UUID(), userID: owner, localDate: "2026-03-01", mealSlot: "lunch", displayName: "Meal",
+                sourcePresetID: nil, sourcePlannedMealID: nil, loggedAt: "2026-03-01T12:00:00Z",
+                clientIdempotencyKey: UUID().uuidString, loggedAs: "manual",
+                totalKcal: kcal, totalProteinG: 0, totalCarbsG: 0, totalFatG: 0)
+        }
+        data.loggedMeals = [meal(900), meal(1_000)]
+        let blocks: [JSONValue] = ["breakfast", "lunch", "dinner", "snack", "post_workout"].map { id in
+            .object(["id": .string(id), "enabled": .bool(id == "lunch" || id == "dinner")])
+        }
+        data.settings = UserSettings(
+            userID: owner, voiceOn: false, ticksOn: false, notificationsOn: false, guardianFactor: 1,
+            addons: ["meal_blocks": .object(["blocks": .array(blocks)])])
+        let report = try XCTUnwrap(NutritionReport.summarize(
+            ownerID: owner, data: data, dates: "2026-03-01"..."2026-03-10"))
+        XCTAssertEqual(report.loggedDays, 1)
+        XCTAssertEqual(report.partialDays, 0)
+    }
 }
