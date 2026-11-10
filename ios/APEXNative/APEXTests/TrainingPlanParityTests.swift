@@ -266,6 +266,32 @@ final class TrainingPlanParityTests: XCTestCase {
     }
 
     @MainActor
+    func testLayoffDeloadIsNotForecastOntoFutureDates() {
+        let user = UUID()
+        let today = Date().apexDateKey
+        func data(lastSession: String) -> DashboardData {
+            var data = DashboardData.empty
+            data.workoutSessions = [WorkoutSession(
+                id: UUID(), userID: user, date: lastSession, programDayID: UUID(), isLite: false,
+                isDeload: false, isEventRecovery: false, completed: true, qualityScore: 1,
+                startedAt: nil, completedAt: nil, notes: ""
+            )]
+            return data
+        }
+        let trainedThisWeek = data(lastSession: APEXDateMath.adding(days: -3, to: today))
+        let backAfterAMonth = data(lastSession: APEXDateMath.adding(days: -30, to: today))
+
+        XCTAssertFalse(
+            TrainingPlanEngine.layoffActive(trainedThisWeek, date: APEXDateMath.adding(days: 24, to: today)),
+            "a date three weeks ahead is not a layoff while training continues"
+        )
+        XCTAssertTrue(TrainingPlanEngine.layoffActive(backAfterAMonth, date: today), "today after a real gap")
+        XCTAssertFalse(
+            TrainingPlanEngine.layoffActive(backAfterAMonth, date: APEXDateMath.adding(days: 1, to: today)),
+            "tomorrow is decided by whether today is trained"
+        )
+    }
+
     func testRestDayHasNoHighlightedMuscles() {
         let groups = MuscleMapView.groups(for: "rest")
 

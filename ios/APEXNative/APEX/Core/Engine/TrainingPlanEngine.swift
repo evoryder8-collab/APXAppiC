@@ -105,9 +105,12 @@ enum TrainingPlanEngine {
         return last
     }
 
-    /// Any gap of three weeks or more earns a deload week on return.
-    static func layoffActive(_ data: DashboardData, date: String, userID: UUID? = nil) -> Bool {
-        guard let last = lastCompletedSessionDate(data, userID: userID) else { return false }
+    /// Any gap of three weeks or more earns a deload week on return. A date still ahead is not
+    /// a layoff yet: whether it becomes one depends on the training done before it.
+    static func layoffActive(
+        _ data: DashboardData, date: String, userID: UUID? = nil, today: String = Date().apexDateKey
+    ) -> Bool {
+        guard date <= today, let last = lastCompletedSessionDate(data, userID: userID) else { return false }
         return APEXDateMath.calendarDaysBetween(from: last, to: date) >= 21
     }
 
