@@ -159,7 +159,7 @@ struct TrainingInductionPanel: View {
     }
 
     private func makeBriefing(for input: TrainingInduction.Input) -> TrainingInduction.PlanBriefing {
-        let profile = session.profile
+        let profile = session.data.weighedProfile()
         let induction = session.data.settings?.addons["training_induction"]?.objectValue
         let claimedIDs = Set(
             ["transition_day_ids", "main_day_ids"].flatMap { key in

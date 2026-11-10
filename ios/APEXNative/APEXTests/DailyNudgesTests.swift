@@ -96,7 +96,7 @@ extension DailyNudgesTests {
             return slot
         }
         let evening21 = DateComponents(
-            year: 2026, month: 8, day: 21, hour: DailyNudges.eveningHour, minute: DailyNudges.eveningMinute
+            calendar: calendar, year: 2026, month: 8, day: 21, hour: DailyNudges.eveningHour, minute: DailyNudges.eveningMinute
         )
         XCTAssertEqual(trigger("2026-08-21", day: 21, 9, 0), evening21)
         XCTAssertEqual(trigger("2026-08-21", day: 21, 19, 29), evening21)
@@ -109,6 +109,44 @@ extension DailyNudgesTests {
         XCTAssertEqual(trigger("2026-08-31", day: 31, 10, 0)?.day, 31)
         XCTAssertNil(trigger("2026-08-31", day: 31, 22, 0))
         XCTAssertNil(trigger("not-a-day", day: 21, 9, 0))
+    }
+
+    /// The day key is Gregorian whatever calendar the phone counts in. A Thai-region phone
+    /// defaults to the Buddhist calendar, where 2026 ended centuries ago: its reminder was
+    /// never registered. On the Persian and Japanese calendars it was set for a far-off year.
+    func testTheEveningTriggerFiresOnItsDayWhateverCalendarThePhoneUses() throws {
+        let zone = try XCTUnwrap(TimeZone(identifier: "Asia/Bangkok"))
+        var gregorian = Calendar(identifier: .gregorian)
+        gregorian.timeZone = zone
+        let morning = try XCTUnwrap(gregorian.date(from: DateComponents(year: 2026, month: 11, day: 10, hour: 9)))
+        let evening = try XCTUnwrap(gregorian.date(from: DateComponents(
+            year: 2026, month: 11, day: 10, hour: DailyNudges.eveningHour, minute: DailyNudges.eveningMinute
+        )))
+        for identifier in [Calendar.Identifier.gregorian, .buddhist, .persian, .japanese] {
+            var phone = Calendar(identifier: identifier)
+            phone.timeZone = zone
+            guard let slot = DailyNudges.eveningTrigger(for: "2026-11-10", now: morning, calendar: phone) else {
+                XCTFail("\(identifier): this evening's reminder is not registered")
+                continue
+            }
+            // The system reads a trigger with the calendar it carries, and with the phone's own when it carries none.
+            XCTAssertEqual((slot.calendar ?? phone).date(from: slot), evening, "\(identifier)")
+            XCTAssertNil(
+                DailyNudges.eveningTrigger(for: "2026-11-10", now: evening, calendar: phone),
+                "\(identifier): an evening that has come registers nothing"
+            )
+        }
+
+        // The system's own trigger, on whatever calendar the device running this is set to.
+        XCTAssertEqual(DailyNudges.today(), Date().apexDateKey, "The day key is Gregorian on any device")
+        let tomorrow = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: 1, to: Date()))
+        var local = Calendar(identifier: .gregorian)
+        local.timeZone = .current
+        let slot = try XCTUnwrap(DailyNudges.eveningTrigger(for: tomorrow.apexDateKey, now: Date()))
+        XCTAssertEqual(
+            UNCalendarNotificationTrigger(dateMatching: slot, repeats: false).nextTriggerDate(),
+            local.date(bySettingHour: DailyNudges.eveningHour, minute: DailyNudges.eveningMinute, second: 0, of: tomorrow)
+        )
     }
 
     func testReopeningTheAppRefreshesTheBellBeforeAndAfterTheSync() throws {

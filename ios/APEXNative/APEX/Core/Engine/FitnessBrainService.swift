@@ -463,9 +463,10 @@ struct DailyWaterTargets {
 
     /// `goals` are the water goal and bodyweight in force on that day; nil means today's.
     func resolve(day: String, now: Date, goals: ScoreGoalHistory.Goals? = nil) -> HydrationTargetResolution {
-        guard let profile = data.weighedProfile(on: now.apexDateKey) else { return HydrationTargetPolicy.resolve(sex: "male", weightKG: 87) }
+        guard let profile = data.profile else { return HydrationTargetPolicy.resolve(sex: "male", weightKG: 87) }
         let preferences = data.hydrationPreferences.flatMap { $0.userID == profile.userID ? $0 : nil }
-        let weightKG = goals?.weightKG ?? profile.weightKG
+        // A graded day brings its bodyweight; sorting every weigh-in again for each one is only needed for today's.
+        let weightKG = goals?.weightKG ?? Bodyweight.current(profile: profile, data: data, on: now.apexDateKey)
         let customML = goals.map(\.customWaterML)
             ?? (preferences?.effectiveTargetMode == .custom ? preferences?.targetML : nil)
         if let customML {
