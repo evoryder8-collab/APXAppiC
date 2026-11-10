@@ -271,7 +271,8 @@ enum FitnessBrainService {
                 measuredOn: measuredOn,
                 importedAt: record.importedAt,
                 coverage: coverage,
-                supersedesID: record.supersedesID?.uuidString.lowercased()
+                supersedesID: record.supersedesID?.uuidString.lowercased(),
+                lowerBound: record.metadata["lower_bound"]?.numberValue
             )
         }
     }

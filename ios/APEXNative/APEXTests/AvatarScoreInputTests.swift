@@ -273,4 +273,38 @@ final class AvatarScoreInputTests: XCTestCase {
         input.workoutLogs = []
         XCTAssertGreaterThan(try scores(input).strengthLower, rested.strengthLower)
     }
+
+    private func selfCheck(_ value: Double, lowerBound: Double, on day: String) -> FitnessEvidenceRecord {
+        evidence(.upperBodyStrengthScore, value: value, measuredAt: "\(day)T08:00:00Z", lowerBound: lowerBound)
+    }
+
+    func testRecalibratingNeverLowersAScoreThatAlreadyMeetsTheAnswer() throws {
+        var data = dashboard()
+        data.profile?.avatarStartingPoints = [
+            "health": 50, "joint": 50, "flexibility": 50, "endurance": 35, "strength_upper": 85, "strength_lower": 30,
+        ]
+        data.fitnessEvidence = [selfCheck(77, lowerBound: 70, on: "2026-10-03")]
+        XCTAssertEqual(try latest(data).strengthUpper, 85)
+        data.fitnessEvidence = [selfCheck(47, lowerBound: 40, on: "2026-10-03")]
+        XCTAssertEqual(try latest(data).strengthUpper, 85)
+    }
+
+    func testRepeatingTheSameSelfCheckLiftsAScoreOnce() throws {
+        var data = dashboard()
+        data.profile?.avatarStartingPoints = AvatarStartingPoints.balanced
+        data.fitnessEvidence = [selfCheck(77, lowerBound: 70, on: "2026-10-03")]
+        XCTAssertEqual(try latest(data).strengthUpper, 64.9)
+        data.fitnessEvidence?.append(selfCheck(77, lowerBound: 70, on: "2026-10-05"))
+        XCTAssertEqual(try latest(data).strengthUpper, 64.9)
+        data.fitnessEvidence?.append(selfCheck(47, lowerBound: 40, on: "2026-10-06"))
+        XCTAssertEqual(try latest(data).strengthUpper, 64.9)
+    }
+
+    func testAHigherSelfCheckLiftsAgainAndTheFirstOneSetsAnUnknownScore() throws {
+        var data = dashboard()
+        data.fitnessEvidence = [selfCheck(30, lowerBound: 20, on: "2026-10-03")]
+        XCTAssertEqual(try latest(data).strengthUpper, 39)
+        data.fitnessEvidence?.append(selfCheck(62, lowerBound: 55, on: "2026-10-05"))
+        XCTAssertEqual(try latest(data).strengthUpper, 51.7)
+    }
 }

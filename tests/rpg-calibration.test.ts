@@ -90,6 +90,33 @@ test('chosen starting points replace the onboarding estimate and keep later capa
   const data = dashboard([{ ...evidence('cardio_capacity_score'), measured_at: profile.baseline_date + 'T08:00:00Z', protocol: 'apex_onboarding_pulse_v1' }])
   data.profile = { ...profile, avatar_starting_points: { health: 35, joint: 50, flexibility: 50, endurance: 65, strength_lower: 50, strength_upper: 50 } }
   assert.equal(computeEngine(data, profile.baseline_date).snapshots.at(-1)?.endurance, 65)
-  data.fitness_evidence.push(evidence('cardio_capacity_score'))
-  assert.ok(computeEngine(data, '2026-08-31').snapshots.at(-1)!.endurance < 65)
+  data.fitness_evidence.push(evidence('cardio_capacity_score', ownerID, 77))
+  assert.ok(computeEngine(data, '2026-08-31').snapshots.at(-1)!.endurance > 65)
+})
+
+test('a later self-check lifts a score below its band once and never lowers an earned score', () => {
+  const start = { health: 50, joint: 50, flexibility: 50, endurance: 35, strength_lower: 30, strength_upper: 85 }
+  const answer = (metric: FitnessEvidenceRecord['metric'], value: number, lowerBound: number, day: string) => ({
+    ...evidence(metric, ownerID, value, `${day}T08:00:01.000Z`),
+    measured_at: `${day}T08:00:00.000Z`,
+    metadata: { answered_count: 3, lower_bound: lowerBound },
+  })
+  const latest = (records: FitnessEvidenceRecord[]) => {
+    const data = dashboard(records)
+    data.profile = { ...profile, avatar_starting_points: start }
+    return computeEngine(data, '2026-09-04').snapshots.at(-1)!
+  }
+  assert.equal(latest([answer('upper_body_strength_score', 77, 70, '2026-08-31')]).strength_upper, 85)
+  assert.equal(latest([answer('upper_body_strength_score', 47, 40, '2026-08-31')]).strength_upper, 85)
+  const once = latest([answer('cardio_capacity_score', 62, 55, '2026-08-31')]).endurance
+  assert.equal(once, 49.9)
+  assert.equal(latest([
+    answer('cardio_capacity_score', 62, 55, '2026-08-31'),
+    answer('cardio_capacity_score', 62, 55, '2026-09-02'),
+    answer('cardio_capacity_score', 47, 40, '2026-09-03'),
+  ]).endurance, once)
+  assert.ok(latest([
+    answer('cardio_capacity_score', 62, 55, '2026-08-31'),
+    answer('cardio_capacity_score', 77, 70, '2026-09-02'),
+  ]).endurance > once)
 })

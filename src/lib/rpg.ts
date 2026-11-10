@@ -175,6 +175,8 @@ interface CapacityCalibrationAnchor {
   measuredOn: string
   importedAt: string
   coverage: number
+  /** The bottom of the answered band. A score already at or above it is not pulled. */
+  lowerBound: number
 }
 
 interface CapacityCalibrationTimeline {
@@ -244,6 +246,7 @@ function capacityCalibrationTimeline(
       measuredOn,
       importedAt: record.imported_at,
       coverage,
+      lowerBound: typeof record.metadata.lower_bound === 'number' ? record.metadata.lower_bound : record.value,
     }
     const destination = measuredOn <= baselineDate
       ? beforeBaseline
@@ -259,20 +262,34 @@ function capacityCalibrationTimeline(
   return { beforeBaseline, byDate }
 }
 
+const calibratedStat: Record<CapacityCalibrationMetric, keyof StatBlock> = {
+  cardiorespiratory: 'endurance',
+  upper_strength: 'strength_upper',
+  lower_strength: 'strength_lower',
+  flexibility: 'flexibility',
+}
+
+/*
+ * A self-check sets the first estimate of a domain that has no evidence yet. Once a domain
+ * has evidence, an answer only lifts a score that sits below the answered band, and the same
+ * or a lower answer given again lifts nothing. It never takes away what the log earned.
+ */
 function applyCapacityCalibration(
   stats: StatBlock,
   evidence: Map<CapacityCalibrationMetric, CapacityCalibrationAnchor>,
+  observed: EngineResult['firstObserved'],
+  credited: Map<CapacityCalibrationMetric, number>,
 ): Set<CapacityCalibrationMetric> {
   const applied = new Set<CapacityCalibrationMetric>()
   for (const metric of [...evidence.keys()].sort()) {
     const anchor = evidence.get(metric)
     if (!anchor) continue
-    const weight = Math.min(0.55, Math.max(0, anchor.coverage))
+    const stat = calibratedStat[metric]
     const value = clamp(anchor.value)
-    if (metric === 'cardiorespiratory') stats.endurance += (value - stats.endurance) * weight
-    else if (metric === 'upper_strength') stats.strength_upper += (value - stats.strength_upper) * weight
-    else if (metric === 'lower_strength') stats.strength_lower += (value - stats.strength_lower) * weight
-    else stats.flexibility += (value - stats.flexibility) * weight
+    const lifts = observed[stat] == null
+      || (stats[stat] < anchor.lowerBound && value > (credited.get(metric) ?? -Infinity))
+    if (lifts) stats[stat] += (value - stats[stat]) * Math.min(0.55, Math.max(0, anchor.coverage))
+    credited.set(metric, Math.max(credited.get(metric) ?? value, value))
     applied.add(metric)
   }
   return applied
@@ -558,11 +575,9 @@ export function computeEngine(data: AppData, throughDate: string,
   if (authored || allocated) for (const key of Object.keys(s) as (keyof StatBlock)[]) observe(key, start)
   let lastLegsOffset = -99 // day index of the last completed leg session
   const calibrationTimeline = capacityCalibrationTimeline(data, start, throughDate, allocated ? profile.baseline_date : undefined)
-  const atBaseline = applyCapacityCalibration(s, calibrationTimeline.beforeBaseline)
-  for (const [metric, key] of Object.entries({cardiorespiratory: 'endurance', upper_strength: 'strength_upper',
-    lower_strength: 'strength_lower', flexibility: 'flexibility'})) {
-    if (atBaseline.has(metric as CapacityCalibrationMetric)) observe(key as keyof StatBlock, start)
-  }
+  const creditedSelfChecks = new Map<CapacityCalibrationMetric, number>()
+  const atBaseline = applyCapacityCalibration(s, calibrationTimeline.beforeBaseline, firstObserved, creditedSelfChecks)
+  for (const metric of atBaseline) observe(calibratedStat[metric], start)
 
   /* --- pre-baseline Apple Health history informs the starting point. The 6b
      calibration stays the anchor; measured reality corrects it, and history
@@ -626,6 +641,8 @@ export function computeEngine(data: AppData, throughDate: string,
       const calibrated = applyCapacityCalibration(
         s,
         calibrationTimeline.byDate.get(date) ?? new Map(),
+        firstObserved,
+        creditedSelfChecks,
       )
       fed.endurance = calibrated.has('cardiorespiratory')
       fed.flexibility = calibrated.has('flexibility')

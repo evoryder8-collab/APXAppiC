@@ -119,26 +119,33 @@ public enum FitnessBrainEngine {
         return CapacityCalibrationTimeline(beforeBaseline: beforeBaseline, byDate: byDate)
     }
 
+    /// A self-check sets the first estimate of a domain that has no evidence yet. Once a domain
+    /// has evidence, an answer only lifts a score that sits below the answered band, and the
+    /// same or a lower answer given again lifts nothing. It never takes away what the log earned.
     @discardableResult
     private static func applyCapacityCalibration(
         _ evidence: [FBCapacityCalibrationMetric: FBCapacityCalibrationEvidence],
-        to stats: inout StatBlock
+        to stats: inout StatBlock,
+        observed: [String: String],
+        credited: inout [FBCapacityCalibrationMetric: Double]
     ) -> Set<FBCapacityCalibrationMetric> {
         var applied = Set<FBCapacityCalibrationMetric>()
         for metric in evidence.keys.sorted(by: { $0.rawValue < $1.rawValue }) {
             guard let item = evidence[metric] else { continue }
-            let weight = min(0.55, max(0, item.coverage))
-            let anchor = clamp(item.value)
+            let key: String
+            let stat: WritableKeyPath<StatBlock, Double>
             switch metric {
-            case .cardiorespiratory:
-                stats.endurance += (anchor - stats.endurance) * weight
-            case .upperStrength:
-                stats.strengthUpper += (anchor - stats.strengthUpper) * weight
-            case .lowerStrength:
-                stats.strengthLower += (anchor - stats.strengthLower) * weight
-            case .flexibility:
-                stats.flexibility += (anchor - stats.flexibility) * weight
+            case .cardiorespiratory: (key, stat) = ("endurance", \.endurance)
+            case .upperStrength: (key, stat) = ("upper", \.strengthUpper)
+            case .lowerStrength: (key, stat) = ("lower", \.strengthLower)
+            case .flexibility: (key, stat) = ("flexibility", \.flexibility)
             }
+            let anchor = clamp(item.value)
+            let current = stats[keyPath: stat]
+            let lifts = observed[key] == nil
+                || (current < (item.lowerBound ?? anchor) && anchor > (credited[metric] ?? -.infinity))
+            if lifts { stats[keyPath: stat] += (anchor - current) * min(0.55, max(0, item.coverage)) }
+            credited[metric] = max(credited[metric] ?? anchor, anchor)
             applied.insert(metric)
         }
         return applied
@@ -458,7 +465,9 @@ public enum FitnessBrainEngine {
             baselineDate: start,
             throughDate: throughDate
         )
-        let preCalibration = applyCapacityCalibration(calibrationTimeline.beforeBaseline, to: &s)
+        var creditedSelfChecks: [FBCapacityCalibrationMetric: Double] = [:]
+        let preCalibration = applyCapacityCalibration(
+            calibrationTimeline.beforeBaseline, to: &s, observed: firstObserved, credited: &creditedSelfChecks)
         for (metric, key) in [(FBCapacityCalibrationMetric.cardiorespiratory, "endurance"),
                               (.upperStrength, "upper"), (.lowerStrength, "lower"), (.flexibility, "flexibility")]
             where preCalibration.contains(metric) { observe(key, start) }
@@ -517,7 +526,8 @@ public enum FitnessBrainEngine {
             var fedLower = false, fedJoint = false, fedHealth = false
 
             if let calibration = calibrationTimeline.byDate[date] {
-                let calibrated = applyCapacityCalibration(calibration, to: &s)
+                let calibrated = applyCapacityCalibration(
+                    calibration, to: &s, observed: firstObserved, credited: &creditedSelfChecks)
                 fedEndurance = calibrated.contains(.cardiorespiratory)
                 fedFlexibility = calibrated.contains(.flexibility)
                 fedUpper = calibrated.contains(.upperStrength)

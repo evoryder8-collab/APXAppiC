@@ -318,6 +318,8 @@ public struct FBCapacityCalibrationEvidence: Sendable {
     public var importedAt: String
     public var coverage: Double
     public var supersedesID: String?
+    /// The bottom of the answered band. A score already at or above it is not pulled.
+    public var lowerBound: Double?
 
     public init(
         id: String,
@@ -327,8 +329,10 @@ public struct FBCapacityCalibrationEvidence: Sendable {
         measuredOn: String,
         importedAt: String,
         coverage: Double,
-        supersedesID: String?
+        supersedesID: String?,
+        lowerBound: Double? = nil
     ) {
+        self.lowerBound = lowerBound
         self.id = id
         self.userID = userID
         self.metric = metric

@@ -285,6 +285,23 @@ for (const persona of ['june', 'matthew'] as PersonaSlug[]) {
   scenarios.push({ name: 'performed_movements_and_loads', persona: 'constantine', throughDate: THROUGH, data: d })
 }
 
+/* 8: self-checks against a score with and without evidence */
+{
+  const d = base('constantine')
+  /* no evidence yet: the first answer sets the estimate, in either direction */
+  selfCheck(d, 'flexibility_score', 30, 20, '2026-06-03T08:00:00.000Z')
+  /* evidence first, then an answer above it lifts once; repeats and lower answers change nothing */
+  session(d, '2026-06-02', 'push')
+  selfCheck(d, 'upper_body_strength_score', 77, 70, '2026-06-05T08:00:00.000Z')
+  selfCheck(d, 'upper_body_strength_score', 77, 70, '2026-06-12T08:00:00.000Z')
+  selfCheck(d, 'upper_body_strength_score', 47, 40, '2026-06-19T08:00:00.000Z')
+  /* a higher answer lifts again while the score is still below its band */
+  session(d, '2026-06-02', 'legs_a')
+  selfCheck(d, 'lower_body_strength_score', 47, 40, '2026-06-05T08:00:00.000Z')
+  selfCheck(d, 'lower_body_strength_score', 77, 70, '2026-06-12T08:00:00.000Z')
+  scenarios.push({ name: 'self_checks', persona: 'constantine', throughDate: THROUGH, data: d })
+}
+
 function selfCheck(
   data: AppData,
   metric: FitnessEvidenceRecord['metric'],
