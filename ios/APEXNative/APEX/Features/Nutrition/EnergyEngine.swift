@@ -31,7 +31,10 @@ struct NutritionTargets: Equatable, Sendable {
     let fatG: Int
     let carbsG: Int
     let pal: Double
+    /// The level that produced the target: the one the person chose.
     let level: ActivityLevel
+    /// The level the day's estimate amounts to. Measured activity decides it when there is some.
+    let estimatedLevel: ActivityLevel
     let restingEnergyProvenance: RestingEnergyProvenance
     let targetProvenance: NutritionTargetProvenance
     let reviewReasons: Set<NutritionReviewReason>
@@ -59,6 +62,7 @@ struct NutritionTargets: Equatable, Sendable {
         carbsG: Int,
         pal: Double,
         level: ActivityLevel,
+        estimatedLevel: ActivityLevel? = nil,
         restingEnergyProvenance: RestingEnergyProvenance = .mifflinEstimate,
         targetProvenance: NutritionTargetProvenance = .calculatedEstimate,
         reviewReasons: Set<NutritionReviewReason> = []
@@ -71,6 +75,7 @@ struct NutritionTargets: Equatable, Sendable {
         self.carbsG = carbsG
         self.pal = pal
         self.level = level
+        self.estimatedLevel = estimatedLevel ?? level
         self.restingEnergyProvenance = restingEnergyProvenance
         self.targetProvenance = targetProvenance
         self.reviewReasons = reviewReasons
@@ -107,6 +112,11 @@ struct NutritionGoalPreset: Equatable, Sendable {
     let factor: Double
     let explanation: String
     let caution: String
+
+    /// What this preset does to energy, as the goal whose eating rules fit it.
+    /// A fat-loss plan fills all three slots with deficits, so the slot a
+    /// preset sits in says nothing about how it should be fed.
+    var energyGoal: Goal { factor < 1 ? .recomp : factor > 1 ? .bulk : .maintain }
 }
 
 enum NutritionGoalPolicy {
@@ -211,6 +221,11 @@ enum NutritionGoalPolicy {
         presets(context: context).first { $0.goal == goal }
             ?? presets(context: nil).first { $0.goal == goal }
             ?? preset(.maintain, "Maintain", 1, "Match estimated daily expenditure without targeting weight change.", "Review the estimate against your weight trend.")
+    }
+
+    /// The eating rules the account's chosen preset really follows.
+    static func energyGoal(for goal: Goal, settings: UserSettings?) -> Goal {
+        preset(for: goal, context: context(from: settings)).energyGoal
     }
 
     static func recommendedGoal(for trainingGoal: String) -> Goal {
@@ -408,16 +423,24 @@ enum EnergyEngine {
         return primary
     }
 
+    /* Whole-day wearable energy and the APEX activity blocks describe the same
+       effort, so they are never added. The larger one is the day's figure: a
+       Watch that was off for part of the day must not shrink what was logged. */
+    static func activityEnergy(
+        wearableActiveCalories: Int?,
+        logs: [ActivityLog]
+    ) -> Double {
+        let logged = logs.reduce(0.0) { total, log in
+            total + (log.computedKcal.isFinite ? max(0, log.computedKcal) : 0)
+        }
+        return max(Double(max(0, wearableActiveCalories ?? 0)), logged)
+    }
+
     static func resolvedActiveCalories(
         wearableActiveCalories: Int?,
         logs: [ActivityLog]
     ) -> Int {
-        if let wearableActiveCalories, wearableActiveCalories > 0 {
-            return wearableActiveCalories
-        }
-        let estimate = logs.reduce(0.0) { total, log in
-            total + (log.computedKcal.isFinite ? max(0, log.computedKcal) : 0)
-        }
+        let estimate = activityEnergy(wearableActiveCalories: wearableActiveCalories, logs: logs)
         guard estimate < Double(Int.max) else { return Int.max }
         return Int(estimate.rounded())
     }
@@ -481,19 +504,15 @@ enum EnergyEngine {
         )
         let tdee: Double
         if precise {
-            /* Whole-day wearable active energy already contains the effort
-               represented by APEX activity blocks. It replaces their sum;
-               adding both would count the same workout twice. */
-            let activityEnergy: Double
-            if let wearableActiveCalories, wearableActiveCalories > 0 {
-                activityEnergy = Double(wearableActiveCalories)
-            } else {
-                activityEnergy = logs.reduce(0) { total, log in
-                    total + (log.computedKcal.isFinite ? max(0, log.computedKcal) : 0)
-                }
-            }
-            tdee = bmr * 1.2
-                + min(max(resolvedProfile.calibrationK, 0.85), 1.15) * activityEnergy
+            let activityEnergy = activityEnergy(
+                wearableActiveCalories: wearableActiveCalories,
+                logs: logs
+            )
+            tdee = dayEstimate(
+                bmr: bmr,
+                calibrationK: resolvedProfile.calibrationK,
+                activityEnergy: activityEnergy
+            )
         } else {
             tdee = bmr * resolvedProfile.activityLevel.multiplier
         }
@@ -510,12 +529,15 @@ enum EnergyEngine {
             )
         }
         let pal = tdee / bmr
-        let level = level(forPAL: pal)
-        let factor = NutritionGoalPolicy.preset(
+        /* The target is the chosen level times the goal, so that level labels it. What was
+           measured only describes the day's estimate, which carries its own level. */
+        let estimatedLevel = precise ? Self.level(forPAL: pal) : resolvedProfile.activityLevel
+        let level = resolvedProfile.activityLevel
+        let preset = NutritionGoalPolicy.preset(
             for: resolvedProfile.goal,
             context: planContext
-        ).factor
-        let rawTarget = baselineTDEE * factor
+        )
+        let rawTarget = baselineTDEE * preset.factor
         guard rawTarget.isFinite,
               rawTarget > 0,
               rawTarget <= Double(Int.max) else {
@@ -530,7 +552,7 @@ enum EnergyEngine {
         let macros = macroTargets(
             weightKG: resolvedProfile.weightKG,
             level: resolvedProfile.activityLevel,
-            goal: resolvedProfile.goal,
+            goal: preset.energyGoal,
             targetCalories: roundedTarget
         )
         if macros.requiresReview {
@@ -559,10 +581,32 @@ enum EnergyEngine {
             carbsG: macros.carbsG,
             pal: (pal * 100).rounded() / 100,
             level: level,
+            estimatedLevel: estimatedLevel,
             restingEnergyProvenance: restingEnergyProvenance,
             targetProvenance: .calculatedEstimate,
             reviewReasons: reviewReasons
         )
+    }
+
+    /// A measured day's estimated expenditure: resting energy plus the calibrated activity energy.
+    static func dayEstimate(bmr: Double, calibrationK: Double, activityEnergy: Double) -> Double {
+        bmr * 1.2 + min(max(calibrationK, calibrationLowerBound), calibrationUpperBound) * activityEnergy
+    }
+
+    /// The level a day's measured activity amounts to for this person: the level of the estimate
+    /// `targets` reports for that day. Nil without activity energy or a usable resting figure, and
+    /// on an authored protocol, whose modes are chosen and not measured.
+    static func estimatedLevel(
+        profile: Profile,
+        settings: UserSettings?,
+        activityEnergy: Double
+    ) -> ActivityLevel? {
+        guard activityEnergy > 0, usesPersonalProtocol(profile) == false else { return nil }
+        let bmr = bmr(for: RestingEnergyPolicy.applied(to: profile, settings: settings))
+        guard bmr.isFinite, RestingEnergyPolicy.validRange.contains(bmr) else { return nil }
+        return level(forPAL: dayEstimate(
+            bmr: bmr, calibrationK: profile.calibrationK, activityEnergy: activityEnergy
+        ) / bmr)
     }
 
     static func targetCalories(
@@ -823,6 +867,74 @@ enum EnergyEngine {
         return elapsed >= 7
     }
 
+    struct WeeklyCalibration: Equatable, Sendable {
+        let nextK: Double
+        let observedTDEE: Double
+        let predictedTDEE: Double
+        let sampleDays: Int
+    }
+
+    /// The correction the last fortnight supports, or nil when it is not due or there is too
+    /// little to learn from.
+    static func weeklyCalibration(
+        profile: Profile,
+        data: DashboardData,
+        now: Date = .now,
+        calendar: Calendar = .current
+    ) -> WeeklyCalibration? {
+        /* Constantine and June use explicit, confirmation-only whole-day
+           protocols. The generic activity coefficient must never drift their
+           authored calorie tables in the background. */
+        guard usesPersonalProtocol(profile) == false,
+              isWeeklyCalibrationDue(lastAppliedAt: profile.calibrationHistory.last?.appliedAt, now: now, calendar: calendar)
+        else { return nil }
+        /* A day teaches something only when its diary is complete and a scale was read. A partly
+           logged day reads as under-eating, and a profile weight copied onto the day reads as a
+           weight that never moved. Today is still open, so the fortnight ends yesterday. */
+        let today = now.apexDateKey
+        let cutoff = calendar.date(byAdding: .day, value: -14, to: now)?.apexDateKey ?? today
+        let weighed = Dictionary(
+            Bodyweight.weighIns(ownerID: profile.userID, data: data).map { ($0.date, $0) },
+            uniquingKeysWith: { _, later in later }
+        )
+        let samples = data.dailyLogs
+            .filter { $0.userID == profile.userID && $0.date >= cutoff && $0.date < today }
+            .sorted { $0.date < $1.date }
+            .compactMap { log -> (date: String, kcal: Double, predicted: Double, kg: Double)? in
+                guard let kcal = log.kcal, let predicted = log.estimatedTDEE, let weighIn = weighed[log.date],
+                      !(weighIn.typed && Bodyweight.isProfileCopy(log, of: profile)),
+                      NutritionReport.summarize(ownerID: profile.userID, data: data, dates: log.date...log.date)?.loggedDays == 1
+                else { return nil }
+                return (log.date, Double(kcal), Double(predicted), weighIn.kg)
+            }
+        guard samples.count >= 12,
+              let firstDate = ISO8601DateFormatter.apexDateOnly.date(from: samples.first?.date ?? ""),
+              let lastDate = ISO8601DateFormatter.apexDateOnly.date(from: samples.last?.date ?? "")
+        else { return nil }
+
+        let ema = weightEMA(samples.map(\.kg))
+        guard let startWeight = ema.first, let endWeight = ema.last else { return nil }
+        let elapsedDays = max(1, calendar.dateComponents([.day], from: firstDate, to: lastDate).day ?? 1)
+        let meanIntake = samples.reduce(0) { $0 + $1.kcal } / Double(samples.count)
+        let predicted = samples.reduce(0) { $0 + $1.predicted } / Double(samples.count)
+        let next = calibratedK(
+            currentK: profile.calibrationK,
+            meanDailyIntake: meanIntake,
+            predictedDailyTDEE: predicted,
+            startingEMAWeight: startWeight,
+            endingEMAWeight: endWeight,
+            elapsedDays: elapsedDays
+        )
+        guard abs(next - profile.calibrationK) >= 0.001 else { return nil }
+        let storedPerDay = (endWeight - startWeight) * 7_700 / Double(elapsedDays)
+        return WeeklyCalibration(
+            nextK: next,
+            observedTDEE: meanIntake - storedPerDay,
+            predictedTDEE: predicted,
+            sampleDays: samples.count
+        )
+    }
+
     static func calibratedK(
         currentK: Double,
         meanDailyIntake: Double,
@@ -838,5 +950,62 @@ enum EnergyEngine {
         let observedDailyTDEE = meanDailyIntake - dailyStoredEnergy
         let correction = calibrationLearningRate * (observedDailyTDEE - predictedDailyTDEE) / predictedDailyTDEE
         return min(max(currentK + correction, calibrationLowerBound), calibrationUpperBound)
+    }
+}
+
+/// The account's weigh-ins and the one bodyweight they give. Every target reads it from here.
+enum Bodyweight {
+    struct WeighIn: Equatable, Sendable {
+        let date: String
+        let kg: Double
+        /// The person's own entry, which outranks an Apple Health reading of the same day.
+        let typed: Bool
+    }
+
+    /// Older builds copied the profile's weight onto a day when it was finalised or a run was
+    /// saved. Such a row repeats the profile; no scale said it.
+    static func isProfileCopy(_ log: DailyLog, of profile: Profile?) -> Bool {
+        log.estimatedTDEE != nil && log.weightKG != nil && log.weightKG == profile?.weightKG
+    }
+
+    /// What a scale said, oldest first. Stored rows are reconciled here and never rewritten.
+    static func weighIns(ownerID: UUID, data: DashboardData) -> [WeighIn] {
+        func valid(_ date: String, _ kg: Double?) -> Double? {
+            guard let kg, kg.isFinite, (10...500).contains(kg), FBDate.validDate(date) != nil else { return nil }
+            return kg
+        }
+        var rows: [(weighIn: WeighIn, copy: Bool)] = []
+        // Older builds saved the newest Health reading again on every later day. A repeated value is that one reading.
+        var lastReading: Double?
+        for row in data.healthMetrics.filter({ $0.userID == ownerID }).sorted(by: { $0.date < $1.date }) {
+            guard let kg = valid(row.date, row.weightKG) else { continue }
+            if kg != lastReading { rows.append((WeighIn(date: row.date, kg: kg, typed: false), false)) }
+            lastReading = kg
+        }
+        let profile = data.profile?.userID == ownerID ? data.profile : nil
+        for row in data.dailyLogs where row.userID == ownerID {
+            guard let kg = valid(row.date, row.weightKG) else { continue }
+            rows.append((WeighIn(date: row.date, kg: kg, typed: true), isProfileCopy(row, of: profile)))
+        }
+        rows.sort { ($0.weighIn.date, $0.weighIn.typed ? 1 : 0) < ($1.weighIn.date, $1.weighIn.typed ? 1 : 0) }
+        /* A copy is dropped once anything newer is on record. The newest row stays: it may be the
+           person confirming their weight in Settings, which writes the profile and the day together. */
+        return rows.enumerated().compactMap { index, row in
+            row.copy && index < rows.count - 1 ? nil : row.weighIn
+        }
+    }
+
+    /// The newest weigh-in on or before a day, else the weight the profile was set up with.
+    static func current(profile: Profile, data: DashboardData, on day: String) -> Double {
+        weighIns(ownerID: profile.userID, data: data).last { $0.date <= day }?.kg ?? profile.weightKG
+    }
+}
+
+extension DashboardData {
+    /// The profile carrying the account's one bodyweight in place of the weight it was set up with.
+    func weighedProfile(on day: String = Date().apexDateKey) -> Profile? {
+        guard var profile else { return nil }
+        profile.weightKG = Bodyweight.current(profile: profile, data: self, on: day)
+        return profile
     }
 }

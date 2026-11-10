@@ -5961,3 +5961,9 @@
 "You have passed this volume" = "Dieses Volumen hast du übertroffen";
 "Your next volume" = "Dein nächstes Volumen";
 "Drinks" = "Getränke";
+"Recovery meal logged" = "Erholungsmahlzeit erfasst";
+"Optional · your latest weigh-in sets your targets" = "Optional · dein letztes Wiegen bestimmt deine Ziele";
+"This day's estimate: %d kcal" = "Schätzung für diesen Tag: %d kcal";
+"This day's estimate %d kcal · PAL %.2f · %@" = "Schätzung für diesen Tag %d kcal · PAL %.2f · %@";
+"DAY ESTIMATE" = "TAGESSCHÄTZUNG";
+"Suggested from this day's activity: %@" = "Vorschlag aus der Aktivität dieses Tages: %@";

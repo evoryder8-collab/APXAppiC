@@ -894,7 +894,7 @@ struct MealComposerView: View {
     }
 
     private var mealTargets: (protein: Double, carbs: Double, fat: Double)? {
-        guard let profile = session.profile else { return nil }
+        guard let profile = session.data.weighedProfile() else { return nil }
         let logs = session.data.activityLogs.filter {
             $0.userID == profile.userID && $0.date == request.date.apexDateKey
         }
@@ -911,13 +911,10 @@ struct MealComposerView: View {
             )
         )
         guard targets.isPublishable else { return nil }
-        let share: Double
-        switch draft.mealSlot {
-        case "breakfast": share = 0.25
-        case "lunch", "dinner": share = 0.30
-        case "post_workout", "post-workout": share = 0.15
-        default: share = 0.10
-        }
+        let share = MealBlocks.guideShare(
+            for: draft.mealSlot,
+            enabled: MealBlocks.enabled(session.data.settings?.addons["meal_blocks"])
+        )
         return (Double(targets.proteinG) * share, Double(targets.carbsG) * share, Double(targets.fatG) * share)
     }
 

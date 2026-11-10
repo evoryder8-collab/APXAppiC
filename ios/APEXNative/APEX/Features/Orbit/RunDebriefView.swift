@@ -344,7 +344,7 @@ struct RunDebriefView: View {
     }
 
     private var nutritionAdjustment: OrbitNutritionAdjustment {
-        OrbitIntegrations.nutritionAdjustment(run: run, weightKG: session.profile?.weightKG ?? 0)
+        OrbitIntegrations.nutritionAdjustment(run: run, weightKG: session.data.weighedProfile()?.weightKG ?? 0)
     }
 
     private var foodSuggestion: OrbitFoodMemorySuggestion? {

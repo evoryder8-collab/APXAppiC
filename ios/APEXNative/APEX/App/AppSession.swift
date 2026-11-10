@@ -2333,11 +2333,16 @@ final class AppSession {
            the import altogether and the card sat on "no wearable data" with a
            button to press, for data the phone already had on disk. */
         guard let operation = accountOperationLease() else { return }
+        // The bell is about today. Re-read it from what is on the phone before the slower sync,
+        // so yesterday's card is gone on reopening, and again once the sync has landed.
+        try? await refreshNudges(operation: operation)
         await retryPendingHydrationMutations(operation: operation)
         guard accountOperationIsCurrent(operation) else { return }
         await importHealthQuietly(operation: operation)
         guard accountOperationIsCurrent(operation) else { return }
         await refresh(includeAccess: false)
+        guard accountOperationIsCurrent(operation) else { return }
+        try? await refreshNudges(operation: operation)
     }
 
     func handleAuthCallback(_ url: URL) async {
@@ -2540,7 +2545,7 @@ final class AppSession {
     /// The shared idempotency key lets web and iOS converge on one meal.
     func togglePlannedMeal(
         _ prescription: AdaptiveMeal,
-        on date: Date = .now,
+        on date: Date,
         operation: AccountOperationLease
     ) async throws {
         try requireCurrentAccountOperation(operation)
@@ -3038,39 +3043,10 @@ final class AppSession {
     func refreshNudges(operation: AccountOperationLease) async throws {
         if isDeveloperSandbox { return }
         try requireCurrentAccountOperation(operation)
-        guard let profile, profile.userID == operation.ownerID else { throw CancellationError() }
+        guard profile?.userID == operation.ownerID else { throw CancellationError() }
         NudgeCenter.shared.activate(ownerID: operation.ownerID)
-        let today = Date().apexDateKey
-        let logs = data.activityLogs.filter {
-            $0.userID == operation.ownerID && $0.date == today
-        }
-        let targets = EnergyEngine.targets(
-            profile: profile,
-            logs: logs,
-            catalog: data.activityTypes,
-            planContext: NutritionGoalPolicy.context(from: data.settings),
-            settings: data.settings,
-            wearableActiveCalories: WearableActivityRecord.activeCalories(
-                on: today,
-                settings: data.settings,
-                ownerID: operation.ownerID
-            )
-        )
-        let consumed = data.loggedMeals
-            .filter { $0.userID == operation.ownerID && $0.localDate == today }
-            .reduce(0.0) { $0 + $1.totalProteinG }
-        let creatine = activeSupplements.first { $0.name.lowercased().contains("creatine") }
-        let creatineLogged = creatine.map { supplement in
-            data.supplementLogs.contains { $0.date == today && $0.supplementID == supplement.id }
-        } ?? false
-
         await NudgeCenter.shared.refresh(
-            proteinConsumedG: consumed,
-            proteinTargetG: Double(targets.proteinG),
-            goal: profile.goal.rawValue,
-            bodyweightKG: profile.weightKG,
-            creatineInStack: creatine != nil,
-            creatineLoggedToday: creatineLogged
+            DailyNudges.nudges(ownerID: operation.ownerID, data: data, today: Date().apexDateKey)
         )
         try requireCurrentAccountOperation(operation)
     }
@@ -3111,6 +3087,13 @@ final class AppSession {
             ownerID: ownerID,
             expectedAccountToken: expectedAccountToken
         )
+    }
+
+    /// A weight set in Settings is today's weigh-in as well as the profile's weight, so it is
+    /// the newest weight on record and every target follows it.
+    func setBodyweight(_ weightKG: Double, operation: AccountOperationLease) async throws {
+        try await updateProfile({ $0.weightKG = weightKG }, operation: operation)
+        try await saveMorningWeight(weightKG, on: .now, operation: operation)
     }
 
     func saveMorningWeight(
@@ -4368,11 +4351,7 @@ final class AppSession {
                 exerciseMinutes: snapshot.exerciseMinutes,
                 updatedAt: Date().ISO8601Format()
             ) {
-                await saveWearableActivity(
-                    wearable,
-                    automaticallyApply: snapshot.date == Date().apexDateKey,
-                    operation: operation
-                )
+                await saveWearableActivity(wearable, operation: operation)
                 guard accountOperationIsCurrent(operation) else { return }
             }
         }
@@ -4400,9 +4379,10 @@ final class AppSession {
         await importHealthWorkoutChanges(operation: operation)
     }
 
+    /// Stores a day's wearable record. It never changes the chosen activity level: Apple Health
+    /// suggests one, and a hand-picked level stays until the person changes it.
     func saveWearableActivity(
         _ record: WearableActivityRecord,
-        automaticallyApply: Bool,
         operation: AccountOperationLease
     ) async {
         guard accountOperationIsCurrent(operation),
@@ -4424,21 +4404,26 @@ final class AppSession {
         )
         guard accountOperationIsCurrent(operation) else { return }
         if record.date == Date().apexDateKey { publishHydrationState() }
-        guard let profile,
+    }
+
+    /// The person's own choice to take the level a day's activity suggests.
+    func useSuggestedActivityLevel(on day: String, operation: AccountOperationLease) async {
+        guard accountOperationIsCurrent(operation),
+              let profile,
               profile.userID == operation.ownerID,
               WearableActivityEngine.shouldAutomaticallyApplyMode(
                 profile: profile,
-                requested: automaticallyApply,
+                requested: true,
                 hasActivityLogs: data.activityLogs.contains {
-                    $0.userID == operation.ownerID && $0.date == record.date
+                    $0.userID == operation.ownerID && $0.date == day
                 }
               ) else { return }
-        let suggested = WearableActivityEngine.suggestedLevel(
-            persona: profile.persona,
-            steps: record.steps,
-            activeCalories: record.activeCalories,
-            exerciseMinutes: record.exerciseMinutes
-        )
+        let suggested = NutritionRecordedActivity.resolve(
+            profile: data.weighedProfile(),
+            settings: data.settings,
+            logs: data.activityLogs,
+            date: day
+        ).level
         try? await setActivityLevel(suggested, operation: operation)
     }
 
@@ -4470,7 +4455,7 @@ final class AppSession {
                 durationMinutes: durationMinutes,
                 distanceKM: distanceKM,
                 watchKcal: watchKcal,
-                weightKG: profile.weightKG
+                weightKG: data.weighedProfile()?.weightKG ?? profile.weightKG
             ),
             source: source,
             reconciled: false,
@@ -4629,7 +4614,7 @@ final class AppSession {
             estimatedTDEE: targets.tdee,
             computedPAL: targets.pal,
             activityMode: activityIDs.isEmpty ? "quick" : "precise",
-            weightKG: existing?.weightKG ?? profile.weightKG,
+            weightKG: existing?.weightKG,
             nutritionSource: existing?.nutritionSource ?? "manual",
             manualKcal: existing?.manualKcal,
             manualProteinG: existing?.manualProteinG,
@@ -6009,7 +5994,7 @@ final class AppSession {
                     durationMinutes: elapsed,
                     distanceKM: nil,
                     watchKcal: nil,
-                    weightKG: profile.weightKG
+                    weightKG: data.weighedProfile()?.weightKG ?? profile.weightKG
                 ),
                 source: "workout_module",
                 reconciled: false,
@@ -6476,7 +6461,7 @@ final class AppSession {
             samples: samples,
             elapsedSeconds: endedAt.timeIntervalSince(startedAt),
             movingSeconds: movingSeconds,
-            weightKG: profile.weightKG
+            weightKG: data.weighedProfile()?.weightKG ?? profile.weightKG
         )
         let sampleJSON = metrics.acceptedSamples.map { sample in
             JSONValue.object([
@@ -6604,7 +6589,9 @@ final class AppSession {
               profile.userID == operation.ownerID,
               run.nutritionAdjustmentAppliedAt == nil
         else { return run }
-        let adjustment = OrbitIntegrations.nutritionAdjustment(run: run, weightKG: profile.weightKG)
+        let adjustment = OrbitIntegrations.nutritionAdjustment(
+            run: run, weightKG: data.weighedProfile()?.weightKG ?? profile.weightKG
+        )
         guard adjustment.kcal > 0 else { return run }
 
         guard let draft = OrbitIntegrations.nutritionMealDraft(run: run, suggestion: foodSuggestion) else {
@@ -7073,7 +7060,8 @@ final class AppSession {
             id: id, userID: operation.ownerID, date: run.localDate,
             typeID: "jog-run", quantity: 1,
             durationMinutes: durationMinutes, distanceKM: distanceKM,
-            watchKcal: nil, computedKcal: (profile.weightKG * distanceKM).rounded(),
+            watchKcal: nil,
+            computedKcal: ((data.weighedProfile()?.weightKG ?? profile.weightKG) * distanceKM).rounded(),
             source: "orbit", reconciled: true,
             createdAt: run.createdAt, updatedAt: run.updatedAt
         )
@@ -7124,7 +7112,7 @@ final class AppSession {
             $0.userID == operation.ownerID && $0.date == run.localDate
         }
         let targets = EnergyEngine.targets(
-            profile: profile,
+            profile: data.weighedProfile() ?? profile,
             logs: dayLogs,
             catalog: data.activityTypes,
             planContext: NutritionGoalPolicy.context(from: data.settings),
@@ -7149,7 +7137,7 @@ final class AppSession {
             fatG: existing?.fatG, carbsG: existing?.carbsG,
             waterL: existing?.waterL ?? 0,
             estimatedTDEE: targets.tdee, computedPAL: targets.pal,
-            activityMode: "precise", weightKG: existing?.weightKG ?? profile.weightKG,
+            activityMode: "precise", weightKG: existing?.weightKG,
             nutritionSource: existing?.nutritionSource ?? "manual",
             manualKcal: existing?.manualKcal, manualProteinG: existing?.manualProteinG,
             manualFatG: existing?.manualFatG, manualCarbsG: existing?.manualCarbsG
@@ -8307,50 +8295,16 @@ final class AppSession {
     private func considerWeeklyCalibration(operation: AccountOperationLease) async throws {
         try requireCurrentAccountOperation(operation)
         guard var profile, profile.userID == operation.ownerID else { return }
-        /* Constantine and June use explicit, confirmation-only whole-day
-           protocols. The generic activity coefficient must never drift their
-           authored calorie tables in the background. */
-        guard EnergyEngine.usesPersonalProtocol(profile) == false else { return }
-        let today = Date().apexDateKey
-        guard EnergyEngine.isWeeklyCalibrationDue(lastAppliedAt: profile.calibrationHistory.last?.appliedAt) else { return }
-        let cutoff = Calendar.current.date(byAdding: .day, value: -13, to: .now)?.apexDateKey ?? today
-        let samples = data.dailyLogs
-            .filter {
-                $0.userID == operation.ownerID
-                    && $0.date >= cutoff && $0.date <= today
-                    && $0.kcal != nil && $0.weightKG != nil && $0.estimatedTDEE != nil
-            }
-            .sorted { $0.date < $1.date }
-        guard samples.count >= 12,
-              let firstDate = ISO8601DateFormatter.apexDateOnly.date(from: samples.first?.date ?? ""),
-              let lastDate = ISO8601DateFormatter.apexDateOnly.date(from: samples.last?.date ?? "")
-        else { return }
-
-        let ema = EnergyEngine.weightEMA(samples.compactMap(\.weightKG))
-        guard let startWeight = ema.first, let endWeight = ema.last else { return }
-        let elapsedDays = max(1, Calendar.current.dateComponents([.day], from: firstDate, to: lastDate).day ?? 1)
-        let meanIntake = samples.reduce(0) { $0 + Double($1.kcal ?? 0) } / Double(samples.count)
-        let predicted = samples.reduce(0) { $0 + Double($1.estimatedTDEE ?? 0) } / Double(samples.count)
-        let next = EnergyEngine.calibratedK(
-            currentK: profile.calibrationK,
-            meanDailyIntake: meanIntake,
-            predictedDailyTDEE: predicted,
-            startingEMAWeight: startWeight,
-            endingEMAWeight: endWeight,
-            elapsedDays: elapsedDays
-        )
-        guard abs(next - profile.calibrationK) >= 0.001 else { return }
-        let storedPerDay = (endWeight - startWeight) * 7_700 / Double(elapsedDays)
-        let observed = meanIntake - storedPerDay
+        guard let calibration = EnergyEngine.weeklyCalibration(profile: profile, data: data) else { return }
         let previous = profile.calibrationK
-        profile.calibrationK = next
+        profile.calibrationK = calibration.nextK
         profile.calibrationHistory.append(.init(
             appliedAt: Date().ISO8601Format(),
             previousK: previous,
-            nextK: next,
-            observedTDEE: observed,
-            predictedTDEE: predicted,
-            sampleDays: samples.count
+            nextK: calibration.nextK,
+            observedTDEE: calibration.observedTDEE,
+            predictedTDEE: calibration.predictedTDEE,
+            sampleDays: calibration.sampleDays
         ))
         profile.calibrationHistory = Array(profile.calibrationHistory.suffix(52))
         profile.updatedAt = Date().ISO8601Format()

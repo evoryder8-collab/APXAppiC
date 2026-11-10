@@ -49,7 +49,7 @@ enum FitnessBrainService {
     // MARK: - DashboardData -> engine input
 
     static func engineInput(from data: DashboardData, timeZone: TimeZone = .current) -> FBEngineInput? {
-        guard let storedProfile = data.profile else { return nil }
+        guard let storedProfile = data.weighedProfile() else { return nil }
         let profile = RestingEnergyPolicy.applied(to: storedProfile, settings: data.settings)
         var fbProfile = FBProfile(
             userID: profile.userID.uuidString.lowercased(),
@@ -203,12 +203,20 @@ enum FitnessBrainService {
         let settings = data.settings?.userID == profile.userID ? data.settings : nil
         var history = ScoreGoalHistory(stored: settings?.addons[ScoreGoalHistory.addonKey])
         let preferences = data.hydrationPreferences.flatMap { $0.userID == profile.userID ? $0 : nil }
-        let goals = ScoreGoalHistory.Goals(
-            customWaterML: preferences?.effectiveTargetMode == .custom ? preferences?.targetML : nil,
-            weightKG: profile.weightKG.isFinite ? profile.weightKG : 0,
-            targets: FitnessBrainTargets.computeTargets(
-                input.profile, asOf: today, trainingGoal: input.trainingGoal, planWeeks: input.planWeeks))
-        let changed = history.note(goals, today: today)
+        func goals(weightKG: Double) -> ScoreGoalHistory.Goals {
+            var graded = input.profile
+            graded.weightKG = weightKG
+            return ScoreGoalHistory.Goals(
+                customWaterML: preferences?.effectiveTargetMode == .custom ? preferences?.targetML : nil,
+                weightKG: weightKG.isFinite ? weightKG : 0,
+                targets: FitnessBrainTargets.computeTargets(
+                    graded, asOf: today, trainingGoal: input.trainingGoal, planWeeks: input.planWeeks))
+        }
+        // Days before any goal history were graded on the weight the profile was set up with.
+        // They keep it: the weigh-in the bodyweight now follows applies from today.
+        let seeded = history.current == nil && history.note(goals(weightKG: profile.weightKG), today: today)
+        let goals = goals(weightKG: input.profile.weightKG)
+        let changed = history.note(goals, today: today) || seeded
         for (day, totalML) in waterTotals(data, ownerID: profile.userID) {
             let dayGoals = history.goals(on: day, now: goals)
             input.hydrationByDay[day] = (totalML, waterTargets.resolve(day: day, now: now, goals: dayGoals).targetML)
@@ -452,7 +460,7 @@ struct DailyWaterTargets {
 
     /// `goals` are the water goal and bodyweight in force on that day; nil means today's.
     func resolve(day: String, now: Date, goals: ScoreGoalHistory.Goals? = nil) -> HydrationTargetResolution {
-        guard let profile = data.profile else { return HydrationTargetPolicy.resolve(sex: "male", weightKG: 87) }
+        guard let profile = data.weighedProfile(on: now.apexDateKey) else { return HydrationTargetPolicy.resolve(sex: "male", weightKG: 87) }
         let preferences = data.hydrationPreferences.flatMap { $0.userID == profile.userID ? $0 : nil }
         let weightKG = goals?.weightKG ?? profile.weightKG
         let customML = goals.map(\.customWaterML)

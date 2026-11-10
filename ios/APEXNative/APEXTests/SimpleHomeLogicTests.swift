@@ -317,6 +317,26 @@ final class SimpleHomeLogicTests: XCTestCase {
         )
     }
 
+    func testACutInAnySlotGetsTheDeficitsActivityGoal() {
+        let ownerID = UUID()
+        let fatLoss = UserSettings(
+            userID: ownerID, voiceOn: false, ticksOn: false, notificationsOn: false, guardianFactor: 1,
+            addons: ["training_induction": .object(["goal": .string("fat_loss"), "plan_weeks": .number(12)])]
+        )
+        for slot in Goal.allCases {
+            XCTAssertEqual(NutritionGoalPolicy.energyGoal(for: slot, settings: fatLoss), .recomp)
+            XCTAssertEqual(
+                SimpleHomeLogic.activityProgress(
+                    persona: .iulian, goal: NutritionGoalPolicy.energyGoal(for: slot, settings: fatLoss),
+                    steps: 0, activeCalories: 250, exerciseMinutes: 0
+                ),
+                0.5, accuracy: 0.001,
+                "\(slot) on a fat-loss plan: 250 kcal is half of the 500 kcal a deficit asks for"
+            )
+        }
+        XCTAssertEqual(NutritionGoalPolicy.energyGoal(for: .maintain, settings: nil), .maintain)
+    }
+
     func testResolvedDailyActivityUsesWearableBurnAndExerciseForItsLevel() {
         let wearable = WearableActivityRecord(
             date: "2026-08-28",

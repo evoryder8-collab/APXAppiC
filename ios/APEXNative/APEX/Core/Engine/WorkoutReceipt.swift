@@ -383,7 +383,7 @@ extension WorkoutReceipt {
                     : Int(Double(totalNewMinutes) * Double(max(0, activity.durationMinutes ?? 0)) / Double(totalOldMinutes))
                 allocatedMinutes += minutes
                 activity.durationMinutes = minutes
-                if activity.watchKcal == nil, let profile = data.profile, profile.userID == ownerID,
+                if activity.watchKcal == nil, let profile = data.weighedProfile(), profile.userID == ownerID,
                    let type = data.activityTypes.first(where: { $0.id == activity.typeID }) {
                     activity.computedKcal = EnergyEngine.blockCalories(
                         type: type, quantity: activity.quantity, durationMinutes: minutes,

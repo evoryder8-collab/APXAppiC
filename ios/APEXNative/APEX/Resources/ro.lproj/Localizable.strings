@@ -5943,3 +5943,9 @@
 "You have passed this volume" = "Ai depășit acest volum";
 "Your next volume" = "Următorul tău volum";
 "Drinks" = "Băuturi";
+"Recovery meal logged" = "Masa de recuperare este înregistrată";
+"Optional · your latest weigh-in sets your targets" = "Opțional · ultima cântărire îți stabilește țintele";
+"This day's estimate: %d kcal" = "Estimarea acestei zile: %d kcal";
+"This day's estimate %d kcal · PAL %.2f · %@" = "Estimarea acestei zile %d kcal · PAL %.2f · %@";
+"DAY ESTIMATE" = "ESTIMAREA ZILEI";
+"Suggested from this day's activity: %@" = "Sugestie din activitatea acestei zile: %@";

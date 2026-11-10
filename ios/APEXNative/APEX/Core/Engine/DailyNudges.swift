@@ -54,6 +54,15 @@ enum DailyNudges {
         return max(20, min(60, Int((cap / 5).rounded() * 5)))
     }
 
+    /// The line below which a day's protein is short: under 85% of target
+    /// while losing weight, under 70% otherwise.
+    ///
+    /// One rule for the evening reminder and the assessment on the Nutrition
+    /// screen, so the screen never reads "on track" while the bell says short.
+    static func proteinIsShort(consumedG: Double, targetG: Double, losingWeight: Bool) -> Bool {
+        targetG > 0 && consumedG / targetG < (losingWeight ? 0.85 : 0.70)
+    }
+
     /// Whether the day is short enough on protein to be worth saying so.
     ///
     /// Deliberately not a nudge for being a little under: a reminder that fires
@@ -61,26 +70,21 @@ enum DailyNudges {
     static func proteinShortfall(
         consumedG: Double,
         targetG: Double,
-        goal: String,
-        bodyweightKG: Double
+        losingWeight: Bool,
+        bodyweightKG: Double,
+        date: String = today()
     ) -> Nudge? {
-        guard targetG > 0 else { return nil }
+        guard proteinIsShort(consumedG: consumedG, targetG: targetG, losingWeight: losingWeight) else { return nil }
         let shortfall = targetG - consumedG
-        guard shortfall > 0 else { return nil }
-
-        let losing = ["cut", "recomp", "lean", "fat_loss", "weight_loss"]
-            .contains { goal.lowercased().contains($0) }
-        // Under 85% while losing weight, under 70% otherwise.
-        guard consumedG / targetG < (losing ? 0.85 : 0.70) else { return nil }
 
         let cap = singleSittingCapGrams(bodyweightKG: bodyweightKG)
         return Nudge(
             kind: .proteinShort,
-            date: Self.today(),
+            date: date,
             shortfallG: Int(shortfall.rounded()),
             tonightG: min(Int(shortfall.rounded()), cap),
             capG: cap,
-            losingWeight: losing
+            losingWeight: losingWeight
         )
     }
 
@@ -89,9 +93,45 @@ enum DailyNudges {
     /// Creatine works by staying saturated, so the miss that matters is the
     /// habit rather than the single day. Worth one quiet reminder in the
     /// evening and nothing more.
-    static func creatineMissed(loggedToday: Bool, inStack: Bool) -> Nudge? {
+    static func creatineMissed(loggedToday: Bool, inStack: Bool, date: String = today()) -> Nudge? {
         guard inStack, !loggedToday else { return nil }
-        return Nudge(kind: .creatineMissed, date: Self.today())
+        return Nudge(kind: .creatineMissed, date: date)
+    }
+
+    // MARK: - The day
+
+    /// Today's reminders, decided from the day's own records.
+    static func nudges(ownerID: UUID, data: DashboardData, today: String) -> [Nudge] {
+        guard let profile = data.weighedProfile(on: today), profile.userID == ownerID else { return [] }
+        var nudges: [Nudge] = []
+        /* Protein is judged by the report's own rules: only a fully logged day
+           counts, so a morning with nothing entered yet is not a shortfall,
+           and the eaten figure and its target are the ones the report shows. */
+        if let day = NutritionReport.summarize(ownerID: ownerID, data: data, dates: today...today),
+           day.loggedDays == 1,
+           let protein = day.macros.first(where: { $0.kind == .protein }),
+           protein.underDays == 1,
+           let target = protein.target,
+           let short = proteinShortfall(
+               consumedG: protein.average,
+               targetG: target,
+               losingWeight: NutritionGoalPolicy.energyGoal(
+                   for: profile.goal,
+                   settings: data.settings?.userID == ownerID ? data.settings : nil
+               ) == .recomp,
+               bodyweightKG: profile.weightKG,
+               date: today
+           ) {
+            nudges.append(short)
+        }
+        let creatine = Set(data.supplements.filter {
+            $0.userID == ownerID && !$0.archived && SupplementCatalogue.isCreatine($0.name)
+        }.map(\.id))
+        let creatineLogged = data.supplementLogs.contains { $0.date == today && creatine.contains($0.supplementID) }
+        if let missed = creatineMissed(loggedToday: creatineLogged, inStack: !creatine.isEmpty, date: today) {
+            nudges.append(missed)
+        }
+        return nudges
     }
 
     /// Evening, late enough that the day is a fair judgement and early enough
@@ -99,24 +139,26 @@ enum DailyNudges {
     static let eveningHour = 19
     static let eveningMinute = 30
 
-    /// The components a calendar trigger should match for the evening slot.
+    /// The components a calendar trigger should match for a nudge's evening:
+    /// its own day at 19:30, or nil once that moment has gone.
     ///
-    /// Hour and minute only, and deliberately no date. Apple's guidance is to
-    /// "specify only the time values that you want the system to use to
-    /// determine the matching date and time", and the system then resolves the
-    /// next moment that matches.
-    ///
-    /// Pinning year, month and day, as this first did, produced a trigger in
-    /// the past every time the app was opened after 19:30, which is most
-    /// evenings since that is when dinner gets logged. A calendar trigger whose
-    /// moment has gone is accepted and then never delivered, so the reminder
-    /// was not late, it was silently dead. Leaving the date out makes that
-    /// impossible rather than merely handled.
-    static var eveningSlot: DateComponents {
-        DateComponents(hour: eveningHour, minute: eveningMinute)
+    /// A reminder quotes one day's numbers, so it carries that day. With hour
+    /// and minute alone the system resolves the next match, which after 19:30
+    /// is tomorrow: dinner logged at 20:15 left "82 g to go" to arrive the
+    /// next evening about a day that was over. A dated trigger whose moment
+    /// has passed is accepted and never delivered, so a passed evening
+    /// registers nothing at all. The bell in the app still shows the nudge.
+    static func eveningTrigger(for day: String, now: Date, calendar: Calendar = .current) -> DateComponents? {
+        let parts = day.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3 else { return nil }
+        let slot = DateComponents(
+            year: parts[0], month: parts[1], day: parts[2], hour: eveningHour, minute: eveningMinute
+        )
+        guard let moment = calendar.date(from: slot), moment > now else { return nil }
+        return slot
     }
 
-    private static func today() -> String {
+    static func today() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: Date())

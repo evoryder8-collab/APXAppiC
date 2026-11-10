@@ -345,6 +345,11 @@ enum MorningCheckLogic {
         return Entry(sleepScore: sleepScore, recoveryScore: recoveryScore, weightKG: weightKG)
     }
 
+    /// A stored weight as the weight fields show it, in the account's unit.
+    static func weightText(kilograms: Double, unit: WeightUnit, locale: Locale) -> String {
+        unit.value(fromKilograms: kilograms).formatted(.number.precision(.fractionLength(1)).locale(locale))
+    }
+
     static func applyingWeight(
         _ weightKG: Double,
         to existing: DailyLog?,

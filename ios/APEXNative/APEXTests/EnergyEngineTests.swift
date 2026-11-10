@@ -426,7 +426,8 @@ final class EnergyEngineTests: XCTestCase {
         XCTAssertEqual(marketKcal, 52.5, accuracy: 0.01)
         XCTAssertEqual(stepsKcal, 308, accuracy: 0.01)
         XCTAssertEqual(result.tdee, 2_648)
-        XCTAssertEqual(result.level, .moderate)
+        XCTAssertEqual(result.estimatedLevel, .moderate, "What the blocks amount to")
+        XCTAssertEqual(result.level, .sedentary, "The target still carries the level that was chosen")
     }
 
     func testDistanceAndDiscountedWatchUseMaximumNotSum() {
@@ -463,6 +464,55 @@ final class EnergyEngineTests: XCTestCase {
         )
     }
 
+    func testLoggedActivityAboveTheWatchFigureIsTheDaysActivityEnergy() {
+        let logs = [
+            log(typeID: "strength", kcal: 500),
+            log(typeID: "walk", kcal: 269),
+        ]
+        XCTAssertEqual(EnergyEngine.resolvedActiveCalories(wearableActiveCalories: 441, logs: logs), 769)
+
+        let result = EnergyEngine.targets(
+            profile: profile(weight: 70, level: .moderate, goal: .maintain, customBMR: 1_683),
+            logs: logs,
+            catalog: [],
+            wearableActiveCalories: 441
+        )
+        XCTAssertEqual(result.tdee, 2_789, "1,683 x 1.2 resting plus the 769 kcal logged, not the Watch's 441.")
+        XCTAssertEqual(
+            WearableActivityEngine.resolve(
+                persona: .iulian,
+                wearable: WearableActivityRecord(
+                    date: "2026-08-16", steps: 0, activeCalories: 441, exerciseMinutes: 0,
+                    source: "apple_health", updatedAt: "2026-08-16T20:00:00Z"
+                ),
+                logs: logs
+            ).activeCalories,
+            769,
+            "The figure above the listed blocks is never smaller than the blocks."
+        )
+    }
+
+    func testTheTargetIsLabelledWithTheLevelThatProducedIt() {
+        for level in ActivityLevel.allCases {
+            let quick = EnergyEngine.targets(
+                profile: profile(weight: 70, level: level, goal: .maintain, customBMR: 1_683), logs: [], catalog: []
+            )
+            XCTAssertEqual(quick.targetCalories, Int((1_683 * level.multiplier).rounded()))
+            XCTAssertEqual(quick.level, level, "\(quick.targetCalories) kcal came from \(level.title)")
+            XCTAssertEqual(quick.estimatedLevel, level, "With nothing measured, the day's estimate is the chosen level")
+        }
+
+        // The audited screen: Extra active chosen, a 441 kcal day on the Watch, resting energy 1,780.
+        let measured = EnergyEngine.targets(
+            profile: profile(weight: 80, level: .extra, goal: .maintain, customBMR: 1_780),
+            logs: [], catalog: [], wearableActiveCalories: 441
+        )
+        XCTAssertEqual(measured.targetCalories, 3_382)
+        XCTAssertEqual(measured.level, .extra, "The label beside 3,382 kcal names the level that produced it")
+        XCTAssertEqual(measured.tdee, 2_577)
+        XCTAssertEqual(measured.estimatedLevel, .light, "The day's 2,577 kcal estimate carries its own level")
+    }
+
     func testGenericPreciseTargetsDoNotAddWearableBurnToActivityEstimatesAgain() {
         let result = EnergyEngine.targets(
             profile: profile(
@@ -479,8 +529,11 @@ final class EnergyEngineTests: XCTestCase {
             wearableActiveCalories: 900
         )
 
-        XCTAssertEqual(result.tdee, 2_920)
-        XCTAssertEqual(result.targetCalories, 2_609)
+        /* Two figures on purpose. The target is the plan's, from the chosen level, and never
+           chases the day's burn. The other is the day's estimate. Each now carries its own label. */
+        XCTAssertEqual(result.tdee, 2_920, "The day's estimate: resting energy plus the Watch's 900 kcal")
+        XCTAssertEqual(result.targetCalories, 2_609, "The plan's target: 1,683 kcal at Moderately active")
+        XCTAssertEqual(result.level, .moderate)
         XCTAssertEqual(result.proteinG, 133)
         XCTAssertEqual(result.fatG, 80)
         XCTAssertEqual(result.carbsG, 339)
@@ -627,6 +680,54 @@ final class EnergyEngineTests: XCTestCase {
         XCTAssertEqual(isolated.level, .moderate)
     }
 
+    func testTheSuggestedLevelIsTheLevelOfTheDaysOwnEstimate() {
+        // Resting energy 1,780 kcal, Moderately active chosen.
+        let athlete = profile(weight: 80, level: .moderate, goal: .maintain, customBMR: 1_780)
+        let day = "2026-11-02"
+        func settings(steps: Int, kcal: Int, minutes: Int) -> UserSettings {
+            UserSettings(
+                userID: athlete.userID, voiceOn: true, ticksOn: true, notificationsOn: true, guardianFactor: 0.96,
+                addons: ["watch_activity_history": .array([WearableActivityRecord(
+                    date: day, steps: steps, activeCalories: kcal, exerciseMinutes: minutes,
+                    source: "apple_health", updatedAt: "\(day)T20:00:00Z"
+                ).jsonValue])]
+            )
+        }
+        func recorded(_ settings: UserSettings) -> WearableActivityEngine.Resolution {
+            NutritionRecordedActivity.resolve(profile: athlete, settings: settings, logs: [], date: day)
+        }
+
+        // A long walk: 125 exercise minutes and 11,203 steps, 441 kcal on the Watch.
+        let walk = settings(steps: 11_203, kcal: 441, minutes: 125)
+        let estimate = EnergyEngine.targets(profile: athlete, logs: [], catalog: [], settings: walk, wearableActiveCalories: 441)
+        XCTAssertEqual(estimate.tdee, 2_577)
+        XCTAssertEqual(recorded(walk).level, .light, "A 2,577 kcal day is Lightly active, whatever the minute count says")
+        XCTAssertEqual(
+            NutritionRecordedActivity.suggestion(profile: athlete, settings: walk, logs: [], date: day), .light
+        )
+
+        // Whatever the day measures, the suggestion is the level of the estimate on the same screen.
+        for kcal in stride(from: 20, through: 1_600, by: 20) {
+            let measured = settings(steps: 11_203, kcal: kcal, minutes: 125)
+            XCTAssertEqual(
+                recorded(measured).level,
+                EnergyEngine.targets(
+                    profile: athlete, logs: [], catalog: [], settings: measured, wearableActiveCalories: kcal
+                ).estimatedLevel,
+                "\(kcal) kcal"
+            )
+        }
+
+        // Without an energy figure, steps and minutes are the only evidence there is.
+        XCTAssertEqual(recorded(settings(steps: 8_000, kcal: 0, minutes: 0)).level, .moderate)
+
+        // Nothing to suggest when the day agrees with the choice, or has nothing on it.
+        XCTAssertNil(NutritionRecordedActivity.suggestion(
+            profile: athlete, settings: settings(steps: 9_000, kcal: 700, minutes: 40), logs: [], date: day
+        ), "700 kcal is a Moderately active day, which is already chosen")
+        XCTAssertNil(NutritionRecordedActivity.suggestion(profile: athlete, settings: walk, logs: [], date: "2026-11-03"))
+    }
+
     func testWearableTargetEnergyIsIsolatedByOwnerAndDate() {
         let ownerID = UUID()
         let settings = UserSettings(
@@ -693,7 +794,7 @@ final class EnergyEngineTests: XCTestCase {
             catalog: [filming, travel]
         )
 
-        XCTAssertEqual(result.level, .extra)
+        XCTAssertEqual(result.estimatedLevel, .extra)
         XCTAssertGreaterThanOrEqual(result.pal, 2)
     }
 
@@ -1126,6 +1227,42 @@ final class EnergyEngineTests: XCTestCase {
         XCTAssertEqual(NutritionGoalPolicy.recommendedGoal(for: "muscle"), .bulk)
     }
 
+    func testEveryFatLossPresetEatsLikeADeficitAndNeverBelowMaintain() {
+        func athlete(_ goal: Goal) -> Profile {
+            profile(weight: 80, level: .moderate, goal: goal, bodyFatPercent: nil, bodyFatSource: nil)
+        }
+        let maintain = EnergyEngine.targets(profile: athlete(.maintain), logs: [], catalog: [])
+        XCTAssertEqual(maintain.proteinG, 152)
+
+        let cut = NutritionPlanContext(trainingGoal: "fat_loss", planWeeks: 12)
+        for preset in NutritionGoalPolicy.presets(context: cut) {
+            XCTAssertEqual(preset.energyGoal, .recomp, "\(preset.label) is a deficit whatever slot it sits in")
+            let result = EnergyEngine.targets(profile: athlete(preset.goal), logs: [], catalog: [], planContext: cut)
+            XCTAssertTrue(result.isPublishable, preset.label)
+            XCTAssertEqual(result.proteinG, 168, "\(preset.label): 2.1 g per kg, the deficit rule")
+            XCTAssertGreaterThanOrEqual(result.proteinG, maintain.proteinG, preset.label)
+
+            let scored = FitnessBrainTargets.computeTargets(
+                FBProfile(
+                    userID: UUID().uuidString, persona: .iulian, sex: "male", weightKG: 80, bodyFatPct: nil,
+                    customBMR: nil, heightCM: 175, birthdate: "1990-01-01", activityLevel: .moderate,
+                    goal: FBGoal(rawValue: preset.goal.rawValue)!, baselineDate: "2026-01-01"
+                ),
+                asOf: Date().apexDateKey, trainingGoal: "fat_loss", planWeeks: 12
+            )
+            XCTAssertEqual(Int(scored.proteinG), result.proteinG, "\(preset.label): the Avatar grades against the target on screen")
+            XCTAssertEqual(Int(scored.fatG), result.fatG, preset.label)
+            XCTAssertEqual(Int(scored.carbsG), result.carbsG, preset.label)
+        }
+
+        // Outside a fat-loss plan each slot already is what its name says.
+        for context in [nil, "muscle", "strength", "endurance", "rebuild"].map({
+            $0.map { NutritionPlanContext(trainingGoal: $0, planWeeks: 12) }
+        }) {
+            XCTAssertEqual(NutritionGoalPolicy.presets(context: context).map(\.energyGoal), [.recomp, .maintain, .bulk])
+        }
+    }
+
     func testMacroPolicyMatchesCrossClientLiteralFixtures() {
         XCTAssertEqual(
             EnergyEngine.macroTargets(
@@ -1145,6 +1282,91 @@ final class EnergyEngineTests: XCTestCase {
             ),
             .init(proteinG: 126, fatG: 81, carbsG: 341)
         )
+    }
+
+    // MARK: Weekly calibration samples
+
+    private func calibrationNow() -> Date {
+        Calendar.current.date(from: DateComponents(year: 2026, month: 9, day: 20, hour: 12))!
+    }
+
+    /// Fourteen closed days ending yesterday. Each takes its weight, intake and how many meals were logged.
+    private func fortnight(
+        owner: UUID,
+        weight: (Int) -> Double?,
+        intake: Int = 2_600,
+        meals: Int = 3
+    ) -> DashboardData {
+        var data = DashboardData()
+        data.profile = profile(userID: owner, weight: 81, level: .moderate, goal: .maintain)
+        for offset in -14 ... -1 {
+            let day = Calendar.current.date(byAdding: .day, value: offset, to: calibrationNow())!.apexDateKey
+            data.dailyLogs.append(DailyLog(
+                id: UUID(), userID: owner, date: day, kcal: intake, proteinG: 150, fatG: 80, carbsG: 300, waterL: 0,
+                estimatedTDEE: 2_600, computedPAL: 1.5, activityMode: "precise", weightKG: weight(offset),
+                nutritionSource: "structured"
+            ))
+            for _ in 0..<meals {
+                data.loggedMeals.append(LoggedMeal(
+                    id: UUID(), userID: owner, localDate: day, mealSlot: "lunch", displayName: "Meal",
+                    sourcePresetID: nil, sourcePlannedMealID: nil, loggedAt: "\(day)T12:00:00Z",
+                    clientIdempotencyKey: UUID().uuidString, loggedAs: "manual",
+                    totalKcal: Double(intake) / Double(meals), totalProteinG: 50, totalCarbsG: 100, totalFatG: 27
+                ))
+            }
+        }
+        return data
+    }
+
+    private func calibration(_ data: DashboardData) -> EnergyEngine.WeeklyCalibration? {
+        EnergyEngine.weeklyCalibration(profile: data.profile!, data: data, now: calibrationNow())
+    }
+
+    func testCalibrationDoesNotLearnFromPartlyLoggedDays() {
+        // One 1,400 kcal meal a day against a 2,600 kcal estimate is an unfinished diary, not a fortnight of starving.
+        let partial = fortnight(owner: UUID(), weight: { _ in 80 }, intake: 1_400, meals: 1)
+        XCTAssertNil(calibration(partial), "Nothing to learn: no day was fully logged")
+    }
+
+    func testCalibrationDoesNotReadACopiedProfileWeightAsAWeighIn() {
+        // One real 82 kg weigh-in among days that carry the 81 kg profile weight, copied on when each was finalised.
+        let copied = fortnight(owner: UUID(), weight: { $0 == -13 ? 82 : 81 })
+        XCTAssertNil(calibration(copied), "A weight nobody measured is not a kilogram lost")
+    }
+
+    func testCalibrationStillLearnsFromFullyLoggedDaysWithRealWeighIns() throws {
+        let owner = UUID()
+        // A steady 80 kg on the scale while eating 2,300 kcal a day: the 2,600 kcal estimate runs high.
+        var honest = fortnight(owner: owner, weight: { _ in 80 }, intake: 2_300)
+        let result = try XCTUnwrap(calibration(honest))
+        XCTAssertEqual(result.sampleDays, 14, "Every closed day of the fortnight, and not today")
+        XCTAssertEqual(result.predictedTDEE, 2_600)
+        XCTAssertEqual(result.observedTDEE, 2_300)
+        XCTAssertEqual(
+            result.nextK,
+            EnergyEngine.calibratedK(
+                currentK: 1, meanDailyIntake: 2_300, predictedDailyTDEE: 2_600,
+                startingEMAWeight: 80, endingEMAWeight: 80, elapsedDays: 13
+            ),
+            accuracy: 1e-9
+        )
+
+        // Today is still open: a morning with breakfast only changes nothing.
+        let today = calibrationNow().apexDateKey
+        honest.dailyLogs.append(DailyLog(
+            id: UUID(), userID: owner, date: today, kcal: 400, proteinG: 20, fatG: 10, carbsG: 50, waterL: 0,
+            estimatedTDEE: 2_600, computedPAL: 1.5, activityMode: "precise", weightKG: 79.3,
+            nutritionSource: "structured"
+        ))
+        XCTAssertEqual(calibration(honest), result)
+    }
+
+    func testCalibrationNeverSamplesAnotherAccountsRows() {
+        // A fortnight that would calibrate, cached beside an account that logged nothing.
+        var cached = fortnight(owner: UUID(), weight: { _ in 80 }, intake: 2_300)
+        XCTAssertNotNil(calibration(cached))
+        cached.profile = profile(userID: UUID(), weight: 81, level: .moderate, goal: .maintain)
+        XCTAssertNil(calibration(cached), "Another account's days and weigh-ins teach this one nothing")
     }
 
     func testCalibrationNudgesUpwardAndClamps() {

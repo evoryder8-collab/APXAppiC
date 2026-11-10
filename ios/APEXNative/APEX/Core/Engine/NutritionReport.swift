@@ -274,7 +274,7 @@ struct NutritionReport: Sendable, Equatable {
     /// Daily creatine, keyed on the day a check-off belongs to, so a past day ticked later still counts.
     private static func creatine(ownerID: UUID, data: DashboardData, days: [String]) -> Creatine? {
         let ids = Set(data.supplements.filter {
-            $0.userID == ownerID && !$0.trainingDaysOnly && isCreatine($0.name)
+            $0.userID == ownerID && !$0.trainingDaysOnly && SupplementCatalogue.isCreatine($0.name)
         }.map(\.id))
         let inRange = Set(days)
         let taken = Set(data.supplementLogs.filter {
@@ -301,12 +301,6 @@ struct NutritionReport: Sendable, Equatable {
             firstDay: first, takenDays: taken.count, trackedDays: tracked.count, longestStreak: longest, currentStreak: current,
             score: score, badge: badgeRules.first { $0.1(input) }?.0 ?? .buildTheStreak
         )
-    }
-
-    private static func isCreatine(_ name: String) -> Bool {
-        // The catalogue has no Japanese or Thai aliases, so those spellings are matched by name.
-        SupplementCatalogue.search(name, limit: 1).first?.id == "creatine_monohydrate"
-            || name.contains("クレアチン") || name.contains("ครีเอทีน")
     }
 
     private static func focus(macros: [Macro], loggedDays: Int, periodDays: Int) -> [Focus] {
@@ -347,7 +341,7 @@ struct NutritionReport: Sendable, Equatable {
     /// Calories and macros do not vary by day, so no activity is passed. Targets are not
     /// stored per day, so the whole period is judged against today's.
     private static func targets(ownerID: UUID, data: DashboardData) -> [Kind: Double]? {
-        guard let profile = data.profile, profile.userID == ownerID else { return nil }
+        guard let profile = data.weighedProfile(), profile.userID == ownerID else { return nil }
         let settings = data.settings?.userID == ownerID ? data.settings : nil
         let result = EnergyEngine.targets(
             profile: profile,

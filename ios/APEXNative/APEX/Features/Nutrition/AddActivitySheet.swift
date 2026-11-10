@@ -124,7 +124,7 @@ private struct ActivityEntryForm: View {
     }
 
     private var preview: Double {
-        guard let profile = session.profile else { return 0 }
+        guard let profile = session.data.weighedProfile() else { return 0 }
         return EnergyEngine.blockCalories(
             type: type,
             quantity: type.inputStyle == .steps ? steps : quantity,

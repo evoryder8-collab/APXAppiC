@@ -499,8 +499,19 @@ final class EntitlementTests: XCTestCase {
 
         XCTAssertTrue(calibration.contains("operation: AccountOperationLease"))
         XCTAssertTrue(calibration.contains("profile.userID == operation.ownerID"))
+        /* The sampling moved into EnergyEngine.weeklyCalibration, which reads only the rows of
+           the profile it is handed. The session hands it the profile it has just checked against
+           the lease. EnergyEngineTests proves the isolation by running it. */
+        XCTAssertTrue(calibration.contains("EnergyEngine.weeklyCalibration(profile: profile, data: data)"))
+        let engine = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Nutrition/EnergyEngine.swift")
+        )
+        let samplingStart = try XCTUnwrap(engine.range(of: "static func weeklyCalibration("))
+        let samplingEnd = try XCTUnwrap(
+            engine.range(of: "static func calibratedK(", range: samplingStart.upperBound..<engine.endIndex)
+        )
         XCTAssertTrue(
-            calibration.contains("$0.userID == operation.ownerID"),
+            engine[samplingStart.lowerBound..<samplingEnd.lowerBound].contains("$0.userID == profile.userID"),
             "weekly calibration must never sample another account's cached daily rows"
         )
         XCTAssertGreaterThanOrEqual(
