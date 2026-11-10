@@ -2453,3 +2453,89 @@ Copy rule from the owner: nothing reads as wasted effort. Enough or more than en
 Each exercise's session list is capped at nine entries, sampled evenly from first to latest and always keeping the record.
 
 Verification: 35 summary tests, 4 water-list tests (unique names, ascending volumes, all translations, a match within 30 % for every total from 0.25 L to 5,000 L) and 2 page tests; the page was rendered from a real client export in English and German and checked for overflow. Gaps: the fixed three-meal threshold misjudges people who eat two large meals without a meal plan; typical (non-standard) container sizes and lake volumes were not checked against sources; not run on a physical device; Japanese, Thai and Swiss German copy was not reviewed by a native speaker.
+
+## 2026-11-10 · App-brain audit of 1.0.1 (420 + local report commits): found, not fixed
+
+### Method
+
+Read-only audit of everything that calculates what the app shows, split into six areas (core score engine, Avatar display and gamification, recovery/sleep/mobility/joint pain, hydration and supplements on phone and Watch, nutrition/energy/nudges, progress camera). Each area was traced end to end by its own auditor and every finding below was then re-read in the code. Where the client export could confirm a finding it was checked there (noted "export"). Nothing was built, run on a device or changed. Paths are under `ios/APEXNative/APEX` unless stated. IDs are for the owner to pick from.
+
+Coupling to know before fixing: `FitnessBrainEngine.compute` is a golden-parity port of the web engine (`src/lib/rpg.ts`; `APEXTests/Fixtures/engine-parity.json` is generated from the TypeScript). Fixes inside `compute` (S3, S6, S9, S10, S11) need the same change in the web engine and regenerated fixtures, or phone and web publish different scores for one person. Fixes in `FitnessBrainService.engineInput` and the Health import (S1, S2, S4, S5, S8) are iOS-side inputs. Any score fix changes existing users' numbers on the next replay.
+
+### Scores and Avatar
+
+- **S1 One VO2max reading is re-applied every day.** `Features/Health/HealthKitManager.swift:871` (`latestQuantity`, no date predicate) stamps the newest sample ever as today's metric (`App/AppSession.swift:4279`); `Core/Engine/FitnessBrainEngine.swift:673` halves the gap to its anchor for every dated row. Export: Endurance 52.3, 47.5, 45.2, 43.9, 43.1 from 2 Nov, and a manual calibration to 49.0 on 8 Nov read 45.9 the next day. Fix: anchor only when the value differs from the last one applied. The same stale-sample stamp affects bodyweight (N7).
+- **S2 Coach-plan workouts never move the Avatar.** `FBDayType` has no `coach` case, so `Core/Engine/FitnessBrainService.swift:75-80` drops the day and `FitnessBrainEngine.swift:290` gives no credit. Fix: map `coach` to `.custom`.
+- **S3 Full Body days credit one half of the body; a Leg Press increase raises Upper Body Strength.** `Core/Engine/TrainingInduction.swift:1182-1224` types Full Body A/C `upper`, B `legs_b`, "Capacity & Core" `fix`; credit and overload follow the day type (`FitnessBrainEngine.swift:290`, `354-359`). Fix: per-movement credit, as the custom path already does. Engine parity.
+- **S4 A replayed session doubles the day's points.** `FitnessBrainService.swift:86` does not apply `StrengthProgress.withoutReplays`. Export: 30 Oct.
+- **S5 An unlinked Watch recording of a leg day raises Upper Body Strength** (bespoke profiles). `FitnessBrainService.swift:133-144` does not apply `TrainingProfile90.recordsSameWorkout`. Export: four such days.
+- **S6 A partly logged food day costs 6 % strength gain, from data only the web writes.** `FitnessBrainEngine.swift:544` reads `meal_rhythm_history`, which iOS never writes or refreshes (`FitnessBrainService.swift:263`); iOS-only accounts never get meal-timing credit, mixed accounts keep stale penalties. Export: about half her strength days tempered. Knock-on: a two-block meal plan falls back to three expected meals in `NutritionReport`, so the PDF never scores. Fix: remove the tempering or gate it on the fully-logged rule; fall back to the enabled block count. Engine parity.
+- **S7 Changing today's water goal, weight, goal or activity level regrades every past day.** `App/AppSession.swift:2156-2161`, `FitnessBrainService.swift:349-373`, `FitnessBrainEngine.swift:250`. Fix: store each day's resolved targets when the day closes, or apply a custom goal only from the day it was set.
+- **S8 UTC dates meet local dates.** `ProfileCreationRequest` (`Core/Networking/SupabaseService.swift:20`) sends no `baseline_date`, so the server stamps its own date; calibration `measuredOn` is the UTC prefix (`FitnessBrainService.swift:223`). West of UTC an evening signup shows no scores and an evening calibration does nothing until midnight (`FitnessBrainEngine.swift:102`, `401-403`); east of UTC the chosen starting points are altered on day one. Fix: send the device date, clamp to `throughDate`.
+- **S9 Recalibrating lowers earned stats, more each time.** Top answers are worth 77 (`Core/Engine/BaselineCalibration.swift:303`, `386`); each submission is a new record pulling 55 % toward its anchor (`FitnessBrainEngine.swift:121-143`). Fix: no pull when the stat is already in or above the answered band; a newer questionnaire supersedes the older. Engine parity.
+- **S10 Deload credit.** "Deload honored" pays per session, not per day (`FitnessBrainEngine.swift:558`); iOS sets `isDeload` from manual marks only (`AppSession.swift:5861`), so a scheduled deload week earns nothing; scheduled deloads stop after week 12 (`Core/Engine/FocusT25.swift:35`).
+- **S11 Assisted (negative) loads never count as progress.** `FitnessBrainEngine.swift:351` seeds with 0.
+- **S12 Overload Guardian does nothing on iPhone.** `ProgressionEngine.guardianCheck` has no caller; the setting is shown.
+- **S13 New-account Avatar copy.** "30-day change" on day three, strongest and limiter the same stat on ties, "0 planned sessions completed" ticked, eating-pattern score at most 46/100 in week one (`Features/Avatar/AvatarView.swift:32`, `50-51`, `606`, `816`; `Features/Portal/SimpleHomeView.swift:768`).
+- **S14 Body index card.** Score "45" beside "Next unlock 45", bar always at least 88 % full, personal best can be the day-zero preset, PDF prints 60.2 where the app prints 60 (`AvatarView.swift:212-213`, `241`; `Features/Avatar/AvatarReport.swift:2131`).
+
+### Recovery, sleep, mobility, joint pain
+
+- **R1 The iOS joint check-in is saved where nothing reads it.** `AvatarView.swift:750` writes `avatar_joint_check` (one object, overwritten); `Core/Engine/StrengthProgress.swift:695` reads `joint_checkins`; `assess` and `checkinDue` have no production caller. An old web check-in keeps the "elevated" briefing line forever (`Core/Engine/SessionBriefingKnowledge.swift:113-117`, no expiry).
+- **R2 Tracked mode discards the workout when a "check" row is marked Completed.** `Features/Training/TrainingProgramView.swift:989` builds the row without reps, `AppSession.swift:5847` rejects it, `completeWorkout` returns nil and `TrainingProgramView.swift:1395` dismisses. Traced, not run.
+- **R3 Sleep hours shrink through the day and can absorb yesterday's nap.** `HealthKitManager.swift:1132` reads the last 18 hours from now on every refresh; `AppSession.swift:4334` overwrites. Export: 3.7 h stored in the evening. Fix: a fixed night window, first complete value per date wins.
+- **R4 A bad night changes nothing.** Measured sleep is display only; `RecoveryAssessment.Context` (`Core/Engine/RecoveryAssessment.swift:48-68`) is never filled by its three callers; a low score gives a banner and no plan change; the Avatar adds for good sleep and subtracts nothing.
+- **R5 Completed recovery days are missing from the Mobility count.** `Core/Engine/TrainingProfile90.swift:114-143` classifies by catalogue movement and never falls back to the day type. Export: fix-day sessions on 24 Sep and 5 Nov unclassified ("Mobility 2").
+- **R6 Recovery rhythm sessions land in the Transition programme** when there is no induction (`Core/Engine/RecoveryPlanner.swift:143`, `Core/Engine/TrainingPlanEngine.swift:132`); Home shows main.
+- **R7 "My own session" can only be skipped.** `RecoveryPlanner.swift:167` uses `mobility_flow`, a `movement_sequence`, which `Core/Engine/ExerciseLogging.swift:95` marks unsupported; the skip then costs Flexibility.
+- **R8 The briefing says "already complete" for a second session on the same date.** `SessionBriefingKnowledge.swift:126` matches the date only. Export: 14 such dates.
+- **R9 Watch "Other" workouts feed Flexibility** (`HealthKitManager.swift:417`), while the 90-day profile ignores cooldown and similar types.
+- **R10 The sore joint chosen at setup does not change exercises.** `TrainingInduction.swift:1008` only caps sessions and adds a note; no avoid list; never expires.
+- **R11 "Return from layoff: deload week" shows on future dates** (`TrainingPlanEngine.swift:109`, `529`).
+
+### Nutrition, energy, nudges
+
+- **N1 Apple Health rewrites the activity level all day.** `AppSession.swift:4323`, `4380`: the calorie target swings (2136 to 3382 kcal in the trace) and a hand-picked level reverts.
+- **N2 Target, TDEE and activity label disagree on one screen** (`Features/Nutrition/EnergyEngine.swift:495`, `518`).
+- **N3 The protein nudge judges a half-logged day** ("152 g under" at 08:00). `Core/Engine/DailyNudges.swift:61`, `AppSession.swift:3009`; thresholds differ from the on-screen assessment.
+- **N4 The evening reminder fires the next day with yesterday's numbers.** `Core/Engine/NudgeCenter.swift:271`; `onAppBecameActive` never refreshes nudges.
+- **N5 Fat-loss presets are read as maintain or bulk.** "Gentle cut" prescribes less protein than Maintain (`EnergyEngine.swift:184`, `676`; `DailyNudges.swift:71`).
+- **N6 Per-meal macro guides add up to 110 %** (85 % with three blocks). `Features/Nutrition/MealComposerView.swift:915`.
+- **N7 Bodyweight lives in three places.** Targets stay on the onboarding weight; Health's newest-ever sample outranks this morning's entry; the Nutrition weight field ignores the lb setting (`AppSession.swift:3066`, `4279`, `4585`; `Features/Nutrition/NutritionView.swift:1141`).
+- **N8 Logged activity is ignored once any Watch energy exists** (`EnergyEngine.swift:411`, `487`).
+- **N9 Weekly calibration learns from partly logged days and auto-written weigh-ins** (`AppSession.swift:8264`, `EnergyEngine.swift:802`, `826`).
+- **N10 The recovery-meal card never closes** (`Features/Nutrition/NutritionParityViews.swift:1029`, `1150`).
+- **N11 Creatine is recognised differently by the reminder and the PDF.** `AppSession.swift:3012` matches "creatine" only; `Core/Engine/NutritionReport.swift:303-307` takes a fuzzy catalogue hit that misses "Creatine powder".
+
+### Hydration and supplements
+
+- **H1 Removing a day's only drink does not remove it.** `AppSession.swift:3655-3666` resolves with the old `waterL` as fallback (`Core/Engine/HydrationLedger.swift:1120-1123`).
+- **H2 The Watch counts food water twice** when Health water sharing is on (`APEXWatch/WatchHydrationStore.swift:616-689`). Traced, not run on a Watch.
+- **H3 The phone stays on yesterday after midnight.** `browsingDate` is set at session creation only (`AppSession.swift:307`, `437`); a morning "+250 ml" or supplement tick is saved to yesterday.
+- **H4 The Watch stops accepting phone updates after a custom goal set with its stepper.** `Core/Engine/WatchHydrationFillState.swift:77-90` compares litres with `==` (3.0500000000000003 against 3.05).
+- **H5 The PDF water card claims more than was drunk.** `Core/Engine/WaterVolumeComparison.swift:34-48` accepts the nearest container within 12 % either way: 17.0 L reads "Enough to fill a water-cooler bottle" (18.9 L) beside "Next: Water-cooler bottle". 48 % of totals from 0.5 to 3,000 L. Introduced on 9 Nov.
+- **H6 One day has four water totals.** Phone gauge (drinks plus food, capped at 6 L), Watch, brain, and the PDF (drinks only). Export, 2 to 9 Nov: 14.3 L against 21.8 L.
+- **H7 Watch reminders never fire when quiet hours start after midnight** (`Core/Engine/WatchHydrationReminderPolicy.swift:15`).
+- **H8 "Mark group done" reads the browsed day and writes today** (`SimpleHomeView.swift:871-898`; setting off by default).
+- **H9 The creatine score counts an unticked today as a miss while the streak forgives it** (`NutritionReport.swift:288-291`).
+
+### Progress camera
+
+- **C1 The ghost pushes Close, Library and the pose selector off screen.** `Features/Avatar/ProgressCameraView.swift:237-245`: `scaledToFill` directly in the root `ZStack`. Shown by a layout probe; one device screenshot settles it.
+- **C2 With the front-camera setting off (default) the shutter sits mid-frame** (`ProgressCameraView.swift:468-470`).
+- **C3 Camera denied or restricted shows a black screen with no explanation** (`ProgressCameraView.swift:41-43`).
+- **C4 The ghost can be the wrong pose.** `Features/Avatar/VisualProgressView.swift:35` falls back to any photo; the reference never follows the in-camera pose.
+- **C5 The saved file is not the framed picture and the framing choice is lost.** `VisualProgressView.swift:413-427`, `AppSession.swift:5776`; `coverCrop`, `captureAspectRatio` and `idempotencyKey(_:)` have no callers; torso exports clip.
+- **C6 Library imports are filed under today** (`AppSession.swift:5746`).
+- **C7 Comparison panning runs away and the export does not match the screen; zoom overwrites the right photo when unlocked** (`Features/Avatar/ProgressComparisonView.swift:182`, `214-218`, `322`; `Features/Avatar/ProgressPosterRenderer.swift:150-151`).
+- **C8 Only the newest 120 photos load** (`SupabaseService.swift:497`).
+- **C9 Selfies are saved mirrored and rear photos are not** (`ProgressCameraView.swift:154`).
+- **C10 The same overflow clips BEFORE/AFTER labels and hides Retake on the review page** (`ProgressComparisonView.swift:175-182`, `VisualProgressView.swift:451-456`).
+- **C11 The distance and subject pill read the wrong region.** `Features/Avatar/ProgressDepthAnalyzer.swift:104-149`. Suspected; needs a device.
+- **C12 The REAR/FRONT label names the other camera; a failed capture ends silently** (`ProgressCameraView.swift:464`, `149`).
+
+### Checked and found correct
+
+Full history is replayed on every data change, so backdated and deleted workouts and late meals reach Avatar, home and PDF from one snapshot list. Owner scoping holds across profiles, coach views and account switches. Snapshot IDs are deterministic (all 80 stored rows match). Watch water and supplement mutations survive duplicate, out-of-order and offline delivery. Sleep counts asleep stages only, merges Watch and iPhone intervals, and keeps missing data nil. A manual daily total plus meals counts once. Camera session work runs on one serial queue and every dismissal stops it; photos are owner-only in table and bucket policies.
+
+A Watch redesign must keep: `pendingMutations`, `deferredDeletes` and the supplement `pending` list with their acknowledgement by snapshot and replay on reachability; the owner, local-date and revision guards in `apply`; `ensureCurrentDay` before every read or write; explicit taken / not-taken supplement intents; the midnight rollover.
