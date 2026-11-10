@@ -2,6 +2,7 @@
  * Distance is the variable that quietly ruins a comparison, so the range it
  * accepts and the advice it gives are pinned here rather than left to drift.
  */
+import CoreVideo
 import XCTest
 @testable import APEX
 
@@ -74,5 +75,46 @@ final class ProgressDepthTests: XCTestCase {
         for subject in [ProgressDepthAnalyzer.Subject.none, .facingCamera, .profile, .facingAway] {
             XCTAssertFalse(subject.systemImage.isEmpty, subject.rawValue)
         }
+    }
+
+    /// C11. The camera delivers its frames as the sensor is mounted, on its
+    /// side, and Vision is told to turn them upright before it looks for a
+    /// person. Its answer is therefore in the upright picture, and has to be
+    /// turned back before it is used to read the depth map, which is not
+    /// turned. Read unturned, the pill reports the wall beside the person.
+    func testDistanceIsReadFromThePersonNotTheWallBesideThem() throws {
+        let width = 64, height = 48
+        var buffer: CVPixelBuffer?
+        CVPixelBufferCreate(
+            nil, width, height, kCVPixelFormatType_DepthFloat32,
+            [kCVPixelBufferIOSurfacePropertiesKey: [String: Any]()] as CFDictionary, &buffer
+        )
+        let map = try XCTUnwrap(buffer)
+
+        /* A person two metres away, standing left of centre in the upright
+           picture: 15 to 45 percent across, 10 to 90 percent of the height.
+           Upright x runs down the map's rows and upright y, from the top,
+           along its columns, so they fill rows 15 to 45 percent and columns
+           10 to 90 percent. Everything else is a wall at 3.2 metres. */
+        CVPixelBufferLockBaseAddress(map, [])
+        let base = try XCTUnwrap(CVPixelBufferGetBaseAddress(map))
+        let rowBytes = CVPixelBufferGetBytesPerRow(map)
+        for row in 0..<height {
+            let values = base.advanced(by: row * rowBytes).assumingMemoryBound(to: Float32.self)
+            for column in 0..<width {
+                let onPerson = (Int(0.15 * 48)..<Int(0.45 * 48)).contains(row)
+                    && (Int(0.10 * 64)..<Int(0.90 * 64)).contains(column)
+                values[column] = onPerson ? 2.0 : 3.2
+            }
+        }
+        CVPixelBufferUnlockBaseAddress(map, [])
+
+        /* Vision's box for that person: bottom-left origin, upright. */
+        let person = CGRect(x: 0.15, y: 0.10, width: 0.30, height: 0.80)
+        let distance = try XCTUnwrap(ProgressFrameAnalyzer.medianDepth(in: map, region: person))
+        XCTAssertEqual(distance, 2.0, accuracy: 0.01, "the pill read the wall, not the person")
+
+        /* With nobody found, the middle of the frame is read either way up. */
+        XCTAssertEqual(try XCTUnwrap(ProgressFrameAnalyzer.medianDepth(in: map, region: nil)), 3.2, accuracy: 0.01)
     }
 }

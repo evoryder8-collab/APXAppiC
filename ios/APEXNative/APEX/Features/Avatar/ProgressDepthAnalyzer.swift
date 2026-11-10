@@ -89,6 +89,10 @@ final class ProgressFrameAnalyzer: NSObject, @unchecked Sendable {
 
     var onReading: (@Sendable (Double?, ProgressDepthAnalyzer.Subject, Bool) -> Void)?
 
+    /* Frames arrive as the sensor is mounted, on its side. Vision is told to
+       turn them upright with this, and medianDepth turns its answer back. */
+    private static let uprightOrientation = CGImagePropertyOrientation.leftMirrored
+
     func analyze(pixelBuffer: CVPixelBuffer, depth: AVDepthData?) {
         let now = Date()
         guard now.timeIntervalSince(lastRun) >= interval else { return }
@@ -101,7 +105,7 @@ final class ProgressFrameAnalyzer: NSObject, @unchecked Sendable {
         humans.upperBodyOnly = false
         let faces = VNDetectFaceRectanglesRequest()
 
-        try? sequence.perform([humans, faces], on: pixelBuffer, orientation: .leftMirrored)
+        try? sequence.perform([humans, faces], on: pixelBuffer, orientation: Self.uprightOrientation)
 
         let human = (humans.results ?? []).max { $0.confidence < $1.confidence }
         let face = (faces.results ?? []).max { $0.confidence < $1.confidence }
@@ -130,7 +134,10 @@ final class ProgressFrameAnalyzer: NSObject, @unchecked Sendable {
         let converted = depth.depthDataType == kCVPixelFormatType_DepthFloat32
             ? depth
             : depth.converting(toDepthDataType: kCVPixelFormatType_DepthFloat32)
-        let map = converted.depthDataMap
+        return Self.medianDepth(in: converted.depthDataMap, region: region)
+    }
+
+    static func medianDepth(in map: CVPixelBuffer, region: CGRect?) -> Double? {
         CVPixelBufferLockBaseAddress(map, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(map, .readOnly) }
 
@@ -140,13 +147,17 @@ final class ProgressFrameAnalyzer: NSObject, @unchecked Sendable {
               let base = CVPixelBufferGetBaseAddress(map) else { return nil }
         let rowBytes = CVPixelBufferGetBytesPerRow(map)
 
-        /* Vision reports a normalised, bottom-left origin rectangle; the depth
-           map is top-left. Default to the middle third when nothing was found. */
+        /* Vision reports a normalised, bottom-left origin rectangle in the
+           upright picture. The depth map is the unturned frame, top-left
+           origin: upright x runs down its rows and upright y, measured from
+           the top, along its columns. Reading it unturned sampled a band
+           across the person and the wall on both sides of them. Default to
+           the middle third when nothing was found. */
         let box = region ?? CGRect(x: 0.33, y: 0.33, width: 0.34, height: 0.34)
-        let minX = Int(max(0, box.minX) * Double(width))
-        let maxX = Int(min(1, box.maxX) * Double(width))
-        let minY = Int((1 - min(1, box.maxY)) * Double(height))
-        let maxY = Int((1 - max(0, box.minY)) * Double(height))
+        let minX = Int((1 - min(1, box.maxY)) * Double(width))
+        let maxX = Int((1 - max(0, box.minY)) * Double(width))
+        let minY = Int(max(0, box.minX) * Double(height))
+        let maxY = Int(min(1, box.maxX) * Double(height))
         guard maxX > minX, maxY > minY else { return nil }
 
         var samples: [Float] = []
