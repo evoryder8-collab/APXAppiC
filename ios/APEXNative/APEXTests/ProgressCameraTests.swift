@@ -283,4 +283,30 @@ final class ProgressCameraTests: XCTestCase {
             }
         }
     }
+
+    /// With a previous photo loaded the timer row gains the Ghost slider. The
+    /// word must stay readable and the row must stay one line tall, or the
+    /// slider swells over the pose hint.
+    func testTheGhostSliderKeepsItsLabelAndLeavesThePoseHintClear() async throws {
+        for phone in Self.phones {
+            let context = "\(phone.name), with a previous photo"
+            let layout = try await layOut(
+                try camera(ghost: photo(Self.ghosts[0].size)), size: phone.size,
+                expecting: Self.cameraControls + ["ghostSlider", "ghostLabel", "hint"],
+                named: "camera, \(context), slider row"
+            )
+            layout.assertReachable(Self.cameraControls + ["ghostSlider", "ghostLabel"], context)
+            let label = try XCTUnwrap(layout.frames["ghostLabel"], context)
+            let slider = try XCTUnwrap(layout.frames["ghostSlider"], context)
+            let timer = try XCTUnwrap(layout.frames["timerRow"], context)
+            let hint = try XCTUnwrap(layout.frames["hint"], context)
+            XCTAssertGreaterThan(label.width, 30, "\(context): the word Ghost is squeezed to \(label.width) points")
+            XCTAssertLessThan(label.height, 20, "\(context): the word Ghost wraps onto \(label.height) points of lines")
+            XCTAssertLessThan(slider.height, 50, "\(context): the slider capsule is \(slider.height) points tall")
+            XCTAssertFalse(
+                hint.intersects(timer),
+                "\(context): the timer row \(timer.integral) covers the pose hint \(hint.integral)"
+            )
+        }
+    }
 }

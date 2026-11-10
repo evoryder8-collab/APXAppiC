@@ -570,9 +570,15 @@ struct ProgressCameraView: View {
             Text(language.text("Ghost"))
                 .font(APEXFont.body(11, weight: .bold))
                 .foregroundStyle(.white)
+                .lineLimit(1)
+                .layoutFrame("ghostLabel")
+                .layoutPriority(1)
+            /* On a narrow phone the slider gives way, not the word. With a
+               fixed slider the row squeezed the word to nothing, and its
+               letters stacked into a capsule tall enough to cover the hint. */
             Slider(value: $ghost, in: 0...0.55, step: 0.05)
                 .tint(.white)
-                .frame(width: 96)
+                .frame(minWidth: 44, maxWidth: 96)
                 .accessibilityLabel(language.text("Ghost opacity"))
         }
         .padding(.horizontal, 12)
