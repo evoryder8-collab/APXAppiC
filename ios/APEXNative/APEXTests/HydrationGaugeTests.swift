@@ -1893,6 +1893,32 @@ final class WatchHydrationReminderPolicyTests: XCTestCase {
         )
     }
 
+    func testQuietHoursThatStartAfterMidnightStillLeaveAnActiveDay() throws {
+        var preferences = WatchHydrationPreferences.default
+        preferences.remindersEnabled = true
+        preferences.quietHoursStartMinutes = 30
+        preferences.quietHoursEndMinutes = 7 * 60
+        func next(_ now: Date, lastDrinkAt: Date?) -> Date? {
+            WatchHydrationReminderPolicy.nextReminderDate(
+                now: now, liters: 0, lastDrinkAt: lastDrinkAt, preferences: preferences, calendar: calendar
+            )
+        }
+        let quietStart = date(hour: 24, minute: 30)
+
+        XCTAssertEqual(next(date(hour: 10), lastDrinkAt: date(hour: 8)), date(hour: 10, minute: 1))
+        XCTAssertEqual(next(date(hour: 23, minute: 50), lastDrinkAt: date(hour: 22)), date(hour: 23, minute: 51))
+        // Asleep at 03:00: the first reminder waits for the quiet hours to end.
+        let morning = try XCTUnwrap(next(date(hour: 3), lastDrinkAt: nil))
+        XCTAssertGreaterThan(morning, date(hour: 7))
+        XCTAssertLessThan(morning, quietStart)
+        // A reminder that would land inside the quiet hours is not scheduled.
+        XCTAssertNil(next(date(hour: 23, minute: 50), lastDrinkAt: date(hour: 23)))
+
+        // The same start and end is no quiet time at all.
+        preferences.quietHoursStartMinutes = 7 * 60
+        XCTAssertEqual(next(date(hour: 10), lastDrinkAt: date(hour: 8)), date(hour: 10, minute: 1))
+    }
+
     private func date(hour: Int, minute: Int = 0) -> Date {
         calendar.date(from: DateComponents(year: 2026, month: 8, day: 25, hour: hour, minute: minute))!
     }
