@@ -3151,6 +3151,11 @@ final class AppSession {
         return hydrationResolution(ownerID: ownerID, on: date)
     }
 
+    /// The day's water the home gauge shows, from the calculation the score engine uses.
+    func hydrationIntakeML(on date: Date) -> Int {
+        hydrationResolution(on: date).intakeML(loggedFoodML: foodHydrationLiters(on: date) * 1_000)
+    }
+
     private func hydrationResolution(ownerID: UUID, on date: Date) -> HydrationDayResolution {
         let day = date.apexDateKey
         let legacy = data.dailyLogs.first { $0.userID == ownerID && $0.date == day }?.waterL ?? 0

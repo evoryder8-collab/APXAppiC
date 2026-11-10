@@ -108,4 +108,46 @@ final class HydrationDayTests: XCTestCase {
         XCTAssertTrue(ticked(session, on: emptyDay).isEmpty)
         XCTAssertEqual(ticked(session, on: today.apexDateKey), todayBefore)
     }
+
+    func testThePhoneGaugeTheWatchAndTheScoreEngineGiveOneWaterTotalForADay() async throws {
+        let (session, operation) = try sandbox()
+        let day = try date(emptyDay)
+        func watchTotal() -> Int {
+            HydrationCompanionSnapshot.make(
+                ownerID: operation.ownerID, date: emptyDay, events: session.data.hydrationEvents ?? [], presets: [],
+                preferences: .default,
+                legacyDrinkLiters: session.data.dailyLogs.first { $0.date == emptyDay }?.waterL ?? 0,
+                revision: "\(emptyDay)T12:00:00.000Z"
+            ).totalML
+        }
+        func scoreEngineTotal() -> Int? {
+            FitnessBrainService.waterTotals(session.data, ownerID: operation.ownerID)[emptyDay]
+        }
+
+        try await session.logHydration(amountML: 2_400, on: day, operation: operation)
+        let foods = try await session.searchFoods(query: "Oats", operation: operation)
+        try await session.logFood(try XCTUnwrap(foods.first), amount: 100, unit: "g", mealSlot: "breakfast", date: day, operation: operation)
+        // Food water logged after the food event last synced: the phone and the engine both count it.
+        let entry = try XCTUnwrap(session.data.loggedFoodEntries.indices.last)
+        session.data.loggedFoodEntries[entry].waterML = 349.6
+        XCTAssertEqual(session.hydrationIntakeML(on: day), 2_750)
+        XCTAssertEqual(scoreEngineTotal(), 2_750)
+
+        // Once the food event holds it, the Watch receives the same figure.
+        session.data.hydrationEvents?.removeAll { $0.localDate == emptyDay && $0.kind == .food }
+        session.data.hydrationEvents?.append(HydrationEvent(
+            id: UUID(), userID: operation.ownerID, clientIdempotencyKey: "food:\(emptyDay)", localDate: emptyDay,
+            occurredAt: "\(emptyDay)T12:00:00Z", amountML: 350, kind: .food, paletteToken: "food", iconToken: "fork.knife",
+            source: .food, healthKitSampleID: nil, createdAt: "\(emptyDay)T12:00:00Z", updatedAt: "\(emptyDay)T12:00:00Z"
+        ))
+        XCTAssertEqual(session.hydrationIntakeML(on: day), 2_750)
+        XCTAssertEqual(watchTotal(), 2_750)
+        XCTAssertEqual(scoreEngineTotal(), 2_750)
+
+        // A very wet day is the same number everywhere, not capped on the phone alone.
+        try await session.logHydration(amountML: 4_000, on: day, operation: operation)
+        XCTAssertEqual(session.hydrationIntakeML(on: day), 6_750)
+        XCTAssertEqual(watchTotal(), 6_750)
+        XCTAssertEqual(scoreEngineTotal(), 6_750)
+    }
 }

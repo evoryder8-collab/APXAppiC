@@ -923,6 +923,13 @@ struct HydrationDayResolution: Hashable, Sendable {
     let totalML: Int
     let composition: [HydrationCompositionBand]
     let usesLegacyAggregate: Bool
+
+    /// The day's water in whole millilitres, drinks plus water in food: the one figure the phone gauge
+    /// shows and the score engine judges, and what the Watch receives once the food event has synced.
+    /// The food log leads its stored event until that sync, so the larger of the two counts.
+    func intakeML(loggedFoodML: Double) -> Int {
+        drinkML + max(foodML, loggedFoodML.isFinite ? Int(loggedFoodML.rounded()) : 0)
+    }
 }
 
 struct HydrationLegacyMigration: Equatable, Sendable {
