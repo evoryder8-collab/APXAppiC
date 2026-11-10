@@ -188,6 +188,7 @@ const internalLiterals = {
   'WatchSupplementState.swift': ['fitr.watch.supplements.state. .v1', 'fitr.phone.supplements.journal. .v1'],
   'WorkoutReceipt.swift': ['FITR_WORKOUT_TIMING_V1|'],
   'SimpleHomeView.swift': ['simple-training-mode- - '],
+  'AvatarReport.swift': ['Archivo_Expanded-ExtraBold', 'ReportFonts', 'ArchivoExpanded-ExtraBold'],
 }
 
 const prose = new Map()

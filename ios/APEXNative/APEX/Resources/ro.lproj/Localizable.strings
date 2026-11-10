@@ -4705,6 +4705,7 @@
 "Protect a consistent sleep window and aim for at least seven hours." = "Protejaţi o fereastră de somn consistentă şi ţintiţi cel puţin şapte ore.";
 "Protect the priority work" = "Protejarea activității prioritare";
 "Also counted today: %@" = "Azi contează și: %@";
+" Also counted:  ." = " S-a luat în calcul și:  .";
 "low scores on consecutive mornings" = "scoruri mici în dimineți la rând";
 "short sleep on recent nights" = "somn scurt în ultimele nopți";
 "an elevated joint check-in" = "un check-in ridicat pentru articulații";
@@ -5938,6 +5939,8 @@
 "Logged on %d days" = "Înregistrate în %d zile";
 "Next: %@" = "Următorul: %@";
 "About the same volume" = "Cam același volum";
+"Enough to fill %@" = "Suficient pentru a umple %@";
+"Enough to fill %d %@" = "Suficient pentru a umple %d %@";
 "%d partly logged" = "%d înregistrate parțial";
 "The habit is forming. Pick one target to hit every day and build from there." = "Obiceiul se formează. Alege o țintă pe care să o atingi zilnic și construiește de acolo.";
 "You have passed this volume" = "Ai depășit acest volum";

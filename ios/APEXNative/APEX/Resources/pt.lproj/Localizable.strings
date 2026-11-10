@@ -2447,6 +2447,7 @@
 "Protect both weekly lower-body exposures while keeping fatigue controlled and technique honest." = "Proteja ambas as exposições semanais de baixo corpo, mantendo a fadiga controlada e técnica honesta.";
 "Protect the priority work" = "Proteger o trabalho prioritário";
 "Also counted today: %@" = "Hoje também conta: %@";
+" Also counted:  ." = " Também contou:  .";
 "low scores on consecutive mornings" = "pontuações baixas em manhãs seguidas";
 "short sleep on recent nights" = "pouco sono nas últimas noites";
 "an elevated joint check-in" = "um check-in articular elevado";
@@ -5956,6 +5957,8 @@
 "Logged on %d days" = "Registadas em %d dias";
 "Next: %@" = "Próximo: %@";
 "About the same volume" = "Mais ou menos o mesmo volume";
+"Enough to fill %@" = "O suficiente para encher %@";
+"Enough to fill %d %@" = "O suficiente para encher %d %@";
 "%d partly logged" = "%d registados em parte";
 "The habit is forming. Pick one target to hit every day and build from there." = "O hábito está a formar-se. Escolhe um objetivo para cumprir todos os dias e constrói a partir daí.";
 "You have passed this volume" = "Ultrapassaste este volume";

@@ -2447,6 +2447,7 @@
 "Protect both weekly lower-body exposures while keeping fatigue controlled and technique honest." = "疲労をコントロールし、正直に保ちながら、毎週下半身の露出を守ります。";
 "Protect the priority work" = "優先業務の保護";
 "Also counted today: %@" = "今日はこれも考慮しています：%@";
+" Also counted:  ." = " あわせて考慮:  .";
 "low scores on consecutive mornings" = "朝のスコアが続けて低い";
 "short sleep on recent nights" = "ここ数日の睡眠が短い";
 "an elevated joint check-in" = "関節チェックが高め";
@@ -5956,6 +5957,8 @@
 "Logged on %d days" = "%d日記録";
 "Next: %@" = "次は%@";
 "About the same volume" = "ほぼ同じ量";
+"Enough to fill %@" = "%@を満たせる量";
+"Enough to fill %d %@" = "%d個の%@を満たせる量";
 "%d partly logged" = "%d日は一部のみ記録";
 "The habit is forming. Pick one target to hit every day and build from there." = "習慣ができ始めています。毎日達成する目標をひとつ選び、そこから積み上げましょう。";
 "You have passed this volume" = "この量を超えました";
