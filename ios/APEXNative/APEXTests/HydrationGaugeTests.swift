@@ -388,6 +388,33 @@ final class WatchHydrationFillStateTests: XCTestCase {
         ))
     }
 
+    func testACustomGoalFromTheWatchStepperIsAcknowledgedByThePhonesWholeMillilitreEcho() throws {
+        var watchPreference = WatchHydrationPreferences.default
+        watchPreference.targetMode = .custom
+        // Three presses of the Watch's 0.1 L stepper from the 2.75 L default.
+        watchPreference.targetLiters = 2.75 + 0.1 + 0.1 + 0.1
+        XCTAssertNotEqual(watchPreference.targetLiters, 3.05)
+
+        let stored = watchPreference.accountRow(ownerID: UUID(), existing: nil)
+        XCTAssertEqual(stored.targetML, 3_050)
+        let phoneEcho = WatchHydrationPreferences(account: stored)
+
+        XCTAssertTrue(HydrationPendingPreferencePolicy.acknowledges(pending: watchPreference, incoming: phoneEcho))
+        for presses in 1...32 {
+            var stepped = watchPreference
+            stepped.targetLiters = (1...presses).reduce(2.75) { total, _ in min(6, total + 0.1) }
+            let echo = WatchHydrationPreferences(account: stepped.accountRow(ownerID: UUID(), existing: nil))
+            XCTAssertTrue(
+                HydrationPendingPreferencePolicy.acknowledges(pending: stepped, incoming: echo),
+                "\(presses) presses: \(stepped.targetLiters) L"
+            )
+        }
+
+        var otherGoal = phoneEcho
+        otherGoal.targetLiters = 3.051
+        XCTAssertFalse(HydrationPendingPreferencePolicy.acknowledges(pending: watchPreference, incoming: otherGoal))
+    }
+
     func testAnchoredHealthKitDeltaPreservesCompleteSharedTotalAndTracksExternalChanges() throws {
         let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
         let existing = healthSample(
