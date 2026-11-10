@@ -48,7 +48,7 @@ enum FitnessBrainService {
 
     // MARK: - DashboardData -> engine input
 
-    static func engineInput(from data: DashboardData) -> FBEngineInput? {
+    static func engineInput(from data: DashboardData, timeZone: TimeZone = .current) -> FBEngineInput? {
         guard let storedProfile = data.profile else { return nil }
         let profile = RestingEnergyPolicy.applied(to: storedProfile, settings: data.settings)
         var fbProfile = FBProfile(
@@ -73,8 +73,10 @@ enum FitnessBrainService {
             && AvatarStartingPoints.stats(profile.avatarStartingPoints) != nil
         let ownerID = profile.userID
         let programDays = data.programDays.compactMap { day -> FBProgramDayRef? in
+            // A coach plan has no day category of its own. Its performed movements earn the
+            // credit, exactly as a custom workout's do.
             guard day.userID == ownerID,
-                  let type = FBDayType(rawValue: day.dayType)
+                  let type = FBDayType(rawValue: day.dayType == "coach" ? "custom" : day.dayType)
             else { return nil }
             return FBProgramDayRef(id: day.id.uuidString.lowercased(), dayType: type)
         }
@@ -195,7 +197,8 @@ enum FitnessBrainService {
 
     static func capacityCalibrationEvidence(
         from records: [FitnessEvidenceRecord],
-        ownerID: UUID
+        ownerID: UUID,
+        timeZone: TimeZone = .current
     ) -> [FBCapacityCalibrationEvidence] {
         let supportedProtocols: Set<String> = [
             "apex_onboarding_pulse_v1",
