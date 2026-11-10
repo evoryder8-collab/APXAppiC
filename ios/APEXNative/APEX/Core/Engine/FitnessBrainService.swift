@@ -85,7 +85,7 @@ enum FitnessBrainService {
                 id: $0.id.uuidString.lowercased(),
                 programDayID: $0.programDayID.uuidString.lowercased())
         }
-        let ownedSessions = data.workoutSessions.filter { $0.userID == ownerID }
+        let ownedSessions = StrengthProgress.withoutReplays(data.workoutSessions.filter { $0.userID == ownerID })
         let ownedSessionIDs = Set(ownedSessions.map(\.id))
         let sessions = ownedSessions.map {
             FBWorkoutSession(

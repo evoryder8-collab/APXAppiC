@@ -86,4 +86,23 @@ final class AvatarScoreInputTests: XCTestCase {
         data.workoutLogs = [set("barbell_back_squat", session: session.id)]
         XCTAssertGreaterThan(try latest(data).strengthLower, rested.strengthLower)
     }
+
+    func testReplayedReceiptEarnsItsPointsOnce() throws {
+        var data = dashboard()
+        let first = workout()
+        data.workoutSessions = [first]
+        data.workoutLogs = [set("barbell_back_squat", session: first.id)]
+        let once = try latest(data)
+        let replay = workout(completedAt: "2026-10-05T09:00:07Z")
+        data.workoutSessions.append(replay)
+        data.workoutLogs.append(set("barbell_back_squat", session: replay.id))
+        XCTAssertEqual(try latest(data), once)
+        let evening = WorkoutSession(
+            id: UUID(), userID: owner, date: first.date, programDayID: dayID, isLite: false, isDeload: false,
+            isEventRecovery: false, completed: true, qualityScore: 1, startedAt: "2026-10-05T18:00:00Z",
+            completedAt: "2026-10-05T19:00:00Z", notes: "Completed in tracked mode")
+        data.workoutSessions.append(evening)
+        data.workoutLogs.append(set("barbell_back_squat", session: evening.id))
+        XCTAssertGreaterThan(try latest(data).strengthLower, once.strengthLower)
+    }
 }
