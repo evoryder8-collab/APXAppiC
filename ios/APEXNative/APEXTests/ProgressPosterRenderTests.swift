@@ -80,4 +80,36 @@ final class ProgressPosterRenderTests: XCTestCase {
         XCTAssertTrue(detailed.stats)
         XCTAssertTrue(detailed.privateFooter)
     }
+
+    /// C7. The card draws the pan as a share of its own pane, which is how the
+    /// screen now applies it, so the export shows the arrangement on screen.
+    func testThePanOnTheCardIsAShareOfItsPane() throws {
+        /* Black on the left half, white on the right: the seam shows the pan. */
+        let split = UIGraphicsImageRenderer(size: CGSize(width: 504, height: 1278)).image { context in
+            UIColor.black.setFill()
+            context.fill(CGRect(x: 0, y: 0, width: 252, height: 1278))
+            UIColor.white.setFill()
+            context.fill(CGRect(x: 252, y: 0, width: 252, height: 1278))
+        }
+        func seam(panned x: Double) throws -> Int {
+            var card = input(detailed: false)
+            card.before = split
+            card.views.left = .init(scale: 2, x: x, y: 0)
+            let image = ProgressPosterRenderer.render(card)
+            let cg = try XCTUnwrap(image.cgImage)
+            let data = try XCTUnwrap(cg.dataProvider?.data)
+            let bytes = try XCTUnwrap(CFDataGetBytePtr(data))
+            let row = 700
+            /* The left pane runs from x 36 to 540. */
+            for column in 40..<536 {
+                let offset = row * cg.bytesPerRow + column * (cg.bitsPerPixel / 8)
+                if Int(bytes[offset]) + Int(bytes[offset + 1]) + Int(bytes[offset + 2]) > 384 { return column }
+            }
+            return -1
+        }
+        let centred = try seam(panned: 0)
+        XCTAssertEqual(centred, 36 + 252, accuracy: 2, "unpanned, the seam is in the middle of the pane")
+        XCTAssertEqual(try seam(panned: 10) - centred, 50, accuracy: 2, "ten percent of a 504 point pane")
+        XCTAssertEqual(try seam(panned: -20) - centred, -101, accuracy: 2)
+    }
 }

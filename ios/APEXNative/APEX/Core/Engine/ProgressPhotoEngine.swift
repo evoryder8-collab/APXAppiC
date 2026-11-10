@@ -105,6 +105,34 @@ enum ProgressPhotoEngine {
         return next
     }
 
+    /* A drag reports the finger's travel since it landed, so it is applied
+       to where the photos were when the drag began, never to where the last
+       report left them. The pan is kept as a percentage of the pane, the
+       unit the web and the exported card use. */
+    static func drag(
+        from origin: ComparisonViews,
+        side: Side,
+        translation: CGSize,
+        pane: CGSize,
+        synced: Bool
+    ) -> ComparisonViews {
+        var next = side == .left ? origin.left : origin.right
+        next.x += translation.width / max(1, pane.width) * 100
+        next.y += translation.height / max(1, pane.height) * 100
+        return updateViews(origin, side: side, view: next, synced: synced)
+    }
+
+    /// Where a pan puts a photo inside a pane of this size, on screen or on
+    /// the exported card.
+    static func panOffset(_ view: ComparisonView, in pane: CGSize) -> CGSize {
+        CGSize(width: view.x / 100 * pane.width, height: view.y / 100 * pane.height)
+    }
+
+    static func zoom(_ views: ComparisonViews, side: Side, by delta: Double, synced: Bool) -> ComparisonViews {
+        let current = side == .left ? views.left : views.right
+        return updateViews(views, side: side, view: zoom(current, by: delta), synced: synced)
+    }
+
     /* The source rectangle matching an object-cover preview, so the saved
        image is the one the user aligned against on screen. */
     static func coverCrop(width: Double, height: Double, targetAspectRatio: Double) -> CoverCrop? {

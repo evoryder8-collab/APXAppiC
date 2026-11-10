@@ -16,6 +16,10 @@ struct ProgressComparisonView: View {
         right: .init(scale: 1, x: 0, y: 0)
     )
     @State private var synced = true
+    /// The side last touched, which is the one the zoom buttons act on.
+    @State private var active = ProgressPhotoEngine.Side.left
+    /// Where both photos were when the drag in progress began.
+    @State private var dragOrigin: ProgressPhotoEngine.ComparisonViews?
     @State private var exported: URL?
     @State private var isExporting = false
     @State private var exportTask: Task<Void, Never>?
@@ -148,15 +152,14 @@ struct ProgressComparisonView: View {
     private var pair: some View {
         GeometryReader { proxy in
             HStack(spacing: 2) {
+                let pane = CGSize(width: (proxy.size.width - 2) / 2, height: proxy.size.height)
                 panel(
                     image: beforeImage, photo: before,
-                    label: language.text("BEFORE"), side: .left,
-                    width: (proxy.size.width - 2) / 2
+                    label: language.text("BEFORE"), side: .left, pane: pane
                 )
                 panel(
                     image: afterImage, photo: after,
-                    label: language.text("AFTER"), side: .right,
-                    width: (proxy.size.width - 2) / 2
+                    label: language.text("AFTER"), side: .right, pane: pane
                 )
             }
             .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -173,9 +176,10 @@ struct ProgressComparisonView: View {
         photo: ProgressPhoto,
         label: String,
         side: ProgressPhotoEngine.Side,
-        width: CGFloat
+        pane: CGSize
     ) -> some View {
         let view = side == .left ? views.left : views.right
+        let offset = ProgressPhotoEngine.panOffset(view, in: pane)
         return ZStack(alignment: .top) {
             Color.white.opacity(0.04)
             if let image {
@@ -187,7 +191,7 @@ struct ProgressComparisonView: View {
                         .resizable()
                         .scaledToFill()
                         .scaleEffect(view.scale)
-                        .offset(x: view.x, y: view.y)
+                        .offset(x: offset.width, y: offset.height)
                 }
             } else if loadFailed {
                 VStack(spacing: 6) {
@@ -217,18 +221,23 @@ struct ProgressComparisonView: View {
             }
             .padding(10)
         }
-        .frame(width: width)
+        .frame(width: pane.width)
         .layoutFrame(side == .left ? "beforePanel" : "afterPanel")
         .contentShape(Rectangle())
         .gesture(
             DragGesture()
                 .onChanged { value in
-                    var next = side == .left ? views.left : views.right
-                    next.x += value.translation.width / 40
-                    next.y += value.translation.height / 40
-                    views = ProgressPhotoEngine.updateViews(views, side: side, view: next, synced: synced)
+                    active = side
+                    let origin = dragOrigin ?? views
+                    dragOrigin = origin
+                    views = ProgressPhotoEngine.drag(
+                        from: origin, side: side,
+                        translation: value.translation, pane: pane, synced: synced
+                    )
                 }
+                .onEnded { _ in dragOrigin = nil }
         )
+        .onTapGesture { active = side }
         .clipped()
     }
 
@@ -241,7 +250,7 @@ struct ProgressComparisonView: View {
         VStack(spacing: 10) {
             HStack(spacing: 12) {
                 Button { zoom(-0.25) } label: { zoomGlyph("minus") }
-                Text("\(Int(views.left.scale * 100))%")
+                Text("\(Int((active == .left ? views.left : views.right).scale * 100))%")
                     .font(APEXFont.mono(13, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(width: 62)
@@ -329,8 +338,7 @@ struct ProgressComparisonView: View {
     }
 
     private func zoom(_ delta: Double) {
-        let next = ProgressPhotoEngine.zoom(views.left, by: delta)
-        views = ProgressPhotoEngine.updateViews(views, side: .left, view: next, synced: true)
+        views = ProgressPhotoEngine.zoom(views, side: active, by: delta, synced: synced)
     }
 
     private func export() {

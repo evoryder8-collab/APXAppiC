@@ -146,9 +146,10 @@ enum ProgressPosterRenderer {
         let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
         /* The zoom and offset the person set on screen, carried through, so
            the export is the arrangement they actually chose. */
+        let pan = ProgressPhotoEngine.panOffset(view, in: rect.size)
         let origin = CGPoint(
-            x: rect.midX - size.width / 2 + view.x * rect.width / 100,
-            y: rect.midY - size.height / 2 + view.y * rect.height / 100
+            x: rect.midX - size.width / 2 + pan.width,
+            y: rect.midY - size.height / 2 + pan.height
         )
         image.draw(in: CGRect(origin: origin, size: size))
         context.restoreGState()

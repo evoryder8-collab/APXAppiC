@@ -316,6 +316,74 @@ final class ProgressParityTests: XCTestCase {
         )
     }
 
+    /// C7. A drag reports the finger's travel since it landed, again and
+    /// again. The photo has to end up that far from where it started, however
+    /// many reports there were, and never further than its zoom allows.
+    func testADraggedPhotoFollowsTheFingerAndStopsAtItsLimit() {
+        let pane = CGSize(width: 180, height: 400)
+        let zoomed = ProgressPhotoEngine.ComparisonView(scale: 2, x: 0, y: 0)
+        let start = ProgressPhotoEngine.ComparisonViews(left: zoomed, right: zoomed)
+
+        var views = start
+        for travel in 1...20 {
+            views = ProgressPhotoEngine.drag(
+                from: start, side: .left,
+                translation: CGSize(width: Double(travel), height: Double(-travel)), pane: pane, synced: true
+            )
+        }
+        let offset = ProgressPhotoEngine.panOffset(views.left, in: pane)
+        XCTAssertEqual(offset.width, 20, accuracy: 0.01, "the photo did not move as far as the finger")
+        XCTAssertEqual(offset.height, -20, accuracy: 0.01, "the photo did not move as far as the finger")
+        XCTAssertEqual(views.right, views.left, "synced moves both photos together")
+
+        let once = ProgressPhotoEngine.drag(
+            from: start, side: .left, translation: CGSize(width: 20, height: -20), pane: pane, synced: true
+        )
+        XCTAssertEqual(views, once, "twenty small reports and one large one are the same drag")
+
+        /* At twice the size a photo may travel 22 percent of its pane. */
+        let thrown = ProgressPhotoEngine.drag(
+            from: start, side: .left, translation: CGSize(width: 900, height: 0), pane: pane, synced: true
+        )
+        XCTAssertEqual(ProgressPhotoEngine.panOffset(thrown.left, in: pane).width, 0.22 * 180, accuracy: 0.01)
+
+        let unlocked = ProgressPhotoEngine.drag(
+            from: start, side: .right, translation: CGSize(width: 18, height: 0), pane: pane, synced: false
+        )
+        XCTAssertEqual(unlocked.left, zoomed, "unlocked leaves the untouched side alone")
+        XCTAssertEqual(unlocked.right.x, 10, accuracy: 0.01, "the pan is kept as a share of the pane")
+    }
+
+    /// C7. The pan is one number read by the screen and by the exported card.
+    /// On two panes of different sizes it has to be the same share of each.
+    func testAPanIsTheSameShareOfTheScreenPaneAndTheExportedPane() {
+        let view = ProgressPhotoEngine.ComparisonView(scale: 2, x: 10, y: -5)
+        let screen = ProgressPhotoEngine.panOffset(view, in: CGSize(width: 180, height: 400))
+        let card = ProgressPhotoEngine.panOffset(view, in: CGSize(width: 504, height: 1278))
+        XCTAssertEqual(screen.width / 180, 0.10, accuracy: 0.0001)
+        XCTAssertEqual(card.width / 504, 0.10, accuracy: 0.0001)
+        XCTAssertEqual(screen.height / 400, -0.05, accuracy: 0.0001)
+        XCTAssertEqual(card.height / 1278, -0.05, accuracy: 0.0001)
+    }
+
+    /// C7. Unlocked, the zoom buttons act on the side last touched.
+    func testUnlockedZoomChangesOnlyTheTouchedSide() {
+        let plain = ProgressPhotoEngine.ComparisonView(scale: 1, x: 0, y: 0)
+        let start = ProgressPhotoEngine.ComparisonViews(left: plain, right: plain)
+
+        let right = ProgressPhotoEngine.zoom(start, side: .right, by: 0.25, synced: false)
+        XCTAssertEqual(right.right.scale, 1.25, accuracy: 0.0001)
+        XCTAssertEqual(right.left, plain, "zooming the right photo overwrote the left one")
+
+        let left = ProgressPhotoEngine.zoom(right, side: .left, by: 0.5, synced: false)
+        XCTAssertEqual(left.left.scale, 1.5, accuracy: 0.0001)
+        XCTAssertEqual(left.right.scale, 1.25, accuracy: 0.0001, "zooming the left photo overwrote the right one")
+
+        let both = ProgressPhotoEngine.zoom(left, side: .right, by: 0.25, synced: true)
+        XCTAssertEqual(both.left, both.right, "synced zooms both photos together")
+        XCTAssertEqual(both.right.scale, 1.5, accuracy: 0.0001)
+    }
+
     /// A comparison must never borrow a score recorded after the photo.
     func testSnapshotNeverComesFromTheFuture() {
         let snapshots = [("2026-05-01", 4.0), ("2026-06-20", 6.0), ("2026-09-01", 9.0)].map { date, level in
