@@ -121,8 +121,13 @@ enum FitnessBrainService {
                 proteinG: $0.proteinG.map(Double.init),
                 waterL: $0.waterL)
         }
-        let metrics = data.healthMetrics.filter { $0.userID == ownerID }.map {
-            FBHealthMetric(date: $0.date, vo2max: $0.vo2Max, restingHR: $0.restingHeartRate)
+        // Older builds stamped the newest Health sample on every later day. A repeated value
+        // is that one reading, so it anchors Endurance once.
+        var lastVO2: Double?
+        let metrics = data.healthMetrics.filter { $0.userID == ownerID }.sorted { $0.date < $1.date }.map { metric in
+            let vo2 = metric.vo2Max == lastVO2 ? nil : metric.vo2Max
+            lastVO2 = metric.vo2Max ?? lastVO2
+            return FBHealthMetric(date: metric.date, vo2max: vo2, restingHR: metric.restingHeartRate)
         }
         let apexSessionIdentities = data.workoutSessions.compactMap {
             session -> ExternalWorkoutImport.APEXSessionIdentity? in

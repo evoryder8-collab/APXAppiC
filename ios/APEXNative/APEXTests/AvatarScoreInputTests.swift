@@ -123,4 +123,35 @@ final class AvatarScoreInputTests: XCTestCase {
         data.importedActivities = [watch("2026-10-05T18:00:00Z", "2026-10-05T18:56:00Z")]
         XCTAssertEqual(try XCTUnwrap(FitnessBrainService.engineInput(from: data)).importedActivities.count, 1)
     }
+
+    func testOneVO2ReadingStampedOnManyDaysAnchorsEnduranceOnce() throws {
+        func metric(_ day: Int, _ vo2: Double) -> HealthMetric {
+            HealthMetric(id: UUID(), userID: owner, date: String(format: "2026-10-%02d", day),
+                         weightKG: nil, vo2Max: vo2, restingHeartRate: nil)
+        }
+        var once = dashboard()
+        once.healthMetrics = [metric(2, 40)]
+        var restamped = once
+        restamped.healthMetrics += (3...6).map { metric($0, 40) }
+        XCTAssertEqual(try latest(once).endurance, 52)
+        XCTAssertEqual(try latest(restamped).endurance, 52)
+        restamped.healthMetrics[4] = metric(6, 44)
+        XCTAssertEqual(try latest(restamped).endurance, 55.7)
+    }
+
+    func testHealthReadingIsStoredOnTheDayItWasSampled() async throws {
+        let plan = HealthTodayQueryPlan(
+            weightKG: { nil },
+            vo2Max: { HealthDatedValue(value: 40, day: "2026-10-01") },
+            restingHeartRate: { HealthDatedValue(value: 52, day: "2026-10-06") },
+            dietaryWater: { .unavailable }, steps: { nil }, activeEnergyKcal: { nil },
+            exerciseMinutes: { nil }, sleepDurationHours: { nil }, heartRateVariabilityMS: { nil },
+            workouts: { [] })
+        let rows = try await plan.snapshot(date: "2026-10-06").metricRows(ownerID: owner, existing: [])
+        XCTAssertEqual(rows.map(\.date), ["2026-10-01", "2026-10-06"])
+        XCTAssertEqual(rows.map(\.vo2Max), [40, nil])
+        XCTAssertEqual(rows.map(\.restingHeartRate), [nil, 52])
+        let nextDay = try await plan.snapshot(date: "2026-10-07")
+        XCTAssertTrue(nextDay.metricRows(ownerID: owner, existing: rows).isEmpty)
+    }
 }

@@ -4276,18 +4276,7 @@ final class AppSession {
             )
             guard accountOperationIsCurrent(operation) else { return }
         }
-        if snapshot.weightKG != nil || snapshot.vo2Max != nil || snapshot.restingHeartRate != nil {
-            let existing = data.healthMetrics.first {
-                $0.userID == ownerID && $0.date == snapshot.date
-            }
-            let metric = HealthMetric(
-                id: existing?.id ?? UUID(),
-                userID: ownerID,
-                date: snapshot.date,
-                weightKG: snapshot.weightKG ?? existing?.weightKG,
-                vo2Max: snapshot.vo2Max ?? existing?.vo2Max,
-                restingHeartRate: snapshot.restingHeartRate ?? existing?.restingHeartRate
-            )
+        for metric in snapshot.metricRows(ownerID: ownerID, existing: data.healthMetrics) {
             data.healthMetrics.removeAll { $0.id == metric.id && $0.userID == ownerID }
             data.healthMetrics.append(metric)
             await persistUpsert(

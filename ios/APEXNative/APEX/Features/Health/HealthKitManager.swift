@@ -18,6 +18,16 @@ struct HealthSnapshot: Sendable {
     let sleepDurationHours: Double?
     let heartRateVariabilityMS: Double?
     let workouts: [HealthWorkoutSnapshot]
+    /// The local day each newest-sample reading was taken; nil means the snapshot's own day.
+    var weightDay: String? = nil
+    var vo2MaxDay: String? = nil
+    var restingHeartRateDay: String? = nil
+}
+
+/// A Health reading and the local day its sample was taken.
+struct HealthDatedValue: Sendable, Equatable {
+    let value: Double
+    let day: String
 }
 
 struct HealthHydrationSample: Sendable {
@@ -180,9 +190,9 @@ enum HealthMetricRead<Value: Sendable>: Sendable {
 }
 
 struct HealthTodayReadings: Sendable {
-    let weightKG: HealthMetricRead<Double?>
-    let vo2Max: HealthMetricRead<Double?>
-    let restingHeartRate: HealthMetricRead<Double?>
+    let weightKG: HealthMetricRead<HealthDatedValue?>
+    let vo2Max: HealthMetricRead<HealthDatedValue?>
+    let restingHeartRate: HealthMetricRead<HealthDatedValue?>
     let dietaryWater: HealthMetricRead<HealthWaterTotals>
     let steps: HealthMetricRead<Double?>
     let activeEnergyKcal: HealthMetricRead<Double?>
@@ -206,11 +216,14 @@ struct HealthTodayReadings: Sendable {
 
     func snapshot(date: String) -> HealthSnapshot {
         let water = dietaryWater.resolved(or: .unavailable)
+        let weight = weightKG.resolved(or: nil)
+        let vo2 = vo2Max.resolved(or: nil)
+        let resting = restingHeartRate.resolved(or: nil)
         return HealthSnapshot(
             date: date,
-            weightKG: weightKG.resolved(or: nil),
-            vo2Max: vo2Max.resolved(or: nil),
-            restingHeartRate: restingHeartRate.resolved(or: nil),
+            weightKG: weight?.value,
+            vo2Max: vo2?.value,
+            restingHeartRate: resting?.value,
             dietaryWaterL: water.total,
             importableDietaryWaterL: water.importableDrink,
             hydrationSamples: water.samples,
@@ -221,7 +234,10 @@ struct HealthTodayReadings: Sendable {
             exerciseMinutes: exerciseMinutes.resolved(or: nil),
             sleepDurationHours: sleepDurationHours.resolved(or: nil),
             heartRateVariabilityMS: heartRateVariabilityMS.resolved(or: nil),
-            workouts: workouts.resolved(or: [])
+            workouts: workouts.resolved(or: []),
+            weightDay: weight?.day,
+            vo2MaxDay: vo2?.day,
+            restingHeartRateDay: resting?.day
         )
     }
 }
@@ -231,9 +247,9 @@ enum HealthTodayReadError: Error, Equatable {
 }
 
 struct HealthTodayQueryPlan: Sendable {
-    let weightKG: @Sendable () async throws -> Double?
-    let vo2Max: @Sendable () async throws -> Double?
-    let restingHeartRate: @Sendable () async throws -> Double?
+    let weightKG: @Sendable () async throws -> HealthDatedValue?
+    let vo2Max: @Sendable () async throws -> HealthDatedValue?
+    let restingHeartRate: @Sendable () async throws -> HealthDatedValue?
     let dietaryWater: @Sendable () async throws -> HealthWaterTotals
     let steps: @Sendable () async throws -> Double?
     let activeEnergyKcal: @Sendable () async throws -> Double?
@@ -243,9 +259,9 @@ struct HealthTodayQueryPlan: Sendable {
     let workouts: @Sendable () async throws -> [HealthWorkoutSnapshot]
 
     func snapshot(date: String) async throws -> HealthSnapshot {
-        async let weight = HealthMetricRead<Double?>.capture(weightKG)
-        async let vo2 = HealthMetricRead<Double?>.capture(vo2Max)
-        async let resting = HealthMetricRead<Double?>.capture(restingHeartRate)
+        async let weight = HealthMetricRead<HealthDatedValue?>.capture(weightKG)
+        async let vo2 = HealthMetricRead<HealthDatedValue?>.capture(vo2Max)
+        async let resting = HealthMetricRead<HealthDatedValue?>.capture(restingHeartRate)
         async let water = HealthMetricRead<HealthWaterTotals>.capture(dietaryWater)
         async let stepCount = HealthMetricRead<Double?>.capture(steps)
         async let energy = HealthMetricRead<Double?>.capture(activeEnergyKcal)
@@ -286,6 +302,24 @@ extension HealthSnapshot {
             || sleepDurationHours != nil
             || heartRateVariabilityMS != nil
             || !workouts.isEmpty
+    }
+
+    /// The health-metric rows this snapshot changes, merged over what those days already hold.
+    /// Each reading belongs to the day its sample was taken, so the newest sample is stored
+    /// once and not again on every later day it is still the newest.
+    func metricRows(ownerID: UUID, existing: [HealthMetric]) -> [HealthMetric] {
+        var rows: [String: HealthMetric] = [:]
+        func update(_ sampleDay: String?, _ change: (inout HealthMetric) -> Void) {
+            let day = sampleDay ?? date
+            var row = rows[day] ?? existing.first { $0.userID == ownerID && $0.date == day }
+                ?? HealthMetric(id: UUID(), userID: ownerID, date: day, weightKG: nil, vo2Max: nil, restingHeartRate: nil)
+            change(&row)
+            rows[day] = row
+        }
+        if let weightKG { update(weightDay) { $0.weightKG = weightKG } }
+        if let vo2Max { update(vo2MaxDay) { $0.vo2Max = vo2Max } }
+        if let restingHeartRate { update(restingHeartRateDay) { $0.restingHeartRate = restingHeartRate } }
+        return rows.values.filter { !existing.contains($0) }.sorted { $0.date < $1.date }
     }
 }
 
@@ -636,7 +670,7 @@ final class HealthKitManager {
                 try await sleepDurationHours(endingAt: end)
             },
             heartRateVariabilityMS: { [self] in
-                try await latestQuantity(.heartRateVariabilitySDNN, unit: .secondUnit(with: .milli))
+                try await latestQuantity(.heartRateVariabilitySDNN, unit: .secondUnit(with: .milli))?.value
             },
             workouts: { [self] in
                 try await workoutSnapshots(start: start, end: end)
@@ -868,7 +902,7 @@ final class HealthKitManager {
         HKQuantityType.quantityType(forIdentifier: identifier)
     }
 
-    private func latestQuantity(_ identifier: HKQuantityTypeIdentifier, unit: HKUnit) async throws -> Double? {
+    private func latestQuantity(_ identifier: HKQuantityTypeIdentifier, unit: HKUnit) async throws -> HealthDatedValue? {
         guard let type = quantity(identifier) else { return nil }
         return try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(
@@ -878,8 +912,10 @@ final class HealthKitManager {
                 sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierEndDate, ascending: false)]
             ) { _, samples, error in
                 if let error { continuation.resume(throwing: error); return }
-                let value = (samples?.first as? HKQuantitySample)?.quantity.doubleValue(for: unit)
-                continuation.resume(returning: value)
+                let sample = samples?.first as? HKQuantitySample
+                continuation.resume(returning: sample.map {
+                    HealthDatedValue(value: $0.quantity.doubleValue(for: unit), day: $0.endDate.apexDateKey)
+                })
             }
             store.execute(query)
         }
