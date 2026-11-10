@@ -305,6 +305,7 @@ final class AppSession {
     var navigationPath: [PortalDestination] = []
     /// Shared UI date survives Simple/Advanced navigation, never crosses accounts.
     var browsingDate = Date()
+    @ObservationIgnored private var followedToday = Date().apexDateKey
 
 
     private func updateSandboxPlanReceipt(planVersionID: UUID, activate: Bool, ownerID: UUID) throws {
@@ -2285,7 +2286,16 @@ final class AppSession {
         }
     }
 
+    /// Moves the shared date to the new day when it was on today at the last check.
+    /// A day the user browsed to stays put.
+    func followTodayAcrossMidnight(now: Date = .now) {
+        let today = now.apexDateKey
+        if followedToday != today, browsingDate.apexDateKey == followedToday { browsingDate = now }
+        followedToday = today
+    }
+
     func onAppBecameActive() async {
+        followTodayAcrossMidnight()
         #if DEBUG
         // UI automation uses a deterministic, local dashboard and must not
         // replace it with an unauthenticated network refresh when XCTest
@@ -2682,7 +2692,7 @@ final class AppSession {
 
     func toggleSupplement(
         _ supplement: Supplement,
-        on date: Date = .now,
+        on date: Date,
         operation: AccountOperationLease
     ) async throws {
         try requireCurrentAccountOperation(operation)
@@ -2701,6 +2711,27 @@ final class AppSession {
         try requireCurrentAccountOperation(operation)
         try await refreshNudges(operation: operation)
         try requireCurrentAccountOperation(operation)
+    }
+
+    /// "Mark group done" for one day: ticks what is still open, or clears the group once all of it is ticked.
+    /// The day is read and written from the same value, the day the screen shows.
+    func toggleSupplementGroup(
+        _ supplements: [Supplement],
+        on date: Date,
+        operation: AccountOperationLease
+    ) async throws {
+        try requireCurrentAccountOperation(operation)
+        let day = date.apexDateKey
+        func taken(_ supplement: Supplement) -> Bool {
+            data.supplementLogs.contains {
+                $0.userID == operation.ownerID && $0.date == day && $0.supplementID == supplement.id
+            }
+        }
+        let completed = !supplements.isEmpty && supplements.allSatisfy(taken)
+        for supplement in supplements where completed || !taken(supplement) {
+            try Task.checkCancellation()
+            try await toggleSupplement(supplement, on: date, operation: operation)
+        }
     }
 
     /// Explicit values make the immediate and durable Watch delivery paths
@@ -3118,6 +3149,11 @@ final class AppSession {
             )
         }
         return hydrationResolution(ownerID: ownerID, on: date)
+    }
+
+    /// The day's water the home gauge shows, from the calculation the score engine uses.
+    func hydrationIntakeML(on date: Date) -> Int {
+        hydrationResolution(on: date).intakeML(loggedFoodML: foodHydrationLiters(on: date) * 1_000)
     }
 
     private func hydrationResolution(ownerID: UUID, on date: Date) -> HydrationDayResolution {
@@ -3660,7 +3696,13 @@ final class AppSession {
         try requireCurrentAccountOperation(operation)
         guard ownerID == operation.ownerID else { throw CancellationError() }
         let day = date.apexDateKey
-        let resolved = hydrationResolution(ownerID: ownerID, on: date)
+        // The mirror follows the ledger alone. Falling back to its own old value would keep a removed drink.
+        let resolved = HydrationLedger.resolve(
+            ownerID: ownerID,
+            date: day,
+            events: data.hydrationEvents ?? [],
+            legacyDrinkLiters: 0
+        )
         let liters = Double(resolved.drinkML) / 1_000
         let existing = data.dailyLogs.first { $0.userID == ownerID && $0.date == day }
         guard abs((existing?.waterL ?? 0) - liters) > 0.000_5 || existing == nil else { return }

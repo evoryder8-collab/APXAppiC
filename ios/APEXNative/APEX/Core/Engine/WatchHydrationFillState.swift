@@ -79,14 +79,20 @@ enum HydrationPendingPreferencePolicy {
         pending: WatchHydrationPreferences,
         incoming: WatchHydrationPreferences
     ) -> Bool {
-        guard pending.effectiveTargetMode == .automatic,
-              incoming.effectiveTargetMode == .automatic
-        else { return pending == incoming }
-
         var normalizedIncoming = incoming
-        normalizedIncoming.targetLiters = pending.targetLiters
-        normalizedIncoming.targetMode = pending.targetMode
+        if pending.effectiveTargetMode == .automatic, incoming.effectiveTargetMode == .automatic {
+            normalizedIncoming.targetLiters = pending.targetLiters
+            normalizedIncoming.targetMode = pending.targetMode
+        } else if milliliters(pending.targetLiters) == milliliters(incoming.targetLiters) {
+            // The phone stores a custom goal in whole millilitres and echoes that, so the
+            // Watch stepper's 3.0500000000000003 L is the same goal as the phone's 3.05 L.
+            normalizedIncoming.targetLiters = pending.targetLiters
+        }
         return pending == normalizedIncoming
+    }
+
+    private static func milliliters(_ liters: Double) -> Int? {
+        liters.isFinite ? Int((liters * 1_000).rounded()) : nil
     }
 }
 
@@ -475,8 +481,10 @@ enum HydrationHealthReconciler {
         current: [HydrationHealthSampleAnchor],
         deletedSampleIDs: Set<UUID> = []
     ) -> HydrationHealthOverlayUpdate {
+        // The phone mirrors the day's food water to Health under a sample id no event carries.
+        // The snapshot total already holds it as the food event, so it is never an unabsorbed drink.
         let acknowledged = unacknowledged(
-            existing,
+            existing.filter { $0.sample.kind != .food },
             snapshotOwnerID: ownerID,
             snapshotLocalDate: localDate,
             snapshotEventIDs: canonicalSampleIDs
@@ -515,7 +523,7 @@ enum HydrationHealthReconciler {
             }
         }
 
-        for sample in current where anchorByID[sample.id] == nil {
+        for sample in current where anchorByID[sample.id] == nil && sample.kind != .food {
             if canonicalSampleIDs.contains(sample.id) {
                 if mutationsByID[sample.id]?.action == .delete {
                     mutationsByID.removeValue(forKey: sample.id)

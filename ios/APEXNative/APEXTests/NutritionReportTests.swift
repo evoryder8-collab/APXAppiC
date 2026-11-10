@@ -357,6 +357,26 @@ final class NutritionReportTests: XCTestCase {
         XCTAssertEqual(try creatine(taken: [5, 6, 7], days: 10).currentStreak, 0)
     }
 
+    func testAnUntickedLastDayIsStillOpenForTheScoreAsItIsForTheStreak() throws {
+        // Nine days ticked; the report ends today, which is not ticked yet.
+        let open = try creatine(taken: Array(0..<9), days: 10)
+        XCTAssertEqual(open.currentStreak, 9)
+        XCTAssertEqual(open.takenDays, 9)
+        XCTAssertEqual(open.trackedDays, 9)
+        XCTAssertEqual(open.score, 100)
+
+        // Ticking it later counts it like any other day.
+        let ticked = try creatine(taken: Array(0..<10), days: 10)
+        XCTAssertEqual(ticked.trackedDays, 10)
+        XCTAssertEqual(ticked.score, 100)
+
+        // A day missed before the last one is still a miss.
+        let missed = try creatine(taken: [0, 1, 2, 3, 4, 5, 6, 8], days: 10)
+        XCTAssertEqual(missed.trackedDays, 9)
+        XCTAssertEqual(missed.score, 89)
+        XCTAssertEqual(missed.currentStreak, 1)
+    }
+
     func testABackfilledCheckOffCountsOnTheDayItBelongsTo() throws {
         let (before, id) = creatineData(taken: (0..<10).filter { $0 != 5 })
         var after = before
@@ -386,7 +406,8 @@ final class NutritionReportTests: XCTestCase {
 
         let result = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: range)?.creatine)
         XCTAssertEqual(result.takenDays, 2)
-        XCTAssertEqual(result.trackedDays, 10)
+        // Ten days in range; the last is unticked and still open, so nine are judged.
+        XCTAssertEqual(result.trackedDays, 9)
 
         let (trainingOnly, _) = creatineData(taken: [0, 1], trainingDaysOnly: true)
         XCTAssertNil(NutritionReport.summarize(ownerID: owner, data: trainingOnly, dates: range)?.creatine)

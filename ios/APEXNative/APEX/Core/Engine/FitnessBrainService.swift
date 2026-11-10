@@ -186,7 +186,7 @@ enum FitnessBrainService {
         var totals: [String: Int] = [:]
         for day in Set(foodByDay.keys).union(events.keys).union(drinks.keys) {
             let ledger = HydrationLedger.resolve(ownerID: ownerID, date: day, events: events[day] ?? [], legacyDrinkLiters: drinks[day] ?? 0)
-            totals[day] = ledger.drinkML + max(ledger.foodML, Int((foodByDay[day] ?? 0).rounded()))
+            totals[day] = ledger.intakeML(loggedFoodML: foodByDay[day] ?? 0)
         }
         return totals
     }

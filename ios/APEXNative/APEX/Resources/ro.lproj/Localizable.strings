@@ -5929,10 +5929,11 @@
 "Build the streak" = "Construiește-ți seria";
 "Creatine pays off when taken every day. Pair it with something you already do daily." = "Creatina dă rezultate când e luată zilnic. Asociaz-o cu ceva ce faci deja în fiecare zi.";
 "Taken on %d of %d days · longest streak %d days" = "Luată în %d din %d zile · cea mai lungă serie %d zile";
-"Logged on %d days" = "Înregistrată în %d zile";
+"Logged on %d days" = "Înregistrate în %d zile";
 "Next: %@" = "Următorul: %@";
 "About the same volume" = "Cam același volum";
 "%d partly logged" = "%d înregistrate parțial";
 "The habit is forming. Pick one target to hit every day and build from there." = "Obiceiul se formează. Alege o țintă pe care să o atingi zilnic și construiește de acolo.";
 "You have passed this volume" = "Ai depășit acest volum";
 "Your next volume" = "Următorul tău volum";
+"Drinks" = "Băuturi";

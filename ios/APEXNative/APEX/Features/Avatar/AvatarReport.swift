@@ -1919,7 +1919,8 @@ struct AvatarReport: Transferable {
             let shown = needed <= card.height ? caption : []
             guard draw else { return shown.isEmpty ? fixed : needed }
             glass(card, radius: 20, opacity: 0.6)
-            label(language.text("Water").uppercased(with: locale), card.minX + pad, card.minY + pad, textWidth, size: 9.5, weight: .bold,
+            // The figure is the period's drinks; water in food is counted on the daily gauge, not here.
+            label(language.text("Drinks").uppercased(with: locale), card.minX + pad, card.minY + pad, textWidth, size: 9.5, weight: .bold,
                   color: blue, kern: 0.6)
             let figure = litres(nutrition.waterLitres)
             let figureSize = fittingSize(figure, width: textWidth, sizes: [26, 22, 18], weight: .bold)

@@ -77,6 +77,35 @@ final class WaterVolumeComparisonTests: XCTestCase {
         }
     }
 
+    func testACaptionNeverClaimsMoreThanTheTotalAcrossTheWholeCatalogue() throws {
+        let landmarks = try bundledLandmarks()
+        var totals = landmarks.flatMap { [$0.litres * 0.999, $0.litres, $0.litres * 1.001] }
+        for (smaller, larger) in zip(landmarks, landmarks.dropFirst()) {
+            totals += (1...9).map { smaller.litres + (larger.litres - smaller.litres) * Double($0) / 10 }
+        }
+        try withLanguage(.english) {
+            XCTAssertEqual(WaterVolumeComparison.caption(litres: 17)?.caption, "Enough to fill a motorcycle fuel tank")
+            XCTAssertEqual(WaterVolumeComparison.next(after: 17)?.name, "Water-cooler bottle")
+            for total in totals {
+                let match = try XCTUnwrap(WaterVolumeComparison.caption(litres: total), "\(total) L")
+                let filled = landmarks.last { $0.litres <= total }
+                let next = WaterVolumeComparison.next(after: total)
+                XCTAssertEqual(next?.litres, landmarks.first { $0.litres > total }?.litres, "\(total) L")
+                switch match.count {
+                case 1?:
+                    XCTAssertEqual(match.litres, filled?.litres, "\(total) L names \(match.name), not the largest it fills")
+                    XCTAssertTrue(match.caption.hasPrefix("Enough to fill "), match.caption)
+                case let count?:
+                    XCTAssertLessThanOrEqual(Double(count) * match.litres, total, "\(total) L does not fill \(count) × \(match.name)")
+                    XCTAssertTrue(match.caption.hasPrefix("Enough to fill \(count) "), match.caption)
+                case nil:
+                    XCTAssertEqual(match.litres, (filled ?? landmarks[0]).litres, "\(total) L")
+                    XCTAssertTrue(match.caption.hasSuffix(filled == nil ? "Your next volume" : "You have passed this volume"), match.caption)
+                }
+            }
+        }
+    }
+
     func testNextMilestoneIsStrictlyLargerUntilTheLargest() throws {
         let landmarks = try bundledLandmarks()
         for total in [0.001, 1.0, 150, 30_000, 1e12] {

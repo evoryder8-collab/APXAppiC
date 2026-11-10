@@ -1,3 +1,4 @@
+import Combine
 import SwiftUI
 
 @main
@@ -15,6 +16,10 @@ struct APEXApp: App {
                 .task { await session.bootstrap() }
                 .onOpenURL { url in
                     Task { await session.handleAuthCallback(url) }
+                }
+                // Midnight with the app open: a screen left on today moves to the new day.
+                .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in
+                    session.followTodayAcrossMidnight()
                 }
         }
         .onChange(of: scenePhase) { _, phase in

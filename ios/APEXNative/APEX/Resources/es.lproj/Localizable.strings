@@ -5948,10 +5948,11 @@
 "Build the streak" = "Construye tu racha";
 "Creatine pays off when taken every day. Pair it with something you already do daily." = "La creatina da resultado cuando se toma cada día. Únela a algo que ya haces a diario.";
 "Taken on %d of %d days · longest streak %d days" = "Tomada %d de %d días · racha más larga %d días";
-"Logged on %d days" = "Registrada %d días";
+"Logged on %d days" = "Registradas %d días";
 "Next: %@" = "Siguiente: %@";
 "About the same volume" = "Más o menos el mismo volumen";
 "%d partly logged" = "%d registrados en parte";
 "The habit is forming. Pick one target to hit every day and build from there." = "El hábito se está formando. Elige un objetivo para cumplir cada día y construye a partir de ahí.";
 "You have passed this volume" = "Has superado este volumen";
 "Your next volume" = "Tu próximo volumen";
+"Drinks" = "Bebidas";

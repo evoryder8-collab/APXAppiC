@@ -842,6 +842,30 @@ final class ExportReportTests: XCTestCase {
     }
 
     @MainActor
+    func testTheReportWaterFigureCountsDrinksAndIsLabelledDrinksInEveryLanguage() throws {
+        let state = LanguageState.shared
+        let previous = state.language
+        defer { state.language = previous }
+        let data = nutritionFixture(days: 30)
+        for language in AppLanguage.allCases {
+            state.language = language
+            if language != .english {
+                XCTAssertNotEqual(state.text("Drinks"), "Drinks", "\(language.rawValue) has no word for Drinks")
+            }
+        }
+        // PDF text extraction is reliable for Latin script, so the drawn label is read in two languages.
+        for language in [AppLanguage.english, .german] {
+            state.language = language
+            let report = AvatarReport.scoped(ownerID: user, data: data, partialScores: [:], period: .custom,
+                                             dates: "2026-03-01"..."2026-03-30", today: "2026-03-30")
+            XCTAssertEqual(try XCTUnwrap(report.nutrition).waterLitres, 72, accuracy: 0.001, "30 days of a 2.4 L drink")
+            let text = try XCTUnwrap(PDFDocument(data: report.pdfData())?.string)
+            XCTAssertTrue(text.contains(state.text("Drinks").uppercased(with: language.locale)), language.rawValue)
+            XCTAssertFalse(text.contains(state.text("Water").uppercased(with: language.locale)), language.rawValue)
+        }
+    }
+
+    @MainActor
     func testANutritionOnlyReportStillGetsItsPage() throws {
         let report = AvatarReport.scoped(ownerID: user, data: nutritionFixture(days: 3), partialScores: [:], period: .custom,
                                          dates: "2026-03-01"..."2026-03-03", today: "2026-03-03")

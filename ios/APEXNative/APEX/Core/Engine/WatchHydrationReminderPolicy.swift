@@ -11,18 +11,19 @@ enum WatchHydrationReminderPolicy {
         guard preferences.remindersEnabled,
               liters.isFinite,
               liters >= 0,
-              liters < preferences.targetLiters,
-              preferences.quietHoursStartMinutes > preferences.quietHoursEndMinutes
+              liters < preferences.targetLiters
         else { return nil }
 
         let dayStart = calendar.startOfDay(for: now)
+        // Quiet hours that start after midnight (00:30 until 07:00) end the active day on the next calendar day.
+        let quietStartsNextDay = preferences.quietHoursStartMinutes <= preferences.quietHoursEndMinutes
         guard let activeStart = calendar.date(
             byAdding: .minute,
             value: preferences.quietHoursEndMinutes,
             to: dayStart
         ), let activeEnd = calendar.date(
             byAdding: .minute,
-            value: preferences.quietHoursStartMinutes,
+            value: preferences.quietHoursStartMinutes + (quietStartsNextDay ? 1_440 : 0),
             to: dayStart
         ), now < activeEnd else { return nil }
 

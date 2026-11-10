@@ -96,14 +96,14 @@ struct SimpleHomeView: View {
     }
     private var hydrationResolution: HydrationDayResolution { session.hydrationResolution(on: selectedDate) }
     private var drinkWaterL: Double { Double(hydrationResolution.drinkML) / 1_000 }
-    private var foodWaterL: Double {
-        max(Double(hydrationResolution.foodML) / 1_000, session.foodHydrationLiters(on: selectedDate))
-    }
-    private var waterTargetL: Double {
-        Double(session.hydrationTargetResolution(on: selectedDate).targetML) / 1_000
-    }
-    private var waterL: Double { min(6, drinkWaterL + foodWaterL) }
-    private var waterDone: Bool { waterL >= waterTargetL }
+    // Food is the day's total less its drinks, so the sheet's two parts add up to the figure on the tile.
+    private var foodWaterL: Double { Double(waterML - hydrationResolution.drinkML) / 1_000 }
+    private var waterTargetML: Int { session.hydrationTargetResolution(on: selectedDate).targetML }
+    private var waterTargetL: Double { Double(waterTargetML) / 1_000 }
+    private var waterML: Int { session.hydrationIntakeML(on: selectedDate) }
+    private var waterL: Double { Double(waterML) / 1_000 }
+    // Whole millilitres, the comparison the score engine makes.
+    private var waterDone: Bool { waterML >= waterTargetML }
 
     private var supplementGroups: [SimpleSupplementGroup] {
         let grouped = Dictionary(grouping: session.activeSupplements, by: \.groupLabel)
@@ -876,26 +876,10 @@ struct SimpleHomeView: View {
 
     private func toggle(_ group: SimpleSupplementGroup) {
         guard let operation = session.accountOperationLease() else { return }
-        let completed = groupDone(group)
+        let date = selectedDate
         Task {
             do {
-                for supplement in group.supplements {
-                    try Task.checkCancellation()
-                    guard session.accountOperationIsCurrent(operation) else {
-                        throw CancellationError()
-                    }
-                    let isDone = session.data.supplementLogs.contains {
-                        $0.userID == operation.ownerID
-                            && $0.date == today
-                            && $0.supplementID == supplement.id
-                    }
-                    if completed || !isDone {
-                        try await session.toggleSupplement(
-                            supplement,
-                            operation: operation
-                        )
-                    }
-                }
+                try await session.toggleSupplementGroup(group.supplements, on: date, operation: operation)
             } catch is CancellationError {
                 return
             } catch {
@@ -1258,7 +1242,7 @@ private struct WaterQuickAddSheet: View {
     @State private var showsManagement = false
     @FocusState private var customIsFocused: Bool
 
-    private var totalLiters: Double { min(6, drinkLiters + foodLiters) }
+    private var totalLiters: Double { drinkLiters + foodLiters }
     private var progress: Double { targetLiters > 0 ? min(1, max(0, totalLiters / targetLiters)) : 0 }
     private var customAmountML: Double? {
         guard let amount = Double(customML), amount > 0 else { return nil }
