@@ -252,6 +252,17 @@ enum TrainingPlanEngine {
         ]
     }
 
+    /// A day inside a scheduled deload week of the main protocol. The plan, the saved
+    /// receipt and the Avatar all read this one rule.
+    static func isScheduledDeload(_ data: DashboardData, programID: UUID, date: String) -> Bool {
+        let persona = data.profile?.persona.rawValue ?? "constantine"
+        guard persona == "constantine" || persona == "june",
+              data.programs.first(where: { $0.id == programID })?.slug == "main",
+              let start = data.settings?.addons["training_protocol"]?.objectValue?["start_date"]?.stringValue
+        else { return false }
+        return FocusT25.isDeloadWeek(FocusT25.protocolWeek(start: start, date: date))
+    }
+
     // MARK: - The plan
 
     static func plan(
@@ -340,7 +351,7 @@ enum TrainingPlanEngine {
         let protocolStart = protocolMetadata?["start_date"]?.stringValue ?? date
         let protocolWeek = FocusT25.protocolWeek(start: protocolStart, date: date)
         let bespoke = slug == "main" && (persona == "constantine" || persona == "june")
-        let scheduledDeload = bespoke && FocusT25.isDeloadWeek(protocolWeek)
+        let scheduledDeload = isScheduledDeload(data, programID: program.id, date: date)
         let isOfficialSession = !programDay.name.hasPrefix("AM ·") && !FocusT25.isFocusName(programDay.name)
         let scheduledTest = bespoke && isOfficialSession && weekday == 2 && FocusT25.isPushupTestWeek(protocolWeek)
         var warmup = programDay.warmupNote

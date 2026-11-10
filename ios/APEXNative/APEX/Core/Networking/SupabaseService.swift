@@ -27,6 +27,9 @@ struct ProfileCreationRequest: Encodable, Sendable {
     let birthdate: String?
     let activityLevel: ActivityLevel?
     let avatarStartingPoints: [String: Int]?
+    /// The person's own calendar day. Left to the server it is the UTC date, which is
+    /// tomorrow on a signup evening west of Greenwich.
+    let baselineDate = Date().apexDateKey
     let profileKind = ProfileIntegrityPolicy.Kind.standard
     let displayName = "APEX Athlete"
     let seedVersion = SeedVersion.current
@@ -63,6 +66,7 @@ struct ProfileCreationRequest: Encodable, Sendable {
         case activityLevel = "activity_level"
         case profileKind = "profile_kind"
         case avatarStartingPoints = "avatar_starting_points"
+        case baselineDate = "baseline_date"
         case displayName = "display_name"
         case seedVersion = "seed_version"
     }

@@ -164,10 +164,32 @@ test('unfinished or skipped overrides and heavier sets do not alter the fitness 
     workout_sessions: [...planned.workout_sessions, { ...pending, completed: true }],
   }
   const unmappedLog = { ...pendingLog, override_flag: false }
+  // A lift with neither a known day nor a catalogue movement cannot be attributed.
+  const unlisted = (entry: WorkoutLog): WorkoutLog => ({ ...entry, movement_id: null })
   assert.deepEqual(
-    latest({ ...unmapped, workout_logs: [...planned.workout_logs, unmappedLog] }),
-    latest({ ...unmapped, workout_logs: [...planned.workout_logs, { ...unmappedLog, weight_kg: 60 }] }),
+    latest({ ...unmapped, workout_logs: [unlisted(planned.workout_logs[0]), unlisted(unmappedLog)] }),
+    latest({ ...unmapped, workout_logs: [unlisted(planned.workout_logs[0]), unlisted({ ...unmappedLog, weight_kg: 60 })] }),
   )
+  // The catalogue movement itself says which half of the body progressed.
+  assert.ok(
+    latest({ ...unmapped, workout_logs: [...planned.workout_logs, unmappedLog] }).strength_lower
+      > latest({ ...unmapped, workout_logs: [...planned.workout_logs, { ...unmappedLog, weight_kg: 60 }] }).strength_lower,
+  )
+})
+
+test('a planned day credits the body areas its movements trained and keeps its label for unlisted work', () => {
+  const fullBody = custom([log(), log({ id: 'press', movement_id: 'push_up', weight_kg: 0 })])
+  fullBody.program_days[0] = { ...fullBody.program_days[0], day_type: 'upper' }
+  const rested = latest(baseline)
+  assert.ok(latest(fullBody).strength_lower > rested.strength_lower)
+  assert.ok(latest(fullBody).strength_upper > rested.strength_upper)
+  const capacity = custom([log({ movement_id: 'push_up', weight_kg: 0 })])
+  capacity.program_days[0] = { ...capacity.program_days[0], day_type: 'fix' }
+  assert.equal(latest(capacity).flexibility, rested.flexibility)
+  assert.ok(latest(capacity).strength_upper > rested.strength_upper)
+  const unlistedLegs = custom([log({ movement_id: null })])
+  unlistedLegs.program_days[0] = { ...unlistedLegs.program_days[0], day_type: 'legs_a' }
+  assert.ok(latest(unlistedLegs).strength_lower > rested.strength_lower)
 })
 
 test('standard accounts with no evidence publish neither a score nor a downward trend', () => {

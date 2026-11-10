@@ -2148,19 +2148,16 @@ final class AppSession {
             return
         }
         #endif
+        let goals = DailyWaterTargets(data: data, coachManaged: coachContext.capabilities.sponsoredClient && !coachClientPolicy.canCreateCustomWorkouts,
+                                      followsCoach: coachClientPolicy.canFollowCoachPlan, includeCustom: coachClientPolicy.canCreateCustomWorkouts)
+        let now = Date()
         guard let userID = data.profile?.userID,
-              var input = FitnessBrainService.engineInput(from: data) else {
+              let scored = FitnessBrainService.scoredInput(from: data, waterTargets: goals, now: now) else {
             avatarDomainScores = [:]
             brainSynergies = []
             return
         }
-        let goals = DailyWaterTargets(data: data, coachManaged: coachContext.capabilities.sponsoredClient && !coachClientPolicy.canCreateCustomWorkouts,
-                                      followsCoach: coachClientPolicy.canFollowCoachPlan, includeCustom: coachClientPolicy.canCreateCustomWorkouts)
-        let now = Date()
-        for (day, totalML) in FitnessBrainService.waterTotals(data, ownerID: userID) {
-            input.hydrationByDay[day] = (totalML, goals.resolve(day: day, now: now).targetML)
-        }
-        let result = FitnessBrainEngine.compute(input, throughDate: Date().apexDateKey)
+        let result = FitnessBrainEngine.compute(scored.input, throughDate: now.apexDateKey)
         avatarDomainScores = result.domainScores
 
         let published = result.publishableSnapshots
@@ -2171,6 +2168,7 @@ final class AppSession {
         brainRecomputing = false
 
         guard !isDeveloperSandbox, verifiedPersistenceOwnerID(userID) == userID else { return }
+        storeScoreGoalHistory(scored.history, changed: scored.historyChanged, userID: userID)
         if let raw = result.snapshots.last, let row = rows.last ?? FitnessBrainService.appSnapshots([raw], userID: userID).first {
             let publication = AvatarScorePublication(row: row, verified: published.last)
             guard lastAvatarPublication != publication else { scheduleFitnessBrainShadowObservation(); return }
@@ -2201,6 +2199,27 @@ final class AppSession {
             }
         }
         scheduleFitnessBrainShadowObservation()
+    }
+
+    /// Keeps the goals earlier days were graded against with the settings, so a goal changed
+    /// later applies from that day and never regrades history.
+    private func storeScoreGoalHistory(_ history: ScoreGoalHistory, changed: Bool, userID: UUID) {
+        guard changed, var settings = data.settings, settings.userID == userID else { return }
+        #if DEBUG
+        // The local UI-test fixture is unauthenticated and must not reach the remote store.
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() { return }
+        #endif
+        settings.addons[ScoreGoalHistory.addonKey] = history.stored
+        brainRecomputing = true
+        data.settings = settings
+        brainRecomputing = false
+        let accountToken = accountGeneration.token
+        Task { [weak self] in
+            guard let self, let latest = self.data.settings, latest.userID == userID else { return }
+            await self.persistUpsert(
+                latest, table: "settings", onConflict: "user_id", ownerID: userID,
+                expectedAccountToken: accountToken, surfacePermanentFailure: false)
+        }
     }
 
     private func scheduleFitnessBrainShadowObservation() {
@@ -4318,18 +4337,7 @@ final class AppSession {
             )
             guard accountOperationIsCurrent(operation) else { return }
         }
-        if snapshot.weightKG != nil || snapshot.vo2Max != nil || snapshot.restingHeartRate != nil {
-            let existing = data.healthMetrics.first {
-                $0.userID == ownerID && $0.date == snapshot.date
-            }
-            let metric = HealthMetric(
-                id: existing?.id ?? UUID(),
-                userID: ownerID,
-                date: snapshot.date,
-                weightKG: snapshot.weightKG ?? existing?.weightKG,
-                vo2Max: snapshot.vo2Max ?? existing?.vo2Max,
-                restingHeartRate: snapshot.restingHeartRate ?? existing?.restingHeartRate
-            )
+        for metric in snapshot.metricRows(ownerID: ownerID, existing: data.healthMetrics) {
             data.healthMetrics.removeAll { $0.id == metric.id && $0.userID == ownerID }
             data.healthMetrics.append(metric)
             await persistUpsert(
@@ -5908,7 +5916,7 @@ final class AppSession {
         let isDeload = TrainingAdjustmentEngine.isDeload(
             on: completedDate,
             marks: (data.deloadMarks ?? []).filter { $0.userID == ownerID }
-        )
+        ) || TrainingPlanEngine.isScheduledDeload(data, programID: day.programID, date: completedDate)
         var workout = existingWorkout ?? WorkoutSession(
             id: APEXStableID.scopedUUID(
                 namespace: "guided-workout-receipt",

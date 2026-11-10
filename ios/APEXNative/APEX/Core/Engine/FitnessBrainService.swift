@@ -48,7 +48,7 @@ enum FitnessBrainService {
 
     // MARK: - DashboardData -> engine input
 
-    static func engineInput(from data: DashboardData) -> FBEngineInput? {
+    static func engineInput(from data: DashboardData, timeZone: TimeZone = .current) -> FBEngineInput? {
         guard let storedProfile = data.profile else { return nil }
         let profile = RestingEnergyPolicy.applied(to: storedProfile, settings: data.settings)
         var fbProfile = FBProfile(
@@ -73,8 +73,10 @@ enum FitnessBrainService {
             && AvatarStartingPoints.stats(profile.avatarStartingPoints) != nil
         let ownerID = profile.userID
         let programDays = data.programDays.compactMap { day -> FBProgramDayRef? in
+            // A coach plan has no day category of its own. Its performed movements earn the
+            // credit, exactly as a custom workout's do.
             guard day.userID == ownerID,
-                  let type = FBDayType(rawValue: day.dayType)
+                  let type = FBDayType(rawValue: day.dayType == "coach" ? "custom" : day.dayType)
             else { return nil }
             return FBProgramDayRef(id: day.id.uuidString.lowercased(), dayType: type)
         }
@@ -83,17 +85,24 @@ enum FitnessBrainService {
                 id: $0.id.uuidString.lowercased(),
                 programDayID: $0.programDayID.uuidString.lowercased())
         }
-        let ownedSessions = data.workoutSessions.filter { $0.userID == ownerID }
+        let ownedSessions = StrengthProgress.withoutReplays(data.workoutSessions.filter { $0.userID == ownerID })
         let ownedSessionIDs = Set(ownedSessions.map(\.id))
-        let sessions = ownedSessions.map {
-            FBWorkoutSession(
-                id: $0.id.uuidString.lowercased(),
-                date: $0.date,
-                programDayID: $0.programDayID.uuidString.lowercased(),
-                isDeload: $0.isDeload,
-                isEventRecovery: $0.isEventRecovery,
-                completed: $0.completed,
-                qualityScore: $0.qualityScore, notes: $0.notes)
+        let programByDay = Dictionary(
+            data.programDays.map { ($0.id, $0.programID) }, uniquingKeysWith: { first, _ in first })
+        let sessions = ownedSessions.map { session in
+            // Receipts saved before the app flagged scheduled deload weeks are recognised
+            // by the plan's own rule, so past deload weeks earn their credit too.
+            let scheduledDeload = programByDay[session.programDayID].map {
+                TrainingPlanEngine.isScheduledDeload(data, programID: $0, date: session.date)
+            } ?? false
+            return FBWorkoutSession(
+                id: session.id.uuidString.lowercased(),
+                date: session.date,
+                programDayID: session.programDayID.uuidString.lowercased(),
+                isDeload: session.isDeload || scheduledDeload,
+                isEventRecovery: session.isEventRecovery,
+                completed: session.completed,
+                qualityScore: session.qualityScore, notes: session.notes)
         }
         let logs = data.workoutLogs
             .filter { $0.userID == ownerID && ownedSessionIDs.contains($0.sessionID) }
@@ -119,8 +128,13 @@ enum FitnessBrainService {
                 proteinG: $0.proteinG.map(Double.init),
                 waterL: $0.waterL)
         }
-        let metrics = data.healthMetrics.filter { $0.userID == ownerID }.map {
-            FBHealthMetric(date: $0.date, vo2max: $0.vo2Max, restingHR: $0.restingHeartRate)
+        // Older builds stamped the newest Health sample on every later day. A repeated value
+        // is that one reading, so it anchors Endurance once.
+        var lastVO2: Double?
+        let metrics = data.healthMetrics.filter { $0.userID == ownerID }.sorted { $0.date < $1.date }.map { metric in
+            let vo2 = metric.vo2Max == lastVO2 ? nil : metric.vo2Max
+            lastVO2 = metric.vo2Max ?? lastVO2
+            return FBHealthMetric(date: metric.date, vo2max: vo2, restingHR: metric.restingHeartRate)
         }
         let apexSessionIdentities = data.workoutSessions.compactMap {
             session -> ExternalWorkoutImport.APEXSessionIdentity? in
@@ -130,6 +144,9 @@ enum FitnessBrainService {
                   ) else { return nil }
             return .init(id: session.id, startedAt: startedAt)
         }
+        let completedByDate = Dictionary(grouping: ownedSessions.filter(\.completed), by: \.date)
+        let modesBySession = Dictionary(grouping: data.workoutLogs.filter { $0.userID == ownerID }, by: \.sessionID)
+            .mapValues(TrainingProfile90.modes(of:))
         let imports = data.importedActivities.compactMap { activity -> FBImportedActivity? in
             guard activity.userID == profile.userID,
                   activity.isVisibleInAPEX,
@@ -138,6 +155,10 @@ enum FitnessBrainService {
                     activity,
                     apexSessions: apexSessionIdentities
                   ) == false,
+                  // An unlinked Watch recording of an app workout is that workout, not a second one.
+                  completedByDate[activity.date]?.contains(where: {
+                      TrainingProfile90.recordsSameWorkout(activity, as: $0, modes: modesBySession[$0.id] ?? [])
+                  }) != true,
                   let kind = FBImportKind(rawValue: activity.kind) else { return nil }
             return FBImportedActivity(
                 date: activity.date, kind: kind, durationMin: Double(activity.durationMinutes))
@@ -156,9 +177,11 @@ enum FitnessBrainService {
             capacityCalibrationEvidence: capacityCalibrationEvidence(
                 from: (data.fitnessEvidence ?? []).filter { record in
                     !hasChosenStart
-                        || record.protocol != "apex_onboarding_pulse_v1" || String(record.measuredAt.prefix(10)) > profile.baselineDate
+                        || record.protocol != "apex_onboarding_pulse_v1"
+                        || localDay(of: record.measuredAt, in: timeZone) > profile.baselineDate
                 },
-                ownerID: profile.userID
+                ownerID: profile.userID,
+                timeZone: timeZone
             ),
             recoveryHistory: recoveryHistory(from: data.settings?.addons),
             mealRhythmHistory: mealRhythmHistory(from: data.settings?.addons),
@@ -167,6 +190,30 @@ enum FitnessBrainService {
         )
         if data.settings?.userID == ownerID { input.avatarCalibration = data.settings?.avatarCalibration }
         return input
+    }
+
+    /// The engine input for a recalculation: every day's water total and goal, and the nutrition
+    /// targets earlier days were graded against. `history` is what to store afterwards.
+    static func scoredInput(
+        from data: DashboardData, waterTargets: DailyWaterTargets, now: Date
+    ) -> (input: FBEngineInput, history: ScoreGoalHistory, historyChanged: Bool)? {
+        guard var input = engineInput(from: data), let profile = data.profile else { return nil }
+        let today = now.apexDateKey
+        let settings = data.settings?.userID == profile.userID ? data.settings : nil
+        var history = ScoreGoalHistory(stored: settings?.addons[ScoreGoalHistory.addonKey])
+        let preferences = data.hydrationPreferences.flatMap { $0.userID == profile.userID ? $0 : nil }
+        let goals = ScoreGoalHistory.Goals(
+            customWaterML: preferences?.effectiveTargetMode == .custom ? preferences?.targetML : nil,
+            weightKG: profile.weightKG.isFinite ? profile.weightKG : 0,
+            targets: FitnessBrainTargets.computeTargets(
+                input.profile, asOf: today, trainingGoal: input.trainingGoal, planWeeks: input.planWeeks))
+        let changed = history.note(goals, today: today)
+        for (day, totalML) in waterTotals(data, ownerID: profile.userID) {
+            let dayGoals = history.goals(on: day, now: goals)
+            input.hydrationByDay[day] = (totalML, waterTargets.resolve(day: day, now: now, goals: dayGoals).targetML)
+        }
+        input.pastTargets = history.past.map { ($0.until, $0.goals.targets) }
+        return (input, history, changed)
     }
 
     /// Fold meals and the hydration ledger once when replaying many days of history.
@@ -193,9 +240,17 @@ enum FitnessBrainService {
 
     // MARK: - addons JSON extraction
 
+    /// The calendar day of a stored instant where the person is. Its UTC prefix is already
+    /// tomorrow on an evening west of Greenwich, and still yesterday on a morning east of it.
+    static func localDay(of timestamp: String, in timeZone: TimeZone) -> String {
+        guard let instant = ExternalWorkoutImport.parseTimestamp(timestamp) else { return String(timestamp.prefix(10)) }
+        return instant.formatted(Date.ISO8601FormatStyle(timeZone: timeZone).year().month().day())
+    }
+
     static func capacityCalibrationEvidence(
         from records: [FitnessEvidenceRecord],
-        ownerID: UUID
+        ownerID: UUID,
+        timeZone: TimeZone = .current
     ) -> [FBCapacityCalibrationEvidence] {
         let supportedProtocols: Set<String> = [
             "apex_onboarding_pulse_v1",
@@ -220,7 +275,7 @@ enum FitnessBrainService {
                   let metric = metrics[record.metric],
                   record.measuredAt.count >= 10 else { return nil }
 
-            let measuredOn = String(record.measuredAt.prefix(10))
+            let measuredOn = localDay(of: record.measuredAt, in: timeZone)
             guard measuredOn.count == 10,
                   measuredOn[measuredOn.index(measuredOn.startIndex, offsetBy: 4)] == "-",
                   measuredOn[measuredOn.index(measuredOn.startIndex, offsetBy: 7)] == "-" else {
@@ -240,7 +295,8 @@ enum FitnessBrainService {
                 measuredOn: measuredOn,
                 importedAt: record.importedAt,
                 coverage: coverage,
-                supersedesID: record.supersedesID?.uuidString.lowercased()
+                supersedesID: record.supersedesID?.uuidString.lowercased(),
+                lowerBound: record.metadata["lower_bound"]?.numberValue
             )
         }
     }
@@ -320,6 +376,53 @@ struct AvatarScorePublication: Encodable, Equatable, Sendable {
     }
 }
 
+/// The goals past days were graded against. A change seen today applies from today, and the
+/// days before it keep the goals they had, so changing a goal never regrades history.
+struct ScoreGoalHistory: Codable, Equatable, Sendable {
+    static let addonKey = "score_goal_history"
+
+    struct Goals: Codable, Equatable, Sendable {
+        /// The custom daily water goal, or nil while the goal is automatic.
+        var customWaterML: Int?
+        var weightKG: Double
+        var targets: FBTargets
+    }
+
+    struct Change: Codable, Equatable, Sendable {
+        /// The first day the earlier goals no longer applied.
+        var until: String
+        var goals: Goals
+    }
+
+    var current: Goals?
+    var past: [Change] = []
+
+    init() {}
+
+    init(stored: JSONValue?) {
+        self = stored.flatMap { try? JSONEncoder().encode($0) }
+            .flatMap { try? JSONDecoder().decode(ScoreGoalHistory.self, from: $0) } ?? ScoreGoalHistory()
+    }
+
+    var stored: JSONValue? {
+        (try? JSONEncoder().encode(self)).flatMap { try? JSONDecoder().decode(JSONValue.self, from: $0) }
+    }
+
+    func goals(on day: String, now: Goals) -> Goals {
+        past.first { day < $0.until }?.goals ?? now
+    }
+
+    /// Records today's goals and reports whether the history changed. The first change of a
+    /// day keeps the goals that applied until yesterday; later changes that day replace today's.
+    mutating func note(_ now: Goals, today: String) -> Bool {
+        guard current != now else { return false }
+        if let current, past.last?.until != today { past.append(Change(until: today, goals: current)) }
+        current = now
+        past = Array(past.suffix(730))
+        return true
+    }
+}
+
 /// A snapshot of the active plan and dated activity used by both the dashboard and history replay.
 struct DailyWaterTargets {
     private let data: DashboardData
@@ -346,11 +449,15 @@ struct DailyWaterTargets {
         wearable = Dictionary(WearableActivityRecord.history(from: history).map { ($0.date, $0) }, uniquingKeysWith: { _, latest in latest })
     }
 
-    func resolve(day: String, now: Date) -> HydrationTargetResolution {
+    /// `goals` are the water goal and bodyweight in force on that day; nil means today's.
+    func resolve(day: String, now: Date, goals: ScoreGoalHistory.Goals? = nil) -> HydrationTargetResolution {
         guard let profile = data.profile else { return HydrationTargetPolicy.resolve(sex: "male", weightKG: 87) }
         let preferences = data.hydrationPreferences.flatMap { $0.userID == profile.userID ? $0 : nil }
-        if preferences?.effectiveTargetMode == .custom {
-            return HydrationTargetPolicy.resolve(sex: profile.sex, weightKG: profile.weightKG, mode: .custom, customTargetML: preferences?.targetML)
+        let weightKG = goals?.weightKG ?? profile.weightKG
+        let customML = goals.map(\.customWaterML)
+            ?? (preferences?.effectiveTargetMode == .custom ? preferences?.targetML : nil)
+        if let customML {
+            return HydrationTargetPolicy.resolve(sex: profile.sex, weightKG: weightKG, mode: .custom, customTargetML: customML)
         }
         let hasInduction = data.settings?.addons["training_induction"]?.objectValue != nil
         let main = phaseDays["main"]?.isEmpty == false
@@ -366,7 +473,7 @@ struct DailyWaterTargets {
         let logs = activity[day] ?? []
         let minutes = max(record?.exerciseMinutes ?? 0, logs.reduce(0) { $0 + max(0, $1.durationMinutes ?? 0) })
         let today = now.apexDateKey
-        return HydrationTargetPolicy.resolve(sex: profile.sex, weightKG: profile.weightKG, mode: .automatic,
+        return HydrationTargetPolicy.resolve(sex: profile.sex, weightKG: weightKG, mode: .automatic,
             plannedExerciseMinutes: planned, recordedExerciseMinutes: minutes,
             activeCalories: EnergyEngine.resolvedActiveCalories(wearableActiveCalories: record?.activeCalories, logs: logs),
             steps: record?.steps, dateRelation: day < today ? .past : day > today ? .future : .today,

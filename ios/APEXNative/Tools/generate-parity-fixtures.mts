@@ -19,6 +19,7 @@ import { buildSeedData } from '../../../src/data/seed.ts'
 import type {
   AppData,
   DailyLog,
+  FitnessEvidenceRecord,
   HealthMetric,
   ImportedActivity,
   WorkoutLog,
@@ -57,7 +58,7 @@ function session(
   if (!day) throw new Error(`no program day of type ${dayType}`)
   const s: WorkoutSession = {
     id: fid(),
-    user_id: USER,
+    user_id: data.profile!.user_id,
     date,
     program_day_id: day.id,
     is_lite: false,
@@ -226,7 +227,7 @@ scenarios.push({ name: 'baseline_decay', persona: 'constantine', throughDate: TH
       '2026-06-18': rhythmDay('2026-06-18', 'no_meals', 0, 0),
     },
   }
-  /* meal completion tempering strength on a training day */
+  /* a partly logged food day under a training session */
   session(d, '2026-06-17', 'push')
   scenarios.push({ name: 'imports_recovery_rhythm', persona: 'constantine', throughDate: THROUGH, data: d })
 }
@@ -243,6 +244,106 @@ for (const persona of ['june', 'matthew'] as PersonaSlug[]) {
     })
   }
   scenarios.push({ name: `persona_${persona}`, persona, throughDate: '2026-07-01', data: d })
+}
+
+/* 6: the server stamped the baseline and a self-check with tomorrow's UTC date */
+{
+  const d = base('constantine')
+  d.profile = { ...d.profile!, baseline_date: addDays(THROUGH, 1) }
+  selfCheck(d, 'cardio_capacity_score', 62, 55, `${addDays(THROUGH, 1)}T02:30:00.000Z`)
+  scenarios.push({ name: 'stamps_ahead_of_device_date', persona: 'constantine', throughDate: THROUGH, data: d })
+}
+
+/* 7: loads and movements that a day's label does not describe */
+{
+  const d = base('constantine')
+  const pullDay = d.program_days.find((p) => p.day_type === 'pull')!
+  const pullUp = d.exercises.find((e) => e.program_day_id === pullDay.id && !e.is_lite)!
+  /* easing the assistance on a lift is progress */
+  log(d, session(d, '2026-06-02', 'pull'), { exercise_name: pullUp.name, exercise_id: pullUp.id, weight_kg: -30 })
+  log(d, session(d, '2026-06-09', 'pull'), { exercise_name: pullUp.name, exercise_id: pullUp.id, weight_kg: -20 })
+  /* a deload day with two sessions banks its joint credit once */
+  session(d, '2026-06-16', 'push', { is_deload: true })
+  session(d, '2026-06-16', 'pull', { is_deload: true })
+  /* a full-body day typed upper credits the legs it trained, and its leg press progress is lower-body progress */
+  const upperDay = d.program_days.find((p) => p.day_type === 'upper')!
+  const pressed = d.exercises.find((e) => e.program_day_id === upperDay.id && !e.is_lite)!
+  const fullBody = session(d, '2026-06-23', 'upper')
+  log(d, fullBody, { exercise_name: 'Leg Press', exercise_id: pressed.id, movement_id: 'leg_press', weight_kg: 100 })
+  log(d, fullBody, { exercise_name: 'Machine Chest Press', movement_id: 'machine_chest_press', weight_kg: 40 })
+  log(d, session(d, '2026-06-30', 'upper'), {
+    exercise_name: 'Leg Press', exercise_id: pressed.id, movement_id: 'leg_press', weight_kg: 110,
+  })
+  /* a recovery-typed day of strength work earns strength, not flexibility */
+  const capacity = session(d, '2026-07-02', 'fix')
+  log(d, capacity, { exercise_name: 'Lat Pulldown', movement_id: 'lat_pulldown', weight_kg: 50 })
+  log(d, capacity, { exercise_name: 'Dead Bug', movement_id: 'dead_bug' })
+  /* an unlisted lift keeps the day's label beside an identified mobility drill */
+  const legs = session(d, '2026-07-07', 'legs_a')
+  log(d, legs, { exercise_name: 'Unlisted lift', weight_kg: 60 })
+  log(d, legs, { exercise_name: 'Cat-Cow', movement_id: 'cat_cow', reps: null, duration_seconds: 120 })
+  scenarios.push({ name: 'performed_movements_and_loads', persona: 'constantine', throughDate: THROUGH, data: d })
+}
+
+/* 8: self-checks against a score with and without evidence */
+{
+  const d = base('constantine')
+  /* no evidence yet: the first answer sets the estimate, in either direction */
+  selfCheck(d, 'flexibility_score', 30, 20, '2026-06-03T08:00:00.000Z')
+  /* evidence first, then an answer above it lifts once; repeats and lower answers change nothing */
+  session(d, '2026-06-02', 'push')
+  selfCheck(d, 'upper_body_strength_score', 77, 70, '2026-06-05T08:00:00.000Z')
+  selfCheck(d, 'upper_body_strength_score', 77, 70, '2026-06-12T08:00:00.000Z')
+  selfCheck(d, 'upper_body_strength_score', 47, 40, '2026-06-19T08:00:00.000Z')
+  /* a higher answer lifts again while the score is still below its band */
+  session(d, '2026-06-02', 'legs_a')
+  selfCheck(d, 'lower_body_strength_score', 47, 40, '2026-06-05T08:00:00.000Z')
+  selfCheck(d, 'lower_body_strength_score', 77, 70, '2026-06-12T08:00:00.000Z')
+  scenarios.push({ name: 'self_checks', persona: 'constantine', throughDate: THROUGH, data: d })
+}
+
+/* 9: a bespoke profile decays, and a partly logged food day under a strength session costs nothing */
+{
+  const d = buildSeedData('9a0fffbc-bb02-40ac-834a-d4e339b32574', 'constantine')
+  d.profile = {
+    ...d.profile!,
+    baseline_date: BASELINE,
+    updated_at: TS,
+    profile_kind: 'bespoke',
+    bespoke_protocol_id: 'constantine-v8.5',
+  }
+  session(d, '2026-06-03', 'legs_a')
+  d.settings!.addons = {
+    ...d.settings!.addons,
+    meal_rhythm_history: { '2026-06-03': rhythmDay('2026-06-03', 'missed_meals', 14, 20) },
+  }
+  scenarios.push({ name: 'bespoke_partly_logged_day', persona: 'constantine', throughDate: '2026-07-01', data: d })
+}
+
+function selfCheck(
+  data: AppData,
+  metric: FitnessEvidenceRecord['metric'],
+  value: number,
+  lowerBound: number,
+  measuredAt: string,
+): void {
+  const id = fid()
+  data.fitness_evidence.push({
+    id,
+    user_id: USER,
+    metric,
+    value,
+    unit: 'score_0_100',
+    source: 'structured_self_report',
+    protocol: 'apex_baseline_calibration_v1',
+    device: null,
+    measured_at: measuredAt,
+    imported_at: measuredAt,
+    confidence: 'low',
+    metadata: { answered_count: 3, lower_bound: lowerBound },
+    supersedes_id: null,
+    client_idempotency_key: `fixture:${id}`,
+  })
 }
 
 function rhythmDay(date: string, verdict: string, rhythm: number, completion: number) {
@@ -298,6 +399,7 @@ const out = {
           .map(d => [d.date, waterTargetResolver(sc.data)(d.date, sc.throughDate, 0).targetML])),
         health_metrics: sc.data.health_metrics,
         imported_activities: sc.data.imported_activities,
+        fitness_evidence: sc.data.fitness_evidence,
       },
       expected: {
         targets,

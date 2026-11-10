@@ -1,2 +1,499 @@
+import PDFKit
 import XCTest
 @testable import APEX
+
+final class AvatarScoreInputTests: XCTestCase {
+    private let owner = UUID(uuidString: "11111111-2222-4333-8444-555555555555")!
+    private let dayID = UUID(uuidString: "22222222-3333-4444-8555-666666666666")!
+
+    private func dashboard(dayType: String = "legs_a", baseline: String = "2026-10-01") -> DashboardData {
+        var data = APEXDebugFixture.dashboard(userID: owner)
+        data.profile?.baselineDate = baseline
+        data.programDays = [ProgramDay(id: dayID, userID: owner, programID: UUID(), weekday: 1, name: "Day",
+                                       dayType: dayType, estimatedMinutes: 45, warmupNote: "", sortOrder: 0)]
+        data.exercises = []
+        data.workoutSessions = []
+        data.workoutLogs = []
+        data.dailyLogs = []
+        data.healthMetrics = []
+        data.importedActivities = []
+        data.fitnessEvidence = []
+        return data
+    }
+
+    private func workout(date: String = "2026-10-05", completedAt: String = "2026-10-05T09:00:00Z") -> WorkoutSession {
+        WorkoutSession(id: UUID(), userID: owner, date: date, programDayID: dayID, isLite: false,
+                       isDeload: false, isEventRecovery: false, completed: true, qualityScore: 1,
+                       startedAt: "\(date)T08:00:00Z", completedAt: completedAt, notes: "Completed in tracked mode")
+    }
+
+    private func set(_ movementID: String?, session: UUID, weight: Double? = 60, reps: Int? = 10,
+                     exercise: UUID? = nil) -> WorkoutLog {
+        WorkoutLog(id: UUID(), userID: owner, sessionID: session, exerciseID: exercise,
+                   exerciseName: movementID ?? "Unlisted lift", setNumber: 1, weightKG: weight, reps: reps, rir: 2,
+                   movementID: movementID, skipped: false, overrideFlag: false, createdAt: "2026-10-05T08:10:00Z")
+    }
+
+    private func evidence(_ metric: FitnessEvidenceMetric, value: Double, measuredAt: String,
+                          protocolName: String = "apex_baseline_calibration_v1",
+                          lowerBound: Double? = nil) -> FitnessEvidenceRecord {
+        var metadata: [String: JSONValue] = ["answered_count": .number(3)]
+        if let lowerBound { metadata["lower_bound"] = .number(lowerBound) }
+        return FitnessEvidenceRecord(
+            id: UUID(), userID: owner, metric: metric, value: value, unit: "score_0_100",
+            source: .structuredSelfReport, protocol: protocolName, device: nil, measuredAt: measuredAt,
+            importedAt: measuredAt, confidence: .low, metadata: metadata, supersedesID: nil,
+            clientIdempotencyKey: UUID().uuidString)
+    }
+
+    private func result(_ data: DashboardData, through: String = "2026-10-06") throws -> FBEngineResult {
+        FitnessBrainEngine.compute(try XCTUnwrap(FitnessBrainService.engineInput(from: data)), throughDate: through)
+    }
+
+    private func latest(_ data: DashboardData, through: String = "2026-10-06") throws -> FBSnapshot {
+        try XCTUnwrap(result(data, through: through).snapshots.last)
+    }
+
+    private func engineInput(dayType: String, startingPoints: [String: Int]? = nil) throws -> FBEngineInput {
+        var data = dashboard(dayType: dayType)
+        data.profile?.avatarStartingPoints = startingPoints
+        return try XCTUnwrap(FitnessBrainService.engineInput(from: data))
+    }
+
+    private func fbSession(_ id: String, date: String = "2026-10-05", deload: Bool = false) -> FBWorkoutSession {
+        FBWorkoutSession(id: id, date: date, programDayID: dayID.uuidString.lowercased(), isDeload: deload,
+                         isEventRecovery: false, completed: true, qualityScore: 1)
+    }
+
+    private func fbSet(_ movementID: String?, session: String, weight: Double? = 60, reps: Int? = 10,
+                       duration: Int? = nil, exercise: String? = nil) -> FBWorkoutLog {
+        var log = FBWorkoutLog(
+            id: UUID().uuidString, sessionID: session, exerciseID: exercise,
+            exerciseName: movementID ?? "Unlisted lift", weightKG: weight, skipped: false, overrideFlag: false,
+            movementID: movementID, reps: reps, durationSeconds: duration)
+        log.performedTypes = MovementTiming.performedWorkoutTypes(for: log)
+        return log
+    }
+
+    private func scores(_ input: FBEngineInput, through: String = "2026-10-06") throws -> FBSnapshot {
+        try XCTUnwrap(FitnessBrainEngine.compute(input, throughDate: through).snapshots.last)
+    }
+
+    func testCoachPlanWorkoutMovesTheAvatar() throws {
+        var data = dashboard(dayType: "coach")
+        let rested = try latest(data)
+        let session = workout()
+        data.workoutSessions = [session]
+        data.workoutLogs = [set("barbell_back_squat", session: session.id)]
+        XCTAssertGreaterThan(try latest(data).strengthLower, rested.strengthLower)
+    }
+
+    func testReplayedReceiptEarnsItsPointsOnce() throws {
+        var data = dashboard()
+        let first = workout()
+        data.workoutSessions = [first]
+        data.workoutLogs = [set("barbell_back_squat", session: first.id)]
+        let once = try latest(data)
+        let replay = workout(completedAt: "2026-10-05T09:00:07Z")
+        data.workoutSessions.append(replay)
+        data.workoutLogs.append(set("barbell_back_squat", session: replay.id))
+        XCTAssertEqual(try latest(data), once)
+        let evening = WorkoutSession(
+            id: UUID(), userID: owner, date: first.date, programDayID: dayID, isLite: false, isDeload: false,
+            isEventRecovery: false, completed: true, qualityScore: 1, startedAt: "2026-10-05T18:00:00Z",
+            completedAt: "2026-10-05T19:00:00Z", notes: "Completed in tracked mode")
+        data.workoutSessions.append(evening)
+        data.workoutLogs.append(set("barbell_back_squat", session: evening.id))
+        XCTAssertGreaterThan(try latest(data).strengthLower, once.strengthLower)
+    }
+
+    func testUnlinkedWatchRecordingOfAnAppWorkoutIsNotASecondWorkout() throws {
+        var data = dashboard()
+        let session = workout()
+        data.workoutSessions = [session]
+        data.workoutLogs = [set("barbell_back_squat", session: session.id)]
+        func watch(_ start: String, _ end: String) -> ImportedActivity {
+            ImportedActivity(
+                id: UUID(), userID: owner, date: session.date, kind: "strength",
+                activity: "Traditional Strength Training", durationMinutes: 56, source: "Apple Watch",
+                healthKitWorkoutID: UUID(), startedAt: start, endedAt: end,
+                sourceBundleIdentifier: "com.apple.health")
+        }
+        data.importedActivities = [watch("2026-10-05T08:02:00Z", "2026-10-05T08:58:00Z")]
+        XCTAssertTrue(try XCTUnwrap(FitnessBrainService.engineInput(from: data)).importedActivities.isEmpty)
+        data.importedActivities = [watch("2026-10-05T18:00:00Z", "2026-10-05T18:56:00Z")]
+        XCTAssertEqual(try XCTUnwrap(FitnessBrainService.engineInput(from: data)).importedActivities.count, 1)
+    }
+
+    func testOneVO2ReadingStampedOnManyDaysAnchorsEnduranceOnce() throws {
+        func metric(_ day: Int, _ vo2: Double) -> HealthMetric {
+            HealthMetric(id: UUID(), userID: owner, date: String(format: "2026-10-%02d", day),
+                         weightKG: nil, vo2Max: vo2, restingHeartRate: nil)
+        }
+        var once = dashboard()
+        once.healthMetrics = [metric(2, 40)]
+        var restamped = once
+        restamped.healthMetrics += (3...6).map { metric($0, 40) }
+        XCTAssertEqual(try latest(once).endurance, 52)
+        XCTAssertEqual(try latest(restamped).endurance, 52)
+        restamped.healthMetrics[4] = metric(6, 44)
+        XCTAssertEqual(try latest(restamped).endurance, 55.7)
+    }
+
+    func testHealthReadingIsStoredOnTheDayItWasSampled() async throws {
+        let plan = HealthTodayQueryPlan(
+            weightKG: { nil },
+            vo2Max: { HealthDatedValue(value: 40, day: "2026-10-01") },
+            restingHeartRate: { HealthDatedValue(value: 52, day: "2026-10-06") },
+            dietaryWater: { .unavailable }, steps: { nil }, activeEnergyKcal: { nil },
+            exerciseMinutes: { nil }, sleepDurationHours: { nil }, heartRateVariabilityMS: { nil },
+            workouts: { [] })
+        let rows = try await plan.snapshot(date: "2026-10-06").metricRows(ownerID: owner, existing: [])
+        XCTAssertEqual(rows.map(\.date), ["2026-10-01", "2026-10-06"])
+        XCTAssertEqual(rows.map(\.vo2Max), [40, nil])
+        XCTAssertEqual(rows.map(\.restingHeartRate), [nil, 52])
+        let nextDay = try await plan.snapshot(date: "2026-10-07")
+        XCTAssertTrue(nextDay.metricRows(ownerID: owner, existing: rows).isEmpty)
+    }
+
+    func testEveningCalibrationWestOfGreenwichBelongsToTheLocalDay() throws {
+        let losAngeles = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
+        let record = evidence(.cardioCapacityScore, value: 62, measuredAt: "2026-11-10T02:30:00Z")
+        let anchors = FitnessBrainService.capacityCalibrationEvidence(
+            from: [record], ownerID: owner, timeZone: losAngeles)
+        XCTAssertEqual(anchors.map(\.measuredOn), ["2026-11-09"])
+    }
+
+    func testOnboardingAnswersOnSignupEveningDoNotAlterChosenStartingPoints() throws {
+        let losAngeles = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
+        var data = dashboard(baseline: "2026-11-09")
+        data.profile?.avatarStartingPoints = AvatarStartingPoints.balanced
+        data.fitnessEvidence = [evidence(.cardioCapacityScore, value: 30, measuredAt: "2026-11-10T02:30:00Z",
+                                         protocolName: "apex_onboarding_pulse_v1")]
+        let input = try XCTUnwrap(FitnessBrainService.engineInput(from: data, timeZone: losAngeles))
+        XCTAssertTrue(input.capacityCalibrationEvidence.isEmpty)
+    }
+
+    func testScoresShowOnSignupDayWhenTheStoredBaselineIsAheadOfTheDeviceDate() throws {
+        var data = dashboard(baseline: "2026-11-10")
+        data.profile?.avatarStartingPoints = AvatarStartingPoints.balanced
+        XCTAssertEqual(try result(data, through: "2026-11-09").publishableSnapshots.last?.overall, 50)
+    }
+
+    func testCalibrationDatedAheadOfTheDeviceDateAppliesToday() throws {
+        var data = dashboard(baseline: "2026-11-01")
+        data.profile?.avatarStartingPoints = AvatarStartingPoints.balanced
+        var input = try XCTUnwrap(FitnessBrainService.engineInput(from: data))
+        input.capacityCalibrationEvidence = [FBCapacityCalibrationEvidence(
+            id: "ahead", userID: owner.uuidString.lowercased(), metric: .cardiorespiratory, value: 62,
+            measuredOn: "2026-11-10", importedAt: "2026-11-10T01:00:00Z", coverage: 0.55, supersedesID: nil)]
+        XCTAssertEqual(FitnessBrainEngine.compute(input, throughDate: "2026-11-09").snapshots.last?.endurance, 56.6)
+    }
+
+    func testNewProfileCarriesTheDeviceDateAsItsBaseline() throws {
+        let body = try JSONEncoder().encode(ProfileCreationRequest(userID: owner, goal: "maintain"))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
+        XCTAssertEqual(json["baseline_date"] as? String, Date().apexDateKey)
+    }
+
+    func testEasingAssistanceCountsAsProgress() throws {
+        var input = try engineInput(dayType: "pull")
+        input.exercises = [FBExerciseRef(id: "pull-up", programDayID: dayID.uuidString.lowercased())]
+        input.workoutSessions = [fbSession("first", date: "2026-10-02"), fbSession("second")]
+        input.workoutLogs = [fbSet(nil, session: "first", weight: -30, exercise: "pull-up"),
+                             fbSet(nil, session: "second", weight: -30, exercise: "pull-up")]
+        let level = try scores(input).strengthUpper
+        input.workoutLogs[1].weightKG = -20
+        XCTAssertGreaterThan(try scores(input).strengthUpper, level)
+    }
+
+    func testDeloadDayBanksItsJointCreditOnce() throws {
+        var input = try engineInput(dayType: "push")
+        input.workoutSessions = [fbSession("morning", deload: true)]
+        let one = FitnessBrainEngine.compute(input, throughDate: "2026-10-06")
+        input.workoutSessions.append(fbSession("evening", deload: true))
+        let two = FitnessBrainEngine.compute(input, throughDate: "2026-10-06")
+        XCTAssertEqual(two.synergies.filter { $0.kind == .deloadHonored }.count, 1)
+        XCTAssertEqual(two.snapshots.last?.joint, one.snapshots.last?.joint)
+    }
+
+    func testWorkoutInAScheduledDeloadWeekEarnsTheDeloadCredit() throws {
+        var data = dashboard(dayType: "push")
+        let main = try XCTUnwrap(data.programs.first { $0.slug == "main" })
+        data.programDays = [ProgramDay(id: dayID, userID: owner, programID: main.id, weekday: 1, name: "Day",
+                                       dayType: "push", estimatedMinutes: 45, warmupNote: "", sortOrder: 0)]
+        data.settings?.addons["training_protocol"] = .object(["start_date": .string("2026-09-07")])
+        data.workoutSessions = [workout(date: "2026-09-30", completedAt: "2026-09-30T09:00:00Z"),
+                                workout(date: "2026-10-07", completedAt: "2026-10-07T09:00:00Z")]
+        let input = try XCTUnwrap(FitnessBrainService.engineInput(from: data))
+        XCTAssertEqual(input.workoutSessions.map(\.isDeload), [true, false])
+    }
+
+    func testFullBodyDayCreditsEachBodyAreaItsMovementsTrained() throws {
+        var input = try engineInput(dayType: "upper")
+        let rested = try scores(input)
+        input.workoutSessions = [fbSession("full")]
+        input.workoutLogs = [fbSet("leg_press", session: "full"), fbSet("machine_chest_press", session: "full")]
+        let trained = try scores(input)
+        XCTAssertGreaterThan(trained.strengthLower, rested.strengthLower)
+        XCTAssertGreaterThan(trained.strengthUpper, rested.strengthUpper)
+    }
+
+    func testLegPressIncreaseRaisesLowerBodyStrengthOnAnUpperTypedDay() throws {
+        var input = try engineInput(dayType: "upper")
+        input.exercises = [FBExerciseRef(id: "leg-press", programDayID: dayID.uuidString.lowercased())]
+        input.workoutSessions = [fbSession("first", date: "2026-10-02"), fbSession("second")]
+        input.workoutLogs = [fbSet("leg_press", session: "first", weight: 100, exercise: "leg-press"),
+                             fbSet("leg_press", session: "second", weight: 100, exercise: "leg-press")]
+        let level = try scores(input)
+        input.workoutLogs[1].weightKG = 110
+        let heavier = try scores(input)
+        XCTAssertGreaterThan(heavier.strengthLower, level.strengthLower)
+        XCTAssertEqual(heavier.strengthUpper, level.strengthUpper)
+    }
+
+    func testStrengthOnlyRecoveryTypedDayEarnsNoFlexibility() throws {
+        var input = try engineInput(dayType: "fix")
+        let rested = try scores(input)
+        input.workoutSessions = [fbSession("capacity")]
+        input.workoutLogs = [fbSet("lat_pulldown", session: "capacity"), fbSet("dead_bug", session: "capacity", weight: nil)]
+        let trained = try scores(input)
+        XCTAssertGreaterThan(trained.strengthUpper, rested.strengthUpper)
+        XCTAssertEqual(trained.flexibility, rested.flexibility)
+        XCTAssertEqual(trained.joint, rested.joint)
+    }
+
+    func testPlannedDayKeepsItsLabelForWorkTheAppCannotIdentify() throws {
+        var input = try engineInput(dayType: "legs_a")
+        let rested = try scores(input)
+        input.workoutSessions = [fbSession("legs")]
+        input.workoutLogs = [fbSet(nil, session: "legs"), fbSet("cat_cow", session: "legs", weight: nil, reps: nil, duration: 120)]
+        let trained = try scores(input)
+        XCTAssertGreaterThan(trained.strengthLower, rested.strengthLower)
+        XCTAssertGreaterThan(trained.flexibility, rested.flexibility)
+        input.workoutLogs = []
+        XCTAssertGreaterThan(try scores(input).strengthLower, rested.strengthLower)
+    }
+
+    private func selfCheck(_ value: Double, lowerBound: Double, on day: String) -> FitnessEvidenceRecord {
+        evidence(.upperBodyStrengthScore, value: value, measuredAt: "\(day)T08:00:00Z", lowerBound: lowerBound)
+    }
+
+    func testRecalibratingNeverLowersAScoreThatAlreadyMeetsTheAnswer() throws {
+        var data = dashboard()
+        data.profile?.avatarStartingPoints = [
+            "health": 50, "joint": 50, "flexibility": 50, "endurance": 35, "strength_upper": 85, "strength_lower": 30,
+        ]
+        data.fitnessEvidence = [selfCheck(77, lowerBound: 70, on: "2026-10-03")]
+        XCTAssertEqual(try latest(data).strengthUpper, 85)
+        data.fitnessEvidence = [selfCheck(47, lowerBound: 40, on: "2026-10-03")]
+        XCTAssertEqual(try latest(data).strengthUpper, 85)
+    }
+
+    func testRepeatingTheSameSelfCheckLiftsAScoreOnce() throws {
+        var data = dashboard()
+        data.profile?.avatarStartingPoints = AvatarStartingPoints.balanced
+        data.fitnessEvidence = [selfCheck(77, lowerBound: 70, on: "2026-10-03")]
+        XCTAssertEqual(try latest(data).strengthUpper, 64.9)
+        data.fitnessEvidence?.append(selfCheck(77, lowerBound: 70, on: "2026-10-05"))
+        XCTAssertEqual(try latest(data).strengthUpper, 64.9)
+        data.fitnessEvidence?.append(selfCheck(47, lowerBound: 40, on: "2026-10-06"))
+        XCTAssertEqual(try latest(data).strengthUpper, 64.9)
+    }
+
+    func testAHigherSelfCheckLiftsAgainAndTheFirstOneSetsAnUnknownScore() throws {
+        var data = dashboard()
+        data.fitnessEvidence = [selfCheck(30, lowerBound: 20, on: "2026-10-03")]
+        XCTAssertEqual(try latest(data).strengthUpper, 39)
+        data.fitnessEvidence?.append(selfCheck(62, lowerBound: 55, on: "2026-10-05"))
+        XCTAssertEqual(try latest(data).strengthUpper, 51.7)
+    }
+
+    func testPartlyLoggedFoodDayCostsNoStrengthGain() {
+        let bespoke = FBProfile(
+            userID: "9a0fffbc-bb02-40ac-834a-d4e339b32574", persona: .constantine, sex: "male", weightKG: 80,
+            bodyFatPct: 22.5, customBMR: nil, heightCM: 177, birthdate: "1990-01-01", activityLevel: .moderate,
+            goal: .recomp, baselineDate: "2026-01-01", profileKind: "bespoke",
+            bespokeProtocolID: "constantine-v8.5", bodyFatSource: "dexa")
+        var input = FBEngineInput(
+            profile: bespoke,
+            programDays: [FBProgramDayRef(id: "legs", dayType: .legsA)],
+            workoutSessions: [FBWorkoutSession(id: "session", date: "2026-01-02", programDayID: "legs",
+                                               isDeload: false, isEventRecovery: false, completed: true, qualityScore: 1)])
+        let fullyLogged = FitnessBrainEngine.compute(input, throughDate: "2026-01-03")
+        input.mealRhythmHistory["2026-01-02"] = FBMealRhythmDayRaw(
+            finalized: true, expectedMeals: 5, loggedMeals: 1, completionScore: 20, rhythmScore: 14,
+            verdict: "missed_meals")
+        let partlyLogged = FitnessBrainEngine.compute(input, throughDate: "2026-01-03")
+        XCTAssertEqual(partlyLogged.snapshots, fullyLogged.snapshots)
+        XCTAssertFalse(partlyLogged.synergies.contains { $0.kind == .mealRhythm })
+    }
+
+    func testTwoMealPlanMakesTwoMealsAFullDay() throws {
+        var data = DashboardData()
+        func meal(_ kcal: Double) -> LoggedMeal {
+            LoggedMeal(
+                id: UUID(), userID: owner, localDate: "2026-03-01", mealSlot: "lunch", displayName: "Meal",
+                sourcePresetID: nil, sourcePlannedMealID: nil, loggedAt: "2026-03-01T12:00:00Z",
+                clientIdempotencyKey: UUID().uuidString, loggedAs: "manual",
+                totalKcal: kcal, totalProteinG: 0, totalCarbsG: 0, totalFatG: 0)
+        }
+        data.loggedMeals = [meal(900), meal(1_000)]
+        let blocks: [JSONValue] = ["breakfast", "lunch", "dinner", "snack", "post_workout"].map { id in
+            .object(["id": .string(id), "enabled": .bool(id == "lunch" || id == "dinner")])
+        }
+        data.settings = UserSettings(
+            userID: owner, voiceOn: false, ticksOn: false, notificationsOn: false, guardianFactor: 1,
+            addons: ["meal_blocks": .object(["blocks": .array(blocks)])])
+        let report = try XCTUnwrap(NutritionReport.summarize(
+            ownerID: owner, data: data, dates: "2026-03-01"..."2026-03-10"))
+        XCTAssertEqual(report.loggedDays, 1)
+        XCTAssertEqual(report.partialDays, 0)
+    }
+
+    func testSettingsOffersNoOverloadGuardianWhileTheIPhoneNeverRunsIt() throws {
+        let app = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "APEX")
+        let settings = try String(contentsOf: app.appending(path: "Features/Settings/SettingsView.swift"), encoding: .utf8)
+        XCTAssertFalse(settings.contains("Overload Guardian"))
+    }
+
+    private func score(_ date: String, _ value: Double) -> RPGSnapshot {
+        RPGSnapshot(id: UUID(), userID: owner, date: date, overall: value, health: value, joint: value,
+                    flexibility: value, endurance: value, strength: value, strengthUpper: value, strengthLower: value)
+    }
+
+    func testChangeIsLabelledWithTheDaysItReallySpans() throws {
+        let dayThree = [score("2026-10-01", 50), score("2026-10-02", 51), score("2026-10-03", 53.2)]
+        let young = try XCTUnwrap(AvatarIndex.comparison(in: dayThree, window: 30))
+        XCTAssertEqual(young.days, 2)
+        XCTAssertEqual(young.snapshot.date, "2026-10-01")
+        XCTAssertNil(AvatarIndex.comparison(in: [score("2026-10-01", 50)], window: 30))
+        let sixWeeks = (0..<40).map { score(FBDate.addDays("2026-09-01", $0), 50 + Double($0) / 4) }
+        let month = try XCTUnwrap(AvatarIndex.comparison(in: sixWeeks, window: 30))
+        XCTAssertEqual(month.days, 30)
+        XCTAssertEqual(month.snapshot.date, "2026-09-10")
+    }
+
+    func testLevelSignalsNameNoLeaderOrLimiter() throws {
+        XCTAssertNil(AvatarIndex.leaderAndLimiter(Array(repeating: 50, count: 6)))
+        XCTAssertNil(AvatarIndex.leaderAndLimiter([50.2, 49.8, 50.4]))
+        let split = try XCTUnwrap(AvatarIndex.leaderAndLimiter([50, 62, 41]))
+        XCTAssertEqual(split.leader, 1)
+        XCTAssertEqual(split.limiter, 2)
+    }
+
+    func testFirstWeekOfRegularMealsScoresAsRegular() throws {
+        var data = dashboard(baseline: "2026-10-01")
+        data.settings?.addons["time_zone"] = .string("UTC")
+        data.loggedMeals = (1...7).map { day in
+            LoggedMeal(
+                id: UUID(), userID: owner, localDate: String(format: "2026-10-%02d", day), mealSlot: "lunch",
+                displayName: "Lunch", sourcePresetID: nil, sourcePlannedMealID: nil,
+                loggedAt: String(format: "2026-10-%02dT12:00:00Z", day), clientIdempotencyKey: UUID().uuidString,
+                loggedAs: "manual", totalKcal: 600, totalProteinG: 30, totalCarbsG: 60, totalFatG: 20)
+        }
+        let now = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-07T20:00:00Z"))
+        let rhythm = MetabolicRhythm(data: data, days: 30, now: now)
+        XCTAssertEqual(try XCTUnwrap(rhythm.score), 100, accuracy: 0.5)
+    }
+
+    func testBodyIndexCardFiguresFollowThePrintedScore() {
+        XCTAssertEqual(AvatarIndex.nextUnlock(after: 44.6), 50)
+        XCTAssertEqual(AvatarIndex.nextUnlock(after: 44.4), 45)
+        XCTAssertEqual(AvatarIndex.stepProgress(44.6), 0, accuracy: 0.001)
+        XCTAssertEqual(AvatarIndex.stepProgress(47.4), 0.4, accuracy: 0.001)
+        XCTAssertEqual(AvatarIndex.personalBest([68, 60.2, 61.4]), 61.4)
+        XCTAssertEqual(AvatarIndex.personalBest([68]), 68)
+        XCTAssertEqual(AvatarIndex.nextUnlock(after: 100), 100)
+        XCTAssertEqual(AvatarIndex.stepProgress(100), 1)
+    }
+
+    @MainActor
+    func testReportPrintsTheSameWholeNumberScoreAsTheApp() throws {
+        var data = dashboard()
+        data.snapshots = [score("2026-10-05", 60.2)]
+        let report = AvatarReport.scoped(ownerID: owner, data: data, partialScores: [:], period: .custom,
+                                        dates: "2026-10-01"..."2026-10-06", today: "2026-10-06")
+        let text = try XCTUnwrap(PDFDocument(data: report.pdfData())?.string)
+        XCTAssertTrue(text.contains("60 / 100"))
+        XCTAssertFalse(text.contains("60.2"))
+    }
+
+    private func historyStart() -> DashboardData {
+        var data = dashboard(baseline: "2026-09-01")
+        data.loggedMeals = []
+        data.loggedFoodEntries = []
+        data.hydrationEvents = []
+        return data
+    }
+
+    private func thirtyDays(kcal: Int? = nil, protein: Int? = nil, waterL: Double = 0) -> [DailyLog] {
+        (0..<30).map { offset in
+            DailyLog(id: UUID(), userID: owner, date: FBDate.addDays("2026-09-01", offset), kcal: kcal,
+                     proteinG: protein, fatG: nil, carbsG: nil, waterL: waterL, estimatedTDEE: nil,
+                     computedPAL: nil, activityMode: "quick", weightKG: nil)
+        }
+    }
+
+    private func waterGoal(_ milliliters: Int) -> HydrationAccountPreferences {
+        HydrationAccountPreferences(
+            userID: owner, targetML: milliliters, targetMode: "custom", displayUnit: "liters",
+            remindersEnabled: false, reminderIntervalMinutes: 60, quietHoursStartMinutes: 0,
+            quietHoursEndMinutes: 0, showsPresetNames: true, confirmationHaptics: true,
+            motionIntensity: "subtle", createdAt: "2026-09-01T00:00:00Z", updatedAt: "2026-09-01T00:00:00Z")
+    }
+
+    /// One recalculation as the app runs it: score, then keep the goal history with the settings.
+    private func recalculatedHealth(_ data: inout DashboardData, at instant: String) throws -> Double {
+        let now = try XCTUnwrap(ISO8601DateFormatter().date(from: instant))
+        let scored = try XCTUnwrap(FitnessBrainService.scoredInput(
+            from: data,
+            waterTargets: DailyWaterTargets(data: data, coachManaged: false, followsCoach: false, includeCustom: true),
+            now: now))
+        data.settings?.addons[ScoreGoalHistory.addonKey] = scored.history.stored
+        return try XCTUnwrap(FitnessBrainEngine.compute(scored.input, throughDate: now.apexDateKey).snapshots.last).health
+    }
+
+    func testRaisingTheWaterGoalTodayLeavesEarlierDaysGradedAsTheyWere() throws {
+        var data = historyStart()
+        data.dailyLogs = thirtyDays(waterL: 2.2)
+        data.hydrationPreferences = waterGoal(2_000)
+        let before = try recalculatedHealth(&data, at: "2026-10-01T12:00:00Z")
+        XCTAssertGreaterThan(before, 60)
+        data.hydrationPreferences = waterGoal(3_000)
+        XCTAssertEqual(try recalculatedHealth(&data, at: "2026-10-02T12:00:00Z"), before)
+    }
+
+    func testChangingWeightOrActivityTodayLeavesEarlierDaysGradedAsTheyWere() throws {
+        var data = historyStart()
+        let input = try XCTUnwrap(FitnessBrainService.engineInput(from: data))
+        let targets = FitnessBrainTargets.computeTargets(
+            input.profile, asOf: "2026-10-01", trainingGoal: input.trainingGoal, planWeeks: input.planWeeks)
+        XCTAssertTrue(targets.isPublishable)
+        data.dailyLogs = thirtyDays(kcal: Int(targets.kcal.rounded()), protein: Int(targets.proteinG.rounded()) + 5)
+        let before = try recalculatedHealth(&data, at: "2026-10-01T12:00:00Z")
+        XCTAssertGreaterThan(before, 60)
+        data.profile?.weightKG += 25
+        data.profile?.activityLevel = .sedentary
+        XCTAssertEqual(try recalculatedHealth(&data, at: "2026-10-02T12:00:00Z"), before)
+    }
+
+    func testGoalHistoryKeepsEachDaysGoalsAcrossSeveralChanges() {
+        func goals(_ kcal: Double) -> ScoreGoalHistory.Goals {
+            ScoreGoalHistory.Goals(customWaterML: nil, weightKG: 80, targets: FBTargets(
+                bmrMifflin: 1_700, bmrKatch: nil, tdee: kcal, kcal: kcal, proteinG: 150, fatG: 70, carbsG: 240, waterL: 2.75))
+        }
+        var history = ScoreGoalHistory()
+        XCTAssertTrue(history.note(goals(2_000), today: "2026-10-01"))
+        XCTAssertFalse(history.note(goals(2_000), today: "2026-10-02"))
+        XCTAssertTrue(history.note(goals(2_200), today: "2026-10-05"))
+        XCTAssertTrue(history.note(goals(2_300), today: "2026-10-05"))
+        XCTAssertTrue(history.note(goals(2_500), today: "2026-10-09"))
+        XCTAssertEqual(history.goals(on: "2026-10-04", now: goals(2_500)), goals(2_000))
+        XCTAssertEqual(history.goals(on: "2026-10-05", now: goals(2_500)), goals(2_300))
+        XCTAssertEqual(history.goals(on: "2026-10-08", now: goals(2_500)), goals(2_300))
+        XCTAssertEqual(history.goals(on: "2026-10-09", now: goals(2_500)), goals(2_500))
+        XCTAssertEqual(ScoreGoalHistory(stored: history.stored), history)
+    }
+}

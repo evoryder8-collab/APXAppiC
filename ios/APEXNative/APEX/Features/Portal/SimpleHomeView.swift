@@ -763,15 +763,16 @@ struct SimpleHomeView: View {
     }
 
     private var avatarSubtitle: String {
-        let sorted = session.data.snapshots.filter { $0.date <= today }.sorted { $0.date > $1.date }
-        guard let current = sorted.first else { return language.text("Complete your first logs to give the Avatar reliable signals.") }
-        let previous = sorted.dropFirst().first(where: { $0.date <= fourteenDaysAgo }) ?? sorted.last ?? current
-        let delta = current.overall - previous.overall
-        return language.format("%+.1f over 14 days · tap for the full story", delta)
-    }
-
-    private var fourteenDaysAgo: String {
-        FBDate.addDays(today, -14)
+        let sorted = session.data.snapshots.filter { $0.date <= today }.sorted { $0.date < $1.date }
+        // A change needs two days to stand on; a younger account is told the span it really has.
+        guard let current = sorted.last, let earlier = AvatarIndex.comparison(in: sorted, window: 14),
+              earlier.days >= 2 else {
+            return language.text("Complete your first logs to give the Avatar reliable signals.")
+        }
+        let delta = current.overall - earlier.snapshot.overall
+        return earlier.days == 14
+            ? language.format("%+.1f over 14 days · tap for the full story", delta)
+            : language.format("%+.1f over %d days · tap for the full story", delta, earlier.days)
     }
 
     private var orbitSubtitle: String {

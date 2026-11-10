@@ -94,12 +94,14 @@ public enum FitnessBrainEngine {
                 > "\(existing.measuredOn):\(existing.importedAt):\(existing.id)"
         }
 
-        for item in owned where !supersededIDs.contains(item.id) {
+        for var item in owned where !supersededIDs.contains(item.id) {
             guard item.value.isFinite,
                   (0...100).contains(item.value),
                   item.coverage.isFinite,
-                  item.coverage > 0,
-                  item.measuredOn <= throughDate else { continue }
+                  item.coverage > 0 else { continue }
+            // Evidence that already exists cannot be from the future: an answer stamped with
+            // tomorrow's UTC date on an evening west of Greenwich counts today.
+            item.measuredOn = min(item.measuredOn, throughDate)
             if item.measuredOn <= baselineDate {
                 if let existing = beforeBaseline[item.metric], !isNewer(item, than: existing) {
                     continue
@@ -117,26 +119,33 @@ public enum FitnessBrainEngine {
         return CapacityCalibrationTimeline(beforeBaseline: beforeBaseline, byDate: byDate)
     }
 
+    /// A self-check sets the first estimate of a domain that has no evidence yet. Once a domain
+    /// has evidence, an answer only lifts a score that sits below the answered band, and the
+    /// same or a lower answer given again lifts nothing. It never takes away what the log earned.
     @discardableResult
     private static func applyCapacityCalibration(
         _ evidence: [FBCapacityCalibrationMetric: FBCapacityCalibrationEvidence],
-        to stats: inout StatBlock
+        to stats: inout StatBlock,
+        observed: [String: String],
+        credited: inout [FBCapacityCalibrationMetric: Double]
     ) -> Set<FBCapacityCalibrationMetric> {
         var applied = Set<FBCapacityCalibrationMetric>()
         for metric in evidence.keys.sorted(by: { $0.rawValue < $1.rawValue }) {
             guard let item = evidence[metric] else { continue }
-            let weight = min(0.55, max(0, item.coverage))
-            let anchor = clamp(item.value)
+            let key: String
+            let stat: WritableKeyPath<StatBlock, Double>
             switch metric {
-            case .cardiorespiratory:
-                stats.endurance += (anchor - stats.endurance) * weight
-            case .upperStrength:
-                stats.strengthUpper += (anchor - stats.strengthUpper) * weight
-            case .lowerStrength:
-                stats.strengthLower += (anchor - stats.strengthLower) * weight
-            case .flexibility:
-                stats.flexibility += (anchor - stats.flexibility) * weight
+            case .cardiorespiratory: (key, stat) = ("endurance", \.endurance)
+            case .upperStrength: (key, stat) = ("upper", \.strengthUpper)
+            case .lowerStrength: (key, stat) = ("lower", \.strengthLower)
+            case .flexibility: (key, stat) = ("flexibility", \.flexibility)
             }
+            let anchor = clamp(item.value)
+            let current = stats[keyPath: stat]
+            let lifts = observed[key] == nil
+                || (current < (item.lowerBound ?? anchor) && anchor > (credited[metric] ?? -.infinity))
+            if lifts { stats[keyPath: stat] += (anchor - current) * min(0.55, max(0, item.coverage)) }
+            credited[metric] = max(credited[metric] ?? anchor, anchor)
             applied.insert(metric)
         }
         return applied
@@ -175,7 +184,6 @@ public enum FitnessBrainEngine {
         var recoveryScore: Double?
         var recoverySource: FBRecoverySource?
         var mealRhythmScore: Double?
-        var mealCompletionScore: Double?
         var mealRhythmVerdict: FBMealRhythmVerdict?
         var streak = 0
     }
@@ -247,7 +255,7 @@ public enum FitnessBrainEngine {
 
         var dayTypeByID: [String: FBDayType] = [:]
         for d in input.programDays { dayTypeByID[d.id] = d.dayType }
-        let targets = FitnessBrainTargets.computeTargets(
+        let currentTargets = FitnessBrainTargets.computeTargets(
             profile,
             asOf: throughDate,
             trainingGoal: input.trainingGoal,
@@ -288,11 +296,25 @@ public enum FitnessBrainEngine {
             }
             guard quality > 0 else { continue }
             guard let type = dayTypeByID[s.programDayID], type != .custom else { continue }
-            day(s.date).types.append(TypeEntry(
-                type: type,
-                quality: quality,
-                deload: s.isDeload,
-                recovery: s.isEventRecovery))
+            let activity = day(s.date)
+            if s.isEventRecovery {
+                activity.types.append(TypeEntry(type: type, quality: quality, deload: s.isDeload, recovery: true))
+                continue
+            }
+            // A planned session credits the body areas its catalogue movements trained. A strength
+            // or mobility label speaks only for work the receipt cannot identify, or when it
+            // identifies nothing. A cardio label always stands: conditioning is often built from
+            // strength movements.
+            let logs = logsBySession[s.id] ?? []
+            let proved = Set(logs.flatMap { $0.performedTypes ?? [] })
+            let labelled = type.activityDomain == .cardio || proved.isEmpty
+                || logs.contains { ($0.movementID ?? "").isEmpty && $0.hasPerformedWork }
+            for domain in [FBDayType.upper, .legsA, .mobility, .cardio] {
+                let own = domain == type.activityDomain
+                guard proved.contains(domain) || (own && labelled) else { continue }
+                activity.types.append(TypeEntry(
+                    type: own ? type : domain, quality: quality, deload: s.isDeload, recovery: false))
+            }
         }
         /* Focus T25 conditioning logged inside any completed session */
         for log in input.workoutLogs {
@@ -336,27 +358,34 @@ public enum FitnessBrainEngine {
         /* Progressive overload: top weight rises vs the previous session */
         var byExercise: [String: [(date: String, w: Double)]] = [:]
         var exerciseOrder: [String] = []
+        var exerciseDomains: [String: Set<FBDayType>] = [:]
         for log in input.workoutLogs {
             guard let exID = log.exerciseID, log.hasPerformedWork, let w = log.weightKG, w.isFinite,
                   let s = sessionByID[log.sessionID], s.completed,
                   (qualityBySession[s.id] ?? 0) > 0 else { continue }
             if byExercise[exID] == nil { exerciseOrder.append(exID) }
             byExercise[exID, default: []].append((s.date, w))
+            exerciseDomains[exID, default: []].formUnion(log.performedTypes ?? [])
         }
         var exerciseDayByID: [String: String] = [:]
         for e in input.exercises { exerciseDayByID[e.id] = e.programDayID }
         for exID in exerciseOrder {
             var byDate: [String: Double] = [:]
+            // Seeded with the first load, not zero: an assisted lift is logged below zero.
             for entry in byExercise[exID] ?? [] {
-                byDate[entry.date] = max(byDate[entry.date] ?? 0, entry.w)
+                byDate[entry.date] = max(byDate[entry.date] ?? entry.w, entry.w)
             }
             let dates = byDate.keys.sorted()
             for i in 1..<max(1, dates.count) where dates.count > 1 {
                 if (byDate[dates[i]] ?? 0) > (byDate[dates[i - 1]] ?? 0) {
                     let type = exerciseDayByID[exID].flatMap { dayTypeByID[$0] }
                     let a = day(dates[i])
-                    if let type, lowerTypes.contains(type) { a.overloadLower += 1 }
-                    else if let type, upperTypes.contains(type) { a.overloadUpper += 1 }
+                    // The movement decides which half of the body progressed. The day's label
+                    // speaks only for a lift the catalogue cannot identify.
+                    let domains = exerciseDomains[exID] ?? []
+                    let lower = domains.isEmpty ? type.map(lowerTypes.contains) == true : domains.contains(.legsA)
+                    let upper = domains.isEmpty ? type.map(upperTypes.contains) == true : domains.contains(.upper)
+                    if lower { a.overloadLower += 1 } else if upper { a.overloadUpper += 1 }
                 }
             }
         }
@@ -390,7 +419,6 @@ public enum FitnessBrainEngine {
             guard rhythm.finalized, rhythm.date <= throughDate else { continue }
             let d = day(rhythm.date)
             d.mealRhythmScore = rhythm.rhythmScore
-            d.mealCompletionScore = rhythm.completionScore
             d.mealRhythmVerdict = rhythm.verdict
         }
 
@@ -398,7 +426,8 @@ public enum FitnessBrainEngine {
             $0 < profile.baselineDate && $0 <= throughDate && activity[$0]?.types.isEmpty == false
                 && FBDate.validDate($0) != nil
         }.min()
-        let start = earliestWork ?? profile.baselineDate
+        // A baseline the server stamped with tomorrow's UTC date still starts today.
+        let start = min(earliestWork ?? profile.baselineDate, throughDate)
         let total = FBDate.daysBetween(start, throughDate)
         if total < 0 { return FBEngineResult(snapshots: [], synergies: []) }
 
@@ -434,7 +463,9 @@ public enum FitnessBrainEngine {
             baselineDate: start,
             throughDate: throughDate
         )
-        let preCalibration = applyCapacityCalibration(calibrationTimeline.beforeBaseline, to: &s)
+        var creditedSelfChecks: [FBCapacityCalibrationMetric: Double] = [:]
+        let preCalibration = applyCapacityCalibration(
+            calibrationTimeline.beforeBaseline, to: &s, observed: firstObserved, credited: &creditedSelfChecks)
         for (metric, key) in [(FBCapacityCalibrationMetric.cardiorespiratory, "endurance"),
                               (.upperStrength, "upper"), (.lowerStrength, "lower"), (.flexibility, "flexibility")]
             where preCalibration.contains(metric) { observe(key, start) }
@@ -493,7 +524,8 @@ public enum FitnessBrainEngine {
             var fedLower = false, fedJoint = false, fedHealth = false
 
             if let calibration = calibrationTimeline.byDate[date] {
-                let calibrated = applyCapacityCalibration(calibration, to: &s)
+                let calibrated = applyCapacityCalibration(
+                    calibration, to: &s, observed: firstObserved, credited: &creditedSelfChecks)
                 fedEndurance = calibrated.contains(.cardiorespiratory)
                 fedFlexibility = calibrated.contains(.flexibility)
                 fedUpper = calibrated.contains(.upperStrength)
@@ -515,6 +547,8 @@ public enum FitnessBrainEngine {
                                                        label: "Explicitly skipped workout: −1 training point"))
                     }
                 }
+                // A day is graded against the targets in force on it, not against today's.
+                let targets = input.pastTargets.first { date < $0.until }?.targets ?? currentTargets
                 let proteinHit = targets.isPublishable
                     && (a.protein ?? -1) >= targets.proteinG * 0.95
                 let deepDeficit = targets.isPublishable
@@ -541,13 +575,8 @@ public enum FitnessBrainEngine {
                         date: date, kind: .deficitStrength,
                         label: "Deep calorie deficit under a strength session. XP tempered -15%, recovery costs energy"))
                 }
-                if authored, hasStrengthSession, let completion = a.mealCompletionScore, completion < 60 {
-                    strengthMult *= 0.94
-                    synergies.append(FBSynergyEvent(
-                        date: date, kind: .mealRhythm,
-                        label: "Closed-day meal completion was \(Int(completion))%. Training adaptation credit was tempered until the missing intake is corrected"))
-                }
 
+                var deloadBanked = false
                 for t in a.types {
                     let q = max(0, min(1, t.quality)) * streakMult
                     if t.recovery {
@@ -555,7 +584,8 @@ public enum FitnessBrainEngine {
                         fedJoint = true
                         continue
                     }
-                    if t.deload {
+                    if t.deload && !deloadBanked {
+                        deloadBanked = true
                         s.joint += 2.5 * q * headroom(s.joint)
                         fedJoint = true
                         synergies.append(FBSynergyEvent(

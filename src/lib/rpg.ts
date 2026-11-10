@@ -175,6 +175,8 @@ interface CapacityCalibrationAnchor {
   measuredOn: string
   importedAt: string
   coverage: number
+  /** The bottom of the answered band. A score already at or above it is not pulled. */
+  lowerBound: number
 }
 
 interface CapacityCalibrationTimeline {
@@ -218,7 +220,10 @@ function capacityCalibrationTimeline(
 
   for (const record of owned) {
     const metric = capacityCalibrationMetrics[record.metric]
-    const measuredOn = record.measured_at.slice(0, 10)
+    const stamped = record.measured_at.slice(0, 10)
+    // Evidence that already exists cannot be from the future: an answer stamped with
+    // tomorrow's UTC date on an evening west of Greenwich counts today.
+    const measuredOn = stamped > throughDate ? throughDate : stamped
     if (
       supersededIDs.has(record.id)
       || !metric
@@ -230,8 +235,7 @@ function capacityCalibrationTimeline(
       || !Number.isFinite(record.value)
       || record.value < 0
       || record.value > 100
-      || !/^\d{4}-\d{2}-\d{2}$/.test(measuredOn)
-      || measuredOn > throughDate
+      || !/^\d{4}-\d{2}-\d{2}$/.test(stamped)
     ) continue
     const coverage = calibrationCoverage(record)
     if (coverage <= 0) continue
@@ -242,6 +246,7 @@ function capacityCalibrationTimeline(
       measuredOn,
       importedAt: record.imported_at,
       coverage,
+      lowerBound: typeof record.metadata.lower_bound === 'number' ? record.metadata.lower_bound : record.value,
     }
     const destination = measuredOn <= baselineDate
       ? beforeBaseline
@@ -257,20 +262,34 @@ function capacityCalibrationTimeline(
   return { beforeBaseline, byDate }
 }
 
+const calibratedStat: Record<CapacityCalibrationMetric, keyof StatBlock> = {
+  cardiorespiratory: 'endurance',
+  upper_strength: 'strength_upper',
+  lower_strength: 'strength_lower',
+  flexibility: 'flexibility',
+}
+
+/*
+ * A self-check sets the first estimate of a domain that has no evidence yet. Once a domain
+ * has evidence, an answer only lifts a score that sits below the answered band, and the same
+ * or a lower answer given again lifts nothing. It never takes away what the log earned.
+ */
 function applyCapacityCalibration(
   stats: StatBlock,
   evidence: Map<CapacityCalibrationMetric, CapacityCalibrationAnchor>,
+  observed: EngineResult['firstObserved'],
+  credited: Map<CapacityCalibrationMetric, number>,
 ): Set<CapacityCalibrationMetric> {
   const applied = new Set<CapacityCalibrationMetric>()
   for (const metric of [...evidence.keys()].sort()) {
     const anchor = evidence.get(metric)
     if (!anchor) continue
-    const weight = Math.min(0.55, Math.max(0, anchor.coverage))
+    const stat = calibratedStat[metric]
     const value = clamp(anchor.value)
-    if (metric === 'cardiorespiratory') stats.endurance += (value - stats.endurance) * weight
-    else if (metric === 'upper_strength') stats.strength_upper += (value - stats.strength_upper) * weight
-    else if (metric === 'lower_strength') stats.strength_lower += (value - stats.strength_lower) * weight
-    else stats.flexibility += (value - stats.flexibility) * weight
+    const lifts = observed[stat] == null
+      || (stats[stat] < anchor.lowerBound && value > (credited.get(metric) ?? -Infinity))
+    if (lifts) stats[stat] += (value - stats[stat]) * Math.min(0.55, Math.max(0, anchor.coverage))
+    credited.set(metric, Math.max(credited.get(metric) ?? value, value))
     applied.add(metric)
   }
   return applied
@@ -293,7 +312,6 @@ interface DayActivity {
   recoveryScore: number | null
   recoverySource: RecoveryDataSource | null
   mealRhythmScore: number | null
-  mealCompletionScore: number | null
   mealRhythmVerdict: MealRhythmVerdict | null
   streak: number
 }
@@ -330,7 +348,8 @@ export function computeEngine(data: AppData, throughDate: string,
   const authored = bespokeProtocolFor(profile) != null
   const allocated = !authored && validStartingPoints(profile.avatar_starting_points)
 
-  const dayTypeById = new Map(programDays.map((d) => [d.id, d.day_type]))
+  // A coach plan has no day category of its own; its performed movements earn the credit.
+  const dayTypeById = new Map(programDays.map((d) => [d.id, d.day_type === 'coach' ? 'custom' : d.day_type]))
   const targets = computeTargets(profile, nutritionPlanContext(data.settings?.addons.training_induction ?? data.settings?.addons.training_induction_baseline))
   const canScoreNutrition = hasScorableNutritionTargets(targets)
 
@@ -344,7 +363,7 @@ export function computeEngine(data: AppData, throughDate: string,
         waterL: null, kcal: null, protein: null,
         importStrengthMin: 0, importEnduranceMin: 0, importMobilityMin: 0,
         vo2: null, recoveryScore: null, recoverySource: null, streak: 0,
-        mealRhythmScore: null, mealCompletionScore: null, mealRhythmVerdict: null,
+        mealRhythmScore: null, mealRhythmVerdict: null,
       }
       activity.set(date, a)
     }
@@ -381,12 +400,24 @@ export function computeEngine(data: AppData, throughDate: string,
     }
     if (quality === 0) continue
     if (!type || type === 'custom') continue
-    getDay(s.date).types.push({
-      type,
-      quality,
-      deload: s.is_deload,
-      recovery: s.is_event_recovery,
-    })
+    const day = getDay(s.date)
+    if (s.is_event_recovery) {
+      day.types.push({ type, quality, deload: s.is_deload, recovery: true })
+      continue
+    }
+    // A planned session credits the body areas its catalogue movements trained. A strength or
+    // mobility label speaks only for work the receipt cannot identify, or when it identifies
+    // nothing. A cardio label always stands: conditioning is often built from strength movements.
+    const logs = logsBySession.get(s.id) ?? []
+    const proved = new Set(logs.flatMap(performedWorkoutTypes))
+    const label = workoutActivityDomain(type)
+    const labelled = label === 'cardio' || proved.size === 0
+      || logs.some((log) => !log.movement_id && hasPerformedWorkoutFacts(log))
+    for (const domain of ['upper', 'legs_a', 'mobility', 'cardio'] as const) {
+      const own = domain === label
+      if (!proved.has(domain) && !(own && labelled)) continue
+      day.types.push({ type: own ? type : domain, quality, deload: s.is_deload, recovery: false })
+    }
   }
   for (const log of workoutLogs) {
     const session = sessionById.get(log.session_id)
@@ -435,6 +466,7 @@ export function computeEngine(data: AppData, throughDate: string,
   }
   /* Progressive overload events: top weight for an exercise rises vs previous session */
   const byExercise = new Map<string, Array<{ date: string; w: number }>>()
+  const exerciseDomains = new Map<string, Set<PerformedWorkoutType>>()
   for (const log of workoutLogs) {
     if (!log.exercise_id || !hasPerformedWorkoutFacts(log)
       || log.weight_kg == null || !Number.isFinite(log.weight_kg)) continue
@@ -443,19 +475,28 @@ export function computeEngine(data: AppData, throughDate: string,
     const arr = byExercise.get(log.exercise_id) ?? []
     arr.push({ date: s.date, w: log.weight_kg })
     byExercise.set(log.exercise_id, arr)
+    const domains = exerciseDomains.get(log.exercise_id) ?? new Set<PerformedWorkoutType>()
+    for (const domain of performedWorkoutTypes(log)) domains.add(domain)
+    exerciseDomains.set(log.exercise_id, domains)
   }
   const exerciseDayById = new Map(exercises.map((e) => [e.id, e.program_day_id]))
   for (const [exId, arr] of byExercise) {
     const byDate = new Map<string, number>()
-    for (const { date, w } of arr) byDate.set(date, Math.max(byDate.get(date) ?? 0, w))
+    // Seeded with the first load, not zero: an assisted lift is logged below zero.
+    for (const { date, w } of arr) byDate.set(date, Math.max(byDate.get(date) ?? w, w))
     const dates = [...byDate.keys()].sort()
     for (let i = 1; i < dates.length; i++) {
       if ((byDate.get(dates[i]) ?? 0) > (byDate.get(dates[i - 1]) ?? 0)) {
         const dayId = exerciseDayById.get(exId)
         const type = dayId ? dayTypeById.get(dayId) : undefined
         const a = getDay(dates[i])
-        if (type && LOWER_TYPES.includes(type)) a.overloadLower += 1
-        else if (type && UPPER_TYPES.includes(type)) a.overloadUpper += 1
+        // The movement decides which half of the body progressed. The day's label
+        // speaks only for a lift the catalogue cannot identify.
+        const domains = exerciseDomains.get(exId)
+        const lower = domains?.size ? domains.has('legs_a') : !!type && LOWER_TYPES.includes(type)
+        const upper = domains?.size ? domains.has('upper') : !!type && UPPER_TYPES.includes(type)
+        if (lower) a.overloadLower += 1
+        else if (upper) a.overloadUpper += 1
       }
     }
   }
@@ -496,7 +537,6 @@ export function computeEngine(data: AppData, throughDate: string,
     if (!rhythm.finalized || rhythm.date > throughDate) continue
     const day = getDay(rhythm.date)
     day.mealRhythmScore = rhythm.rhythm_score
-    day.mealCompletionScore = rhythm.completion_score
     day.mealRhythmVerdict = rhythm.verdict
   }
 
@@ -506,6 +546,8 @@ export function computeEngine(data: AppData, throughDate: string,
       if (date < start && date <= throughDate && day.types.length && isIsoDate(date)) start = date
     }
   }
+  // A baseline the server stamped with tomorrow's UTC date still starts today.
+  if (start > throughDate) start = throughDate
   const total = differenceInCalendarDays(
     new Date(throughDate + 'T12:00:00'),
     new Date(start + 'T12:00:00'),
@@ -531,11 +573,9 @@ export function computeEngine(data: AppData, throughDate: string,
   if (authored || allocated) for (const key of Object.keys(s) as (keyof StatBlock)[]) observe(key, start)
   let lastLegsOffset = -99 // day index of the last completed leg session
   const calibrationTimeline = capacityCalibrationTimeline(data, start, throughDate, allocated ? profile.baseline_date : undefined)
-  const atBaseline = applyCapacityCalibration(s, calibrationTimeline.beforeBaseline)
-  for (const [metric, key] of Object.entries({cardiorespiratory: 'endurance', upper_strength: 'strength_upper',
-    lower_strength: 'strength_lower', flexibility: 'flexibility'})) {
-    if (atBaseline.has(metric as CapacityCalibrationMetric)) observe(key as keyof StatBlock, start)
-  }
+  const creditedSelfChecks = new Map<CapacityCalibrationMetric, number>()
+  const atBaseline = applyCapacityCalibration(s, calibrationTimeline.beforeBaseline, firstObserved, creditedSelfChecks)
+  for (const metric of atBaseline) observe(calibratedStat[metric], start)
 
   /* --- pre-baseline Apple Health history informs the starting point. The 6b
      calibration stays the anchor; measured reality corrects it, and history
@@ -599,6 +639,8 @@ export function computeEngine(data: AppData, throughDate: string,
       const calibrated = applyCapacityCalibration(
         s,
         calibrationTimeline.byDate.get(date) ?? new Map(),
+        firstObserved,
+        creditedSelfChecks,
       )
       fed.endurance = calibrated.has('cardiorespiratory')
       fed.flexibility = calibrated.has('flexibility')
@@ -645,15 +687,8 @@ export function computeEngine(data: AppData, throughDate: string,
           strengthMult *= 0.85
           synergies.push({ date, kind: 'deficit_strength', label: 'Deep calorie deficit under a strength session. XP tempered -15%, recovery costs energy' })
         }
-        if (authored && hasStrengthSession && a.mealCompletionScore != null && a.mealCompletionScore < 60) {
-          strengthMult *= 0.94
-          synergies.push({
-            date,
-            kind: 'meal_rhythm',
-            label: `Closed-day meal completion was ${a.mealCompletionScore}%. Training adaptation credit was tempered until the missing intake is corrected`,
-          })
-        }
 
+        let deloadBanked = false
         for (const t of a.types) {
           const q = Math.max(0, Math.min(1, t.quality)) * streakMult
           if (t.recovery) {
@@ -661,7 +696,8 @@ export function computeEngine(data: AppData, throughDate: string,
             fed.joint = true
             continue
           }
-          if (t.deload) {
+          if (t.deload && !deloadBanked) {
+            deloadBanked = true
             s.joint += 2.5 * q * headroom(s.joint)
             fed.joint = true
             synergies.push({ date, kind: 'deload_honored', label: 'Deload honored. Joint Health banked the recovery' })

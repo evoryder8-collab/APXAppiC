@@ -1506,9 +1506,9 @@ private enum HealthReadTestError: Error {
 }
 
 private func makeHealthTodayPlan(
-    weightKG: @escaping @Sendable () async throws -> Double? = { nil },
-    vo2Max: @escaping @Sendable () async throws -> Double? = { nil },
-    restingHeartRate: @escaping @Sendable () async throws -> Double? = { nil },
+    weightKG: @escaping @Sendable () async throws -> HealthDatedValue? = { nil },
+    vo2Max: @escaping @Sendable () async throws -> HealthDatedValue? = { nil },
+    restingHeartRate: @escaping @Sendable () async throws -> HealthDatedValue? = { nil },
     dietaryWater: @escaping @Sendable () async throws -> HealthWaterTotals = { .unavailable },
     steps: @escaping @Sendable () async throws -> Double? = { nil },
     activeEnergyKcal: @escaping @Sendable () async throws -> Double? = { nil },

@@ -22,19 +22,13 @@ struct AvatarView: View {
 
     private var snapshot: RPGSnapshot? { snapshots.last }
 
-    private var comparisonSnapshot: RPGSnapshot? {
-        guard let latest = snapshot,
-              let latestDate = ISO8601DateFormatter.apexDateOnly.date(from: latest.date),
-              let cutoff = Calendar.current.date(byAdding: .day, value: -trendDays, to: latestDate) else { return snapshots.dropLast().last }
-        return snapshots.last(where: {
-            guard let date = ISO8601DateFormatter.apexDateOnly.date(from: $0.date) else { return false }
-            return date <= cutoff
-        }) ?? snapshots.first
+    private var comparison: (snapshot: RPGSnapshot, days: Int)? {
+        AvatarIndex.comparison(in: snapshots, window: trendDays)
     }
 
     private var stats: [AvatarStat] {
         let current = snapshot
-        let previous = comparisonSnapshot
+        let previous = comparison?.snapshot
         return [
             .init(key: "overall", name: "Overall Fitness Level", value: current?.overall ?? 1, previous: previous?.overall, color: APEXColor.green, icon: "sparkles"),
             .init(key: "health", name: "Health", value: current?.health ?? 1, previous: previous?.health, color: APEXColor.amber, icon: "heart.fill"),
@@ -47,8 +41,9 @@ struct AvatarView: View {
     }
 
     private var bodySignals: [AvatarStat] { Array(stats.dropFirst()) }
-    private var strongest: AvatarStat? { bodySignals.max(by: { $0.value < $1.value }) }
-    private var weakest: AvatarStat? { bodySignals.min(by: { $0.value < $1.value }) }
+    private var extremes: (leader: Int, limiter: Int)? { AvatarIndex.leaderAndLimiter(bodySignals.map(\.value)) }
+    private var strongest: AvatarStat? { extremes.map { bodySignals[$0.leader] } }
+    private var weakest: AvatarStat? { extremes.map { bodySignals[$0.limiter] } }
 
     var body: some View {
         let profile = session.accountOperationLease().map {
@@ -209,9 +204,9 @@ struct AvatarView: View {
 
     private var bodyIndexCard: some View {
         let overall = snapshot?.overall ?? 1
-        let best = snapshots.map(\.overall).max() ?? overall
-        let nextUnlock = max(5, ceil((overall + 0.01) / 5) * 5)
-        let delta = comparisonSnapshot.map { overall - $0.overall }
+        let best = AvatarIndex.personalBest(snapshots.map(\.overall)) ?? overall
+        let nextUnlock = AvatarIndex.nextUnlock(after: overall)
+        let delta = comparison.map { overall - $0.snapshot.overall }
         return VStack(alignment: .leading, spacing: 18) {
             HStack {
                 Text(language.text("FITR MAX BODY INDEX")).font(APEXFont.mono(10)).tracking(2.6)
@@ -222,31 +217,33 @@ struct AvatarView: View {
                     .padding(.horizontal, 12).padding(.vertical, 8).overlay(Capsule().stroke(APEXColor.green.opacity(0.55)))
             }
             HStack(alignment: .center, spacing: 18) {
-                Text("\(Int(overall.rounded()))").font(APEXFont.mono(66, weight: .bold))
+                Text("\(AvatarIndex.shown(overall))").font(APEXFont.mono(66, weight: .bold))
                 VStack(alignment: .leading, spacing: 5) {
                     Text(language.text(bodyIndexTitle(overall))).font(APEXFont.display(23)).lineLimit(2)
-                    Text(language.format("Your strongest signal is %@ at %d.", language.text(strongest?.name ?? "Building evidence"), Int((strongest?.value ?? 0).rounded())))
-                        .font(APEXFont.body(11, weight: .medium)).foregroundStyle(.white.opacity(0.63))
+                    if let strongest {
+                        Text(language.format("Your strongest signal is %@ at %d.", language.text(strongest.name), Int(strongest.value.rounded())))
+                            .font(APEXFont.body(11, weight: .medium)).foregroundStyle(.white.opacity(0.63))
+                    }
                 }
             }
             VStack(alignment: .leading, spacing: 7) {
                 HStack {
                     Text(language.text("PROGRESS TO NEXT UNLOCK")).font(APEXFont.mono(9)).tracking(1.5)
-                    Spacer(); Text("\(Int(nextUnlock))").font(APEXFont.mono(10))
+                    Spacer(); Text("\(nextUnlock)").font(APEXFont.mono(10))
                 }
                 GeometryReader { proxy in
                     ZStack(alignment: .leading) {
                         Capsule().fill(.white.opacity(0.11))
                         Capsule().fill(LinearGradient(colors: [APEXColor.teal, APEXColor.cyan], startPoint: .leading, endPoint: .trailing))
-                            .frame(width: proxy.size.width * min(1, max(0.025, overall / nextUnlock)))
+                            .frame(width: proxy.size.width * min(1, max(0.025, AvatarIndex.stepProgress(overall))))
                     }
                 }.frame(height: 8)
             }
             Divider().overlay(.white.opacity(0.14))
             HStack(spacing: 8) {
-                darkMetric("\(trendDays)-DAY CHANGE", delta.map(signed) ?? "—", delta.map { $0 >= 0 ? APEXColor.green : APEXColor.amber } ?? .white)
+                darkMetric("\(comparison?.days ?? trendDays)-DAY CHANGE", delta.map(signed) ?? "—", delta.map { $0 >= 0 ? APEXColor.green : APEXColor.amber } ?? .white)
                 darkMetric("PERSONAL BEST", "\(Int(best.rounded()))", APEXColor.amber)
-                darkMetric("NEXT UNLOCK", "\(Int(nextUnlock))", APEXColor.green)
+                darkMetric("NEXT UNLOCK", "\(nextUnlock)", APEXColor.green)
             }
         }
         .foregroundStyle(.white).padding(22)
@@ -603,7 +600,7 @@ struct AvatarView: View {
         var lines: [String] = []
         if let strongest { lines.append(language.format("%@ is your strongest current signal at %d.", language.text(strongest.name), Int(strongest.value.rounded()))) }
         let completed = session.data.workoutSessions.filter { $0.completed && isWithinDays($0.date, days: 14) }.count
-        lines.append(language.format("%d planned sessions completed in the last 14 days.", completed))
+        if completed > 0 { lines.append(language.format("%d planned sessions completed in the last 14 days.", completed)) }
         if let upper = snapshot?.strengthUpper, let lower = snapshot?.strengthLower {
             let leading = upper >= lower ? "Upper-body strength" : "Lower-body strength"
             lines.append(language.format("%@ has retained the stronger base at %d.", language.text(leading), Int(max(upper, lower).rounded())))
@@ -789,6 +786,46 @@ private struct AvatarEvidence: Identifiable {
     let color: Color
 }
 
+/// The figures on the body index card and the home tile, computed once so they cannot disagree.
+enum AvatarIndex {
+    /// The whole-number score every surface prints.
+    static func shown(_ overall: Double) -> Int {
+        Int(min(100, max(0, overall)).rounded())
+    }
+
+    /// The next multiple of five above the printed score.
+    static func nextUnlock(after overall: Double) -> Int {
+        min(100, (shown(overall) / 5 + 1) * 5)
+    }
+
+    /// How far the printed score is into its current five-point step.
+    static func stepProgress(_ overall: Double) -> Double {
+        shown(overall) >= 100 ? 1 : Double(shown(overall) % 5) / 5
+    }
+
+    /// The best score reached after day zero, which only holds the chosen or default starting point.
+    static func personalBest(_ history: [Double]) -> Double? {
+        history.dropFirst().max() ?? history.last
+    }
+
+    /// The earlier snapshot a change is measured from, oldest first, and the days it really spans.
+    /// A young account has no snapshot a full window back, so it is measured from its first day.
+    static func comparison(in snapshots: [RPGSnapshot], window: Int) -> (snapshot: RPGSnapshot, days: Int)? {
+        guard let latest = snapshots.last, let first = snapshots.first, first.date < latest.date else { return nil }
+        let cutoff = FBDate.addDays(latest.date, -window)
+        if let earlier = snapshots.last(where: { $0.date <= cutoff }) { return (earlier, window) }
+        return (first, FBDate.daysBetween(first.date, latest.date))
+    }
+
+    /// The strongest and the limiting signal, or nil while every signal prints the same number.
+    static func leaderAndLimiter(_ values: [Double]) -> (leader: Int, limiter: Int)? {
+        guard Set(values.map { Int($0.rounded()) }).count > 1,
+              let leader = values.indices.max(by: { values[$0] < values[$1] }),
+              let limiter = values.indices.min(by: { values[$0] < values[$1] }) else { return nil }
+        return (leader, limiter)
+    }
+}
+
 struct MetabolicRhythm {
     let mealCount: Int
     let daysWithMeals: Int
@@ -813,7 +850,10 @@ struct MetabolicRhythm {
         daysWithMeals = Set(meals.map(\.localDate)).count
         if let variation = MealTimingEngine.typicalTimingVariation(meals, timeZone: zone.identifier) {
             timingVariation = variation
-            let coverage = min(1, Double(daysWithMeals) / Double(max(1, days)))
+            // A new account is judged on the days it has existed, not on the whole window.
+            let joined = max(first, data.profile?.baselineDate ?? first)
+            let window = min(max(1, days), max(1, FBDate.daysBetween(joined, today) + 1))
+            let coverage = min(1, Double(daysWithMeals) / Double(window))
             let consistency = max(0, 1 - (timingVariation ?? 180) / 240)
             score = min(100, max(0, coverage * 70 + consistency * 30))
         } else {
