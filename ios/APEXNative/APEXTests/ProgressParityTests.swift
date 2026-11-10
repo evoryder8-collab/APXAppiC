@@ -384,6 +384,80 @@ final class ProgressParityTests: XCTestCase {
         XCTAssertEqual(both.right.scale, 1.5, accuracy: 0.0001)
     }
 
+    /// C8. Only the newest 120 photos used to load, so the earliest baselines
+    /// were missing from the timeline. Older ones now arrive a page at a
+    /// time, each photo once, and never the whole history in one request.
+    func testOlderPhotosLoadAPageAtATimeUntilTheFirstOne() async throws {
+        let owner = UUID()
+        /* Seven photos a day for fifty days, so the first page ends partway
+           through a day and the next one has to finish it. */
+        let start = try XCTUnwrap(APEXDateMath.date(from: "2026-01-01"))
+        var all: [ProgressPhoto] = []
+        for day in 0..<50 {
+            for shot in 0..<7 {
+                let moment = start.addingTimeInterval(Double(day) * 86_400 + Double(shot) * 3_600 + 21_600)
+                all.append(ProgressPhotoEngine.checkpoint(
+                    id: UUID(), userID: owner, takenAt: moment, pose: ["front", "side", "back"][shot % 3],
+                    framing: .full, width: 3, height: 4, referencePhotoID: nil, weightKG: nil, note: ""
+                ))
+            }
+        }
+        let newestFirst = ProgressPhotoEngine.timeline(all, earlier: [])
+        XCTAssertEqual(newestFirst.count, 350)
+
+        /* The server's answer: the owner's photos on or before a day, newest
+           first, cut at the limit. Same-day order is not the app's order. */
+        var requests: [(day: String, limit: Int)] = []
+        func server(_ day: String, _ limit: Int) -> [ProgressPhoto] {
+            requests.append((day, limit))
+            return Array(
+                all.filter { $0.localDate <= day }
+                    .sorted { ($0.localDate, $0.id.uuidString) > ($1.localDate, $1.id.uuidString) }
+                    .prefix(limit)
+            )
+        }
+
+        var shown = Array(newestFirst.prefix(ProgressPhotoEngine.pageSize))
+        var pages = 0
+        while pages < 10 {
+            let page = await ProgressPhotoEngine.earlierPage(after: shown, fetch: server)
+            XCTAssertTrue(Set(page.photos.map(\.id)).isDisjoint(with: shown.map(\.id)), "a photo was loaded twice")
+            shown = ProgressPhotoEngine.timeline(shown, earlier: page.photos)
+            pages += 1
+            if page.reachedEnd { break }
+        }
+
+        XCTAssertEqual(shown.count, 350, "photos beyond the first 120 never arrived")
+        XCTAssertEqual(shown.map(\.id), newestFirst.map(\.id), "every photo once, newest first")
+        XCTAssertEqual(shown.last?.localDate, "2026-01-01", "the earliest baseline is on the timeline")
+        XCTAssertEqual(pages, 2, "350 photos are the first page and two more")
+        XCTAssertTrue(
+            requests.allSatisfy { $0.limit <= ProgressPhotoEngine.pageSize + 7 },
+            "a page asked for more than a page: \(requests.map(\.limit))"
+        )
+
+        /* A photo saved after the first page loaded shifts every position on
+           the server. Paging by date is unmoved by it. */
+        let late = ProgressPhotoEngine.checkpoint(
+            id: UUID(), userID: owner, takenAt: start.addingTimeInterval(60 * 86_400), pose: "front",
+            framing: .full, width: 3, height: 4, referencePhotoID: nil, weightKG: nil, note: ""
+        )
+        all.append(late)
+        let firstPage = Array(newestFirst.prefix(ProgressPhotoEngine.pageSize))
+        let next = await ProgressPhotoEngine.earlierPage(after: [late] + firstPage, fetch: server)
+        XCTAssertEqual(next.photos.count, ProgressPhotoEngine.pageSize)
+        XCTAssertEqual(
+            ProgressPhotoEngine.timeline([late] + firstPage, earlier: next.photos).map(\.id),
+            ProgressPhotoEngine.timeline(all, earlier: []).prefix(241).map(\.id),
+            "nothing skipped and nothing repeated"
+        )
+
+        /* Nothing loaded means nothing older to ask for. */
+        let none = await ProgressPhotoEngine.earlierPage(after: [], fetch: server)
+        XCTAssertTrue(none.photos.isEmpty)
+        XCTAssertTrue(none.reachedEnd)
+    }
+
     /// A comparison must never borrow a score recorded after the photo.
     func testSnapshotNeverComesFromTheFuture() {
         let snapshots = [("2026-05-01", 4.0), ("2026-06-20", 6.0), ("2026-09-01", 9.0)].map { date, level in

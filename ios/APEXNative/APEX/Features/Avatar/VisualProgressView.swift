@@ -27,6 +27,14 @@ struct VisualProgressView: View {
     @State private var showComparison = false
     @State private var preparationTask: Task<Void, Never>?
     @State private var preparationID: UUID?
+    /// Older photos loaded as the timeline is scrolled, beyond the first page.
+    @State private var earlierPhotos: [ProgressPhoto] = []
+    @State private var reachedFirstPhoto = false
+
+    /// Every photo loaded so far, newest first.
+    private var photos: [ProgressPhoto] {
+        ProgressPhotoEngine.timeline(session.data.progressPhotos, earlier: earlierPhotos)
+    }
 
     /// Opens straight on the review of a photo already in hand.
     init(reviewing image: UIImage? = nil) {
@@ -36,7 +44,7 @@ struct VisualProgressView: View {
     /// The two chosen photos, oldest first so BEFORE really is before.
     private var comparisonPair: (before: ProgressPhoto, after: ProgressPhoto)? {
         let chosen = comparisonSelection.compactMap { id in
-            session.data.progressPhotos.first { $0.id == id }
+            photos.first { $0.id == id }
         }
         guard chosen.count == 2 else { return nil }
         let ordered = chosen.sorted { $0.localDate < $1.localDate }
@@ -180,7 +188,7 @@ struct VisualProgressView: View {
                     }
                 }
 
-                if session.data.progressPhotos.isEmpty {
+                if photos.isEmpty {
                     GlassCard(radius: 29, padding: 20) {
                         VStack(spacing: 9) {
                             Text(language.text("No synced checkpoints yet"))
@@ -193,19 +201,28 @@ struct VisualProgressView: View {
                         .frame(maxWidth: .infinity)
                     }
                 } else {
-                    VStack(alignment: .leading, spacing: 12) {
+                    /* Lazy, so the end of the list is only reached by
+                       scrolling to it, and that is what asks for older photos. */
+                    LazyVStack(alignment: .leading, spacing: 12) {
                         Text(language.text("Timeline"))
                             .font(APEXFont.display(25))
                         Text(language.text("Select any two checkpoints to compare them."))
                             .font(APEXFont.body(12, weight: .medium))
                             .foregroundStyle(APEXColor.secondaryInk)
-                        ForEach(session.data.progressPhotos) { photo in
+                        ForEach(photos) { photo in
                             ProgressTimelineRow(
                                 photo: photo,
                                 selected: comparisonSelection.contains(photo.id)
                             ) {
                                 toggleComparison(photo.id)
                             }
+                            .layoutFrame("timelineRow \(photo.id)")
+                        }
+                        if !reachedFirstPhoto, photos.count >= ProgressPhotoEngine.pageSize {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .task(id: photos.count) { await loadEarlierPhotos() }
                         }
                     }
                 }
@@ -246,6 +263,8 @@ struct VisualProgressView: View {
             selectedImage = nil
             note = ""
             capturedWeightKG = nil
+            earlierPhotos = []
+            reachedFirstPhoto = false
             saveError = nil
             showBriefing = false
             captureIntent = nil
@@ -286,7 +305,7 @@ struct VisualProgressView: View {
                session.accountOperationIsCurrent(operation) {
                 ProgressCameraView(
                     intent: intent,
-                    photos: session.data.progressPhotos,
+                    photos: photos,
                     operation: operation,
                     onClose: {
                         guard captureRequestID == requestID else { return }
@@ -349,7 +368,7 @@ struct VisualProgressView: View {
     }
 
     private var selectedPhotos: [ProgressPhoto] {
-        comparisonSelection.compactMap { id in session.data.progressPhotos.first { $0.id == id } }
+        comparisonSelection.compactMap { id in photos.first { $0.id == id } }
             .sorted { $0.localDate < $1.localDate }
     }
 
@@ -367,6 +386,19 @@ struct VisualProgressView: View {
             comparisonSelection.append(id)
         } else {
             comparisonSelection = [comparisonSelection[1], id]
+        }
+    }
+
+    @MainActor
+    private func loadEarlierPhotos() async {
+        guard let operation = session.accountOperationLease() else { return }
+        do {
+            let page = try await session.earlierProgressPhotos(after: photos, operation: operation)
+            guard session.accountOperationIsCurrent(operation) else { return }
+            earlierPhotos.append(contentsOf: page.photos)
+            reachedFirstPhoto = page.reachedEnd
+        } catch {
+            /* Asked again the next time the end of the list scrolls into view. */
         }
     }
 

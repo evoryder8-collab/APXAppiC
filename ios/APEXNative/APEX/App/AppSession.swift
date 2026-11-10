@@ -5777,6 +5777,21 @@ final class AppSession {
         try requireCurrentAccountOperation(operation)
     }
 
+    /// Progress photos older than the ones already loaded, a page at a time.
+    func earlierProgressPhotos(
+        after loaded: [ProgressPhoto],
+        operation: AccountOperationLease
+    ) async throws -> (photos: [ProgressPhoto], reachedEnd: Bool) {
+        if isDeveloperSandbox { return ([], true) }
+        try requireCurrentAccountOperation(operation)
+        let page = try await service.loadEarlierProgressPhotos(
+            ownerID: operation.ownerID,
+            after: loaded.filter { $0.userID == operation.ownerID }
+        )
+        try requireCurrentAccountOperation(operation)
+        return (page.photos.filter { $0.userID == operation.ownerID }, page.reachedEnd)
+    }
+
     func signedProgressURL(
         for photo: ProgressPhoto,
         thumbnail: Bool,

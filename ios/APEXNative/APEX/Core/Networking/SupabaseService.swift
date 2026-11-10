@@ -494,7 +494,7 @@ actor SupabaseService {
                 .execute()
                 .value
         }
-        async let progressPhotos: [ProgressPhoto] = client.from("progress_photos").select().order("local_date", ascending: false).limit(120).execute().value
+        async let progressPhotos: [ProgressPhoto] = client.from("progress_photos").select().order("local_date", ascending: false).limit(ProgressPhotoEngine.pageSize).execute().value
         async let orbitRoutes: [OrbitRouteRecord] = client.from("orbit_routes").select().order("updated_at", ascending: false).limit(120).execute().value
         async let orbitRuns: [OrbitRunRecord] = loadOwnedRows(client: client, table: "orbit_runs", ownerID: ownerID, orderBy: "local_date", ascending: false)
         async let orbitShoes: [OrbitShoe] = client.from("orbit_shoes").select().order("updated_at", ascending: false).limit(80).execute().value
@@ -956,6 +956,26 @@ actor SupabaseService {
             options: .init(cacheControl: "3600", contentType: "image/jpeg", upsert: true)
         )
         return path
+    }
+
+    /// The next page of progress photos older than the ones already loaded.
+    func loadEarlierProgressPhotos(
+        ownerID: UUID,
+        after loaded: [ProgressPhoto]
+    ) async throws -> (photos: [ProgressPhoto], reachedEnd: Bool) {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        return try await ProgressPhotoEngine.earlierPage(after: loaded) { day, limit in
+            try await client
+                .from("progress_photos")
+                .select()
+                .eq("user_id", value: ownerID)
+                .lte("local_date", value: day)
+                .order("local_date", ascending: false)
+                .order("id", ascending: false)
+                .limit(limit)
+                .execute()
+                .value
+        }
     }
 
     func signedProgressURL(path: String, expiresIn: Int = 3_600) async throws -> URL {

@@ -288,6 +288,35 @@ enum ProgressPhotoEngine {
         return samePose.first { framingMode($0) == framing } ?? samePose.first
     }
 
+    /// How many photos the dashboard brings on open, and each later page adds.
+    static let pageSize = 120
+
+    /* One further page of older photos. It is asked for by date, from the
+       oldest day already loaded, and whatever is already loaded is dropped
+       from the answer. Asked for by position instead, a photo saved or
+       deleted since the first page would shift every row and one would be
+       repeated or skipped. The limit is widened by that day's loaded photos
+       so a page always brings a full page of new ones. */
+    static func earlierPage(
+        after loaded: [ProgressPhoto],
+        pageSize: Int = pageSize,
+        fetch: (_ onOrBefore: String, _ limit: Int) async throws -> [ProgressPhoto]
+    ) async rethrows -> (photos: [ProgressPhoto], reachedEnd: Bool) {
+        guard let oldest = loaded.map(\.localDate).min() else { return ([], true) }
+        let limit = pageSize + loaded.count { $0.localDate == oldest }
+        let rows = try await fetch(oldest, limit)
+        let known = Set(loaded.map(\.id))
+        return (rows.filter { !known.contains($0.id) }, rows.count < limit)
+    }
+
+    /// Every photo loaded so far, each once, newest first.
+    static func timeline(_ firstPage: [ProgressPhoto], earlier: [ProgressPhoto]) -> [ProgressPhoto] {
+        var seen = Set<UUID>()
+        return (firstPage + earlier)
+            .filter { seen.insert($0.id).inserted }
+            .sorted { ($0.localDate, $0.capturedAt) > ($1.localDate, $1.capturedAt) }
+    }
+
     /// Same pose first, then most recent: the comparison a person means.
     static func preferSamePose(reference: ProgressPhoto, photos: [ProgressPhoto]) -> [ProgressPhoto] {
         photos.sorted { left, right in

@@ -554,4 +554,22 @@ final class ProgressCameraTests: XCTestCase {
             XCTAssertEqual(layout.frames["preview"], CGRect(origin: .zero, size: phone.size), phone.name)
         }
     }
+
+    /// C8. Opening the page must not build the whole timeline, or the request
+    /// for older photos at its end would fire at once and every page would
+    /// load in a chain. Only the rows near the screen exist until it scrolls.
+    func testOpeningTheTimelineBuildsOnlyTheRowsNearTheScreen() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(session.accountOperationLease()).ownerID
+        session.data.progressPhotos = (0..<130).map { index in
+            row(owner: owner, date: String(format: "2026-%02d-%02d", 1 + index / 28, 1 + index % 28))
+        }
+        let layout = try await layOut(
+            VisualProgressView().environment(session), size: Self.phones[1].size,
+            expecting: [], named: "timeline of 130 photos"
+        )
+        let built = layout.frames.keys.filter { $0.hasPrefix("timelineRow") }.count
+        XCTAssertGreaterThan(built, 0, "the timeline shows no photos at all")
+        XCTAssertLessThan(built, 40, "\(built) of 130 rows were built on open, so the end of the list is reached at once")
+    }
 }
