@@ -408,16 +408,24 @@ enum EnergyEngine {
         return primary
     }
 
+    /* Whole-day wearable energy and the APEX activity blocks describe the same
+       effort, so they are never added. The larger one is the day's figure: a
+       Watch that was off for part of the day must not shrink what was logged. */
+    static func activityEnergy(
+        wearableActiveCalories: Int?,
+        logs: [ActivityLog]
+    ) -> Double {
+        let logged = logs.reduce(0.0) { total, log in
+            total + (log.computedKcal.isFinite ? max(0, log.computedKcal) : 0)
+        }
+        return max(Double(max(0, wearableActiveCalories ?? 0)), logged)
+    }
+
     static func resolvedActiveCalories(
         wearableActiveCalories: Int?,
         logs: [ActivityLog]
     ) -> Int {
-        if let wearableActiveCalories, wearableActiveCalories > 0 {
-            return wearableActiveCalories
-        }
-        let estimate = logs.reduce(0.0) { total, log in
-            total + (log.computedKcal.isFinite ? max(0, log.computedKcal) : 0)
-        }
+        let estimate = activityEnergy(wearableActiveCalories: wearableActiveCalories, logs: logs)
         guard estimate < Double(Int.max) else { return Int.max }
         return Int(estimate.rounded())
     }
@@ -481,17 +489,10 @@ enum EnergyEngine {
         )
         let tdee: Double
         if precise {
-            /* Whole-day wearable active energy already contains the effort
-               represented by APEX activity blocks. It replaces their sum;
-               adding both would count the same workout twice. */
-            let activityEnergy: Double
-            if let wearableActiveCalories, wearableActiveCalories > 0 {
-                activityEnergy = Double(wearableActiveCalories)
-            } else {
-                activityEnergy = logs.reduce(0) { total, log in
-                    total + (log.computedKcal.isFinite ? max(0, log.computedKcal) : 0)
-                }
-            }
+            let activityEnergy = activityEnergy(
+                wearableActiveCalories: wearableActiveCalories,
+                logs: logs
+            )
             tdee = bmr * 1.2
                 + min(max(resolvedProfile.calibrationK, 0.85), 1.15) * activityEnergy
         } else {

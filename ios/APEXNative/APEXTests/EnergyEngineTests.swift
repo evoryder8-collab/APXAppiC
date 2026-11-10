@@ -463,6 +463,34 @@ final class EnergyEngineTests: XCTestCase {
         )
     }
 
+    func testLoggedActivityAboveTheWatchFigureIsTheDaysActivityEnergy() {
+        let logs = [
+            log(typeID: "strength", kcal: 500),
+            log(typeID: "walk", kcal: 269),
+        ]
+        XCTAssertEqual(EnergyEngine.resolvedActiveCalories(wearableActiveCalories: 441, logs: logs), 769)
+
+        let result = EnergyEngine.targets(
+            profile: profile(weight: 70, level: .moderate, goal: .maintain, customBMR: 1_683),
+            logs: logs,
+            catalog: [],
+            wearableActiveCalories: 441
+        )
+        XCTAssertEqual(result.tdee, 2_789, "1,683 x 1.2 resting plus the 769 kcal logged, not the Watch's 441.")
+        XCTAssertEqual(
+            WearableActivityEngine.resolve(
+                persona: .iulian,
+                wearable: WearableActivityRecord(
+                    date: "2026-08-16", steps: 0, activeCalories: 441, exerciseMinutes: 0,
+                    source: "apple_health", updatedAt: "2026-08-16T20:00:00Z"
+                ),
+                logs: logs
+            ).activeCalories,
+            769,
+            "The figure above the listed blocks is never smaller than the blocks."
+        )
+    }
+
     func testGenericPreciseTargetsDoNotAddWearableBurnToActivityEstimatesAgain() {
         let result = EnergyEngine.targets(
             profile: profile(
