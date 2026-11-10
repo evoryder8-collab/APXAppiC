@@ -995,9 +995,13 @@ enum Bodyweight {
         }
     }
 
-    /// The newest weigh-in on or before a day, else the weight the profile was set up with.
+    /// Rows before this day cannot be ordered against a weight typed in Settings, which older builds never dated.
+    static let firstDatedDay = "2026-11-10"
+
+    /// The newest weigh-in since `firstDatedDay` and on or before a day, else the profile's weight.
     static func current(profile: Profile, data: DashboardData, on day: String) -> Double {
-        weighIns(ownerID: profile.userID, data: data).last { $0.date <= day }?.kg ?? profile.weightKG
+        weighIns(ownerID: profile.userID, data: data)
+            .last { $0.date >= firstDatedDay && $0.date <= day }?.kg ?? profile.weightKG
     }
 }
 

@@ -1183,6 +1183,7 @@ final class AppSession {
             if let activity = submission.profileActivityLevel { data.profile?.activityLevel = activity }
             data.settings = settings
             if let plan { applyInductionPlan(plan, settings: settings) }
+            try? await recordSignUpWeighIn(submission, operation: operation)
             await persistInductionEvidence(submission, operation: operation)
             guard accountOperationIsCurrent(operation) else { return }
             InductionView.clearDraft(operation.ownerID)
@@ -1247,6 +1248,7 @@ final class AppSession {
                 try requireCurrentAccountOperation(operation)
                 guard profile.userID == operation.ownerID else { throw CancellationError() }
                 data.profile = profile
+                try await recordSignUpWeighIn(submission, operation: operation)
             }
             await persistInductionEvidence(submission, operation: operation)
             try await saveLocalSnapshot(operation: operation)
@@ -1293,6 +1295,16 @@ final class AppSession {
                 continue
             }
         }
+    }
+
+    /// The weight typed at sign-up is that day's weigh-in, so a later reading is ordered against a dated one.
+    private func recordSignUpWeighIn(
+        _ submission: TrainingInduction.Submission,
+        operation: AccountOperationLease
+    ) async throws {
+        // An account that already had a profile keeps its weight, and gets no weigh-in it never gave.
+        guard let typed = submission.profileBaseline?.weightKG, data.profile?.weightKG == typed else { return }
+        try await saveMorningWeight(typed, on: .now, operation: operation)
     }
 
     #if DEBUG

@@ -1,7 +1,7 @@
 import XCTest
 @testable import APEX
 
-/// One bodyweight: the newest weigh-in feeds every target, and stored rows are reconciled when read.
+/// One bodyweight: the newest weigh-in this build can date feeds every target, and stored rows are reconciled when read.
 @MainActor
 final class NutritionDayTests: XCTestCase {
     private let owner = UUID(uuidString: "00000000-0000-0000-0000-0000000000bb")!
@@ -57,9 +57,10 @@ final class NutritionDayTests: XCTestCase {
         var fixture = data
         let session = workout(date)
         fixture.workoutSessions = [session]
+        let end = max(day(0), date)
         return AvatarReport.scoped(
             ownerID: owner, data: fixture, partialScores: [:], period: .allTime,
-            dates: day(-30)...day(0), today: day(0)
+            dates: min(day(-30), date)...end, today: end
         ).bodyweightBySession[session.id]
     }
 
@@ -73,7 +74,7 @@ final class NutritionDayTests: XCTestCase {
     func testTheLatestWeighInFeedsEveryTarget() throws {
         var weighed = data()
         XCTAssertEqual(weighed.weighedProfile()?.weightKG, 80, "With no weigh-in the profile's weight stands")
-        weighed.dailyLogs = [weighIn(day(-9), 79), weighIn(day(-1), 76)]
+        weighed.dailyLogs = [weighIn(day(-9), 79), weighIn(day(0), 76)]
         XCTAssertEqual(weighed.weighedProfile()?.weightKG, 76)
         XCTAssertEqual(weighed.profile?.weightKG, 80, "The stored profile is read, never rewritten")
 
@@ -124,34 +125,111 @@ final class NutritionDayTests: XCTestCase {
     func testTheProfilesWeightCopiedOntoAClosedDayIsNotAWeighIn() {
         var fixture = data()
         fixture.dailyLogs = [
-            weighIn(day(-3), 78.5),
-            weighIn(day(-2), 80, closed: true),
-            weighIn(day(-1), 78.4),
+            weighIn("2026-11-12", 78.5),
+            weighIn("2026-11-13", 80, closed: true),
+            weighIn("2026-11-14", 78.4),
         ]
         XCTAssertEqual(
             Bodyweight.weighIns(ownerID: owner, data: fixture).map(\.kg), [78.5, 78.4],
             "The 80 kg written when the day was finalised repeats the profile; no scale said it"
         )
-        XCTAssertEqual(reportBodyweight(fixture, on: day(-2)), 78.5, "History reads the weigh-in before it")
-        XCTAssertEqual(fixture.weighedProfile()?.weightKG, 78.4)
+        XCTAssertEqual(reportBodyweight(fixture, on: "2026-11-13"), 78.5, "History reads the weigh-in before it")
+        XCTAssertEqual(bodyweight(fixture, on: "2026-11-14"), 78.4)
 
         // The newest weight on record may be the person confirming their weight in Settings, so it stands.
         fixture.dailyLogs.removeLast()
-        XCTAssertEqual(fixture.weighedProfile()?.weightKG, 80)
+        XCTAssertEqual(bodyweight(fixture, on: "2026-11-14"), 80)
 
         // The same figure typed on a day the app never closed is a weigh-in like any other.
-        fixture.dailyLogs = [weighIn(day(-3), 78.5), weighIn(day(-2), 80), weighIn(day(-1), 78.4)]
+        fixture.dailyLogs = [weighIn("2026-11-12", 78.5), weighIn("2026-11-13", 80), weighIn("2026-11-14", 78.4)]
         XCTAssertEqual(Bodyweight.weighIns(ownerID: owner, data: fixture).map(\.kg), [78.5, 80, 78.4])
     }
 
     func testAWeighInOutsideTheAccountOrInTheFutureIsIgnored() {
         var fixture = data()
-        var foreign = weighIn(day(-1), 60)
+        var foreign = weighIn(day(0), 60)
         foreign = DailyLog(
             id: foreign.id, userID: UUID(), date: foreign.date, waterL: 0, activityMode: "quick", weightKG: 60
         )
-        fixture.dailyLogs = [foreign, weighIn(day(2), 70), weighIn(day(-4), 5)]
+        fixture.dailyLogs = [foreign, weighIn(day(2), 70), weighIn(day(0), 5)]
         XCTAssertEqual(fixture.weighedProfile()?.weightKG, 80)
+    }
+
+    // MARK: Weights recorded before this build
+
+    /// A day after the cut-over to read the bodyweight on, whatever the calendar says today.
+    private let afterUpdating = "2026-12-01"
+
+    private func bodyweight(_ data: DashboardData, on day: String) -> Double? {
+        data.weighedProfile(on: day)?.weightKG
+    }
+
+    private func protein(_ data: DashboardData, on day: String) throws -> Int {
+        EnergyEngine.targets(profile: try XCTUnwrap(data.weighedProfile(on: day)), logs: [], catalog: []).proteinG
+    }
+
+    func testUpdatingTheAppChangesNobodysTargets() throws {
+        /* An account as older builds left it: weigh-ins, a day the app closed with the profile's
+           weight on it, and one old Health reading saved again on every day it was imported,
+           which carries on for as long as the old build is still in use. */
+        var fixture = data()
+        fixture.dailyLogs = [weighIn("2026-10-20", 76), weighIn("2026-11-02", 80, closed: true), weighIn("2026-11-09", 77)]
+        fixture.healthMetrics = (1...12).map { health(String(format: "2026-11-%02d", $0), 95) }
+        for day in ["2026-11-10", "2026-11-12", afterUpdating] {
+            XCTAssertEqual(bodyweight(fixture, on: day), 80, "The weight the person gave stands on \(day)")
+        }
+        XCTAssertEqual(try protein(fixture, on: afterUpdating), 152, "1.9 g per kg of the profile's 80 kg, as before the update")
+        XCTAssertEqual(
+            Bodyweight.weighIns(ownerID: owner, data: fixture).map(\.kg), [76, 95, 77],
+            "The weigh-in history is all still there for the report"
+        )
+    }
+
+    func testATypedWeightIsNotReplacedByAnOlderHealthReading() {
+        // A new account types 82 kg. Apple Health holds one 95 kg sample from 2023.
+        var fixture = data(weight: 82)
+        fixture.healthMetrics = [health("2023-05-01", 95)]
+        XCTAssertEqual(bodyweight(fixture, on: afterUpdating), 82)
+
+        // Signing up leaves the typed weight on its day, so a reading sampled before that day stays behind it.
+        fixture.dailyLogs = [weighIn("2026-11-20", 82)]
+        fixture.healthMetrics.append(health("2026-11-15", 95))
+        XCTAssertEqual(bodyweight(fixture, on: afterUpdating), 82)
+    }
+
+    func testAWeightSetInSettingsAfterTheLastWeighInStands() {
+        // Weighed in at 76 kg in October, then set to 80 kg in Settings on an older build, which dated nothing.
+        var fixture = data()
+        fixture.dailyLogs = [weighIn("2026-10-20", 76)]
+        XCTAssertEqual(bodyweight(fixture, on: afterUpdating), 80)
+
+        // From this build a Settings change is a weigh-in of its own day, so it is ordered like any other.
+        fixture.dailyLogs = [weighIn("2026-11-12", 76), weighIn("2026-11-15", 80)]
+        XCTAssertEqual(bodyweight(fixture, on: "2026-11-14"), 76)
+        XCTAssertEqual(bodyweight(fixture, on: afterUpdating), 80)
+    }
+
+    func testTheNextWeighInAfterUpdatingMovesTheTargets() throws {
+        var fixture = data()
+        fixture.dailyLogs = [weighIn("2026-10-20", 78), weighIn("2026-11-12", 76)]
+        XCTAssertEqual(bodyweight(fixture, on: "2026-11-11"), 80, "Until then the profile's weight stands")
+        XCTAssertEqual(bodyweight(fixture, on: "2026-11-12"), 76)
+        XCTAssertEqual(try protein(fixture, on: afterUpdating), 144, "1.9 g per kg of 76 kg")
+
+        fixture.dailyLogs = [weighIn("2026-11-10", 75)]
+        XCTAssertEqual(bodyweight(fixture, on: "2026-11-10"), 75, "A weigh-in on the first day of this build counts")
+    }
+
+    func testAHealthReadingAfterTheLastTypedWeightIsUsed() {
+        var fixture = data(weight: 82)
+        fixture.dailyLogs = [weighIn("2026-11-11", 82)]
+        fixture.healthMetrics = [health("2026-11-10", 83), health("2026-11-13", 84)]
+        XCTAssertEqual(bodyweight(fixture, on: "2026-11-12"), 82, "A reading sampled before the typed weight stays behind it")
+        XCTAssertEqual(bodyweight(fixture, on: "2026-11-13"), 84)
+        XCTAssertEqual(bodyweight(fixture, on: afterUpdating), 84)
+
+        fixture.dailyLogs.append(weighIn("2026-11-13", 83.5))
+        XCTAssertEqual(bodyweight(fixture, on: afterUpdating), 83.5, "The person's own entry outranks a reading of the same day")
     }
 
     // MARK: Writes, through a local sandbox session
@@ -186,7 +264,7 @@ final class NutritionDayTests: XCTestCase {
     func testAWeightSetInSettingsIsTodaysWeighInAndEverythingFollowsIt() async throws {
         let (session, operation) = try sandbox()
         let stored = try XCTUnwrap(session.data.profile?.weightKG)
-        try await session.saveMorningWeight(stored - 3, on: try XCTUnwrap(Calendar.current.date(byAdding: .day, value: -5, to: Date())), operation: operation)
+        try await session.saveMorningWeight(stored - 3, on: Date(), operation: operation)
         XCTAssertEqual(session.data.weighedProfile()?.weightKG, stored - 3, "The targets read the weigh-in")
         XCTAssertEqual(session.data.profile?.weightKG, stored, "The stored profile is untouched")
 
@@ -198,6 +276,27 @@ final class NutritionDayTests: XCTestCase {
         XCTAssertEqual(session.data.weighedProfile()?.weightKG, stored - 1, "A weight set in Settings is the newest on record")
         XCTAssertEqual(session.data.profile?.weightKG, stored - 1)
         XCTAssertEqual(session.data.dailyLogs.first { $0.date == Date().apexDateKey }?.weightKG, stored - 1)
+    }
+
+    func testTheWeightTypedAtSignUpIsThatDaysWeighIn() async throws {
+        let session = AppSession(developerSandboxRole: .individual)
+        let operation = try XCTUnwrap(session.accountOperationLease())
+        session.data.dailyLogs = []
+        session.data.healthMetrics = []
+        var input = TrainingInduction.Input(startDate: Date().apexDateKey)
+        input.bodyBaseline = .init(sex: "male", weightKG: 82, heightCM: 180, birthdate: "1990-01-01")
+        input.dataConsent = .init(
+            termsVersion: TrainingInduction.currentTermsVersion,
+            privacyVersion: TrainingInduction.currentPrivacyVersion, acceptedAt: Date().ISO8601Format()
+        )
+        input.avatarStartingPoints = AvatarStartingPoints.balanced
+        await session.skipRemainingInduction(input, operation: operation)
+        XCTAssertNil(session.alertMessage)
+        XCTAssertEqual(session.data.profile?.weightKG, 82)
+        XCTAssertEqual(
+            session.data.dailyLogs.filter { $0.userID == operation.ownerID && $0.date == Date().apexDateKey }.map(\.weightKG), [82],
+            "The typed weight is dated, so a later reading can be ordered against it"
+        )
     }
 
     // MARK: The planned-meal tap
@@ -310,7 +409,7 @@ final class NutritionDayTests: XCTestCase {
         XCTAssertEqual(before.history.current?.weightKG, 80)
 
         // The first recalculation that sees a weigh-in, on an account with no goal history yet.
-        fixture.dailyLogs = [weighIn(day(-1), 76)]
+        fixture.dailyLogs = [weighIn(day(0), 76)]
         let scored = try XCTUnwrap(FitnessBrainService.scoredInput(from: fixture, waterTargets: waterTargets, now: Date()))
         XCTAssertEqual(scored.history.current?.weightKG, 76, "From today the weigh-in is the bodyweight")
         XCTAssertEqual(scored.history.current?.targets.proteinG, 144)
