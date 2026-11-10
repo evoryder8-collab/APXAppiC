@@ -447,8 +447,10 @@ struct SettingsView: View {
         GlassCard(radius: 31, padding: 20) {
             VStack(alignment: .leading, spacing: 17) {
                 sectionTitle("Body profile", subtitle: language.format("Age %d, computed from your birthdate. Never hardcoded.", profile?.age ?? 0))
-                profileStepper("Weight", value: profile?.weightKG ?? 0, unit: "kg", step: 0.5) { delta in
-                    mutateProfile { $0.weightKG = max(25, $0.weightKG + delta) }
+                // The one bodyweight every target reads. Changing it here is today's weigh-in too.
+                let bodyweight = session.data.weighedProfile()?.weightKG ?? 0
+                profileStepper("Weight", value: bodyweight, unit: "kg", step: 0.5) { delta in
+                    setBodyweight(max(25, bodyweight + delta))
                 }
                 Divider()
                 VStack(alignment: .leading, spacing: 9) {
@@ -858,6 +860,20 @@ struct SettingsView: View {
         Task {
             do {
                 try await session.updateProfile(transform, operation: operation)
+            } catch is CancellationError {
+                return
+            } catch {
+                guard session.accountOperationIsCurrent(operation) else { return }
+                session.alertMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func setBodyweight(_ weightKG: Double) {
+        guard let operation = session.accountOperationLease() else { return }
+        Task {
+            do {
+                try await session.setBodyweight(weightKG, operation: operation)
             } catch is CancellationError {
                 return
             } catch {

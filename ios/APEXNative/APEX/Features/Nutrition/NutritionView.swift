@@ -30,7 +30,7 @@ struct NutritionView: View {
         )
     }
     private var targets: NutritionTargets? {
-        guard let profile = session.profile else { return nil }
+        guard let profile = session.data.weighedProfile() else { return nil }
         return EnergyEngine.targets(
             profile: profile,
             logs: dayActivities,
@@ -1046,6 +1046,8 @@ private struct DailyLogCard: View {
     let targets: NutritionTargets
     let onAdjustActivities: () -> Void
 
+    private var weightUnit: WeightUnit { .current(session.data.settings) }
+
     private var current: DailyLog? {
         session.data.dailyLogs.first { $0.date == date.apexDateKey }
     }
@@ -1125,7 +1127,7 @@ private struct DailyLogCard: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(language.text("Morning weight"))
                         .font(APEXFont.display(19))
-                    Text(language.text("Optional · feeds the 7-day calibration EMA"))
+                    Text(language.text("Optional · your latest weigh-in sets your targets"))
                         .font(APEXFont.body(11, weight: .medium))
                         .foregroundStyle(APEXColor.secondaryInk)
                     HStack(spacing: 10) {
@@ -1138,7 +1140,7 @@ private struct DailyLogCard: View {
                             .background(.white.opacity(0.68), in: RoundedRectangle(cornerRadius: 17, style: .continuous))
                             .overlay(RoundedRectangle(cornerRadius: 17, style: .continuous).stroke(APEXColor.ink.opacity(0.08)))
                             .onSubmit(saveMorningWeight)
-                        Text(language.text("kg"))
+                        Text(weightUnit == .kilograms ? language.text("kg") : weightUnit.suffix)
                             .font(APEXFont.mono(12))
                             .foregroundStyle(APEXColor.secondaryInk)
                         Button(language.text("Save"), action: saveMorningWeight)
@@ -1149,9 +1151,11 @@ private struct DailyLogCard: View {
 
             }
         }
-        .task(id: date.apexDateKey) {
-            let value = current?.weightKG ?? session.profile?.weightKG
-            morningWeightText = value.map { $0.formatted(.number.precision(.fractionLength(1)).locale(language.language.locale)) } ?? ""
+        .task(id: date.apexDateKey + weightUnit.rawValue) {
+            let value = current?.weightKG ?? session.data.weighedProfile()?.weightKG
+            morningWeightText = value.map {
+                MorningCheckLogic.weightText(kilograms: $0, unit: weightUnit, locale: language.language.locale)
+            } ?? ""
         }
     }
 
@@ -1212,8 +1216,10 @@ private struct DailyLogCard: View {
     }
 
     private func saveMorningWeight() {
-        let normalized = morningWeightText.replacingOccurrences(of: ",", with: ".")
-        guard let weight = Double(normalized), (25...350).contains(weight),
+        // The same parser the Home morning check uses: the chosen unit in, kilograms out.
+        guard let weight = MorningCheckLogic.entry(
+            sleep: "", recovery: "", weight: morningWeightText, source: "apple", weightUnit: weightUnit
+        )?.weightKG,
               let operation = session.accountOperationLease() else { return }
         Task {
             do {

@@ -428,7 +428,7 @@ struct NutritionTargetSheet: View {
     }
 
     private var targets: NutritionTargets? {
-        guard let profile = session.profile else { return nil }
+        guard let profile = session.data.weighedProfile() else { return nil }
         return EnergyEngine.targets(
             profile: profile,
             logs: logs,

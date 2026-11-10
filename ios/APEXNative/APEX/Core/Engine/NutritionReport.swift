@@ -341,7 +341,7 @@ struct NutritionReport: Sendable, Equatable {
     /// Calories and macros do not vary by day, so no activity is passed. Targets are not
     /// stored per day, so the whole period is judged against today's.
     private static func targets(ownerID: UUID, data: DashboardData) -> [Kind: Double]? {
-        guard let profile = data.profile, profile.userID == ownerID else { return nil }
+        guard let profile = data.weighedProfile(), profile.userID == ownerID else { return nil }
         let settings = data.settings?.userID == ownerID ? data.settings : nil
         let result = EnergyEngine.targets(
             profile: profile,

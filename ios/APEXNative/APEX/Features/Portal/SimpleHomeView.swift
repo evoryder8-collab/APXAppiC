@@ -72,7 +72,7 @@ struct SimpleHomeView: View {
         }
     }
     private var targets: NutritionTargets? {
-        guard let profile else { return nil }
+        guard let profile = session.data.weighedProfile() else { return nil }
         return EnergyEngine.targets(
             profile: profile,
             logs: activities,
@@ -2923,9 +2923,8 @@ private struct RecoveryMorningCard: View {
     }
     private func load() {
         if let kilograms = session.data.dailyLogs.last(where: { $0.date == date.apexDateKey })?.weightKG {
-            let displayed = weightUnit.value(fromKilograms: kilograms)
-            weight = displayed.formatted(
-                .number.precision(.fractionLength(1)).locale(language.language.locale)
+            weight = MorningCheckLogic.weightText(
+                kilograms: kilograms, unit: weightUnit, locale: language.language.locale
             )
         } else {
             weight = ""

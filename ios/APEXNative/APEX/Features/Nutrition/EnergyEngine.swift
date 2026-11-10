@@ -851,3 +851,60 @@ enum EnergyEngine {
         return min(max(currentK + correction, calibrationLowerBound), calibrationUpperBound)
     }
 }
+
+/// The account's weigh-ins and the one bodyweight they give. Every target reads it from here.
+enum Bodyweight {
+    struct WeighIn: Equatable, Sendable {
+        let date: String
+        let kg: Double
+        /// The person's own entry, which outranks an Apple Health reading of the same day.
+        let typed: Bool
+    }
+
+    /// Older builds copied the profile's weight onto a day when it was finalised or a run was
+    /// saved. Such a row repeats the profile; no scale said it.
+    static func isProfileCopy(_ log: DailyLog, of profile: Profile?) -> Bool {
+        log.estimatedTDEE != nil && log.weightKG != nil && log.weightKG == profile?.weightKG
+    }
+
+    /// What a scale said, oldest first. Stored rows are reconciled here and never rewritten.
+    static func weighIns(ownerID: UUID, data: DashboardData) -> [WeighIn] {
+        func valid(_ date: String, _ kg: Double?) -> Double? {
+            guard let kg, kg.isFinite, (10...500).contains(kg), FBDate.validDate(date) != nil else { return nil }
+            return kg
+        }
+        var rows: [(weighIn: WeighIn, copy: Bool)] = []
+        // Older builds saved the newest Health reading again on every later day. A repeated value is that one reading.
+        var lastReading: Double?
+        for row in data.healthMetrics.filter({ $0.userID == ownerID }).sorted(by: { $0.date < $1.date }) {
+            guard let kg = valid(row.date, row.weightKG) else { continue }
+            if kg != lastReading { rows.append((WeighIn(date: row.date, kg: kg, typed: false), false)) }
+            lastReading = kg
+        }
+        let profile = data.profile?.userID == ownerID ? data.profile : nil
+        for row in data.dailyLogs where row.userID == ownerID {
+            guard let kg = valid(row.date, row.weightKG) else { continue }
+            rows.append((WeighIn(date: row.date, kg: kg, typed: true), isProfileCopy(row, of: profile)))
+        }
+        rows.sort { ($0.weighIn.date, $0.weighIn.typed ? 1 : 0) < ($1.weighIn.date, $1.weighIn.typed ? 1 : 0) }
+        /* A copy is dropped once anything newer is on record. The newest row stays: it may be the
+           person confirming their weight in Settings, which writes the profile and the day together. */
+        return rows.enumerated().compactMap { index, row in
+            row.copy && index < rows.count - 1 ? nil : row.weighIn
+        }
+    }
+
+    /// The newest weigh-in on or before a day, else the weight the profile was set up with.
+    static func current(profile: Profile, data: DashboardData, on day: String) -> Double {
+        weighIns(ownerID: profile.userID, data: data).last { $0.date <= day }?.kg ?? profile.weightKG
+    }
+}
+
+extension DashboardData {
+    /// The profile carrying the account's one bodyweight in place of the weight it was set up with.
+    func weighedProfile(on day: String = Date().apexDateKey) -> Profile? {
+        guard var profile else { return nil }
+        profile.weightKG = Bodyweight.current(profile: profile, data: self, on: day)
+        return profile
+    }
+}

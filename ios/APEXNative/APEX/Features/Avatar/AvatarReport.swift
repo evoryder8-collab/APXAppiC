@@ -129,7 +129,7 @@ struct AvatarReport: Transferable {
         let required = Set(first.values.map(\.sessionID))
         let (weights, laterWeights) = bodyweights(in: data, owner: ownerID, through: dates.upperBound,
                                                   sessions: sessions + earlier.filter { required.contains($0.id) })
-        let currentMass = data.profile.flatMap { profile -> Double? in
+        let currentMass = data.weighedProfile(on: today).flatMap { profile -> Double? in
             guard profile.userID == ownerID, (10...500).contains(profile.weightKG) else { return nil }
             // A new profile can carry the database default until the user enters a weight.
             if profile.weightKG == 70 && ProfileIntegrityPolicy.authorizedProtocol(for: profile) == nil &&
@@ -173,11 +173,9 @@ struct AvatarReport: Transferable {
             guard let kg, (10...500).contains(kg), date <= end, FBDate.validDate(date) != nil else { return }
             observations.append(Observation(date: date, kg: kg, priority: priority, time: time, tie: tie))
         }
-        for row in data.healthMetrics where row.userID == owner {
-            add(row.date, row.weightKG, priority: 2, tie: row.id.uuidString)
-        }
-        for row in data.dailyLogs where row.userID == owner {
-            add(row.date, row.weightKG, priority: 1, tie: row.id.uuidString)
+        // The weigh-ins every target reads: a typed entry outranks a Health reading of the same day.
+        for row in Bodyweight.weighIns(ownerID: owner, data: data) {
+            add(row.date, row.kg, priority: row.typed ? 2 : 1, tie: "")
         }
         let evidence = (data.fitnessEvidence ?? []).filter { $0.userID == owner && $0.metric == .bodyMass && $0.unit == "kg" }
         let superseded = Set(evidence.compactMap(\.supersedesID))

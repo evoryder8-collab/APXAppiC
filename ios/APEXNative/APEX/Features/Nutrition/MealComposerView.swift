@@ -894,7 +894,7 @@ struct MealComposerView: View {
     }
 
     private var mealTargets: (protein: Double, carbs: Double, fat: Double)? {
-        guard let profile = session.profile else { return nil }
+        guard let profile = session.data.weighedProfile() else { return nil }
         let logs = session.data.activityLogs.filter {
             $0.userID == profile.userID && $0.date == request.date.apexDateKey
         }

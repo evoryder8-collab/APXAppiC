@@ -102,7 +102,7 @@ enum DailyNudges {
 
     /// Today's reminders, decided from the day's own records.
     static func nudges(ownerID: UUID, data: DashboardData, today: String) -> [Nudge] {
-        guard let profile = data.profile, profile.userID == ownerID else { return [] }
+        guard let profile = data.weighedProfile(on: today), profile.userID == ownerID else { return [] }
         var nudges: [Nudge] = []
         /* Protein is judged by the report's own rules: only a fully logged day
            counts, so a morning with nothing entered yet is not a shortfall,

@@ -3089,6 +3089,13 @@ final class AppSession {
         )
     }
 
+    /// A weight set in Settings is today's weigh-in as well as the profile's weight, so it is
+    /// the newest weight on record and every target follows it.
+    func setBodyweight(_ weightKG: Double, operation: AccountOperationLease) async throws {
+        try await updateProfile({ $0.weightKG = weightKG }, operation: operation)
+        try await saveMorningWeight(weightKG, on: .now, operation: operation)
+    }
+
     func saveMorningWeight(
         _ weightKG: Double,
         on date: Date,
@@ -4449,7 +4456,7 @@ final class AppSession {
                 durationMinutes: durationMinutes,
                 distanceKM: distanceKM,
                 watchKcal: watchKcal,
-                weightKG: profile.weightKG
+                weightKG: data.weighedProfile()?.weightKG ?? profile.weightKG
             ),
             source: source,
             reconciled: false,
@@ -4608,7 +4615,7 @@ final class AppSession {
             estimatedTDEE: targets.tdee,
             computedPAL: targets.pal,
             activityMode: activityIDs.isEmpty ? "quick" : "precise",
-            weightKG: existing?.weightKG ?? profile.weightKG,
+            weightKG: existing?.weightKG,
             nutritionSource: existing?.nutritionSource ?? "manual",
             manualKcal: existing?.manualKcal,
             manualProteinG: existing?.manualProteinG,
@@ -5988,7 +5995,7 @@ final class AppSession {
                     durationMinutes: elapsed,
                     distanceKM: nil,
                     watchKcal: nil,
-                    weightKG: profile.weightKG
+                    weightKG: data.weighedProfile()?.weightKG ?? profile.weightKG
                 ),
                 source: "workout_module",
                 reconciled: false,
@@ -6455,7 +6462,7 @@ final class AppSession {
             samples: samples,
             elapsedSeconds: endedAt.timeIntervalSince(startedAt),
             movingSeconds: movingSeconds,
-            weightKG: profile.weightKG
+            weightKG: data.weighedProfile()?.weightKG ?? profile.weightKG
         )
         let sampleJSON = metrics.acceptedSamples.map { sample in
             JSONValue.object([
@@ -6583,7 +6590,9 @@ final class AppSession {
               profile.userID == operation.ownerID,
               run.nutritionAdjustmentAppliedAt == nil
         else { return run }
-        let adjustment = OrbitIntegrations.nutritionAdjustment(run: run, weightKG: profile.weightKG)
+        let adjustment = OrbitIntegrations.nutritionAdjustment(
+            run: run, weightKG: data.weighedProfile()?.weightKG ?? profile.weightKG
+        )
         guard adjustment.kcal > 0 else { return run }
 
         guard let draft = OrbitIntegrations.nutritionMealDraft(run: run, suggestion: foodSuggestion) else {
@@ -7052,7 +7061,8 @@ final class AppSession {
             id: id, userID: operation.ownerID, date: run.localDate,
             typeID: "jog-run", quantity: 1,
             durationMinutes: durationMinutes, distanceKM: distanceKM,
-            watchKcal: nil, computedKcal: (profile.weightKG * distanceKM).rounded(),
+            watchKcal: nil,
+            computedKcal: ((data.weighedProfile()?.weightKG ?? profile.weightKG) * distanceKM).rounded(),
             source: "orbit", reconciled: true,
             createdAt: run.createdAt, updatedAt: run.updatedAt
         )
@@ -7103,7 +7113,7 @@ final class AppSession {
             $0.userID == operation.ownerID && $0.date == run.localDate
         }
         let targets = EnergyEngine.targets(
-            profile: profile,
+            profile: data.weighedProfile() ?? profile,
             logs: dayLogs,
             catalog: data.activityTypes,
             planContext: NutritionGoalPolicy.context(from: data.settings),
@@ -7128,7 +7138,7 @@ final class AppSession {
             fatG: existing?.fatG, carbsG: existing?.carbsG,
             waterL: existing?.waterL ?? 0,
             estimatedTDEE: targets.tdee, computedPAL: targets.pal,
-            activityMode: "precise", weightKG: existing?.weightKG ?? profile.weightKG,
+            activityMode: "precise", weightKG: existing?.weightKG,
             nutritionSource: existing?.nutritionSource ?? "manual",
             manualKcal: existing?.manualKcal, manualProteinG: existing?.manualProteinG,
             manualFatG: existing?.manualFatG, manualCarbsG: existing?.manualCarbsG
