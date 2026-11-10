@@ -370,6 +370,21 @@ final class NutritionDayTests: XCTestCase {
         XCTAssertLessThan(weighIn.lowerBound, profile.lowerBound)
     }
 
+    func testThePlanBriefingsWaterFigureReadsTheOneBodyweight() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let panel = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Training/TrainingInductionPanel.swift"), encoding: .utf8
+        )
+        let start = try XCTUnwrap(panel.range(of: "private func makeBriefing("))
+        let end = try XCTUnwrap(panel.range(of: "private func openCurrentBriefing(", range: start.upperBound..<panel.endIndex))
+        let briefing = String(panel[start.lowerBound..<end.lowerBound])
+        XCTAssertTrue(
+            briefing.contains("let profile = session.data.weighedProfile()"),
+            "The briefing's daily water is worked out from the bodyweight the water card uses"
+        )
+        XCTAssertFalse(briefing.contains("session.profile"), "The stored profile's weight is not the one bodyweight")
+    }
+
     // MARK: The planned-meal tap
 
     func testLoggingAPlannedMealWritesTheDayOnScreenAndLeavesTodayAlone() async throws {
