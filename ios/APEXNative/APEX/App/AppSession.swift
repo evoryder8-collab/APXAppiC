@@ -325,6 +325,7 @@ final class AppSession {
     /// Shared UI date survives Simple/Advanced navigation, never crosses accounts.
     var browsingDate = Date()
     @ObservationIgnored private var followedToday = Date().apexDateKey
+    @ObservationIgnored private var browsingDateHeld = false
 
 
     private func updateSandboxPlanReceipt(planVersionID: UUID, activate: Bool, ownerID: UUID) throws {
@@ -456,6 +457,7 @@ final class AppSession {
         accountGeneration.advance()
         authenticatedOwnerID = nil
         browsingDate = .now
+        browsingDateHeld = false
         suspendedAccessOwnerID = nil
         EntitlementStore.shared.resetAccount()
         OrbitLocationManager.shared.releaseForAccountBoundary()
@@ -2332,11 +2334,19 @@ final class AppSession {
     }
 
     /// Moves the shared date to the new day when it was on today at the last check.
-    /// A day the user browsed to stays put.
+    /// A day the user browsed to stays put, and so does the day under an open workout.
     func followTodayAcrossMidnight(now: Date = .now) {
+        guard !browsingDateHeld else { return }
         let today = now.apexDateKey
         if followedToday != today, browsingDate.apexDateKey == followedToday { browsingDate = now }
         followedToday = today
+    }
+
+    /// An open workout is built from the shared date, so the date holds while it is open
+    /// and catches up with any day change when it closes.
+    func holdBrowsingDate(_ held: Bool, now: Date = .now) {
+        browsingDateHeld = held
+        followTodayAcrossMidnight(now: now)
     }
 
     func onAppBecameActive() async {

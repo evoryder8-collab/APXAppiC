@@ -1609,6 +1609,8 @@ struct WorkoutDayView: View {
         .fullScreenCover(isPresented: $showTrackedWorkout) {
             TrackedWorkoutView(day: day, exercises: sessionExercises, accent: accent, lite: lite, date: min(date, Date().apexDateKey))
         }
+        // This day's date is counted from the shared date, which a Sunday midnight would move a week on under an open workout.
+        .onChange(of: showGuidedPlayer || showTrackedWorkout) { _, open in session.holdBrowsingDate(open) }
     }
 
     /// Teal for recovery, amber for anything that removes work, accent otherwise,

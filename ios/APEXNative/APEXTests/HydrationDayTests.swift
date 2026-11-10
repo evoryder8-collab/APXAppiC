@@ -69,6 +69,27 @@ final class HydrationDayTests: XCTestCase {
         XCTAssertEqual(session.browsingDate.apexDateKey, "2031-05-10")
     }
 
+    func testAWorkoutOpenAcrossMidnightKeepsItsDayUntilItCloses() throws {
+        let (session, _) = try sandbox()
+        let evening = try date("2031-05-10", hour: 23)
+        let afterMidnight = try date("2031-05-11", hour: 0)
+        session.browsingDate = evening
+        session.followTodayAcrossMidnight(now: evening)
+
+        // The workout opens at 23:00 and is still open when the day changes.
+        session.holdBrowsingDate(true, now: evening)
+        session.followTodayAcrossMidnight(now: afterMidnight)
+        XCTAssertEqual(session.browsingDate.apexDateKey, "2031-05-10", "the open workout keeps the day it was started on")
+
+        // Closing it catches up with the day that began meanwhile.
+        session.holdBrowsingDate(false, now: afterMidnight)
+        XCTAssertEqual(session.browsingDate.apexDateKey, "2031-05-11")
+
+        // The next midnight is followed as before.
+        session.followTodayAcrossMidnight(now: try date("2031-05-12", hour: 7))
+        XCTAssertEqual(session.browsingDate.apexDateKey, "2031-05-12")
+    }
+
     func testReopeningTheAppTheNextMorningMovesOffYesterday() async throws {
         let (session, _) = try sandbox()
         let yesterday = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: -1, to: Date()))
