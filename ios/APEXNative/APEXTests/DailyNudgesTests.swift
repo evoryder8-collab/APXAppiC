@@ -23,22 +23,22 @@ final class DailyNudgesTests: XCTestCase {
         // 80% of target: fine when maintaining, worth saying on a cut, because
         // that is where protein is holding muscle rather than adding it.
         XCTAssertNil(DailyNudges.proteinShortfall(
-            consumedG: 120, targetG: 150, goal: "maintain", bodyweightKG: 80))
+            consumedG: 120, targetG: 150, losingWeight: false, bodyweightKG: 80))
         XCTAssertNotNil(DailyNudges.proteinShortfall(
-            consumedG: 120, targetG: 150, goal: "recomp", bodyweightKG: 80))
+            consumedG: 120, targetG: 150, losingWeight: true, bodyweightKG: 80))
     }
 
     func testNoNudgeWhenTheDayWentFine() {
         XCTAssertNil(DailyNudges.proteinShortfall(
-            consumedG: 155, targetG: 150, goal: "cut", bodyweightKG: 80))
+            consumedG: 155, targetG: 150, losingWeight: true, bodyweightKG: 80))
         // A reminder that fires most days is one people switch off.
         XCTAssertNil(DailyNudges.proteinShortfall(
-            consumedG: 140, targetG: 150, goal: "cut", bodyweightKG: 80))
+            consumedG: 140, targetG: 150, losingWeight: true, bodyweightKG: 80))
     }
 
     func testTheProteinNudgeCarriesACeilingNotJustAShortfall() {
         let nudge = DailyNudges.proteinShortfall(
-            consumedG: 40, targetG: 160, goal: "fat_loss", bodyweightKG: 70)
+            consumedG: 40, targetG: 160, losingWeight: true, bodyweightKG: 70)
         guard let nudge else { return XCTFail("no nudge for a 120 g shortfall") }
         XCTAssertEqual(nudge.shortfallG, 120)
         // The predictable response to "you are short" is to drink the whole
@@ -52,16 +52,16 @@ final class DailyNudgesTests: XCTestCase {
         // Tonight is the shortfall or the ceiling, whichever is smaller. Being
         // 25 g under should not turn into an instruction to eat the full 30.
         let small = DailyNudges.proteinShortfall(
-            consumedG: 75, targetG: 100, goal: "cut", bodyweightKG: 70)
+            consumedG: 75, targetG: 100, losingWeight: true, bodyweightKG: 70)
         XCTAssertEqual(small?.capG, 30)
         XCTAssertEqual(small?.tonightG, 25)
         // And a large shortfall is held down to the ceiling rather than repeated whole.
         let large = DailyNudges.proteinShortfall(
-            consumedG: 88, targetG: 160, goal: "cut", bodyweightKG: 70)
+            consumedG: 88, targetG: 160, losingWeight: true, bodyweightKG: 70)
         XCTAssertEqual(large?.shortfallG, 72)
         XCTAssertEqual(large?.tonightG, 30)
         XCTAssertNil(
-            DailyNudges.proteinShortfall(consumedG: 150, targetG: 160, goal: "cut", bodyweightKG: 70),
+            DailyNudges.proteinShortfall(consumedG: 150, targetG: 160, losingWeight: true, bodyweightKG: 70),
             "10 g under is not worth a notification"
         )
     }
@@ -198,12 +198,29 @@ extension DailyNudgesTests {
         XCTAssertEqual(nudges(data).map(\.kind), [.proteinShort])
     }
 
+    func testASteadyCutGetsTheCutsProteinLine() {
+        // "Steady cut" sits in the Maintain slot of a fat-loss plan. Its target is 168 g.
+        var data = dayData(goal: .maintain, addons: ["training_induction": .object([
+            "goal": .string("fat_loss"), "plan_weeks": .number(12),
+        ])])
+        data.loggedMeals = [meal(kcal: 600, protein: 45), meal(kcal: 600, protein: 45), meal(kcal: 600, protein: 45)]
+
+        let nudge = nudges(data).first
+        XCTAssertEqual(nudge?.kind, .proteinShort, "135 g of 168 g is under the 85 % line a deficit is held to")
+        XCTAssertEqual(nudge?.shortfallG, 33)
+        XCTAssertEqual(nudge?.losingWeight, true, "The reminder gives the reason that fits a cut")
+
+        // The same day on a plain Maintain is 135 g of 152 g: covered.
+        data.settings?.addons = [:]
+        XCTAssertEqual(nudges(data), [])
+    }
+
     func testTheReminderAndTheAssessmentShareOneProteinLine() {
         for losing in [true, false] {
             for consumed in stride(from: 0.0, through: 160, by: 2.5) {
                 XCTAssertEqual(
                     DailyNudges.proteinShortfall(
-                        consumedG: consumed, targetG: 150, goal: losing ? "recomp" : "maintain", bodyweightKG: 80
+                        consumedG: consumed, targetG: 150, losingWeight: losing, bodyweightKG: 80
                     ) != nil,
                     DailyNudges.proteinIsShort(consumedG: consumed, targetG: 150, losingWeight: losing),
                     "\(consumed) g of 150 g, losing weight: \(losing)"

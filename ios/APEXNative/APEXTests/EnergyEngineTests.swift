@@ -1154,6 +1154,42 @@ final class EnergyEngineTests: XCTestCase {
         XCTAssertEqual(NutritionGoalPolicy.recommendedGoal(for: "muscle"), .bulk)
     }
 
+    func testEveryFatLossPresetEatsLikeADeficitAndNeverBelowMaintain() {
+        func athlete(_ goal: Goal) -> Profile {
+            profile(weight: 80, level: .moderate, goal: goal, bodyFatPercent: nil, bodyFatSource: nil)
+        }
+        let maintain = EnergyEngine.targets(profile: athlete(.maintain), logs: [], catalog: [])
+        XCTAssertEqual(maintain.proteinG, 152)
+
+        let cut = NutritionPlanContext(trainingGoal: "fat_loss", planWeeks: 12)
+        for preset in NutritionGoalPolicy.presets(context: cut) {
+            XCTAssertEqual(preset.energyGoal, .recomp, "\(preset.label) is a deficit whatever slot it sits in")
+            let result = EnergyEngine.targets(profile: athlete(preset.goal), logs: [], catalog: [], planContext: cut)
+            XCTAssertTrue(result.isPublishable, preset.label)
+            XCTAssertEqual(result.proteinG, 168, "\(preset.label): 2.1 g per kg, the deficit rule")
+            XCTAssertGreaterThanOrEqual(result.proteinG, maintain.proteinG, preset.label)
+
+            let scored = FitnessBrainTargets.computeTargets(
+                FBProfile(
+                    userID: UUID().uuidString, persona: .iulian, sex: "male", weightKG: 80, bodyFatPct: nil,
+                    customBMR: nil, heightCM: 175, birthdate: "1990-01-01", activityLevel: .moderate,
+                    goal: FBGoal(rawValue: preset.goal.rawValue)!, baselineDate: "2026-01-01"
+                ),
+                asOf: Date().apexDateKey, trainingGoal: "fat_loss", planWeeks: 12
+            )
+            XCTAssertEqual(Int(scored.proteinG), result.proteinG, "\(preset.label): the Avatar grades against the target on screen")
+            XCTAssertEqual(Int(scored.fatG), result.fatG, preset.label)
+            XCTAssertEqual(Int(scored.carbsG), result.carbsG, preset.label)
+        }
+
+        // Outside a fat-loss plan each slot already is what its name says.
+        for context in [nil, "muscle", "strength", "endurance", "rebuild"].map({
+            $0.map { NutritionPlanContext(trainingGoal: $0, planWeeks: 12) }
+        }) {
+            XCTAssertEqual(NutritionGoalPolicy.presets(context: context).map(\.energyGoal), [.recomp, .maintain, .bulk])
+        }
+    }
+
     func testMacroPolicyMatchesCrossClientLiteralFixtures() {
         XCTAssertEqual(
             EnergyEngine.macroTargets(

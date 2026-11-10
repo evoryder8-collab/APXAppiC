@@ -1337,7 +1337,7 @@ private struct BodyAssessmentCard: View {
         if DailyNudges.proteinIsShort(
             consumedG: Double(protein),
             targetG: Double(targets.proteinG),
-            losingWeight: profile.goal == .recomp
+            losingWeight: NutritionGoalPolicy.energyGoal(for: profile.goal, settings: session.data.settings) == .recomp
         ) {
             statements.append(language.format(
                 "Protein is currently the clearest nutrition gap. Aim toward %d g to protect recovery and lean mass.",

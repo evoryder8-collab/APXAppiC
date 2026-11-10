@@ -107,6 +107,11 @@ struct NutritionGoalPreset: Equatable, Sendable {
     let factor: Double
     let explanation: String
     let caution: String
+
+    /// What this preset does to energy, as the goal whose eating rules fit it.
+    /// A fat-loss plan fills all three slots with deficits, so the slot a
+    /// preset sits in says nothing about how it should be fed.
+    var energyGoal: Goal { factor < 1 ? .recomp : factor > 1 ? .bulk : .maintain }
 }
 
 enum NutritionGoalPolicy {
@@ -211,6 +216,11 @@ enum NutritionGoalPolicy {
         presets(context: context).first { $0.goal == goal }
             ?? presets(context: nil).first { $0.goal == goal }
             ?? preset(.maintain, "Maintain", 1, "Match estimated daily expenditure without targeting weight change.", "Review the estimate against your weight trend.")
+    }
+
+    /// The eating rules the account's chosen preset really follows.
+    static func energyGoal(for goal: Goal, settings: UserSettings?) -> Goal {
+        preset(for: goal, context: context(from: settings)).energyGoal
     }
 
     static func recommendedGoal(for trainingGoal: String) -> Goal {
@@ -512,11 +522,11 @@ enum EnergyEngine {
         }
         let pal = tdee / bmr
         let level = level(forPAL: pal)
-        let factor = NutritionGoalPolicy.preset(
+        let preset = NutritionGoalPolicy.preset(
             for: resolvedProfile.goal,
             context: planContext
-        ).factor
-        let rawTarget = baselineTDEE * factor
+        )
+        let rawTarget = baselineTDEE * preset.factor
         guard rawTarget.isFinite,
               rawTarget > 0,
               rawTarget <= Double(Int.max) else {
@@ -531,7 +541,7 @@ enum EnergyEngine {
         let macros = macroTargets(
             weightKG: resolvedProfile.weightKG,
             level: resolvedProfile.activityLevel,
-            goal: resolvedProfile.goal,
+            goal: preset.energyGoal,
             targetCalories: roundedTarget
         )
         if macros.requiresReview {

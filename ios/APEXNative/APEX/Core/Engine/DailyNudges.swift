@@ -70,13 +70,11 @@ enum DailyNudges {
     static func proteinShortfall(
         consumedG: Double,
         targetG: Double,
-        goal: String,
+        losingWeight: Bool,
         bodyweightKG: Double,
         date: String = today()
     ) -> Nudge? {
-        let losing = ["cut", "recomp", "lean", "fat_loss", "weight_loss"]
-            .contains { goal.lowercased().contains($0) }
-        guard proteinIsShort(consumedG: consumedG, targetG: targetG, losingWeight: losing) else { return nil }
+        guard proteinIsShort(consumedG: consumedG, targetG: targetG, losingWeight: losingWeight) else { return nil }
         let shortfall = targetG - consumedG
 
         let cap = singleSittingCapGrams(bodyweightKG: bodyweightKG)
@@ -86,7 +84,7 @@ enum DailyNudges {
             shortfallG: Int(shortfall.rounded()),
             tonightG: min(Int(shortfall.rounded()), cap),
             capG: cap,
-            losingWeight: losing
+            losingWeight: losingWeight
         )
     }
 
@@ -117,7 +115,10 @@ enum DailyNudges {
            let short = proteinShortfall(
                consumedG: protein.average,
                targetG: target,
-               goal: profile.goal.rawValue,
+               losingWeight: NutritionGoalPolicy.energyGoal(
+                   for: profile.goal,
+                   settings: data.settings?.userID == ownerID ? data.settings : nil
+               ) == .recomp,
                bodyweightKG: profile.weightKG,
                date: today
            ) {

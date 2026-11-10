@@ -240,9 +240,11 @@ struct SimpleHomeView: View {
     private var completion: Int {
         guard let profile, let targets else { return 0 }
         let consumed = consumedNutrition
+        // A cut in any slot of a fat-loss plan is held to the deficit's activity goal.
+        let energyGoal = NutritionGoalPolicy.energyGoal(for: profile.goal, settings: session.data.settings)
         let activityProgress = SimpleHomeLogic.activityProgress(
             persona: profile.persona,
-            goal: profile.goal,
+            goal: energyGoal,
             steps: resolvedActivity.steps,
             activeCalories: resolvedActivity.activeCalories,
             exerciseMinutes: resolvedActivity.exerciseMinutes
@@ -272,7 +274,7 @@ struct SimpleHomeView: View {
             workoutCompleted: workoutDone,
             activityProgress: activityProgress,
             supplements: supplements,
-            goal: profile.goal
+            goal: energyGoal
         )
     }
 

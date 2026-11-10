@@ -145,19 +145,21 @@ public enum FitnessBrainTargets {
             )
         }
         let goal = Goal(rawValue: p.goal.rawValue) ?? .maintain
-        let factor = NutritionGoalPolicy.preset(for: goal, context: planContext).factor
-        let kcal = jsRound(tdee * factor)
+        let preset = NutritionGoalPolicy.preset(for: goal, context: planContext)
+        // The macro rules follow what the preset does to energy, as the target on screen does.
+        let macroGoal = FBGoal(rawValue: preset.energyGoal.rawValue) ?? p.goal
+        let kcal = jsRound(tdee * preset.factor)
         let proteinPerKG = min(
             2.4,
             max(
                 1.6,
                 (proteinGPerKG[p.activityLevel] ?? 1.6)
-                    + (goalProteinAdjustment[p.goal] ?? 0)
+                    + (goalProteinAdjustment[macroGoal] ?? 0)
             )
         )
         let proteinG = jsRound(p.weightKG * proteinPerKG)
-        let fatFromEnergy = kcal * (fatEnergyShare[p.goal] ?? 0.275) / 9
-        let fatFloor = p.weightKG * (fatFloorGPerKG[p.goal] ?? 0.8)
+        let fatFromEnergy = kcal * (fatEnergyShare[macroGoal] ?? 0.275) / 9
+        let fatFloor = p.weightKG * (fatFloorGPerKG[macroGoal] ?? 0.8)
         let fatG = jsRound(max(fatFloor, fatFromEnergy))
         let requestedMacroEnergy = proteinG * 4 + fatG * 9
         if requestedMacroEnergy > kcal {
