@@ -545,19 +545,6 @@ struct SettingsView: View {
                     mutateSettings { $0.ticksOn = next }
                 }
                 Divider()
-                HStack {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(language.text("Overload Guardian sensitivity")).font(APEXFont.body(14, weight: .bold))
-                        Text(language.text("Warn when a jump exceeds this multiple of your typical increment"))
-                            .font(APEXFont.body(10, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
-                    }
-                    Spacer()
-                    Button { adjustGuardian(-0.1) } label: { Image(systemName: "minus") }.buttonStyle(.bordered)
-                    Text((settings?.guardianFactor ?? 1.5).formatted(.number.precision(.fractionLength(1))))
-                        .font(APEXFont.mono(16)).frame(width: 42)
-                    Button { adjustGuardian(0.1) } label: { Image(systemName: "plus") }.buttonStyle(.borderedProminent).tint(APEXColor.violet)
-                }.padding(.vertical, 11)
-                Divider()
                 settingsToggle("Meal + stack reminders", icon: "bell", value: settings?.notificationsOn ?? false) { next in
                     mutateSettings { $0.notificationsOn = next }
                 }
@@ -866,12 +853,6 @@ struct SettingsView: View {
             }
         }
     }
-    private func adjustGuardian(_ delta: Double) {
-        mutateSettings {
-            $0.guardianFactor = min(3, max(1, (($0.guardianFactor + delta) * 10).rounded() / 10))
-        }
-    }
-
     private func mutateProfile(_ transform: @escaping (inout Profile) -> Void) {
         guard let operation = session.accountOperationLease() else { return }
         Task {

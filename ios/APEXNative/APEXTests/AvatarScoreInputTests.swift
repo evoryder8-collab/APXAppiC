@@ -1,3 +1,4 @@
+import PDFKit
 import XCTest
 @testable import APEX
 
@@ -348,5 +349,12 @@ final class AvatarScoreInputTests: XCTestCase {
             ownerID: owner, data: data, dates: "2026-03-01"..."2026-03-10"))
         XCTAssertEqual(report.loggedDays, 1)
         XCTAssertEqual(report.partialDays, 0)
+    }
+
+    func testSettingsOffersNoOverloadGuardianWhileTheIPhoneNeverRunsIt() throws {
+        let app = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "APEX")
+        let settings = try String(contentsOf: app.appending(path: "Features/Settings/SettingsView.swift"), encoding: .utf8)
+        XCTAssertFalse(settings.contains("Overload Guardian"))
     }
 }
