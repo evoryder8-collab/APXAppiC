@@ -488,4 +488,46 @@ final class NutritionDayTests: XCTestCase {
         XCTAssertEqual(scored.history.past.first?.goals.weightKG, 80, "Earlier days keep the bodyweight they were graded with")
         XCTAssertEqual(scored.input.pastTargets.first?.1.proteinG, 152)
     }
+
+    // MARK: Cost
+
+    func testTwoYearsOfWaterDaysWorkOutTheBodyweightOnce() throws {
+        /* Two years of days, each with water, a typed weigh-in and a Health reading. All of it
+           predates this build, so the bodyweight is the profile's with or without the weights. */
+        let first = try XCTUnwrap(ISO8601DateFormatter.apexDateOnly.date(from: "2024-01-01"))
+        let days = try (0..<730).map {
+            try XCTUnwrap(Calendar.current.date(byAdding: .day, value: $0, to: first)).apexDateKey
+        }
+        var weighed = data()
+        weighed.dailyLogs = days.enumerated().map { index, date in
+            var log = weighIn(date, 78 + Double(index % 20) / 10)
+            log.waterL = 2
+            return log
+        }
+        weighed.healthMetrics = days.enumerated().map { index, date in health(date, 79 + Double(index % 30) / 10) }
+        var unweighed = weighed
+        for index in unweighed.dailyLogs.indices { unweighed.dailyLogs[index].weightKG = nil }
+        for index in unweighed.healthMetrics.indices { unweighed.healthMetrics[index].weightKG = nil }
+
+        func waterGoals(_ data: DashboardData) throws -> [String: Int] {
+            let targets = DailyWaterTargets(data: data, coachManaged: false, followsCoach: false, includeCustom: false)
+            return try XCTUnwrap(FitnessBrainService.scoredInput(from: data, waterTargets: targets, now: Date()))
+                .input.hydrationByDay.mapValues(\.targetML)
+        }
+        let goals = try waterGoals(weighed)
+        XCTAssertEqual(goals.count, 730)
+        XCTAssertEqual(goals, try waterGoals(unweighed), "Every day's water goal is the one it had")
+
+        /* Each day is graded against the bodyweight its goals already carry. Sorting every
+           weigh-in again for each of the 730 added seconds to every change of the data, on the
+           main thread. What the weigh-ins add is now held to a few such sorts. The quickest of
+           several interleaved runs is compared, so a busy machine cannot fail it. */
+        var withWeights = Duration.seconds(60), without = withWeights, oneSort = withWeights
+        for _ in 0..<5 {
+            withWeights = min(withWeights, try ContinuousClock().measure { _ = try waterGoals(weighed) })
+            without = min(without, try ContinuousClock().measure { _ = try waterGoals(unweighed) })
+            oneSort = min(oneSort, ContinuousClock().measure { _ = weighed.weighedProfile() })
+        }
+        XCTAssertLessThan(withWeights, without + oneSort * 20, "The bodyweight is worked out once, not once per water day")
+    }
 }
