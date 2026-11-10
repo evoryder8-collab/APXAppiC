@@ -496,4 +496,17 @@ final class AvatarScoreInputTests: XCTestCase {
         XCTAssertEqual(history.goals(on: "2026-10-09", now: goals(2_500)), goals(2_500))
         XCTAssertEqual(ScoreGoalHistory(stored: history.stored), history)
     }
+
+    func testGoalHistoryIsSentOnlyOverTheSettingsThisSessionLoadedFromTheServer() {
+        let other = UUID()
+        var gate = ServerSettingsGate()
+        XCTAssertFalse(gate.allowsSave(for: owner), "a dashboard restored from the offline cache")
+        gate.serverCopyLoaded(for: owner)
+        XCTAssertTrue(gate.allowsSave(for: owner))
+        XCTAssertFalse(gate.allowsSave(for: other), "another account's dashboard")
+        gate.reset()
+        XCTAssertFalse(gate.allowsSave(for: owner), "after signing out or switching account")
+        gate.serverCopyLoaded(for: nil)
+        XCTAssertFalse(gate.allowsSave(for: owner), "a refresh that could not name its account")
+    }
 }
