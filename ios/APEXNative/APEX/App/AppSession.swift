@@ -4381,14 +4381,11 @@ final class AppSession {
             guard accountOperationIsCurrent(operation),
                   var settings = data.settings,
                   settings.userID == ownerID else { return }
-            settings.addons["apple_recovery_context"] = .object([
-                "date": .string(snapshot.date),
-                "sleep_duration_hours": snapshot.sleepDurationHours.map(JSONValue.number) ?? .null,
-                "heart_rate_variability_ms": snapshot.heartRateVariabilityMS.map(JSONValue.number) ?? .null,
-                "resting_heart_rate": snapshot.restingHeartRate.map(JSONValue.number) ?? .null,
-                "source": .string("apple_health"),
-                "updated_at": .string(Date().ISO8601Format())
-            ])
+            settings.addons = RecoveryAssessment.addons(
+                settings.addons, storingHealthRead: snapshot.date, sleepHours: snapshot.sleepDurationHours,
+                heartRateVariabilityMS: snapshot.heartRateVariabilityMS,
+                restingHeartRate: snapshot.restingHeartRate, updatedAt: Date().ISO8601Format()
+            )
             data.settings = settings
             await persistUpsert(
                 settings,

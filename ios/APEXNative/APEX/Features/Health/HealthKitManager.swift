@@ -1188,8 +1188,8 @@ final class HealthKitManager {
 
     private func sleepDurationHours(endingAt end: Date) async throws -> Double? {
         guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis),
-              let start = Calendar.current.date(byAdding: .hour, value: -18, to: end) else { return nil }
-        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: [])
+              let window = RecoveryAssessment.nightSleepWindow(endingOn: end) else { return nil }
+        let predicate = HKQuery.predicateForSamples(withStart: window.start, end: window.end, options: [])
         return try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(
                 sampleType: type,
@@ -1207,16 +1207,7 @@ final class HealthKitManager {
                         return nil
                     }
                 }
-                guard !asleep.isEmpty else { continuation.resume(returning: nil); return }
-                var merged: [DateInterval] = []
-                for interval in asleep.sorted(by: { $0.start < $1.start }) {
-                    if let last = merged.last, interval.start <= last.end {
-                        merged[merged.count - 1] = DateInterval(start: last.start, end: max(last.end, interval.end))
-                    } else {
-                        merged.append(interval)
-                    }
-                }
-                continuation.resume(returning: merged.reduce(0) { $0 + $1.duration } / 3_600)
+                continuation.resume(returning: RecoveryAssessment.nightSleepHours(asleep: asleep, window: window))
             }
             store.execute(query)
         }

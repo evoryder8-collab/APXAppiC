@@ -321,6 +321,57 @@ final class MealTimingEngineTests: XCTestCase {
 }
 
 final class RecoveryAssessmentTests: XCTestCase {
+    func testNightSleepReadsTheSameAllDayAndLeavesNapsOut() throws {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = try XCTUnwrap(TimeZone(identifier: "Europe/Zurich"))
+        func at(_ day: Int, _ hour: Int, _ minute: Int = 0) -> Date {
+            calendar.date(from: DateComponents(year: 2026, month: 11, day: day, hour: hour, minute: minute))!
+        }
+        // Asleep 23:00 to 07:00: the Watch writes hourly stages, the iPhone one overlapping block.
+        let night = (0..<8).map { DateInterval(start: at(9, 23).addingTimeInterval(Double($0) * 3_600), duration: 3_600) }
+            + [DateInterval(start: at(9, 23, 30), end: at(10, 6, 30))]
+        let naps = [
+            DateInterval(start: at(9, 14, 30), end: at(9, 15, 30)),
+            DateInterval(start: at(10, 14), end: at(10, 15)),
+        ]
+        func hours(_ asleep: [DateInterval], readAt: Date) throws -> Double? {
+            let window = try XCTUnwrap(RecoveryAssessment.nightSleepWindow(endingOn: readAt, calendar: calendar))
+            return RecoveryAssessment.nightSleepHours(asleep: asleep, window: window)
+        }
+
+        XCTAssertEqual(try XCTUnwrap(hours(night + naps, readAt: at(10, 8))), 8, accuracy: 0.001,
+                       "yesterday afternoon's nap is not last night")
+        XCTAssertEqual(try XCTUnwrap(hours(night + naps, readAt: at(10, 22))), 8, accuracy: 0.001,
+                       "an evening read must not shrink the night or add today's nap")
+        XCTAssertNil(try hours(naps, readAt: at(10, 9)), "no sleep in the night is no reading, never zero")
+        let earlyNight = [DateInterval(start: at(9, 17), end: at(9, 19)), DateInterval(start: at(10, 11), end: at(10, 13))]
+        XCTAssertEqual(try XCTUnwrap(hours(earlyNight, readAt: at(10, 13))), 2, accuracy: 0.001,
+                       "sleep that crosses the window counts only inside it")
+    }
+
+    func testLaterReadOfTheSameNightNeverTakesHoursAway() {
+        func stored(_ addons: [String: JSONValue]) -> Double? {
+            addons["apple_recovery_context"]?.objectValue?["sleep_duration_hours"]?.numberValue
+        }
+        func read(_ addons: [String: JSONValue], _ date: String, _ hours: Double?) -> [String: JSONValue] {
+            RecoveryAssessment.addons(
+                addons, storingHealthRead: date, sleepHours: hours,
+                heartRateVariabilityMS: 41, restingHeartRate: 52, updatedAt: "2026-11-10T08:00:00Z"
+            )
+        }
+        var addons = read([:], "2026-11-10", 7.5)
+        XCTAssertEqual(stored(addons), 7.5)
+        addons = read(addons, "2026-11-10", nil)
+        XCTAssertEqual(stored(addons), 7.5, "a sleep read that failed must not erase the night")
+        addons = read(addons, "2026-11-10", 3.7)
+        XCTAssertEqual(stored(addons), 7.5)
+        addons = read(addons, "2026-11-10", 8.25)
+        XCTAssertEqual(stored(addons), 8.25, "a lie-in adds to the night")
+        addons = read(addons, "2026-11-11", 5)
+        XCTAssertEqual(stored(addons), 5, "a new day starts from its own night")
+        XCTAssertEqual(addons["apple_recovery_context"]?.objectValue?["date"]?.stringValue, "2026-11-11")
+    }
+
     private func apple(_ score: Int) -> RecoveryAssessment.Checkin {
         RecoveryAssessment.Checkin(
             date: "2026-01-05", source: "apple", sleepScore: score,

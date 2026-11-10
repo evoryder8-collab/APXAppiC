@@ -154,6 +154,52 @@ enum RecoveryAssessment {
         .sorted { $0.date < $1.date }
     }
 
+    /// The night that ends on `day`: 18:00 the evening before to 12:00. The window is fixed, so a
+    /// read at 22:00 sees the same night as a read at 08:00 and an afternoon nap stays outside it.
+    static func nightSleepWindow(endingOn day: Date, calendar: Calendar = .current) -> DateInterval? {
+        let morning = calendar.startOfDay(for: day)
+        guard let eve = calendar.date(byAdding: .day, value: -1, to: morning),
+              let start = calendar.date(bySettingHour: 18, minute: 0, second: 0, of: eve),
+              let end = calendar.date(bySettingHour: 12, minute: 0, second: 0, of: morning) else { return nil }
+        return DateInterval(start: start, end: end)
+    }
+
+    /// Hours asleep inside the window, with overlapping Watch and iPhone intervals counted once.
+    static func nightSleepHours(asleep: [DateInterval], window: DateInterval) -> Double? {
+        var merged: [DateInterval] = []
+        let inside = asleep.compactMap { $0.intersection(with: window) }.filter { $0.duration > 0 }
+        for interval in inside.sorted(by: { $0.start < $1.start }) {
+            if let last = merged.last, interval.start <= last.end {
+                merged[merged.count - 1] = DateInterval(start: last.start, end: max(last.end, interval.end))
+            } else {
+                merged.append(interval)
+            }
+        }
+        guard !merged.isEmpty else { return nil }
+        return merged.reduce(0) { $0 + $1.duration } / 3_600
+    }
+
+    /// Settings addons after an Apple Health read. A later read of the same night can add hours
+    /// and never takes them away: the sleep query can fail while the other readings arrive.
+    static func addons(
+        _ addons: [String: JSONValue], storingHealthRead date: String, sleepHours: Double?,
+        heartRateVariabilityMS: Double?, restingHeartRate: Double?, updatedAt: String
+    ) -> [String: JSONValue] {
+        var addons = addons
+        let stored = addons["apple_recovery_context"]?.objectValue
+        let storedHours = stored?["date"]?.stringValue == date ? stored?["sleep_duration_hours"]?.numberValue : nil
+        let hours = [sleepHours, storedHours].compactMap { $0 }.max()
+        addons["apple_recovery_context"] = .object([
+            "date": .string(date),
+            "sleep_duration_hours": hours.map(JSONValue.number) ?? .null,
+            "heart_rate_variability_ms": heartRateVariabilityMS.map(JSONValue.number) ?? .null,
+            "resting_heart_rate": restingHeartRate.map(JSONValue.number) ?? .null,
+            "source": .string("apple_health"),
+            "updated_at": .string(updatedAt)
+        ])
+        return addons
+    }
+
     /// HealthKit exposes the measured sleep interval but not the Sleep app's
     /// composite score. Keep the measured fact available without relabelling
     /// it as a score derived from duration alone.
