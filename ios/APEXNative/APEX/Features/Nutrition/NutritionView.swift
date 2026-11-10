@@ -1078,6 +1078,9 @@ private struct DailyLogCard: View {
                                 Text(language.format("This day's estimate %d kcal · PAL %.2f · %@", targets.tdee, targets.pal, language.text(targets.estimatedLevel.title)))
                                     .font(APEXFont.body(11, weight: .semibold))
                                     .foregroundStyle(APEXColor.secondaryInk)
+                                    // One line that shrinks in long languages, so the figure stays with its unit.
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.6)
                             }
                             Spacer()
                             if allReconciled {
