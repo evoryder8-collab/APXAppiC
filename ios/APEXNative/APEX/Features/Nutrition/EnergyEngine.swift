@@ -31,7 +31,10 @@ struct NutritionTargets: Equatable, Sendable {
     let fatG: Int
     let carbsG: Int
     let pal: Double
+    /// The level that produced the target: the one the person chose.
     let level: ActivityLevel
+    /// The level the day's estimate amounts to. Measured activity decides it when there is some.
+    let estimatedLevel: ActivityLevel
     let restingEnergyProvenance: RestingEnergyProvenance
     let targetProvenance: NutritionTargetProvenance
     let reviewReasons: Set<NutritionReviewReason>
@@ -59,6 +62,7 @@ struct NutritionTargets: Equatable, Sendable {
         carbsG: Int,
         pal: Double,
         level: ActivityLevel,
+        estimatedLevel: ActivityLevel? = nil,
         restingEnergyProvenance: RestingEnergyProvenance = .mifflinEstimate,
         targetProvenance: NutritionTargetProvenance = .calculatedEstimate,
         reviewReasons: Set<NutritionReviewReason> = []
@@ -71,6 +75,7 @@ struct NutritionTargets: Equatable, Sendable {
         self.carbsG = carbsG
         self.pal = pal
         self.level = level
+        self.estimatedLevel = estimatedLevel ?? level
         self.restingEnergyProvenance = restingEnergyProvenance
         self.targetProvenance = targetProvenance
         self.reviewReasons = reviewReasons
@@ -503,8 +508,11 @@ enum EnergyEngine {
                 wearableActiveCalories: wearableActiveCalories,
                 logs: logs
             )
-            tdee = bmr * 1.2
-                + min(max(resolvedProfile.calibrationK, 0.85), 1.15) * activityEnergy
+            tdee = dayEstimate(
+                bmr: bmr,
+                calibrationK: resolvedProfile.calibrationK,
+                activityEnergy: activityEnergy
+            )
         } else {
             tdee = bmr * resolvedProfile.activityLevel.multiplier
         }
@@ -521,7 +529,10 @@ enum EnergyEngine {
             )
         }
         let pal = tdee / bmr
-        let level = level(forPAL: pal)
+        /* The target is the chosen level times the goal, so that level labels it. What was
+           measured only describes the day's estimate, which carries its own level. */
+        let estimatedLevel = precise ? Self.level(forPAL: pal) : resolvedProfile.activityLevel
+        let level = resolvedProfile.activityLevel
         let preset = NutritionGoalPolicy.preset(
             for: resolvedProfile.goal,
             context: planContext
@@ -570,10 +581,16 @@ enum EnergyEngine {
             carbsG: macros.carbsG,
             pal: (pal * 100).rounded() / 100,
             level: level,
+            estimatedLevel: estimatedLevel,
             restingEnergyProvenance: restingEnergyProvenance,
             targetProvenance: .calculatedEstimate,
             reviewReasons: reviewReasons
         )
+    }
+
+    /// A measured day's estimated expenditure: resting energy plus the calibrated activity energy.
+    static func dayEstimate(bmr: Double, calibrationK: Double, activityEnergy: Double) -> Double {
+        bmr * 1.2 + min(max(calibrationK, calibrationLowerBound), calibrationUpperBound) * activityEnergy
     }
 
     static func targetCalories(

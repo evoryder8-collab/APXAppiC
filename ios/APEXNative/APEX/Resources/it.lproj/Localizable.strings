@@ -5959,3 +5959,6 @@
 "Drinks" = "Bevande";
 "Recovery meal logged" = "Pasto di recupero registrato";
 "Optional · your latest weigh-in sets your targets" = "Facoltativo · l'ultima pesata definisce i tuoi obiettivi";
+"This day's estimate: %d kcal" = "Stima di questo giorno: %d kcal";
+"This day's estimate %d kcal · PAL %.2f · %@" = "Stima di questo giorno %d kcal · PAL %.2f · %@";
+"DAY ESTIMATE" = "STIMA DEL GIORNO";

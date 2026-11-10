@@ -309,7 +309,7 @@ private struct TodaysActivitiesPanel: View {
                         }
                         Spacer()
                         VStack(alignment: .trailing, spacing: 5) {
-                            Text(language.text(targets.level.title).uppercased(with: language.language.locale))
+                            Text(language.text(targets.estimatedLevel.title).uppercased(with: language.language.locale))
                                 .font(APEXFont.mono(11))
                                 .tracking(1.1)
                                 .foregroundStyle(APEXColor.amberDeep)
@@ -529,10 +529,13 @@ private struct DailyTargetsCard: View {
 
                     HStack(spacing: 18) {
                         Text(language.format("BMR: %d", targets.bmr))
-                        Text(language.format("TDEE: %d", targets.tdee))
+                        Text(language.format("This day's estimate: %d kcal", targets.tdee))
                     }
                     .font(APEXFont.body(13, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
+                    // Long languages shrink the line; the figure never wraps away from its unit.
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
 
                     Label(language.text(restingEnergyLabel), systemImage: "function")
                         .font(APEXFont.body(12, weight: .semibold))
@@ -1072,7 +1075,7 @@ private struct DailyLogCard: View {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(language.text(allReconciled ? "Day reconciled" : "Did the day go as planned?"))
                                     .font(APEXFont.display(19))
-                                Text(language.format("%d kcal TDEE · PAL %.2f · %@", targets.tdee, targets.pal, language.text(targets.level.title)))
+                                Text(language.format("This day's estimate %d kcal · PAL %.2f · %@", targets.tdee, targets.pal, language.text(targets.estimatedLevel.title)))
                                     .font(APEXFont.body(11, weight: .semibold))
                                     .foregroundStyle(APEXColor.secondaryInk)
                             }

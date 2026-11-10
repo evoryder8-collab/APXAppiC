@@ -5940,3 +5940,6 @@
 "Drinks" = "Băuturi";
 "Recovery meal logged" = "Masa de recuperare este înregistrată";
 "Optional · your latest weigh-in sets your targets" = "Opțional · ultima cântărire îți stabilește țintele";
+"This day's estimate: %d kcal" = "Estimarea acestei zile: %d kcal";
+"This day's estimate %d kcal · PAL %.2f · %@" = "Estimarea acestei zile %d kcal · PAL %.2f · %@";
+"DAY ESTIMATE" = "ESTIMAREA ZILEI";

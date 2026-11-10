@@ -426,7 +426,8 @@ final class EnergyEngineTests: XCTestCase {
         XCTAssertEqual(marketKcal, 52.5, accuracy: 0.01)
         XCTAssertEqual(stepsKcal, 308, accuracy: 0.01)
         XCTAssertEqual(result.tdee, 2_648)
-        XCTAssertEqual(result.level, .moderate)
+        XCTAssertEqual(result.estimatedLevel, .moderate, "What the blocks amount to")
+        XCTAssertEqual(result.level, .sedentary, "The target still carries the level that was chosen")
     }
 
     func testDistanceAndDiscountedWatchUseMaximumNotSum() {
@@ -491,6 +492,27 @@ final class EnergyEngineTests: XCTestCase {
         )
     }
 
+    func testTheTargetIsLabelledWithTheLevelThatProducedIt() {
+        for level in ActivityLevel.allCases {
+            let quick = EnergyEngine.targets(
+                profile: profile(weight: 70, level: level, goal: .maintain, customBMR: 1_683), logs: [], catalog: []
+            )
+            XCTAssertEqual(quick.targetCalories, Int((1_683 * level.multiplier).rounded()))
+            XCTAssertEqual(quick.level, level, "\(quick.targetCalories) kcal came from \(level.title)")
+            XCTAssertEqual(quick.estimatedLevel, level, "With nothing measured, the day's estimate is the chosen level")
+        }
+
+        // The audited screen: Extra active chosen, a 441 kcal day on the Watch, resting energy 1,780.
+        let measured = EnergyEngine.targets(
+            profile: profile(weight: 80, level: .extra, goal: .maintain, customBMR: 1_780),
+            logs: [], catalog: [], wearableActiveCalories: 441
+        )
+        XCTAssertEqual(measured.targetCalories, 3_382)
+        XCTAssertEqual(measured.level, .extra, "The label beside 3,382 kcal names the level that produced it")
+        XCTAssertEqual(measured.tdee, 2_577)
+        XCTAssertEqual(measured.estimatedLevel, .light, "The day's 2,577 kcal estimate carries its own level")
+    }
+
     func testGenericPreciseTargetsDoNotAddWearableBurnToActivityEstimatesAgain() {
         let result = EnergyEngine.targets(
             profile: profile(
@@ -507,8 +529,11 @@ final class EnergyEngineTests: XCTestCase {
             wearableActiveCalories: 900
         )
 
-        XCTAssertEqual(result.tdee, 2_920)
-        XCTAssertEqual(result.targetCalories, 2_609)
+        /* Two figures on purpose. The target is the plan's, from the chosen level, and never
+           chases the day's burn. The other is the day's estimate. Each now carries its own label. */
+        XCTAssertEqual(result.tdee, 2_920, "The day's estimate: resting energy plus the Watch's 900 kcal")
+        XCTAssertEqual(result.targetCalories, 2_609, "The plan's target: 1,683 kcal at Moderately active")
+        XCTAssertEqual(result.level, .moderate)
         XCTAssertEqual(result.proteinG, 133)
         XCTAssertEqual(result.fatG, 80)
         XCTAssertEqual(result.carbsG, 339)
@@ -721,7 +746,7 @@ final class EnergyEngineTests: XCTestCase {
             catalog: [filming, travel]
         )
 
-        XCTAssertEqual(result.level, .extra)
+        XCTAssertEqual(result.estimatedLevel, .extra)
         XCTAssertGreaterThanOrEqual(result.pal, 2)
     }
 

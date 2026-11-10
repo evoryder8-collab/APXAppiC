@@ -5958,3 +5958,6 @@
 "Drinks" = "飲み物";
 "Recovery meal logged" = "リカバリーの食事を記録しました";
 "Optional · your latest weigh-in sets your targets" = "任意・最新の体重が目標に反映されます";
+"This day's estimate: %d kcal" = "この日の推定消費: %d kcal";
+"This day's estimate %d kcal · PAL %.2f · %@" = "この日の推定消費 %d kcal・PAL %.2f・%@";
+"DAY ESTIMATE" = "この日の推定";

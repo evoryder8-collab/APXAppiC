@@ -548,7 +548,7 @@ struct NutritionTargetSheet: View {
                             targetFooterMetric("PROTEIN", targets.proteinG, "g")
                             targetFooterMetric("CARBS", targets.carbsG, "g")
                             targetFooterMetric("FAT", targets.fatG, "g")
-                            targetFooterMetric("TDEE", targets.tdee, "")
+                            targetFooterMetric("DAY ESTIMATE", targets.tdee, "")
                         }
                     }
             }

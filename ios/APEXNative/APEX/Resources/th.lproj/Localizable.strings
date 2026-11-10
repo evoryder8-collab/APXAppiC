@@ -5940,3 +5940,6 @@
 "Drinks" = "เครื่องดื่ม";
 "Recovery meal logged" = "บันทึกมื้อฟื้นตัวแล้ว";
 "Optional · your latest weigh-in sets your targets" = "ไม่บังคับ · น้ำหนักล่าสุดใช้กำหนดเป้าหมายของคุณ";
+"This day's estimate: %d kcal" = "ค่าประมาณของวันที่เลือก: %d กิโลแคลอรี";
+"This day's estimate %d kcal · PAL %.2f · %@" = "ค่าประมาณของวันที่เลือก %d กิโลแคลอรี · PAL %.2f · %@";
+"DAY ESTIMATE" = "ค่าประมาณรายวัน";
