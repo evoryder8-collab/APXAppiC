@@ -5961,3 +5961,4 @@
 "This day's estimate: %d kcal" = "この日の推定消費: %d kcal";
 "This day's estimate %d kcal · PAL %.2f · %@" = "この日の推定消費 %d kcal・PAL %.2f・%@";
 "DAY ESTIMATE" = "この日の推定";
+"Suggested from this day's activity: %@" = "この日の活動からの提案: %@";

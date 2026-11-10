@@ -200,6 +200,40 @@ final class NutritionDayTests: XCTestCase {
         XCTAssertEqual(session.data.dailyLogs.first { $0.date == Date().apexDateKey }?.weightKG, stored - 1)
     }
 
+    // MARK: The activity level
+
+    func testAppleHealthSuggestsALevelAndNeverWritesIt() async throws {
+        let (session, operation) = try sandbox()
+        let today = Date().apexDateKey
+        session.data.activityLogs.removeAll { $0.date == today }
+        try await session.setActivityLevel(.light, operation: operation)
+        func record(steps: Int, kcal: Int, minutes: Int) -> WearableActivityRecord {
+            WearableActivityRecord(
+                date: today, steps: steps, activeCalories: kcal, exerciseMinutes: minutes,
+                source: "apple_health", updatedAt: Date().ISO8601Format()
+            )
+        }
+
+        // The day's running totals arrive with every import: breakfast time, then after a long walk.
+        await session.saveWearableActivity(record(steps: 300, kcal: 20, minutes: 0), operation: operation)
+        XCTAssertEqual(session.data.profile?.activityLevel, .light, "A quiet morning does not lower the level")
+        await session.saveWearableActivity(record(steps: 21_000, kcal: 1_500, minutes: 180), operation: operation)
+        XCTAssertEqual(session.data.profile?.activityLevel, .light, "A hand-picked level stays until the person changes it")
+        XCTAssertEqual(
+            WearableActivityRecord.activeCalories(on: today, settings: session.data.settings, ownerID: operation.ownerID),
+            1_500, "The day's record itself is saved"
+        )
+
+        // Taking the suggestion is the person's own action.
+        let suggested = try XCTUnwrap(NutritionRecordedActivity.suggestion(
+            profile: session.data.weighedProfile(), settings: session.data.settings,
+            logs: session.data.activityLogs, date: today
+        ))
+        XCTAssertNotEqual(suggested, .light)
+        await session.useSuggestedActivityLevel(on: today, operation: operation)
+        XCTAssertEqual(session.data.profile?.activityLevel, suggested)
+    }
+
     // MARK: The weight field
 
     func testTheWeightFieldShowsAndSavesInTheChosenUnit() throws {

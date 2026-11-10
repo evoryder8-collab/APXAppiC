@@ -5962,3 +5962,4 @@
 "This day's estimate: %d kcal" = "Stima di questo giorno: %d kcal";
 "This day's estimate %d kcal · PAL %.2f · %@" = "Stima di questo giorno %d kcal · PAL %.2f · %@";
 "DAY ESTIMATE" = "STIMA DEL GIORNO";
+"Suggested from this day's activity: %@" = "Suggerimento dall'attività di questo giorno: %@";

@@ -4351,11 +4351,7 @@ final class AppSession {
                 exerciseMinutes: snapshot.exerciseMinutes,
                 updatedAt: Date().ISO8601Format()
             ) {
-                await saveWearableActivity(
-                    wearable,
-                    automaticallyApply: snapshot.date == Date().apexDateKey,
-                    operation: operation
-                )
+                await saveWearableActivity(wearable, operation: operation)
                 guard accountOperationIsCurrent(operation) else { return }
             }
         }
@@ -4386,9 +4382,10 @@ final class AppSession {
         await importHealthWorkoutChanges(operation: operation)
     }
 
+    /// Stores a day's wearable record. It never changes the chosen activity level: Apple Health
+    /// suggests one, and a hand-picked level stays until the person changes it.
     func saveWearableActivity(
         _ record: WearableActivityRecord,
-        automaticallyApply: Bool,
         operation: AccountOperationLease
     ) async {
         guard accountOperationIsCurrent(operation),
@@ -4410,21 +4407,26 @@ final class AppSession {
         )
         guard accountOperationIsCurrent(operation) else { return }
         if record.date == Date().apexDateKey { publishHydrationState() }
-        guard let profile,
+    }
+
+    /// The person's own choice to take the level a day's activity suggests.
+    func useSuggestedActivityLevel(on day: String, operation: AccountOperationLease) async {
+        guard accountOperationIsCurrent(operation),
+              let profile,
               profile.userID == operation.ownerID,
               WearableActivityEngine.shouldAutomaticallyApplyMode(
                 profile: profile,
-                requested: automaticallyApply,
+                requested: true,
                 hasActivityLogs: data.activityLogs.contains {
-                    $0.userID == operation.ownerID && $0.date == record.date
+                    $0.userID == operation.ownerID && $0.date == day
                 }
               ) else { return }
-        let suggested = WearableActivityEngine.suggestedLevel(
-            persona: profile.persona,
-            steps: record.steps,
-            activeCalories: record.activeCalories,
-            exerciseMinutes: record.exerciseMinutes
-        )
+        let suggested = NutritionRecordedActivity.resolve(
+            profile: data.weighedProfile(),
+            settings: data.settings,
+            logs: data.activityLogs,
+            date: day
+        ).level
         try? await setActivityLevel(suggested, operation: operation)
     }
 

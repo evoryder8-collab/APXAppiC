@@ -593,6 +593,22 @@ enum EnergyEngine {
         bmr * 1.2 + min(max(calibrationK, calibrationLowerBound), calibrationUpperBound) * activityEnergy
     }
 
+    /// The level a day's measured activity amounts to for this person: the level of the estimate
+    /// `targets` reports for that day. Nil without activity energy or a usable resting figure, and
+    /// on an authored protocol, whose modes are chosen and not measured.
+    static func estimatedLevel(
+        profile: Profile,
+        settings: UserSettings?,
+        activityEnergy: Double
+    ) -> ActivityLevel? {
+        guard activityEnergy > 0, usesPersonalProtocol(profile) == false else { return nil }
+        let bmr = bmr(for: RestingEnergyPolicy.applied(to: profile, settings: settings))
+        guard bmr.isFinite, RestingEnergyPolicy.validRange.contains(bmr) else { return nil }
+        return level(forPAL: dayEstimate(
+            bmr: bmr, calibrationK: profile.calibrationK, activityEnergy: activityEnergy
+        ) / bmr)
+    }
+
     static func targetCalories(
         bmr: Double,
         tdee: Double,

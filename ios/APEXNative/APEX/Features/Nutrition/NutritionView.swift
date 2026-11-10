@@ -1332,7 +1332,7 @@ private struct BodyAssessmentCard: View {
         let protein = log?.proteinG ?? 0
         let water = log?.waterL ?? 0
         let activity = NutritionRecordedActivity.resolve(
-            profile: profile,
+            profile: session.data.weighedProfile(),
             settings: session.data.settings,
             logs: session.data.activityLogs,
             date: date.apexDateKey

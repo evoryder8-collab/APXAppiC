@@ -1194,7 +1194,9 @@ enum WearableActivityEngine {
     static func resolve(
         persona: Persona,
         wearable: WearableActivityRecord?,
-        logs: [ActivityLog]
+        logs: [ActivityLog],
+        profile: Profile? = nil,
+        settings: UserSettings? = nil
     ) -> Resolution {
         let activeCalories = EnergyEngine.resolvedActiveCalories(
             wearableActiveCalories: wearable?.activeCalories,
@@ -1203,11 +1205,25 @@ enum WearableActivityEngine {
         let loggedMinutes = logs.reduce(0) { $0 + max(0, $1.durationMinutes ?? 0) }
         let exerciseMinutes = max(wearable?.exerciseMinutes ?? 0, loggedMinutes)
         let steps = max(0, wearable?.steps ?? 0)
+        /* Measured activity energy is what the day's estimate is built from, so the level it
+           amounts to is the level of that estimate. A suggestion can then never ask for more food
+           than the app says was burned: 125 exercise minutes on a 441 kcal day is not Extra active.
+           Steps and minutes decide only when there is no energy figure, or on an authored protocol. */
+        let estimated = profile.flatMap {
+            EnergyEngine.estimatedLevel(
+                profile: $0,
+                settings: settings,
+                activityEnergy: EnergyEngine.activityEnergy(
+                    wearableActiveCalories: wearable?.activeCalories,
+                    logs: logs
+                )
+            )
+        }
         return Resolution(
             steps: steps,
             activeCalories: activeCalories,
             exerciseMinutes: exerciseMinutes,
-            level: suggestedLevel(
+            level: estimated ?? suggestedLevel(
                 persona: persona,
                 steps: steps,
                 activeCalories: activeCalories,
@@ -2593,9 +2609,14 @@ private struct WearableActivityCard: View {
         let history = WearableActivityRecord.history(from: session.data.settings?.addons["watch_activity_history"])
         return history.last { $0.date == date.apexDateKey }
     }
+    /// The same level the Burned ring and the assessment name for this day.
     private var level: ActivityLevel {
-        guard let record else { return .sedentary }
-        return WearableActivityEngine.suggestedLevel(persona: session.profile?.persona ?? .constantine, steps: record.steps, activeCalories: record.activeCalories, exerciseMinutes: record.exerciseMinutes)
+        NutritionRecordedActivity.resolve(
+            profile: session.data.weighedProfile(),
+            settings: session.data.settings,
+            logs: session.data.activityLogs,
+            date: date.apexDateKey
+        ).level
     }
 
     var body: some View {
@@ -2702,11 +2723,8 @@ private struct WearableActivityEditor: View {
                 let record = WearableActivityRecord(date: date.apexDateKey, steps: Int(steps) ?? 0, activeCalories: Int(calories) ?? 0, exerciseMinutes: Int(minutes) ?? 0, source: "manual", updatedAt: Date().ISO8601Format())
                 guard let operation = session.accountOperationLease() else { return }
                 Task { [record] in
-                    await session.saveWearableActivity(
-                        record,
-                        automaticallyApply: true,
-                        operation: operation
-                    )
+                    await session.saveWearableActivity(record, operation: operation)
+                    await session.useSuggestedActivityLevel(on: record.date, operation: operation)
                     guard session.accountOperationIsCurrent(operation) else { return }
                     dismiss()
                 }

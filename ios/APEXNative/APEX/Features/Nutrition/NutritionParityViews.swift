@@ -34,8 +34,25 @@ enum NutritionRecordedActivity {
         return WearableActivityEngine.resolve(
             persona: profile.persona,
             wearable: wearable,
-            logs: logs.filter { $0.userID == profile.userID && $0.date == date }
+            logs: logs.filter { $0.userID == profile.userID && $0.date == date },
+            profile: profile,
+            settings: settings?.userID == profile.userID ? settings : nil
         )
+    }
+
+    /// The level the day's recorded activity points to, when it differs from the one chosen.
+    /// Apple Health and the day's blocks only ever suggest. The person decides.
+    static func suggestion(
+        profile: Profile?,
+        settings: UserSettings?,
+        logs: [ActivityLog],
+        date: String
+    ) -> ActivityLevel? {
+        guard let profile else { return nil }
+        let activity = resolve(profile: profile, settings: settings, logs: logs, date: date)
+        guard activity.steps > 0 || activity.activeCalories > 0 || activity.exerciseMinutes > 0,
+              activity.level != profile.activityLevel else { return nil }
+        return activity.level
     }
 }
 
@@ -88,7 +105,7 @@ struct NutritionGlanceCard: View {
 
     private var resolvedActivity: WearableActivityEngine.Resolution {
         NutritionRecordedActivity.resolve(
-            profile: session.profile,
+            profile: session.data.weighedProfile(),
             settings: session.data.settings,
             logs: session.data.activityLogs,
             date: date.apexDateKey
@@ -539,6 +556,19 @@ struct NutritionTargetSheet: View {
                                 Label(language.text("Wearable or detailed activity is active. Tap a level to use manual activity."), systemImage: "applewatch")
                                     .font(APEXFont.body(9, weight: .semibold))
                                     .foregroundStyle(APEXColor.secondaryInk)
+                            }
+                            if let suggested = NutritionRecordedActivity.suggestion(
+                                profile: session.data.weighedProfile(),
+                                settings: session.data.settings,
+                                logs: session.data.activityLogs,
+                                date: date.apexDateKey
+                            ) {
+                                Label(
+                                    language.format("Suggested from this day's activity: %@", language.text(suggested.title)),
+                                    systemImage: "figure.walk"
+                                )
+                                .font(APEXFont.body(9, weight: .semibold))
+                                .foregroundStyle(APEXColor.secondaryInk)
                             }
                         }
                     }

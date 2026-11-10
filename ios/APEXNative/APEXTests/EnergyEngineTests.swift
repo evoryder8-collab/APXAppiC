@@ -680,6 +680,54 @@ final class EnergyEngineTests: XCTestCase {
         XCTAssertEqual(isolated.level, .moderate)
     }
 
+    func testTheSuggestedLevelIsTheLevelOfTheDaysOwnEstimate() {
+        // Resting energy 1,780 kcal, Moderately active chosen.
+        let athlete = profile(weight: 80, level: .moderate, goal: .maintain, customBMR: 1_780)
+        let day = "2026-11-02"
+        func settings(steps: Int, kcal: Int, minutes: Int) -> UserSettings {
+            UserSettings(
+                userID: athlete.userID, voiceOn: true, ticksOn: true, notificationsOn: true, guardianFactor: 0.96,
+                addons: ["watch_activity_history": .array([WearableActivityRecord(
+                    date: day, steps: steps, activeCalories: kcal, exerciseMinutes: minutes,
+                    source: "apple_health", updatedAt: "\(day)T20:00:00Z"
+                ).jsonValue])]
+            )
+        }
+        func recorded(_ settings: UserSettings) -> WearableActivityEngine.Resolution {
+            NutritionRecordedActivity.resolve(profile: athlete, settings: settings, logs: [], date: day)
+        }
+
+        // A long walk: 125 exercise minutes and 11,203 steps, 441 kcal on the Watch.
+        let walk = settings(steps: 11_203, kcal: 441, minutes: 125)
+        let estimate = EnergyEngine.targets(profile: athlete, logs: [], catalog: [], settings: walk, wearableActiveCalories: 441)
+        XCTAssertEqual(estimate.tdee, 2_577)
+        XCTAssertEqual(recorded(walk).level, .light, "A 2,577 kcal day is Lightly active, whatever the minute count says")
+        XCTAssertEqual(
+            NutritionRecordedActivity.suggestion(profile: athlete, settings: walk, logs: [], date: day), .light
+        )
+
+        // Whatever the day measures, the suggestion is the level of the estimate on the same screen.
+        for kcal in stride(from: 20, through: 1_600, by: 20) {
+            let measured = settings(steps: 11_203, kcal: kcal, minutes: 125)
+            XCTAssertEqual(
+                recorded(measured).level,
+                EnergyEngine.targets(
+                    profile: athlete, logs: [], catalog: [], settings: measured, wearableActiveCalories: kcal
+                ).estimatedLevel,
+                "\(kcal) kcal"
+            )
+        }
+
+        // Without an energy figure, steps and minutes are the only evidence there is.
+        XCTAssertEqual(recorded(settings(steps: 8_000, kcal: 0, minutes: 0)).level, .moderate)
+
+        // Nothing to suggest when the day agrees with the choice, or has nothing on it.
+        XCTAssertNil(NutritionRecordedActivity.suggestion(
+            profile: athlete, settings: settings(steps: 9_000, kcal: 700, minutes: 40), logs: [], date: day
+        ), "700 kcal is a Moderately active day, which is already chosen")
+        XCTAssertNil(NutritionRecordedActivity.suggestion(profile: athlete, settings: walk, logs: [], date: "2026-11-03"))
+    }
+
     func testWearableTargetEnergyIsIsolatedByOwnerAndDate() {
         let ownerID = UUID()
         let settings = UserSettings(
