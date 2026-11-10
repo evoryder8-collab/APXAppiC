@@ -3660,7 +3660,13 @@ final class AppSession {
         try requireCurrentAccountOperation(operation)
         guard ownerID == operation.ownerID else { throw CancellationError() }
         let day = date.apexDateKey
-        let resolved = hydrationResolution(ownerID: ownerID, on: date)
+        // The mirror follows the ledger alone. Falling back to its own old value would keep a removed drink.
+        let resolved = HydrationLedger.resolve(
+            ownerID: ownerID,
+            date: day,
+            events: data.hydrationEvents ?? [],
+            legacyDrinkLiters: 0
+        )
         let liters = Double(resolved.drinkML) / 1_000
         let existing = data.dailyLogs.first { $0.userID == ownerID && $0.date == day }
         guard abs((existing?.waterL ?? 0) - liters) > 0.000_5 || existing == nil else { return }
