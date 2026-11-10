@@ -42,4 +42,41 @@ final class HydrationDayTests: XCTestCase {
         XCTAssertEqual(session.hydrationResolution(on: day).drinkML, 330)
         XCTAssertEqual(session.data.hydrationEvents?.filter { $0.localDate == emptyDay }.map(\.amountML), [330])
     }
+
+    func testAfterMidnightTheAppIsOnTheNewDayUnlessTheUserBrowsedBack() async throws {
+        let (session, operation) = try sandbox()
+        let evening = try date("2031-05-10", hour: 21)
+        let morning = try date("2031-05-11", hour: 7)
+        session.browsingDate = evening
+        session.followTodayAcrossMidnight(now: evening)
+        XCTAssertEqual(session.browsingDate.apexDateKey, "2031-05-10")
+
+        session.followTodayAcrossMidnight(now: morning)
+        XCTAssertEqual(session.browsingDate.apexDateKey, "2031-05-11", "left on today, so it opens on the new day")
+
+        // A morning drink and a supplement tick are saved to the new day.
+        try await session.logHydration(amountML: 250, on: session.browsingDate, operation: operation)
+        XCTAssertEqual(session.hydrationResolution(on: morning).drinkML, 250)
+        XCTAssertEqual(session.hydrationResolution(on: evening).drinkML, 0)
+        let supplement = try XCTUnwrap(session.activeSupplements.first)
+        try await session.toggleSupplement(supplement, on: session.browsingDate, operation: operation)
+        XCTAssertEqual(ticked(session, on: "2031-05-11"), [supplement.id])
+        XCTAssertTrue(ticked(session, on: "2031-05-10").isEmpty)
+
+        // A day the user deliberately browsed back to stays put over the next midnight.
+        session.browsingDate = evening
+        session.followTodayAcrossMidnight(now: try date("2031-05-12", hour: 7))
+        XCTAssertEqual(session.browsingDate.apexDateKey, "2031-05-10")
+    }
+
+    func testReopeningTheAppTheNextMorningMovesOffYesterday() async throws {
+        let (session, _) = try sandbox()
+        let yesterday = try XCTUnwrap(Calendar.current.date(byAdding: .day, value: -1, to: Date()))
+        session.browsingDate = yesterday
+        session.followTodayAcrossMidnight(now: yesterday)
+
+        await session.onAppBecameActive()
+
+        XCTAssertEqual(session.browsingDate.apexDateKey, Date().apexDateKey)
+    }
 }

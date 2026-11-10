@@ -305,6 +305,7 @@ final class AppSession {
     var navigationPath: [PortalDestination] = []
     /// Shared UI date survives Simple/Advanced navigation, never crosses accounts.
     var browsingDate = Date()
+    @ObservationIgnored private var followedToday = Date().apexDateKey
 
 
     private func updateSandboxPlanReceipt(planVersionID: UUID, activate: Bool, ownerID: UUID) throws {
@@ -2285,7 +2286,16 @@ final class AppSession {
         }
     }
 
+    /// Moves the shared date to the new day when it was on today at the last check.
+    /// A day the user browsed to stays put.
+    func followTodayAcrossMidnight(now: Date = .now) {
+        let today = now.apexDateKey
+        if followedToday != today, browsingDate.apexDateKey == followedToday { browsingDate = now }
+        followedToday = today
+    }
+
     func onAppBecameActive() async {
+        followTodayAcrossMidnight()
         #if DEBUG
         // UI automation uses a deterministic, local dashboard and must not
         // replace it with an unauthenticated network refresh when XCTest
