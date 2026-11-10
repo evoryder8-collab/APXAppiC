@@ -2087,7 +2087,8 @@
 "Creatine monohydrate supports repeated high-intensity and strength work." = "クレアチンモノハイドレートは、繰り返し高強度と強度の作業をサポートしています。";
 "Current concerning symptoms or an existing restriction lead to professional review before strenuous assignment. Old resolved history does not automatically block training." = "症状または既存の制限に関する電流は、激しい割り当ての前に専門家のレビューにつながります。 古い解決された歴史は訓練を妨げません。";
 "Current joint discomfort" = "現在の共同不快感";
-"Current joint discomfort reported" = "現在の共同不快感報告";
+"A sore joint keeps your week to %d sessions at most and adds a pain-free note to every session. It does not swap exercises yet, so ease off any movement that hurts." = "痛む関節があると、週のセッションは最大%d回になり、各セッションに痛みのない範囲で行う注意が加わります。種目の入れ替えはまだ行われないため、痛みが出る動きは負荷を下げてください。";
+"Joint discomfort reported: the week stays light and each session carries a pain-free note. Exercises are not swapped yet." = "関節の不調を申告済み：週は軽めに保たれ、各セッションに痛みのない範囲で行う注意が付きます。種目の入れ替えはまだ行われません。";
 "Current programme, home training" = "現在のプログラム、ホームトレーニング";
 "Current weight" = "現在の重量";
 "Custom amount" = "注文数量";

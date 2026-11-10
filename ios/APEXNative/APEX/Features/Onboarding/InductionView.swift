@@ -1069,6 +1069,11 @@ struct InductionView: View {
             Text(language.text("Any joints currently sore?"))
                 .font(APEXFont.body(13, weight: .semibold))
                 .padding(.top, 6)
+            Text(language.format(TrainingInduction.soreJointSetupNote, TrainingInduction.cautiousSessionCap))
+                .font(APEXFont.body(11, weight: .medium))
+                .foregroundStyle(APEXColor.secondaryInk)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
             ForEach(Array(["knee", "shoulder", "elbow", "hip", "ankle", "wrist"].enumerated()), id: \.element) { position, area in
                 selectRow(
                     label: language.text(area.capitalized),

@@ -4061,7 +4061,8 @@
 "HighIntensityIntervalTraining" = "ฝึกอินเทอร์วัลความเข้มสูง";
 "Focus T25" = "Focus T25";
 "Chronic lower-back pain reported" = "แจ้งอาการปวดหลังส่วนล่างเรื้อรัง";
-"Current joint discomfort reported" = "แจ้งอาการไม่สบายที่ข้อต่อ";
+"A sore joint keeps your week to %d sessions at most and adds a pain-free note to every session. It does not swap exercises yet, so ease off any movement that hurts." = "ข้อที่เจ็บจะจำกัดสัปดาห์ของคุณไว้ไม่เกิน %d เซสชัน และเพิ่มหมายเหตุให้ฝึกในช่วงที่ไม่เจ็บในทุกเซสชัน ตอนนี้ยังไม่มีการสลับท่าฝึก จึงควรผ่อนแรงในท่าที่ทำให้เจ็บ";
+"Joint discomfort reported: the week stays light and each session carries a pain-free note. Exercises are not swapped yet." = "แจ้งอาการไม่สบายที่ข้อต่อ: สัปดาห์จะเบาลงและทุกเซสชันมีหมายเหตุให้ฝึกในช่วงที่ไม่เจ็บ ตอนนี้ยังไม่มีการสลับท่าฝึก";
 "Long training gap reported" = "แจ้งการหยุดฝึกเป็นเวลานาน";
 "Recent operation reported" = "แจ้งการผ่าตัดเมื่อเร็ว ๆ นี้";
 "Loaded training waits for clinician clearance" = "การฝึกด้วยน้ำหนักต้องรอการอนุญาตจากแพทย์";

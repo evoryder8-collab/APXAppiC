@@ -991,6 +991,13 @@ enum TrainingInduction {
         )
     }
 
+    /// A cautious start trains at most this many days a week; the setup note quotes the same number.
+    static let cautiousSessionCap = 3
+
+    /// Shown where setup asks about sore joints. Whichever joint is chosen the plan does the same
+    /// thing, so the note says that and does not promise an exercise swap.
+    static let soreJointSetupNote = "A sore joint keeps your week to %d sessions at most and adds a pain-free note to every session. It does not swap exercises yet, so ease off any movement that hurts."
+
     /// A recent operation or acute exertional symptom stops loaded training until a clinician says otherwise;
     /// a long layoff, back pain or current joint discomfort softens the plan.
     static func assess(_ input: Input) -> Assessment {
@@ -1009,10 +1016,12 @@ enum TrainingInduction {
         var reasons: [String] = []
         if longLayoff { reasons.append("Long training gap reported") }
         if input.chronicLowerBackPain { reasons.append("Chronic lower-back pain reported") }
-        if !input.painAreas.isEmpty { reasons.append("Current joint discomfort reported") }
+        if !input.painAreas.isEmpty {
+            reasons.append("Joint discomfort reported: the week stays light and each session carries a pain-free note. Exercises are not swapped yet.")
+        }
         return Assessment(
             caution: cautious ? "cautious" : "standard",
-            sessionsPerWeek: cautious ? min(input.sessionsPerWeek, 3) : input.sessionsPerWeek,
+            sessionsPerWeek: cautious ? min(input.sessionsPerWeek, cautiousSessionCap) : input.sessionsPerWeek,
             reasons: reasons
         )
     }

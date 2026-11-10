@@ -1796,6 +1796,47 @@ final class TrainingInductionTests: XCTestCase {
         }
     }
 
+    func testSoreJointCopySaysWhatThePlanReallyDoesInEveryLanguage() throws {
+        let setupNote = "A sore joint keeps your week to %d sessions at most and adds a pain-free note to every session. It does not swap exercises yet, so ease off any movement that hurts."
+        let planNote = "Joint discomfort reported: the week stays light and each session carries a pain-free note. Exercises are not swapped yet."
+        func plan(_ joint: String) -> TrainingInduction.GeneratedPlan {
+            TrainingInduction.generate(userID: user, input: input {
+                $0.painAreas = [joint]
+                $0.sessionsPerWeek = 5
+            }, completedAt: "2026-01-05T08:00:00Z")
+        }
+
+        // What the copy claims: the same lighter week whichever joint is sore, and no swapped exercise.
+        let knee = plan("knee"), shoulder = plan("shoulder")
+        XCTAssertEqual(knee.exercises.map(\.name), shoulder.exercises.map(\.name))
+        XCTAssertEqual(knee.induction["sessions_per_week"]?.numberValue, 3)
+        XCTAssertTrue(knee.programDays.allSatisfy { $0.warmupNote.contains("pain-free") })
+        XCTAssertEqual(
+            TrainingInduction.assess(input { $0.painAreas = ["knee"] }).reasons, [planNote],
+            "the plan note must say the week is lighter and exercises are not swapped"
+        )
+
+        let app = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "APEX")
+        for screen in ["Features/Onboarding/InductionView.swift", "Features/Training/TrainingInductionPanel.swift"] {
+            XCTAssertTrue(
+                try String(contentsOf: app.appending(path: screen)).contains("TrainingInduction.soreJointSetupNote"),
+                "\(screen) asks about sore joints without saying what choosing one does"
+            )
+        }
+        XCTAssertTrue(
+            try String(contentsOf: app.appending(path: "Core/Engine/TrainingInduction.swift")).contains(setupNote)
+        )
+        for language in ["de", "de-CH", "it", "es", "pt", "ja", "ro", "th"] {
+            let url = try XCTUnwrap(Bundle.main.url(
+                forResource: "Localizable", withExtension: "strings", subdirectory: nil, localization: language
+            ))
+            let table = try XCTUnwrap(NSDictionary(contentsOf: url) as? [String: String])
+            XCTAssertEqual(table[setupNote]?.components(separatedBy: "%d").count, 2, "\(language) setup note")
+            XCTAssertFalse(table[planNote, default: ""].isEmpty, "\(language) plan note")
+        }
+    }
+
     func testAReadyBodyKeepsWhatItAskedFor() {
         let assessment = TrainingInduction.assess(input { $0.sessionsPerWeek = 4 })
         XCTAssertEqual(assessment.caution, "standard")

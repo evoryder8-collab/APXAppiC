@@ -449,6 +449,10 @@ struct TrainingInductionPanel: View {
 
             Text(language.text("Current joint discomfort"))
                 .font(APEXFont.body(13, weight: .bold))
+            Text(language.format(TrainingInduction.soreJointSetupNote, TrainingInduction.cautiousSessionCap))
+                .font(APEXFont.body(10, weight: .medium))
+                .foregroundStyle(APEXColor.secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
                 ForEach(["knee", "shoulder", "elbow", "hip", "ankle", "wrist"], id: \.self) { area in
                     painChoice(area)

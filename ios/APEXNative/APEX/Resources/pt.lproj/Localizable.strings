@@ -2087,7 +2087,8 @@
 "Creatine monohydrate supports repeated high-intensity and strength work." = "A creatina mono- hidratada suporta trabalho repetido de alta intensidade e força.";
 "Current concerning symptoms or an existing restriction lead to professional review before strenuous assignment. Old resolved history does not automatically block training." = "A corrente relativa aos sintomas ou a uma restrição existente conduz à revisão profissional antes da atribuição extenuante. O histórico antigo resolvido não bloqueia automaticamente o treino.";
 "Current joint discomfort" = "Desconforto articular atual";
-"Current joint discomfort reported" = "Desconforto articular atual relatado";
+"A sore joint keeps your week to %d sessions at most and adds a pain-free note to every session. It does not swap exercises yet, so ease off any movement that hurts." = "Uma articulação dorida limita a tua semana a %d sessões no máximo e acrescenta a cada sessão uma nota de trabalho sem dor. Os exercícios ainda não são trocados, por isso alivia qualquer movimento que doa.";
+"Joint discomfort reported: the week stays light and each session carries a pain-free note. Exercises are not swapped yet." = "Desconforto articular relatado: a semana mantém-se leve e cada sessão traz uma nota de trabalho sem dor. Os exercícios ainda não são trocados.";
 "Current programme, home training" = "Programa actual, formação em casa";
 "Current weight" = "Peso atual";
 "Custom amount" = "Quantidade personalizada";

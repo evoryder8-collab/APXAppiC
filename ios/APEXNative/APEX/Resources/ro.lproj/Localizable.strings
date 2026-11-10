@@ -4061,7 +4061,8 @@
 "HighIntensityIntervalTraining" = "Antrenament pe intervale de intensitate mare";
 "Focus T25" = "Focus T25";
 "Chronic lower-back pain reported" = "Dureri cronice de spate jos raportate";
-"Current joint discomfort reported" = "Disconfort articular raportat";
+"A sore joint keeps your week to %d sessions at most and adds a pain-free note to every session. It does not swap exercises yet, so ease off any movement that hurts." = "O articulație dureroasă limitează săptămâna la cel mult %d sesiuni și adaugă fiecărei sesiuni o notă de lucru fără durere. Exercițiile nu sunt încă înlocuite, așa că redu orice mișcare care doare.";
+"Joint discomfort reported: the week stays light and each session carries a pain-free note. Exercises are not swapped yet." = "Disconfort articular raportat: săptămâna rămâne ușoară și fiecare sesiune are o notă de lucru fără durere. Exercițiile nu sunt încă înlocuite.";
 "Long training gap reported" = "Pauză lungă de antrenament raportată";
 "Recent operation reported" = "Operație recentă raportată";
 "Loaded training waits for clinician clearance" = "Antrenamentul cu greutăți așteaptă avizul medicului";
