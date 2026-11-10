@@ -450,7 +450,7 @@ struct SettingsView: View {
                 // The one bodyweight every target reads. Changing it here is today's weigh-in too.
                 let bodyweight = session.data.weighedProfile()?.weightKG ?? 0
                 profileStepper("Weight", value: bodyweight, unit: "kg", step: 0.5) { delta in
-                    setBodyweight(max(25, bodyweight + delta))
+                    stepBodyweight(by: delta)
                 }
                 Divider()
                 VStack(alignment: .leading, spacing: 9) {
@@ -869,11 +869,11 @@ struct SettingsView: View {
         }
     }
 
-    private func setBodyweight(_ weightKG: Double) {
+    private func stepBodyweight(by delta: Double) {
         guard let operation = session.accountOperationLease() else { return }
         Task {
             do {
-                try await session.setBodyweight(weightKG, operation: operation)
+                try await session.stepBodyweight(by: delta, operation: operation)
             } catch is CancellationError {
                 return
             } catch {

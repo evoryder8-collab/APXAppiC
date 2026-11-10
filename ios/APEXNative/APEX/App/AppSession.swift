@@ -3127,11 +3127,19 @@ final class AppSession {
         )
     }
 
-    /// A weight set in Settings is today's weigh-in as well as the profile's weight, so it is
-    /// the newest weight on record and every target follows it.
-    func setBodyweight(_ weightKG: Double, operation: AccountOperationLease) async throws {
-        try await updateProfile({ $0.weightKG = weightKG }, operation: operation)
+    /// A step on the Settings weight is today's weigh-in as well as the profile's weight, so it
+    /// is the newest weight on record and every target follows it.
+    func stepBodyweight(by delta: Double, operation: AccountOperationLease) async throws {
+        try requireCurrentAccountOperation(operation)
+        guard let recorded = data.weighedProfile()?.weightKG, recorded.isFinite else { throw CancellationError() }
+        /* Stepped from the weight on record now, not the one on screen when the tap began, and
+           kept to what the targets accept. The weigh-in goes first: it is on the day before
+           this first waits on a save, so a tap that follows at once steps from it. */
+        let weightKG = min(300, max(30, recorded + delta))
         try await saveMorningWeight(weightKG, on: .now, operation: operation)
+        // Saves can finish out of order, so the profile takes whichever weight is on record by now.
+        let newest = data.weighedProfile()?.weightKG ?? weightKG
+        try await updateProfile({ $0.weightKG = newest }, operation: operation)
     }
 
     func saveMorningWeight(

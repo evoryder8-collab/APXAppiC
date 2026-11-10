@@ -299,7 +299,7 @@ final class NutritionDayTests: XCTestCase {
         try await session.setGoal(.bulk, operation: operation)
         XCTAssertEqual(session.data.profile?.weightKG, stored)
 
-        try await session.setBodyweight(stored - 1, operation: operation)
+        try await session.stepBodyweight(by: 2, operation: operation)
         XCTAssertEqual(session.data.weighedProfile()?.weightKG, stored - 1, "A weight set in Settings is the newest on record")
         XCTAssertEqual(session.data.profile?.weightKG, stored - 1)
         XCTAssertEqual(session.data.dailyLogs.first { $0.date == Date().apexDateKey }?.weightKG, stored - 1)
@@ -324,6 +324,50 @@ final class NutritionDayTests: XCTestCase {
             session.data.dailyLogs.filter { $0.userID == operation.ownerID && $0.date == Date().apexDateKey }.map(\.weightKG), [82],
             "The typed weight is dated, so a later reading can be ordered against it"
         )
+    }
+
+    func testQuickStepperTapsEachBuildOnTheOneBefore() async throws {
+        let (session, operation) = try sandbox()
+        let stored = try XCTUnwrap(session.data.profile?.weightKG)
+        func today() -> Double? { session.data.dailyLogs.first { $0.date == Date().apexDateKey }?.weightKG }
+
+        // Three taps before the screen redraws, each its own task as the stepper starts them.
+        let taps = (0..<3).map { _ in Task { try await session.stepBodyweight(by: 0.5, operation: operation) } }
+        for tap in taps { try await tap.value }
+        XCTAssertEqual(session.data.weighedProfile()?.weightKG, stored + 1.5, "No tap is lost")
+        XCTAssertEqual(today(), stored + 1.5)
+        XCTAssertEqual(session.data.profile?.weightKG, stored + 1.5, "The profile ends on the same weight")
+
+        // The stepper stays inside what the targets accept, so it can never block them.
+        try await session.stepBodyweight(by: -500, operation: operation)
+        XCTAssertEqual(session.data.weighedProfile()?.weightKG, 30)
+        try await session.stepBodyweight(by: 500, operation: operation)
+        XCTAssertEqual(session.data.weighedProfile()?.weightKG, 300)
+        XCTAssertEqual(today(), 300)
+    }
+
+    func testTheSettingsStepperHandsOverItsStepAndTheWeighInIsWrittenFirst() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let settings = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Settings/SettingsView.swift"), encoding: .utf8
+        ).filter { !$0.isWhitespace }
+        XCTAssertTrue(
+            settings.contains("session.stepBodyweight(by:delta,operation:operation)"),
+            "The tap hands over the step, and the session adds it to the weight on record at that moment"
+        )
+        XCTAssertFalse(
+            settings.contains("bodyweight+delta"),
+            "The weight on screen when the tap began is stale by the second tap"
+        )
+
+        // A save waits on the disk and the network. The weigh-in, which the next tap reads, must be on the day before that.
+        let session = try String(contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift"), encoding: .utf8)
+        let start = try XCTUnwrap(session.range(of: "func stepBodyweight("))
+        let end = try XCTUnwrap(session.range(of: "func saveMorningWeight(", range: start.upperBound..<session.endIndex))
+        let step = String(session[start.lowerBound..<end.lowerBound])
+        let weighIn = try XCTUnwrap(step.range(of: "saveMorningWeight("))
+        let profile = try XCTUnwrap(step.range(of: "updateProfile("))
+        XCTAssertLessThan(weighIn.lowerBound, profile.lowerBound)
     }
 
     // MARK: The planned-meal tap
