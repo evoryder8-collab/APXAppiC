@@ -93,6 +93,11 @@
 		444A0152459EE1EE5BD25828 /* WorkoutInsightsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC383CE762C664096CC54F78 /* WorkoutInsightsTests.swift */; };
 		1A4F0CEDAB20261109000018 /* NutritionReportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4F0CEDAB20261109000017 /* NutritionReportTests.swift */; };
 		1A4F0CEDAB20261109000016 /* WaterVolumeComparisonTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4F0CEDAB20261109000015 /* WaterVolumeComparisonTests.swift */; };
+		1A4F0CEDAB20261110000011 /* AvatarScoreInputTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4F0CEDAB20261110000010 /* AvatarScoreInputTests.swift */; };
+		1A4F0CEDAB20261110000013 /* RecoveryEvidenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4F0CEDAB20261110000012 /* RecoveryEvidenceTests.swift */; };
+		1A4F0CEDAB20261110000015 /* NutritionDayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4F0CEDAB20261110000014 /* NutritionDayTests.swift */; };
+		1A4F0CEDAB20261110000017 /* HydrationDayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4F0CEDAB20261110000016 /* HydrationDayTests.swift */; };
+		1A4F0CEDAB20261110000019 /* ProgressCameraTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4F0CEDAB20261110000018 /* ProgressCameraTests.swift */; };
 		44A9BA8D5B2DC84102D97B59 /* RecoveryPlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52C574675AB7A418F89511D7 /* RecoveryPlannerView.swift */; };
 		45BE0D50A0425BD755629822 /* ProgressComparisonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57258905C757B4949A5AC5C6 /* ProgressComparisonView.swift */; };
 		47B1968835CB764AAE8CB866 /* RunningShoesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE73573A8F98698D312CBE08 /* RunningShoesView.swift */; };
@@ -645,6 +650,11 @@
 		CC383CE762C664096CC54F78 /* WorkoutInsightsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutInsightsTests.swift; sourceTree = "<group>"; };
 		1A4F0CEDAB20261109000017 /* NutritionReportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionReportTests.swift; sourceTree = "<group>"; };
 		1A4F0CEDAB20261109000015 /* WaterVolumeComparisonTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterVolumeComparisonTests.swift; sourceTree = "<group>"; };
+		1A4F0CEDAB20261110000010 /* AvatarScoreInputTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarScoreInputTests.swift; sourceTree = "<group>"; };
+		1A4F0CEDAB20261110000012 /* RecoveryEvidenceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryEvidenceTests.swift; sourceTree = "<group>"; };
+		1A4F0CEDAB20261110000014 /* NutritionDayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionDayTests.swift; sourceTree = "<group>"; };
+		1A4F0CEDAB20261110000016 /* HydrationDayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HydrationDayTests.swift; sourceTree = "<group>"; };
+		1A4F0CEDAB20261110000018 /* ProgressCameraTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressCameraTests.swift; sourceTree = "<group>"; };
 		CC3DAD6C2D729B12C7525490 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/LocalizableShort.strings; sourceTree = "<group>"; };
 		CC50357C443CEF634FC6E37B /* SessionBriefing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionBriefing.swift; sourceTree = "<group>"; };
 		CD51249FC67F5ACDBA5D956D /* ProgressParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressParityTests.swift; sourceTree = "<group>"; };
@@ -978,6 +988,11 @@
 				CC383CE762C664096CC54F78 /* WorkoutInsightsTests.swift */,
 				1A4F0CEDAB20261109000017 /* NutritionReportTests.swift */,
 				1A4F0CEDAB20261109000015 /* WaterVolumeComparisonTests.swift */,
+				1A4F0CEDAB20261110000010 /* AvatarScoreInputTests.swift */,
+				1A4F0CEDAB20261110000012 /* RecoveryEvidenceTests.swift */,
+				1A4F0CEDAB20261110000014 /* NutritionDayTests.swift */,
+				1A4F0CEDAB20261110000016 /* HydrationDayTests.swift */,
+				1A4F0CEDAB20261110000018 /* ProgressCameraTests.swift */,
 				E9A4CAE0CFB875168841DC32 /* WorkoutReceiptTests.swift */,
 				7AA9DCC13FC62A6E7BA3F5D8 /* Fixtures */,
 			);
@@ -1788,6 +1803,11 @@
 				444A0152459EE1EE5BD25828 /* WorkoutInsightsTests.swift in Sources */,
 				1A4F0CEDAB20261109000018 /* NutritionReportTests.swift in Sources */,
 				1A4F0CEDAB20261109000016 /* WaterVolumeComparisonTests.swift in Sources */,
+				1A4F0CEDAB20261110000011 /* AvatarScoreInputTests.swift in Sources */,
+				1A4F0CEDAB20261110000013 /* RecoveryEvidenceTests.swift in Sources */,
+				1A4F0CEDAB20261110000015 /* NutritionDayTests.swift in Sources */,
+				1A4F0CEDAB20261110000017 /* HydrationDayTests.swift in Sources */,
+				1A4F0CEDAB20261110000019 /* ProgressCameraTests.swift in Sources */,
 				AA9FD1E72E15E97D3328C79B /* WorkoutReceiptTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
