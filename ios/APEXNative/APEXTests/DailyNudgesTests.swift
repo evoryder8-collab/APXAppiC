@@ -80,39 +80,51 @@ final class DailyNudgesTests: XCTestCase {
 
 extension DailyNudgesTests {
 
-    /// The trigger must carry no date, only a time.
+    /// The trigger names the day its numbers describe, and is never one that has passed.
     ///
-    /// This is the shape of the bug rather than one instance of it: a calendar
-    /// trigger that names a year, month or day can name one that has passed,
-    /// and a trigger whose moment has gone is accepted by the system and then
-    /// never delivered. Leaving the date out is what makes that impossible.
-    func testTheEveningTriggerCarriesNoDate() {
-        let slot = DailyNudges.eveningSlot
-        XCTAssertEqual(slot.hour, DailyNudges.eveningHour)
-        XCTAssertEqual(slot.minute, DailyNudges.eveningMinute)
-        XCTAssertNil(slot.year)
-        XCTAssertNil(slot.month)
-        XCTAssertNil(slot.day)
-    }
-
-    /// Whatever the clock says, the next matching moment is still ahead.
-    func testTheSlotAlwaysResolvesToAFutureMoment() {
+    /// Two failures meet here. A trigger with only a time resolves to tomorrow
+    /// once 19:30 has gone and delivers yesterday's numbers. A dated trigger
+    /// whose moment has passed is accepted by the system and never delivered.
+    /// So the day is always named, and a passed evening gets no trigger at all.
+    func testTheEveningTriggerNamesItsOwnDayAndNeverAPassedMoment() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Europe/Zurich")!
-        // Including the times that used to produce a dead trigger, and the last
-        // minute of a month, where a hand-rolled date could land on the 32nd.
-        for (day, hour, minute) in [(21, 9, 0), (21, 19, 29), (21, 20, 15), (21, 23, 50), (31, 22, 0)] {
-            let now = calendar.date(from: DateComponents(
-                year: 2026, month: 8, day: day, hour: hour, minute: minute
-            ))!
-            let next = calendar.nextDate(
-                after: now,
-                matching: DailyNudges.eveningSlot,
-                matchingPolicy: .nextTime
-            )
-            XCTAssertNotNil(next, "no next occurrence from \(now)")
-            XCTAssertGreaterThan(next!, now, "resolved a moment that has already passed")
+        func trigger(_ nudgeDay: String, day: Int, _ hour: Int, _ minute: Int) -> DateComponents? {
+            let now = calendar.date(from: DateComponents(year: 2026, month: 8, day: day, hour: hour, minute: minute))!
+            let slot = DailyNudges.eveningTrigger(for: nudgeDay, now: now, calendar: calendar)
+            if let slot { XCTAssertGreaterThan(calendar.date(from: slot)!, now, "a moment that has already passed") }
+            return slot
         }
+        let evening21 = DateComponents(
+            year: 2026, month: 8, day: 21, hour: DailyNudges.eveningHour, minute: DailyNudges.eveningMinute
+        )
+        XCTAssertEqual(trigger("2026-08-21", day: 21, 9, 0), evening21)
+        XCTAssertEqual(trigger("2026-08-21", day: 21, 19, 29), evening21)
+        // The times that used to leave a reminder for the next day.
+        XCTAssertNil(trigger("2026-08-21", day: 21, 19, 30))
+        XCTAssertNil(trigger("2026-08-21", day: 21, 20, 15))
+        XCTAssertNil(trigger("2026-08-21", day: 21, 23, 50))
+        XCTAssertNil(trigger("2026-08-21", day: 22, 9, 0), "Yesterday's nudge is not today's reminder")
+        // The last day of a month, where a hand-rolled date could land on the 32nd.
+        XCTAssertEqual(trigger("2026-08-31", day: 31, 10, 0)?.day, 31)
+        XCTAssertNil(trigger("2026-08-31", day: 31, 22, 0))
+        XCTAssertNil(trigger("not-a-day", day: 21, 9, 0))
+    }
+
+    func testReopeningTheAppRefreshesTheBellBeforeAndAfterTheSync() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let source = try String(contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift"), encoding: .utf8)
+        let start = try XCTUnwrap(source.range(of: "func onAppBecameActive()"))
+        let end = try XCTUnwrap(source.range(of: "func handleAuthCallback(", range: start.upperBound..<source.endIndex))
+        let foreground = String(source[start.lowerBound..<end.lowerBound])
+        let lease = try XCTUnwrap(foreground.range(of: "accountOperationLease()"))
+        let early = try XCTUnwrap(foreground.range(of: "refreshNudges(operation: operation)", range: lease.upperBound..<foreground.endIndex))
+        let sync = try XCTUnwrap(foreground.range(of: "await refresh(includeAccess: false)"))
+        XCTAssertLessThan(early.lowerBound, sync.lowerBound, "Yesterday's card must not wait for the network")
+        XCTAssertNotNil(
+            foreground.range(of: "refreshNudges(operation: operation)", range: sync.upperBound..<foreground.endIndex),
+            "What the sync brought in is judged too"
+        )
     }
 }
 
@@ -468,7 +480,10 @@ extension DailyNudgesTests {
 
         let granted = await centre.requestPermission(ownerID: ownerID)
         XCTAssertTrue(granted)
-        await centre.refresh([DailyNudges.Nudge(kind: .proteinShort, date: DailyNudges.today())])
+        await centre.refresh(
+            [DailyNudges.Nudge(kind: .proteinShort, date: "2026-09-02")],
+            now: moment("2026-09-02", hour: 12)
+        )
 
         XCTAssertTrue(
             scheduler.addedIdentifiers.allSatisfy { $0.contains(ownerID.uuidString.lowercased()) },
@@ -516,6 +531,41 @@ extension DailyNudgesTests {
         XCTAssertEqual(scheduler.readPermissionCallCount, 0)
     }
 
+    func testTheEveningReminderIsRegisteredForItsOwnDayOnly() async throws {
+        let scheduler = RecordingNudgeNotificationScheduler()
+        let centre = NudgeCenter(notificationScheduler: scheduler, defaults: isolatedDefaults())
+        centre.activate(ownerID: UUID())
+        let nudge = DailyNudges.Nudge(kind: .proteinShort, date: "2026-09-02", shortfallG: 82, tonightG: 30, capG: 30)
+
+        await centre.refresh([nudge], now: moment("2026-09-02", hour: 12))
+        let trigger = try XCTUnwrap(scheduler.addedRequests.last?.trigger as? UNCalendarNotificationTrigger)
+        XCTAssertEqual(
+            [trigger.dateComponents.year, trigger.dateComponents.month, trigger.dateComponents.day,
+             trigger.dateComponents.hour, trigger.dateComponents.minute],
+            [2026, 9, 2, 19, 30],
+            "The reminder carries the day its numbers describe"
+        )
+        XCTAssertFalse(trigger.repeats)
+
+        // Dinner entered at 20:15, still short: the bell says so and nothing is left to fire tomorrow.
+        scheduler.addedRequests = []
+        await centre.refresh([nudge], now: moment("2026-09-02", hour: 20, minute: 15))
+        XCTAssertEqual(centre.pending, [nudge])
+        XCTAssertTrue(scheduler.addedRequests.isEmpty, "19:30 has gone; a reminder set now would arrive tomorrow with today's numbers")
+        XCTAssertTrue(scheduler.pendingIdentifiers.isEmpty)
+
+        // A card left over from yesterday is never registered for today.
+        await centre.refresh([nudge], now: moment("2026-09-03", hour: 9))
+        XCTAssertTrue(scheduler.addedRequests.isEmpty)
+    }
+
+    private func moment(_ day: String, hour: Int, minute: Int = 0) -> Date {
+        let parts = day.split(separator: "-").compactMap { Int($0) }
+        return Calendar.current.date(from: DateComponents(
+            year: parts[0], month: parts[1], day: parts[2], hour: hour, minute: minute
+        ))!
+    }
+
     func testNudgeSheetCapturesAnAccountLeaseBeforeStartingAsyncWork() throws {
         let nativeRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
@@ -546,6 +596,7 @@ private final class RecordingNudgeNotificationScheduler: NudgeNotificationSchedu
     var permission = NudgeNotificationPermission(authorised: true, canAsk: false)
     var pendingIdentifiers: [String] = []
     var addedIdentifiers: [String] = []
+    var addedRequests: [UNNotificationRequest] = []
     var onPendingRequests: (() -> Void)?
     var onRemoval: (([String]) -> Void)?
     var readPermissionCallCount = 0
@@ -576,6 +627,7 @@ private final class RecordingNudgeNotificationScheduler: NudgeNotificationSchedu
 
     func add(_ request: UNNotificationRequest) async throws {
         addedIdentifiers.append(request.identifier)
+        addedRequests.append(request)
         pendingIdentifiers.append(request.identifier)
     }
 }

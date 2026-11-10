@@ -2333,11 +2333,16 @@ final class AppSession {
            the import altogether and the card sat on "no wearable data" with a
            button to press, for data the phone already had on disk. */
         guard let operation = accountOperationLease() else { return }
+        // The bell is about today. Re-read it from what is on the phone before the slower sync,
+        // so yesterday's card is gone on reopening, and again once the sync has landed.
+        try? await refreshNudges(operation: operation)
         await retryPendingHydrationMutations(operation: operation)
         guard accountOperationIsCurrent(operation) else { return }
         await importHealthQuietly(operation: operation)
         guard accountOperationIsCurrent(operation) else { return }
         await refresh(includeAccess: false)
+        guard accountOperationIsCurrent(operation) else { return }
+        try? await refreshNudges(operation: operation)
     }
 
     func handleAuthCallback(_ url: URL) async {

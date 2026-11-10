@@ -194,7 +194,7 @@ final class NudgeCenter {
     }
 
     /// Show the day's reminders and re-register the evening one.
-    func refresh(_ nudges: [DailyNudges.Nudge]) async {
+    func refresh(_ nudges: [DailyNudges.Nudge], now: Date = .now) async {
         /* Set without suspending, so what the bell shows is always the
            newest answer even if the scheduling below is overtaken. */
         pending = nudges
@@ -213,7 +213,7 @@ final class NudgeCenter {
                app never costs the user a dialog they did not ask for. */
             await self.readPermission(ownerID: ownerID)
             guard self.schedulingIsCurrent(ownerID: ownerID, generation: generation), self.authorised else { return }
-            await self.reschedule(nudges, ownerID: ownerID, generation: generation)
+            await self.reschedule(nudges, ownerID: ownerID, generation: generation, now: now)
         }
         scheduling = work
         await work.value
@@ -224,17 +224,16 @@ final class NudgeCenter {
     private func reschedule(
         _ nudges: [DailyNudges.Nudge],
         ownerID: UUID,
-        generation: UInt64
+        generation: UInt64,
+        now: Date = .now
     ) async {
         guard schedulingIsCurrent(ownerID: ownerID, generation: generation) else { return }
         await clearScheduled(for: ownerID, generation: generation)
         guard schedulingIsCurrent(ownerID: ownerID, generation: generation) else { return }
 
-        // Hour and minute only: the system resolves the next moment that
-        // matches, so this can never be scheduled for a time already gone.
-        let components = DailyNudges.eveningSlot
-
         for nudge in nudges {
+            // Registered for the nudge's own evening, and not at all once it has passed.
+            guard let components = DailyNudges.eveningTrigger(for: nudge.date, now: now) else { continue }
             let content = UNMutableNotificationContent()
             /* Composed here rather than stored on the nudge, so the reminder
                arrives in the language the app is set to. */

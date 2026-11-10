@@ -139,21 +139,23 @@ enum DailyNudges {
     static let eveningHour = 19
     static let eveningMinute = 30
 
-    /// The components a calendar trigger should match for the evening slot.
+    /// The components a calendar trigger should match for a nudge's evening:
+    /// its own day at 19:30, or nil once that moment has gone.
     ///
-    /// Hour and minute only, and deliberately no date. Apple's guidance is to
-    /// "specify only the time values that you want the system to use to
-    /// determine the matching date and time", and the system then resolves the
-    /// next moment that matches.
-    ///
-    /// Pinning year, month and day, as this first did, produced a trigger in
-    /// the past every time the app was opened after 19:30, which is most
-    /// evenings since that is when dinner gets logged. A calendar trigger whose
-    /// moment has gone is accepted and then never delivered, so the reminder
-    /// was not late, it was silently dead. Leaving the date out makes that
-    /// impossible rather than merely handled.
-    static var eveningSlot: DateComponents {
-        DateComponents(hour: eveningHour, minute: eveningMinute)
+    /// A reminder quotes one day's numbers, so it carries that day. With hour
+    /// and minute alone the system resolves the next match, which after 19:30
+    /// is tomorrow: dinner logged at 20:15 left "82 g to go" to arrive the
+    /// next evening about a day that was over. A dated trigger whose moment
+    /// has passed is accepted and never delivered, so a passed evening
+    /// registers nothing at all. The bell in the app still shows the nudge.
+    static func eveningTrigger(for day: String, now: Date, calendar: Calendar = .current) -> DateComponents? {
+        let parts = day.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3 else { return nil }
+        let slot = DateComponents(
+            year: parts[0], month: parts[1], day: parts[2], hour: eveningHour, minute: eveningMinute
+        )
+        guard let moment = calendar.date(from: slot), moment > now else { return nil }
+        return slot
     }
 
     static func today() -> String {
