@@ -120,6 +120,24 @@ final class RecoveryPlannerTests: XCTestCase {
         XCTAssertTrue(result.exercises.allSatisfy { $0.name == "Mobility Flow" })
     }
 
+    func testRecoverySessionsJoinTheProgrammeHomeShowsWhenNoPlanWasGenerated() throws {
+        let data = APEXDebugFixture.juneSunday()
+        let june = try XCTUnwrap(data.profile?.userID)
+        let main = try XCTUnwrap(data.programs.first { $0.userID == june && $0.slug == "main" })
+        XCTAssertNotNil(data.programs.first { $0.userID == june && $0.slug == "transition" })
+        XCTAssertNil(data.settings?.addons["training_induction"])
+        XCTAssertEqual(SimpleHomeLogic.trainingSchedule(
+            in: data, on: "2026-11-09", coachManaged: false, followsCoach: false, includeCustom: false
+        ).primary, "main")
+
+        let result = RecoveryPlanner.build(
+            data: data, ownerID: june, startDate: "2026-11-09", target: .joint, source: .guided
+        )
+
+        XCTAssertEqual(result.days.count, 8)
+        XCTAssertEqual(Set(result.days.map(\.programID)), [main.id], "sessions must land where Home looks")
+    }
+
     func testScheduledRowMatchesOnlyItsExactCalendarDate() {
         let day = ProgramDay(
             id: UUID(),

@@ -140,6 +140,14 @@ enum RecoveryPlanner {
 
     private static func program(in data: DashboardData, ownerID: UUID, date: String) -> Program? {
         let owned = data.programs.filter { $0.userID == ownerID }
+        // With no generated plan every date is inside both windows, so use the programme Home shows.
+        guard data.settings?.addons["training_induction"]?.objectValue != nil else {
+            let shown = SimpleHomeLogic.trainingSchedule(
+                in: data, on: date, coachManaged: false, followsCoach: false, includeCustom: false
+            ).primary
+            return owned.first(where: { $0.slug == shown })
+                ?? owned.first(where: { $0.slug == "main" }) ?? owned.first(where: { $0.slug == "transition" })
+        }
         if let transition = owned.first(where: { $0.slug == "transition" }),
            TrainingPlanEngine.isInsideInductionWindow(data, slug: "transition", date: date) {
             return transition
@@ -147,9 +155,6 @@ enum RecoveryPlanner {
         if let main = owned.first(where: { $0.slug == "main" }),
            TrainingPlanEngine.isInsideInductionWindow(data, slug: "main", date: date) {
             return main
-        }
-        if data.settings?.addons["training_induction"]?.objectValue == nil {
-            return owned.first(where: { $0.slug == "main" }) ?? owned.first(where: { $0.slug == "transition" })
         }
         return nil
     }
