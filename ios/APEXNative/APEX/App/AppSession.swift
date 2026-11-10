@@ -1646,14 +1646,8 @@ final class AppSession {
               healthImportIsEnabled(operation: operation) else { return }
         await HealthKitManager.shared.requestNewReadAccessIfNeeded()
         guard accountOperationIsCurrent(operation) else { return }
-        if HealthKitManager.shared.waterWriteState == .authorized {
-            try? await HealthKitManager.shared.syncFoodWater(
-                liters: foodHydrationLiters(on: .now),
-                on: .now,
-                accountID: operation.ownerID
-            )
-            guard accountOperationIsCurrent(operation) else { return }
-        }
+        await mirrorFoodWaterToHealth(on: .now, operation: operation)
+        guard accountOperationIsCurrent(operation) else { return }
         if let snapshot = await HealthKitManager.shared.silentRefresh(ownerID: operation.ownerID) {
             guard accountOperationIsCurrent(operation) else { return }
             await applyHealthSnapshot(snapshot, operation: operation)
@@ -3952,6 +3946,19 @@ final class AppSession {
         publishHydrationState()
     }
 
+    /// The day's food water goes to Health once its food event holds it. The Watch counts food water
+    /// from that event alone, and a meal logged on the website arrives without one.
+    func mirrorFoodWaterToHealth(on date: Date, operation: AccountOperationLease) async {
+        await syncFoodHydrationEvent(on: date, ownerID: operation.ownerID, operation: operation)
+        guard healthImportIsEnabled(operation: operation),
+              HealthKitManager.shared.waterWriteState == .authorized else { return }
+        try? await HealthKitManager.shared.syncFoodWater(
+            liters: foodHydrationLiters(on: date),
+            on: date,
+            accountID: operation.ownerID
+        )
+    }
+
     private func reconcileHealthHydration(
         _ snapshot: HealthSnapshot,
         operation: AccountOperationLease
@@ -4331,13 +4338,8 @@ final class AppSession {
               healthImportIsEnabled(operation: operation),
               profile?.userID == operation.ownerID else { return }
         let ownerID = operation.ownerID
-        if HealthKitManager.shared.waterWriteState == .authorized,
-           let resolvedDate = ISO8601DateFormatter.apexDateOnly.date(from: snapshot.date) {
-            try? await HealthKitManager.shared.syncFoodWater(
-                liters: foodHydrationLiters(on: resolvedDate),
-                on: resolvedDate,
-                accountID: ownerID
-            )
+        if let resolvedDate = ISO8601DateFormatter.apexDateOnly.date(from: snapshot.date) {
+            await mirrorFoodWaterToHealth(on: resolvedDate, operation: operation)
             guard accountOperationIsCurrent(operation) else { return }
         }
         for metric in snapshot.metricRows(ownerID: ownerID, existing: data.healthMetrics) {

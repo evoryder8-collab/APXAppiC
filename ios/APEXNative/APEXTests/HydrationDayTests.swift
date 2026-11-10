@@ -190,6 +190,41 @@ final class HydrationDayTests: XCTestCase {
         XCTAssertEqual(scoreEngineTotal(), 6_750)
     }
 
+    func testAMealLoggedOnTheWebsiteReachesTheWatchWhenFoodWaterGoesToHealth() async throws {
+        let (session, operation) = try sandbox()
+        let day = try date(emptyDay)
+        func watchTotal() -> Int {
+            HydrationCompanionSnapshot.make(
+                ownerID: operation.ownerID, date: emptyDay, events: session.data.hydrationEvents ?? [], presets: [],
+                preferences: .default,
+                legacyDrinkLiters: session.data.dailyLogs.first { $0.date == emptyDay }?.waterL ?? 0,
+                revision: "\(emptyDay)T12:00:00.000Z"
+            ).totalML
+        }
+        func foodEventAmounts() -> [Int] {
+            (session.data.hydrationEvents ?? []).filter { $0.localDate == emptyDay && $0.kind == .food }.map(\.amountML)
+        }
+
+        try await session.logHydration(amountML: 2_000, on: day, operation: operation)
+        let foods = try await session.searchFoods(query: "Oats", operation: operation)
+        try await session.logFood(try XCTUnwrap(foods.first), amount: 100, unit: "g", mealSlot: "breakfast", date: day, operation: operation)
+        let entry = try XCTUnwrap(session.data.loggedFoodEntries.indices.last)
+        session.data.loggedFoodEntries[entry].waterML = 500.5
+        // As the website leaves the day: the meal is in the food log and the day has no food event.
+        session.data.hydrationEvents?.removeAll { $0.localDate == emptyDay && $0.kind == .food }
+        XCTAssertEqual(session.hydrationIntakeML(on: day), 2_501)
+
+        await session.mirrorFoodWaterToHealth(on: day, operation: operation)
+        XCTAssertEqual(foodEventAmounts(), [501])
+        XCTAssertEqual(watchTotal(), 2_501, "the Watch shows the food water the phone shows")
+
+        // Mirroring again adds no second food event and counts nothing twice.
+        await session.mirrorFoodWaterToHealth(on: day, operation: operation)
+        XCTAssertEqual(foodEventAmounts(), [501])
+        XCTAssertEqual(watchTotal(), 2_501)
+        XCTAssertEqual(session.hydrationIntakeML(on: day), 2_501)
+    }
+
     func testTheGaugeAndTheScoreEngineRoundFoodWaterToTheSameMillilitre() async throws {
         let (session, operation) = try sandbox()
         let day = try date(emptyDay)
