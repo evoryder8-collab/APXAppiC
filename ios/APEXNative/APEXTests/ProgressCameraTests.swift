@@ -189,6 +189,7 @@ final class ProgressCameraTests: XCTestCase {
 
     private func camera(
         ghost: UIImage?,
+        framing: ProgressPhotoEngine.FramingMode = .full,
         frontCameraAllowed: Bool = false
     ) throws -> some View {
         let session = AppSession(developerSandboxRole: .coach)
@@ -196,8 +197,10 @@ final class ProgressCameraTests: XCTestCase {
         session.data.settings?.addons["allow_front_camera_scanning"] = .bool(frontCameraAllowed)
         let previous = row(owner: operation.ownerID)
         session.data.progressPhotos = ghost == nil ? [] : [previous]
+        var intent = ProgressCaptureIntent()
+        intent.framing = framing
         return ProgressCameraView(
-            intent: ProgressCaptureIntent(),
+            intent: intent,
             reference: ghost == nil ? nil : previous,
             operation: operation,
             controller: ProgressCameraController(accessAnswer: { true }),
@@ -233,6 +236,50 @@ final class ProgressCameraTests: XCTestCase {
                     XCTAssertEqual(moved.minY, still.minY, accuracy: 1, "\(context): the ghost moved \(name)")
                     XCTAssertEqual(moved.width, still.width, accuracy: 1, "\(context): the ghost resized \(name)")
                 }
+            }
+        }
+    }
+
+    /// C2. The shutter row belongs at the bottom of the screen, clear of the
+    /// outline, whether or not the front-camera setting is on, and the pose
+    /// hint must not sit on top of the timer.
+    func testTheShutterSitsBelowTheOutlineWhateverTheFrontCameraSetting() async throws {
+        let names = Self.cameraControls + ["guide", "hint"]
+        for phone in Self.phones {
+            for framing in [ProgressPhotoEngine.FramingMode.full, .torso] {
+                var shutters: [CGRect] = []
+                for allowed in [false, true] {
+                    let context = "\(phone.name), \(framing.rawValue), front camera setting \(allowed ? "on" : "off")"
+                    let layout = try await layOut(
+                        try camera(ghost: nil, framing: framing, frontCameraAllowed: allowed),
+                        size: phone.size, expecting: names, named: "camera, \(context)"
+                    )
+                    layout.assertReachable(Self.cameraControls, context)
+                    let shutter = try XCTUnwrap(layout.frames["shutter"], context)
+                    let guide = try XCTUnwrap(layout.frames["guide"], context)
+                    let hint = try XCTUnwrap(layout.frames["hint"], context)
+                    let timer = try XCTUnwrap(layout.frames["timerRow"], context)
+                    let library = try XCTUnwrap(layout.frames["library"], context)
+                    XCTAssertEqual(
+                        shutter.maxY, layout.safe.maxY - 16, accuracy: 1,
+                        "\(context): the shutter is not at the bottom of the screen"
+                    )
+                    for (name, control) in [("shutter", shutter), ("Library", library), ("timer", timer)] {
+                        XCTAssertFalse(
+                            guide.intersects(control),
+                            "\(context): \(name) at \(control.integral) sits over the outline \(guide.integral)"
+                        )
+                    }
+                    XCTAssertFalse(
+                        hint.intersects(timer),
+                        "\(context): the pose hint \(hint.integral) overlaps the timer \(timer.integral)"
+                    )
+                    shutters.append(shutter)
+                }
+                XCTAssertEqual(
+                    shutters[0].integral, shutters[1].integral,
+                    "\(phone.name), \(framing.rawValue): the setting moves the shutter"
+                )
             }
         }
     }

@@ -415,6 +415,7 @@ struct ProgressCameraView: View {
                 FullBodyCentreLine().stroke(Color(red: 0.77, green: 0.71, blue: 0.99).opacity(0.42), style: .init(lineWidth: 1, dash: [5, 8]))
                 FullBodyFloorLine().stroke(Color(red: 0.99, green: 0.90, blue: 0.54), style: .init(lineWidth: 2, dash: [7, 7]))
             }
+            .layoutFrame("guide")
             .padding(.horizontal, 44)
             .padding(.top, 118)
             .padding(.bottom, 168)
@@ -426,6 +427,7 @@ struct ProgressCameraView: View {
                 TorsoCentreLine().stroke(Color(red: 0.77, green: 0.71, blue: 0.99).opacity(0.48), style: .init(lineWidth: 1.5, dash: [6, 9]))
                 TorsoBoundsShape().stroke(Color(red: 0.99, green: 0.90, blue: 0.54).opacity(0.78), style: .init(lineWidth: 1.5, dash: [8, 10]))
             }
+            .layoutFrame("guide")
             .padding(.horizontal, 24)
             .padding(.top, 130)
             .padding(.bottom, 180)
@@ -445,7 +447,8 @@ struct ProgressCameraView: View {
             .padding(.vertical, 6)
             .background(.black.opacity(0.35), in: Capsule())
             .layoutFrame("hint")
-            .padding(.bottom, 150)
+            /* Clear of the timer row, which starts 168 points up. */
+            .padding(.bottom, 175)
             .allowsHitTesting(false)
     }
 
@@ -525,7 +528,10 @@ struct ProgressCameraView: View {
                             .foregroundStyle(.white.opacity(0.6))
                             .frame(width: 74, alignment: .trailing)
                     } else {
-                        Color.clear.frame(width: 74)
+                        /* A height as well as a width. A bare colour takes all
+                           the height on offer, which stretched this row up the
+                           screen and left the shutter over the outline. */
+                        Color.clear.frame(width: 74, height: 1)
                     }
                 }
             }
