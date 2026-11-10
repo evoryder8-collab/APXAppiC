@@ -200,6 +200,57 @@ final class NutritionDayTests: XCTestCase {
         XCTAssertEqual(session.data.dailyLogs.first { $0.date == Date().apexDateKey }?.weightKG, stored - 1)
     }
 
+    // MARK: The planned-meal tap
+
+    func testLoggingAPlannedMealWritesTheDayOnScreenAndLeavesTodayAlone() async throws {
+        let (session, operation) = try sandbox()
+        let meal = Meal(
+            id: UUID(), userID: operation.ownerID, time: "13:00", name: "Lunch", foods: "", kcal: 700,
+            proteinG: 45, fatG: 20, carbsG: 80, fullDaysOnly: false, sortOrder: 99
+        )
+        session.data.meals.append(meal)
+        let prescription = AdaptiveMeal(source: meal, kcal: 700, proteinG: 45, fatG: 20, carbsG: 80, portionNote: "")
+        let browsedDay = "2021-03-04"
+        let browsed = try XCTUnwrap(ISO8601DateFormatter.apexDateOnly.date(from: browsedDay)).addingTimeInterval(12 * 3_600)
+        let today = Date().apexDateKey
+        func ticked(_ day: String) -> Bool {
+            session.data.mealLogs.contains { $0.date == day && $0.mealID == meal.id }
+        }
+        func logged(_ day: String) -> [LoggedMeal] {
+            session.data.loggedMeals.filter { $0.localDate == day && $0.sourcePlannedMealID == meal.id }
+        }
+
+        try await session.togglePlannedMeal(prescription, on: browsed, operation: operation)
+        XCTAssertTrue(ticked(browsedDay))
+        XCTAssertEqual(logged(browsedDay).map(\.totalProteinG), [45])
+        XCTAssertFalse(ticked(today), "Today is not the day on screen")
+        XCTAssertTrue(logged(today).isEmpty)
+
+        // A second tap takes it back off that day, and still leaves today alone.
+        try await session.togglePlannedMeal(prescription, on: browsed, operation: operation)
+        XCTAssertFalse(ticked(browsedDay))
+        XCTAssertTrue(logged(browsedDay).isEmpty)
+        XCTAssertFalse(ticked(today))
+    }
+
+    func testTheHomeMealTapNamesTheDayOnScreen() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        let home = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Portal/SimpleHomeView.swift"), encoding: .utf8
+        ).filter { !$0.isWhitespace }
+        XCTAssertTrue(
+            home.contains("session.togglePlannedMeal(prescription,on:date,operation:operation)"),
+            "The tap reads the browsed day, so it must write that day"
+        )
+        XCTAssertTrue(home.contains("letdate=selectedDateTask{do{tryawaitsession.togglePlannedMeal("))
+
+        // No caller can fall back to today: the session asks for the day.
+        let session = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift"), encoding: .utf8
+        ).filter { !$0.isWhitespace }
+        XCTAssertTrue(session.contains("functogglePlannedMeal(_prescription:AdaptiveMeal,ondate:Date,operation:"))
+    }
+
     // MARK: The activity level
 
     func testAppleHealthSuggestsALevelAndNeverWritesIt() async throws {

@@ -2545,7 +2545,7 @@ final class AppSession {
     /// The shared idempotency key lets web and iOS converge on one meal.
     func togglePlannedMeal(
         _ prescription: AdaptiveMeal,
-        on date: Date = .now,
+        on date: Date,
         operation: AccountOperationLease
     ) async throws {
         try requireCurrentAccountOperation(operation)

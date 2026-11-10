@@ -845,9 +845,11 @@ struct SimpleHomeView: View {
         case .meal(let id):
             guard let prescription = adaptivePlan.first(where: { $0.id == id }) else { return }
             guard let operation = session.accountOperationLease() else { return }
+            // Read and written from one value: the day the screen shows.
+            let date = selectedDate
             Task {
                 do {
-                    try await session.togglePlannedMeal(prescription, operation: operation)
+                    try await session.togglePlannedMeal(prescription, on: date, operation: operation)
                 } catch is CancellationError {
                     return
                 } catch {
