@@ -2147,19 +2147,16 @@ final class AppSession {
             return
         }
         #endif
+        let goals = DailyWaterTargets(data: data, coachManaged: coachContext.capabilities.sponsoredClient && !coachClientPolicy.canCreateCustomWorkouts,
+                                      followsCoach: coachClientPolicy.canFollowCoachPlan, includeCustom: coachClientPolicy.canCreateCustomWorkouts)
+        let now = Date()
         guard let userID = data.profile?.userID,
-              var input = FitnessBrainService.engineInput(from: data) else {
+              let scored = FitnessBrainService.scoredInput(from: data, waterTargets: goals, now: now) else {
             avatarDomainScores = [:]
             brainSynergies = []
             return
         }
-        let goals = DailyWaterTargets(data: data, coachManaged: coachContext.capabilities.sponsoredClient && !coachClientPolicy.canCreateCustomWorkouts,
-                                      followsCoach: coachClientPolicy.canFollowCoachPlan, includeCustom: coachClientPolicy.canCreateCustomWorkouts)
-        let now = Date()
-        for (day, totalML) in FitnessBrainService.waterTotals(data, ownerID: userID) {
-            input.hydrationByDay[day] = (totalML, goals.resolve(day: day, now: now).targetML)
-        }
-        let result = FitnessBrainEngine.compute(input, throughDate: Date().apexDateKey)
+        let result = FitnessBrainEngine.compute(scored.input, throughDate: now.apexDateKey)
         avatarDomainScores = result.domainScores
 
         let published = result.publishableSnapshots
@@ -2170,6 +2167,7 @@ final class AppSession {
         brainRecomputing = false
 
         guard !isDeveloperSandbox, verifiedPersistenceOwnerID(userID) == userID else { return }
+        storeScoreGoalHistory(scored.history, changed: scored.historyChanged, userID: userID)
         if let raw = result.snapshots.last, let row = rows.last ?? FitnessBrainService.appSnapshots([raw], userID: userID).first {
             let publication = AvatarScorePublication(row: row, verified: published.last)
             guard lastAvatarPublication != publication else { scheduleFitnessBrainShadowObservation(); return }
@@ -2200,6 +2198,27 @@ final class AppSession {
             }
         }
         scheduleFitnessBrainShadowObservation()
+    }
+
+    /// Keeps the goals earlier days were graded against with the settings, so a goal changed
+    /// later applies from that day and never regrades history.
+    private func storeScoreGoalHistory(_ history: ScoreGoalHistory, changed: Bool, userID: UUID) {
+        guard changed, var settings = data.settings, settings.userID == userID else { return }
+        #if DEBUG
+        // The local UI-test fixture is unauthenticated and must not reach the remote store.
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() { return }
+        #endif
+        settings.addons[ScoreGoalHistory.addonKey] = history.stored
+        brainRecomputing = true
+        data.settings = settings
+        brainRecomputing = false
+        let accountToken = accountGeneration.token
+        Task { [weak self] in
+            guard let self, let latest = self.data.settings, latest.userID == userID else { return }
+            await self.persistUpsert(
+                latest, table: "settings", onConflict: "user_id", ownerID: userID,
+                expectedAccountToken: accountToken, surfacePermanentFailure: false)
+        }
     }
 
     private func scheduleFitnessBrainShadowObservation() {

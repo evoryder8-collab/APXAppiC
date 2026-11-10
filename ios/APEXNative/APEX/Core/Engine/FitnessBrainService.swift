@@ -192,6 +192,30 @@ enum FitnessBrainService {
         return input
     }
 
+    /// The engine input for a recalculation: every day's water total and goal, and the nutrition
+    /// targets earlier days were graded against. `history` is what to store afterwards.
+    static func scoredInput(
+        from data: DashboardData, waterTargets: DailyWaterTargets, now: Date
+    ) -> (input: FBEngineInput, history: ScoreGoalHistory, historyChanged: Bool)? {
+        guard var input = engineInput(from: data), let profile = data.profile else { return nil }
+        let today = now.apexDateKey
+        let settings = data.settings?.userID == profile.userID ? data.settings : nil
+        var history = ScoreGoalHistory(stored: settings?.addons[ScoreGoalHistory.addonKey])
+        let preferences = data.hydrationPreferences.flatMap { $0.userID == profile.userID ? $0 : nil }
+        let goals = ScoreGoalHistory.Goals(
+            customWaterML: preferences?.effectiveTargetMode == .custom ? preferences?.targetML : nil,
+            weightKG: profile.weightKG.isFinite ? profile.weightKG : 0,
+            targets: FitnessBrainTargets.computeTargets(
+                input.profile, asOf: today, trainingGoal: input.trainingGoal, planWeeks: input.planWeeks))
+        let changed = history.note(goals, today: today)
+        for (day, totalML) in waterTotals(data, ownerID: profile.userID) {
+            let dayGoals = history.goals(on: day, now: goals)
+            input.hydrationByDay[day] = (totalML, waterTargets.resolve(day: day, now: now, goals: dayGoals).targetML)
+        }
+        input.pastTargets = history.past.map { ($0.until, $0.goals.targets) }
+        return (input, history, changed)
+    }
+
     /// Fold meals and the hydration ledger once when replaying many days of history.
     static func waterTotals(_ data: DashboardData, ownerID: UUID) -> [String: Int] {
         var mealDates: [UUID: String] = [:]
@@ -352,6 +376,53 @@ struct AvatarScorePublication: Encodable, Equatable, Sendable {
     }
 }
 
+/// The goals past days were graded against. A change seen today applies from today, and the
+/// days before it keep the goals they had, so changing a goal never regrades history.
+struct ScoreGoalHistory: Codable, Equatable, Sendable {
+    static let addonKey = "score_goal_history"
+
+    struct Goals: Codable, Equatable, Sendable {
+        /// The custom daily water goal, or nil while the goal is automatic.
+        var customWaterML: Int?
+        var weightKG: Double
+        var targets: FBTargets
+    }
+
+    struct Change: Codable, Equatable, Sendable {
+        /// The first day the earlier goals no longer applied.
+        var until: String
+        var goals: Goals
+    }
+
+    var current: Goals?
+    var past: [Change] = []
+
+    init() {}
+
+    init(stored: JSONValue?) {
+        self = stored.flatMap { try? JSONEncoder().encode($0) }
+            .flatMap { try? JSONDecoder().decode(ScoreGoalHistory.self, from: $0) } ?? ScoreGoalHistory()
+    }
+
+    var stored: JSONValue? {
+        (try? JSONEncoder().encode(self)).flatMap { try? JSONDecoder().decode(JSONValue.self, from: $0) }
+    }
+
+    func goals(on day: String, now: Goals) -> Goals {
+        past.first { day < $0.until }?.goals ?? now
+    }
+
+    /// Records today's goals and reports whether the history changed. The first change of a
+    /// day keeps the goals that applied until yesterday; later changes that day replace today's.
+    mutating func note(_ now: Goals, today: String) -> Bool {
+        guard current != now else { return false }
+        if let current, past.last?.until != today { past.append(Change(until: today, goals: current)) }
+        current = now
+        past = Array(past.suffix(730))
+        return true
+    }
+}
+
 /// A snapshot of the active plan and dated activity used by both the dashboard and history replay.
 struct DailyWaterTargets {
     private let data: DashboardData
@@ -378,11 +449,15 @@ struct DailyWaterTargets {
         wearable = Dictionary(WearableActivityRecord.history(from: history).map { ($0.date, $0) }, uniquingKeysWith: { _, latest in latest })
     }
 
-    func resolve(day: String, now: Date) -> HydrationTargetResolution {
+    /// `goals` are the water goal and bodyweight in force on that day; nil means today's.
+    func resolve(day: String, now: Date, goals: ScoreGoalHistory.Goals? = nil) -> HydrationTargetResolution {
         guard let profile = data.profile else { return HydrationTargetPolicy.resolve(sex: "male", weightKG: 87) }
         let preferences = data.hydrationPreferences.flatMap { $0.userID == profile.userID ? $0 : nil }
-        if preferences?.effectiveTargetMode == .custom {
-            return HydrationTargetPolicy.resolve(sex: profile.sex, weightKG: profile.weightKG, mode: .custom, customTargetML: preferences?.targetML)
+        let weightKG = goals?.weightKG ?? profile.weightKG
+        let customML = goals.map(\.customWaterML)
+            ?? (preferences?.effectiveTargetMode == .custom ? preferences?.targetML : nil)
+        if let customML {
+            return HydrationTargetPolicy.resolve(sex: profile.sex, weightKG: weightKG, mode: .custom, customTargetML: customML)
         }
         let hasInduction = data.settings?.addons["training_induction"]?.objectValue != nil
         let main = phaseDays["main"]?.isEmpty == false
@@ -398,7 +473,7 @@ struct DailyWaterTargets {
         let logs = activity[day] ?? []
         let minutes = max(record?.exerciseMinutes ?? 0, logs.reduce(0) { $0 + max(0, $1.durationMinutes ?? 0) })
         let today = now.apexDateKey
-        return HydrationTargetPolicy.resolve(sex: profile.sex, weightKG: profile.weightKG, mode: .automatic,
+        return HydrationTargetPolicy.resolve(sex: profile.sex, weightKG: weightKG, mode: .automatic,
             plannedExerciseMinutes: planned, recordedExerciseMinutes: minutes,
             activeCalories: EnergyEngine.resolvedActiveCalories(wearableActiveCalories: record?.activeCalories, logs: logs),
             steps: record?.steps, dateRelation: day < today ? .past : day > today ? .future : .today,

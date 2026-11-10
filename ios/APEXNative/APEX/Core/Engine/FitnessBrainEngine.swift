@@ -255,7 +255,7 @@ public enum FitnessBrainEngine {
 
         var dayTypeByID: [String: FBDayType] = [:]
         for d in input.programDays { dayTypeByID[d.id] = d.dayType }
-        let targets = FitnessBrainTargets.computeTargets(
+        let currentTargets = FitnessBrainTargets.computeTargets(
             profile,
             asOf: throughDate,
             trainingGoal: input.trainingGoal,
@@ -547,6 +547,8 @@ public enum FitnessBrainEngine {
                                                        label: "Explicitly skipped workout: −1 training point"))
                     }
                 }
+                // A day is graded against the targets in force on it, not against today's.
+                let targets = input.pastTargets.first { date < $0.until }?.targets ?? currentTargets
                 let proteinHit = targets.isPublishable
                     && (a.protein ?? -1) >= targets.proteinG * 0.95
                 let deepDeficit = targets.isPublishable

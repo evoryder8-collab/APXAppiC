@@ -419,4 +419,81 @@ final class AvatarScoreInputTests: XCTestCase {
         XCTAssertTrue(text.contains("60 / 100"))
         XCTAssertFalse(text.contains("60.2"))
     }
+
+    private func historyStart() -> DashboardData {
+        var data = dashboard(baseline: "2026-09-01")
+        data.loggedMeals = []
+        data.loggedFoodEntries = []
+        data.hydrationEvents = []
+        return data
+    }
+
+    private func thirtyDays(kcal: Int? = nil, protein: Int? = nil, waterL: Double = 0) -> [DailyLog] {
+        (0..<30).map { offset in
+            DailyLog(id: UUID(), userID: owner, date: FBDate.addDays("2026-09-01", offset), kcal: kcal,
+                     proteinG: protein, fatG: nil, carbsG: nil, waterL: waterL, estimatedTDEE: nil,
+                     computedPAL: nil, activityMode: "quick", weightKG: nil)
+        }
+    }
+
+    private func waterGoal(_ milliliters: Int) -> HydrationAccountPreferences {
+        HydrationAccountPreferences(
+            userID: owner, targetML: milliliters, targetMode: "custom", displayUnit: "liters",
+            remindersEnabled: false, reminderIntervalMinutes: 60, quietHoursStartMinutes: 0,
+            quietHoursEndMinutes: 0, showsPresetNames: true, confirmationHaptics: true,
+            motionIntensity: "subtle", createdAt: "2026-09-01T00:00:00Z", updatedAt: "2026-09-01T00:00:00Z")
+    }
+
+    /// One recalculation as the app runs it: score, then keep the goal history with the settings.
+    private func recalculatedHealth(_ data: inout DashboardData, at instant: String) throws -> Double {
+        let now = try XCTUnwrap(ISO8601DateFormatter().date(from: instant))
+        let scored = try XCTUnwrap(FitnessBrainService.scoredInput(
+            from: data,
+            waterTargets: DailyWaterTargets(data: data, coachManaged: false, followsCoach: false, includeCustom: true),
+            now: now))
+        data.settings?.addons[ScoreGoalHistory.addonKey] = scored.history.stored
+        return try XCTUnwrap(FitnessBrainEngine.compute(scored.input, throughDate: now.apexDateKey).snapshots.last).health
+    }
+
+    func testRaisingTheWaterGoalTodayLeavesEarlierDaysGradedAsTheyWere() throws {
+        var data = historyStart()
+        data.dailyLogs = thirtyDays(waterL: 2.2)
+        data.hydrationPreferences = waterGoal(2_000)
+        let before = try recalculatedHealth(&data, at: "2026-10-01T12:00:00Z")
+        XCTAssertGreaterThan(before, 60)
+        data.hydrationPreferences = waterGoal(3_000)
+        XCTAssertEqual(try recalculatedHealth(&data, at: "2026-10-02T12:00:00Z"), before)
+    }
+
+    func testChangingWeightOrActivityTodayLeavesEarlierDaysGradedAsTheyWere() throws {
+        var data = historyStart()
+        let input = try XCTUnwrap(FitnessBrainService.engineInput(from: data))
+        let targets = FitnessBrainTargets.computeTargets(
+            input.profile, asOf: "2026-10-01", trainingGoal: input.trainingGoal, planWeeks: input.planWeeks)
+        XCTAssertTrue(targets.isPublishable)
+        data.dailyLogs = thirtyDays(kcal: Int(targets.kcal.rounded()), protein: Int(targets.proteinG.rounded()) + 5)
+        let before = try recalculatedHealth(&data, at: "2026-10-01T12:00:00Z")
+        XCTAssertGreaterThan(before, 60)
+        data.profile?.weightKG += 25
+        data.profile?.activityLevel = .sedentary
+        XCTAssertEqual(try recalculatedHealth(&data, at: "2026-10-02T12:00:00Z"), before)
+    }
+
+    func testGoalHistoryKeepsEachDaysGoalsAcrossSeveralChanges() {
+        func goals(_ kcal: Double) -> ScoreGoalHistory.Goals {
+            ScoreGoalHistory.Goals(customWaterML: nil, weightKG: 80, targets: FBTargets(
+                bmrMifflin: 1_700, bmrKatch: nil, tdee: kcal, kcal: kcal, proteinG: 150, fatG: 70, carbsG: 240, waterL: 2.75))
+        }
+        var history = ScoreGoalHistory()
+        XCTAssertTrue(history.note(goals(2_000), today: "2026-10-01"))
+        XCTAssertFalse(history.note(goals(2_000), today: "2026-10-02"))
+        XCTAssertTrue(history.note(goals(2_200), today: "2026-10-05"))
+        XCTAssertTrue(history.note(goals(2_300), today: "2026-10-05"))
+        XCTAssertTrue(history.note(goals(2_500), today: "2026-10-09"))
+        XCTAssertEqual(history.goals(on: "2026-10-04", now: goals(2_500)), goals(2_000))
+        XCTAssertEqual(history.goals(on: "2026-10-05", now: goals(2_500)), goals(2_300))
+        XCTAssertEqual(history.goals(on: "2026-10-08", now: goals(2_500)), goals(2_300))
+        XCTAssertEqual(history.goals(on: "2026-10-09", now: goals(2_500)), goals(2_500))
+        XCTAssertEqual(ScoreGoalHistory(stored: history.stored), history)
+    }
 }

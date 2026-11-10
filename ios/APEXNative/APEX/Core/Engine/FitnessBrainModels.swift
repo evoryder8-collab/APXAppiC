@@ -435,6 +435,9 @@ public struct FBEngineInput: Sendable {
     public var capacityCalibrationEvidence: [FBCapacityCalibrationEvidence]
     /// Authoritative total-water progress (drink and food) and the goal for each logged day.
     public var hydrationByDay: [String: (totalML: Int, targetML: Int)] = [:]
+    /// Nutrition targets that applied before each later change, oldest first. A day before
+    /// `until` is graded against that entry; a day after every entry against today's targets.
+    public var pastTargets: [(until: String, targets: FBTargets)] = []
     public var recoveryHistory: [FBRecoveryCheckin]
     /* keys are yyyy-MM-dd dates; order preserved from storage where relevant */
     public var mealRhythmHistory: [String: FBMealRhythmDayRaw]
