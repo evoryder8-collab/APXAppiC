@@ -159,8 +159,9 @@ final class AvatarScoreInputTests: XCTestCase {
     func testEveningCalibrationWestOfGreenwichBelongsToTheLocalDay() throws {
         let losAngeles = try XCTUnwrap(TimeZone(identifier: "America/Los_Angeles"))
         let record = evidence(.cardioCapacityScore, value: 62, measuredAt: "2026-11-10T02:30:00Z")
+        let profile = try XCTUnwrap(FitnessBrainService.engineInput(from: dashboard())).profile
         let anchors = FitnessBrainService.capacityCalibrationEvidence(
-            from: [record], ownerID: owner, timeZone: losAngeles)
+            from: [record], profile: profile, timeZone: losAngeles)
         XCTAssertEqual(anchors.map(\.measuredOn), ["2026-11-09"])
     }
 
@@ -172,6 +173,26 @@ final class AvatarScoreInputTests: XCTestCase {
                                          protocolName: "apex_onboarding_pulse_v1")]
         let input = try XCTUnwrap(FitnessBrainService.engineInput(from: data, timeZone: losAngeles))
         XCTAssertTrue(input.capacityCalibrationEvidence.isEmpty)
+    }
+
+    func testOnboardingAnswersNeverAlterChosenStartingPointsWhereverThePhoneIs() throws {
+        let zones = ["America/Los_Angeles", "UTC", "Asia/Tokyo"].compactMap(TimeZone.init(identifier:))
+        func kept(answeredAt: String) throws -> [Int] {
+            var data = dashboard(baseline: "2026-11-09")
+            data.profile?.avatarStartingPoints = AvatarStartingPoints.balanced
+            data.fitnessEvidence = [evidence(.cardioCapacityScore, value: 77, measuredAt: answeredAt,
+                                             protocolName: "apex_onboarding_pulse_v1")]
+            return try zones.map { zone in
+                try XCTUnwrap(FitnessBrainService.engineInput(from: data, timeZone: zone))
+                    .capacityCalibrationEvidence.count
+            }
+        }
+        // 08:00 in Tokyo, on an account an earlier build dated by the server's UTC day.
+        XCTAssertEqual(try kept(answeredAt: "2026-11-09T23:00:00Z"), [0, 0, 0])
+        // 18:30 in Los Angeles, replayed later with the phone somewhere else.
+        XCTAssertEqual(try kept(answeredAt: "2026-11-10T02:30:00Z"), [0, 0, 0])
+        // A pulse answered days after joining is new evidence everywhere.
+        XCTAssertEqual(try kept(answeredAt: "2026-11-12T12:00:00Z"), [1, 1, 1])
     }
 
     func testScoresShowOnSignupDayWhenTheStoredBaselineIsAheadOfTheDeviceDate() throws {
@@ -227,6 +248,33 @@ final class AvatarScoreInputTests: XCTestCase {
                                 workout(date: "2026-10-07", completedAt: "2026-10-07T09:00:00Z")]
         let input = try XCTUnwrap(FitnessBrainService.engineInput(from: data))
         XCTAssertEqual(input.workoutSessions.map(\.isDeload), [true, false])
+    }
+
+    @MainActor
+    func testWorkoutSavedInAScheduledDeloadWeekIsFlaggedAsADeload() async throws {
+        let app = AppSession(developerSandboxRole: .coach)
+        let operation = try XCTUnwrap(app.accountOperationLease())
+        var data = APEXDebugFixture.dashboard(userID: operation.ownerID)
+        let main = try XCTUnwrap(data.programs.first { $0.slug == "main" })
+        let day = ProgramDay(id: dayID, userID: operation.ownerID, programID: main.id, weekday: 1, name: "Day",
+                             dayType: "push", estimatedMinutes: 45, warmupNote: "", sortOrder: 0)
+        data.programDays = [day]
+        data.deloadMarks = []
+        data.settings?.addons["training_protocol"] = .object(["start_date": .string("2026-09-07")])
+        app.data = data
+        func saved(on date: String) async throws -> WorkoutSession {
+            let start = try XCTUnwrap(ISO8601DateFormatter().date(from: "\(date)T08:00:00Z"))
+            let set = WorkoutSetInput(exerciseID: nil, exerciseName: "Press", setNumber: 1,
+                                      weightKG: nil, reps: nil, rir: nil, skipped: true)
+            let id = try await app.completeWorkout(
+                day: day, setInputs: [set], lite: false, startedAt: start,
+                finishedAt: start.addingTimeInterval(2_700), completionDate: date, operation: operation)
+            return try XCTUnwrap(app.data.workoutSessions.first { $0.id == id })
+        }
+        let deloadWeek = try await saved(on: "2026-09-30")
+        let trainingWeek = try await saved(on: "2026-10-07")
+        XCTAssertTrue(deloadWeek.isDeload)
+        XCTAssertFalse(trainingWeek.isDeload)
     }
 
     func testFullBodyDayCreditsEachBodyAreaItsMovementsTrained() throws {
@@ -307,6 +355,35 @@ final class AvatarScoreInputTests: XCTestCase {
         XCTAssertEqual(try latest(data).strengthUpper, 39)
         data.fitnessEvidence?.append(selfCheck(62, lowerBound: 55, on: "2026-10-05"))
         XCTAssertEqual(try latest(data).strengthUpper, 51.7)
+    }
+
+    func testALowerOrRepeatedSelfCheckLaterTheSameDayChangesNothing() throws {
+        func answer(_ value: Double, lowerBound: Double, at time: String,
+                    _ metric: FitnessEvidenceMetric = .upperBodyStrengthScore) -> FitnessEvidenceRecord {
+            evidence(metric, value: value, measuredAt: time, lowerBound: lowerBound)
+        }
+        // A day after joining, then the joining day itself.
+        for day in ["2026-10-03", "2026-10-01"] {
+            var data = dashboard()
+            data.profile?.avatarStartingPoints = AvatarStartingPoints.balanced
+            let first = answer(77, lowerBound: 70, at: "\(day)T12:00:00Z")
+            let lower = answer(47, lowerBound: 40, at: "\(day)T13:00:00Z")
+            let repeated = answer(77, lowerBound: 70, at: "\(day)T14:00:00Z")
+            data.fitnessEvidence = [first]
+            XCTAssertEqual(try latest(data).strengthUpper, 64.9)
+            data.fitnessEvidence = [first, lower]
+            XCTAssertEqual(try latest(data).strengthUpper, 64.9)
+            data.fitnessEvidence = [lower, first, repeated]
+            XCTAssertEqual(try latest(data).strengthUpper, 64.9)
+            // A score with no evidence yet takes its first answer, and a higher one that day lifts it again.
+            data.profile?.avatarStartingPoints = nil
+            data.fitnessEvidence = [
+                answer(30, lowerBound: 20, at: "\(day)T12:00:00Z", .flexibilityScore),
+                answer(62, lowerBound: 55, at: "\(day)T13:00:00Z", .flexibilityScore),
+                answer(30, lowerBound: 20, at: "\(day)T14:00:00Z", .flexibilityScore),
+            ]
+            XCTAssertEqual(try latest(data).flexibility, 51.7)
+        }
     }
 
     func testPartlyLoggedFoodDayCostsNoStrengthGain() {
@@ -479,6 +556,39 @@ final class AvatarScoreInputTests: XCTestCase {
         XCTAssertEqual(try recalculatedHealth(&data, at: "2026-10-02T12:00:00Z"), before)
     }
 
+    @MainActor
+    func testHomeWaterCardShowsAnEarlierDayTheGoalItHad() throws {
+        var data = historyStart()
+        data.hydrationPreferences = waterGoal(2_000)
+        _ = try recalculatedHealth(&data, at: "2026-10-01T12:00:00Z")
+        data.hydrationPreferences = waterGoal(3_000)
+        _ = try recalculatedHealth(&data, at: "2026-10-02T12:00:00Z")
+        let app = AppSession(developerSandboxRole: .coach)
+        app.data = data
+        let today = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-10-02T12:00:00Z"))
+        let earlier = try XCTUnwrap(ISO8601DateFormatter().date(from: "2026-09-30T12:00:00Z"))
+        XCTAssertEqual(app.hydrationTargetResolution(on: earlier, now: today).targetML, 2_000)
+        XCTAssertEqual(app.hydrationTargetResolution(on: today, now: today).targetML, 3_000)
+    }
+
+    func testNutritionReportJudgesEarlierDaysAgainstTheTargetsTheyHad() throws {
+        var data = historyStart()
+        let input = try XCTUnwrap(FitnessBrainService.engineInput(from: data))
+        let targets = FitnessBrainTargets.computeTargets(
+            input.profile, asOf: "2026-10-01", trainingGoal: input.trainingGoal, planWeeks: input.planWeeks)
+        data.dailyLogs = thirtyDays(kcal: Int(targets.kcal.rounded()), protein: Int(targets.proteinG.rounded()) + 5)
+        _ = try recalculatedHealth(&data, at: "2026-10-01T12:00:00Z")
+        let dates = "2026-09-01"..."2026-10-02"
+        let before = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: dates))
+        XCTAssertEqual(before.macros.first { $0.kind == .calories }?.onTargetDays, 30)
+        data.profile?.weightKG += 25
+        data.profile?.activityLevel = .sedentary
+        _ = try recalculatedHealth(&data, at: "2026-10-02T12:00:00Z")
+        let after = try XCTUnwrap(NutritionReport.summarize(ownerID: owner, data: data, dates: dates))
+        XCTAssertEqual(after.macros.map(\.metDays), before.macros.map(\.metDays))
+        XCTAssertEqual(after.score, before.score)
+    }
+
     func testGoalHistoryKeepsEachDaysGoalsAcrossSeveralChanges() {
         func goals(_ kcal: Double) -> ScoreGoalHistory.Goals {
             ScoreGoalHistory.Goals(customWaterML: nil, weightKG: 80, targets: FBTargets(
@@ -495,5 +605,18 @@ final class AvatarScoreInputTests: XCTestCase {
         XCTAssertEqual(history.goals(on: "2026-10-08", now: goals(2_500)), goals(2_300))
         XCTAssertEqual(history.goals(on: "2026-10-09", now: goals(2_500)), goals(2_500))
         XCTAssertEqual(ScoreGoalHistory(stored: history.stored), history)
+    }
+
+    func testGoalHistoryIsSentOnlyOverTheSettingsThisSessionLoadedFromTheServer() {
+        let other = UUID()
+        var gate = ServerSettingsGate()
+        XCTAssertFalse(gate.allowsSave(for: owner), "a dashboard restored from the offline cache")
+        gate.serverCopyLoaded(for: owner)
+        XCTAssertTrue(gate.allowsSave(for: owner))
+        XCTAssertFalse(gate.allowsSave(for: other), "another account's dashboard")
+        gate.reset()
+        XCTAssertFalse(gate.allowsSave(for: owner), "after signing out or switching account")
+        gate.serverCopyLoaded(for: nil)
+        XCTAssertFalse(gate.allowsSave(for: owner), "a refresh that could not name its account")
     }
 }

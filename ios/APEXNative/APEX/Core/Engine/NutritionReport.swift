@@ -1,6 +1,6 @@
 import Foundation
 
-/// What the Avatar report's nutrition page draws: eaten totals against today's targets,
+/// What the Avatar report's nutrition page draws: eaten totals against each day's targets,
 /// a consistency score, and drinks logged. Every rule reuses one the app already applies.
 struct NutritionReport: Sendable, Equatable {
     enum Kind: String, CaseIterable, Sendable { case calories, protein, carbs, fat }
@@ -147,6 +147,8 @@ struct NutritionReport: Sendable, Equatable {
         var over: [Kind: Int] = [:]
         let settings = data.settings?.userID == ownerID ? data.settings : nil
         let expectedMeals = FitnessBrainService.mealRhythmHistory(from: settings?.addons).compactMapValues { $0.expectedMeals }
+        // A day keeps the targets it had, the ones the Avatar grades it against.
+        let goalHistory = ScoreGoalHistory(stored: settings?.addons[ScoreGoalHistory.addonKey])
         // Only the web stores a day's expected meal count; without one the plan's enabled meals stand in.
         let plannedMeals = MealBlocks.enabled(settings?.addons["meal_blocks"]).count
         var loggedDays = 0
@@ -180,11 +182,12 @@ struct NutritionReport: Sendable, Equatable {
             }
             loggedDays += 1
             var dayScore = 0.0
+            let dayTargets = earlierTargets(goalHistory.earlierGoals(on: day)) ?? targets
             for kind in Kind.allCases {
                 guard let value = eaten.values[kind] else { continue }
                 sums[kind, default: 0] += value
                 recorded[kind, default: 0] += 1
-                guard let target = targets?[kind], target > 0, let band = bands[kind] else { continue }
+                guard let target = dayTargets?[kind], target > 0, let band = bands[kind] else { continue }
                 let ratio = value / target
                 if ratio < band.lowerBound - bandTolerance {
                     under[kind, default: 0] += 1
@@ -338,8 +341,12 @@ struct NutritionReport: Sendable, Equatable {
         return Eaten(kcal: values[.calories] ?? 0, values: values)
     }
 
-    /// Calories and macros do not vary by day, so no activity is passed. Targets are not
-    /// stored per day, so the whole period is judged against today's.
+    private static func earlierTargets(_ goals: ScoreGoalHistory.Goals?) -> [Kind: Double]? {
+        guard let targets = goals?.targets, targets.isPublishable else { return nil }
+        return [.calories: targets.kcal, .protein: targets.proteinG, .carbs: targets.carbsG, .fat: targets.fatG]
+    }
+
+    /// Today's targets. Calories and macros do not vary by day, so no activity is passed.
     private static func targets(ownerID: UUID, data: DashboardData) -> [Kind: Double]? {
         guard let profile = data.weighedProfile(), profile.userID == ownerID else { return nil }
         let settings = data.settings?.userID == ownerID ? data.settings : nil

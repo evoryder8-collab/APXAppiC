@@ -16,6 +16,25 @@ struct AccountGenerationGate: Sendable {
     }
 }
 
+/// The account whose settings row this session has loaded from the server. A row restored
+/// from the offline cache can be older than the server's, so a whole-row save the person
+/// did not ask for waits until the server's copy is on screen.
+struct ServerSettingsGate: Sendable {
+    private var ownerID: UUID?
+
+    mutating func serverCopyLoaded(for ownerID: UUID?) {
+        self.ownerID = ownerID
+    }
+
+    mutating func reset() {
+        ownerID = nil
+    }
+
+    func allowsSave(for ownerID: UUID) -> Bool {
+        self.ownerID == ownerID
+    }
+}
+
 /// An opaque proof of which authenticated account initiated a UI action.
 /// Views capture it synchronously, before creating an unstructured Task, so
 /// delayed work can never adopt whichever account happens to be active later.
@@ -366,6 +385,7 @@ final class AppSession {
     @ObservationIgnored private var syncDrainGate = OfflineQueueDrainGate()
     @ObservationIgnored private var authenticatedOwnerID: UUID?
     private var customWorkoutMutationGate = CustomWorkoutMutationGate()
+    @ObservationIgnored private var serverSettings = ServerSettingsGate()
     @ObservationIgnored private var lastShadowObservationSignature: String?
     @ObservationIgnored private var suspendedAccessOwnerID: UUID?
     @ObservationIgnored private var accessServiceSuspensionTask: Task<Void, Never>?
@@ -466,6 +486,7 @@ final class AppSession {
         failedSyncOperations = []
         coachContext = .empty
         customWorkoutMutationGate.reset()
+        serverSettings.reset()
         lastShadowObservationSignature = nil
         isBusy = false
         isRefreshing = false
@@ -1410,6 +1431,7 @@ final class AppSession {
             .filter { $0.table == "supplement_logs" }
         guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
         var next = try await service.loadDashboard()
+        var keptCachedDashboard = false
         guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
         let currentUserID = await service.currentUserID()
         guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
@@ -1484,9 +1506,9 @@ final class AppSession {
                         followUpRefreshAvailable = false
                         continue
                     }
-                    if let cachedDashboard { next = cachedDashboard }
+                    if let cachedDashboard { next = cachedDashboard; keptCachedDashboard = true }
                 case .preserveCached:
-                    if let cachedDashboard { next = cachedDashboard }
+                    if let cachedDashboard { next = cachedDashboard; keptCachedDashboard = true }
                 case .useRemote:
                     break
                 }
@@ -1513,6 +1535,7 @@ final class AppSession {
             startedAtRevision: supplementRefreshRevision, pendingAtStart: pendingSupplementsAtStart)
         guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
         next.foods = next.foods.map(FoodHydration.resolved)
+        if !keptCachedDashboard { serverSettings.serverCopyLoaded(for: authenticatedUserID) }
         data = next
         if let settingsToPersist = migratedRestingEnergySettings ?? repairedPlanSettings {
             await persistUpsert(
@@ -2213,6 +2236,9 @@ final class AppSession {
         brainRecomputing = true
         data.settings = settings
         brainRecomputing = false
+        // The scores already use the history. Sending it waits for the server's settings row,
+        // and the recalculation that follows that load records the same change.
+        guard serverSettings.allowsSave(for: userID) else { return }
         let accountToken = accountGeneration.token
         Task { [weak self] in
             guard let self, let latest = self.data.settings, latest.userID == userID else { return }
@@ -3176,9 +3202,13 @@ final class AppSession {
     }
 
     func hydrationTargetResolution(on date: Date, now: Date = .now) -> HydrationTargetResolution {
-        DailyWaterTargets(data: data, coachManaged: coachContext.capabilities.sponsoredClient && !coachClientPolicy.canCreateCustomWorkouts,
+        let day = date.apexDateKey
+        // A past day keeps the goal it had, the one the Avatar grades it against.
+        let history = day < now.apexDateKey && data.settings?.userID == data.profile?.userID
+            ? data.settings?.addons[ScoreGoalHistory.addonKey] : nil
+        return DailyWaterTargets(data: data, coachManaged: coachContext.capabilities.sponsoredClient && !coachClientPolicy.canCreateCustomWorkouts,
                           followsCoach: coachClientPolicy.canFollowCoachPlan, includeCustom: coachClientPolicy.canCreateCustomWorkouts)
-            .resolve(day: date.apexDateKey, now: now)
+            .resolve(day: day, now: now, goals: ScoreGoalHistory(stored: history).earlierGoals(on: day))
     }
 
     var hydrationPresets: [HydrationPreset] {

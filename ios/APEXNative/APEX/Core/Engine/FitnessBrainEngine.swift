@@ -70,9 +70,10 @@ public enum FitnessBrainEngine {
 
     public static func vo2ToStat(_ vo2: Double) -> Double { min(95, max(20, vo2 * 1.35)) }
 
+    /// Each list holds every answer for its day, oldest first.
     private struct CapacityCalibrationTimeline {
-        var beforeBaseline: [FBCapacityCalibrationMetric: FBCapacityCalibrationEvidence]
-        var byDate: [String: [FBCapacityCalibrationMetric: FBCapacityCalibrationEvidence]]
+        var beforeBaseline: [FBCapacityCalibrationEvidence] = []
+        var byDate: [String: [FBCapacityCalibrationEvidence]] = [:]
     }
 
     private static func capacityCalibrationTimeline(
@@ -83,17 +84,7 @@ public enum FitnessBrainEngine {
     ) -> CapacityCalibrationTimeline {
         let owned = evidence.filter { $0.userID == ownerID }
         let supersededIDs = Set(owned.compactMap(\.supersedesID))
-        var beforeBaseline: [FBCapacityCalibrationMetric: FBCapacityCalibrationEvidence] = [:]
-        var byDate: [String: [FBCapacityCalibrationMetric: FBCapacityCalibrationEvidence]] = [:]
-
-        func isNewer(
-            _ candidate: FBCapacityCalibrationEvidence,
-            than existing: FBCapacityCalibrationEvidence
-        ) -> Bool {
-            "\(candidate.measuredOn):\(candidate.importedAt):\(candidate.id)"
-                > "\(existing.measuredOn):\(existing.importedAt):\(existing.id)"
-        }
-
+        var answers: [(order: String, item: FBCapacityCalibrationEvidence)] = []
         for var item in owned where !supersededIDs.contains(item.id) {
             guard item.value.isFinite,
                   (0...100).contains(item.value),
@@ -102,36 +93,35 @@ public enum FitnessBrainEngine {
             // Evidence that already exists cannot be from the future: an answer stamped with
             // tomorrow's UTC date on an evening west of Greenwich counts today.
             item.measuredOn = min(item.measuredOn, throughDate)
+            answers.append(("\(item.measuredOn):\(item.importedAt):\(item.id)", item))
+        }
+        // Every answer counts, oldest first, so a repeat or a lower one later the same day
+        // changes nothing.
+        var timeline = CapacityCalibrationTimeline()
+        for (_, item) in answers.sorted(by: { $0.order < $1.order }) {
             if item.measuredOn <= baselineDate {
-                if let existing = beforeBaseline[item.metric], !isNewer(item, than: existing) {
-                    continue
-                }
-                beforeBaseline[item.metric] = item
+                timeline.beforeBaseline.append(item)
             } else {
-                var day = byDate[item.measuredOn] ?? [:]
-                if let existing = day[item.metric], !isNewer(item, than: existing) {
-                    continue
-                }
-                day[item.metric] = item
-                byDate[item.measuredOn] = day
+                timeline.byDate[item.measuredOn, default: []].append(item)
             }
         }
-        return CapacityCalibrationTimeline(beforeBaseline: beforeBaseline, byDate: byDate)
+        return timeline
     }
 
     /// A self-check sets the first estimate of a domain that has no evidence yet. Once a domain
     /// has evidence, an answer only lifts a score that sits below the answered band, and the
     /// same or a lower answer given again lifts nothing. It never takes away what the log earned.
+    /// The first answer of a day is that evidence for the ones that follow it.
     @discardableResult
     private static func applyCapacityCalibration(
-        _ evidence: [FBCapacityCalibrationMetric: FBCapacityCalibrationEvidence],
+        _ evidence: [FBCapacityCalibrationEvidence],
         to stats: inout StatBlock,
         observed: [String: String],
         credited: inout [FBCapacityCalibrationMetric: Double]
     ) -> Set<FBCapacityCalibrationMetric> {
         var applied = Set<FBCapacityCalibrationMetric>()
-        for metric in evidence.keys.sorted(by: { $0.rawValue < $1.rawValue }) {
-            guard let item = evidence[metric] else { continue }
+        for item in evidence {
+            let metric = item.metric
             let key: String
             let stat: WritableKeyPath<StatBlock, Double>
             switch metric {
@@ -142,7 +132,7 @@ public enum FitnessBrainEngine {
             }
             let anchor = clamp(item.value)
             let current = stats[keyPath: stat]
-            let lifts = observed[key] == nil
+            let lifts = (observed[key] == nil && credited[metric] == nil)
                 || (current < (item.lowerBound ?? anchor) && anchor > (credited[metric] ?? -.infinity))
             if lifts { stats[keyPath: stat] += (anchor - current) * min(0.55, max(0, item.coverage)) }
             credited[metric] = max(credited[metric] ?? anchor, anchor)
