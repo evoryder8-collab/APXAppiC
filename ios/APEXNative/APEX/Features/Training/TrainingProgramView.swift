@@ -1377,6 +1377,7 @@ struct TrackedWorkoutView: View {
                     setInputs: setInputs,
                     lite: lite,
                     startedAt: startedAt,
+                    qualityScore: PlayerTimeline.completionQuality(exercises: exercises, recorded: setInputs),
                     completionDate: date,
                     operation: operation
                 )

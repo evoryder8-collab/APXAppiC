@@ -459,6 +459,38 @@ final class WorkoutSessionModeContractTests: XCTestCase {
         ))
     }
 
+    func testTrackedWorkoutIsSavedWithTheShareOfPlannedWorkThatWasDone() throws {
+        func row(_ name: String, unit: String = "reps", order: Int) -> Exercise {
+            Exercise(
+                id: UUID(), userID: user, programDayID: program, name: name,
+                sets: 1, repMin: unit == "check" ? 1 : 8, repMax: unit == "check" ? 1 : 10, repUnit: unit,
+                perSide: false, restSeconds: 0, tempoUp: 0, tempoDown: 0, tempoPause: 0,
+                tempoNote: "", notes: "", incrementKG: 0, isLite: false, optional: false, sortOrder: order
+            )
+        }
+        let exercises = [
+            row("Bench Press", order: 0), row("Barbell Row", order: 1),
+            row("Focus T25 · Stretch", unit: "check", order: 2),
+        ]
+        var inputs = TrackedWorkout.setInputs(for: exercises)
+        inputs[0].skipped = true
+        inputs[1].skipped = true
+        inputs[2] = TrackedWorkout.applying(.completed, to: inputs[2])
+        XCTAssertEqual(PlayerTimeline.completionQuality(exercises: exercises, recorded: inputs), 1.0 / 3,
+                       accuracy: 0.000001, "skipping every lift leaves the stretch check as a third of the session")
+
+        // No view can be driven here, so this reads what Finish hands to the save.
+        let source = try String(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().appending(path: "APEX/Features/Training/TrainingProgramView.swift"))
+        let start = try XCTUnwrap(source.range(of: "struct TrackedWorkoutView: View"))
+        let end = try XCTUnwrap(source.range(of: "struct WorkoutDayView: View"))
+        XCTAssertTrue(
+            source[start.upperBound..<end.lowerBound].filter { !$0.isWhitespace }
+                .contains("qualityScore:PlayerTimeline.completionQuality(exercises:exercises,recorded:setInputs)"),
+            "Tracked mode must save the quality the guided player saves, not full credit whatever was skipped"
+        )
+    }
+
     func testTrackedEntryUsesDirectNumberAndDecimalKeyboards() throws {
         let nativeRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
