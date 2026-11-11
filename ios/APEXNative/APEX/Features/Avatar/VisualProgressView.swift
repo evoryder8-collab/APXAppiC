@@ -48,17 +48,21 @@ struct VisualProgressView: View {
 
     /// Replaces the server's answer for older photos, for layout checks.
     var loadEarlier: (([ProgressPhoto]) async throws -> (photos: [ProgressPhoto], reachedEnd: Bool))?
+    /// Replaces the signing of a thumbnail's link, for layout checks.
+    var signThumbnail: ((ProgressPhoto) async throws -> URL)?
 
     /// Opens straight on the review of a photo already in hand, or with
     /// photos already ticked for comparison.
     init(
         reviewing image: UIImage? = nil,
         ticked: [UUID] = [],
-        loadEarlier: (([ProgressPhoto]) async throws -> (photos: [ProgressPhoto], reachedEnd: Bool))? = nil
+        loadEarlier: (([ProgressPhoto]) async throws -> (photos: [ProgressPhoto], reachedEnd: Bool))? = nil,
+        signThumbnail: ((ProgressPhoto) async throws -> URL)? = nil
     ) {
         _selectedImage = State(initialValue: image)
         _comparisonSelection = State(initialValue: ticked)
         self.loadEarlier = loadEarlier
+        self.signThumbnail = signThumbnail
     }
 
     /// The two ticked photos, once both are on the timeline.
@@ -233,7 +237,8 @@ struct VisualProgressView: View {
                         ForEach(photos) { photo in
                             ProgressTimelineRow(
                                 photo: photo,
-                                selected: comparisonSelection.contains(photo.id)
+                                selected: comparisonSelection.contains(photo.id),
+                                sign: signThumbnail
                             ) {
                                 toggleComparison(photo.id)
                             }
@@ -588,14 +593,16 @@ private struct ProgressTimelineRow: View {
     @State private var language = LanguageState.shared
     let photo: ProgressPhoto
     let selected: Bool
+    let sign: ((ProgressPhoto) async throws -> URL)?
     let action: () -> Void
-    @State private var thumbnailURL: URL?
+    /// The thumbnail's signed link, and when it was signed.
+    @State private var thumbnail: (url: URL, signedAt: Date)?
 
     var body: some View {
         Button(action: action) {
             GlassCard(radius: 23, padding: 12) {
                 HStack(spacing: 13) {
-                    AsyncImage(url: thumbnailURL) { phase in
+                    AsyncImage(url: thumbnail?.url) { phase in
                         if let image = phase.image {
                             image.resizable().scaledToFill()
                         } else {
@@ -626,22 +633,29 @@ private struct ProgressTimelineRow: View {
         .buttonStyle(.plain)
         .task(id: photo.thumbnailPath) {
             guard let operation = session.accountOperationLease() else {
-                thumbnailURL = nil
+                thumbnail = nil
                 return
             }
+            /* This runs each time the row scrolls into view. */
+            if let thumbnail, ProgressPhotoEngine.keepsSignedLink(signedAt: thumbnail.signedAt) { return }
             do {
-                let url = try await session.signedProgressURL(
-                    for: photo,
-                    thumbnail: true,
-                    operation: operation
-                )
+                let url: URL
+                if let sign {
+                    url = try await sign(photo)
+                } else {
+                    url = try await session.signedProgressURL(
+                        for: photo,
+                        thumbnail: true,
+                        operation: operation
+                    )
+                }
                 guard session.accountOperationIsCurrent(operation) else { return }
-                thumbnailURL = url
+                thumbnail = (url, .now)
             } catch is CancellationError {
                 return
             } catch {
                 guard session.accountOperationIsCurrent(operation) else { return }
-                thumbnailURL = nil
+                thumbnail = nil
             }
         }
     }

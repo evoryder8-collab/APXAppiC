@@ -702,6 +702,35 @@ final class ProgressCameraTests: XCTestCase {
         XCTAssertLessThan(built, 40, "\(built) of 130 rows were built on open, so the end of the list is reached at once")
     }
 
+    private func scrollView(in view: UIView) -> UIScrollView? {
+        (view as? UIScrollView) ?? view.subviews.lazy.compactMap { self.scrollView(in: $0) }.first
+    }
+
+    /// A row that scrolls out of view and back still has its thumbnail. Its
+    /// link used to be signed again each time, and a new link is a new
+    /// address, so the picture was downloaded again as well.
+    func testAThumbnailIsNotSignedAgainWhenItsRowScrollsBackIntoView() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(session.accountOperationLease()).ownerID
+        session.data.progressPhotos = (0..<60).map { row(owner: owner, date: Self.day(200 - $0)) }
+        let first = session.data.progressPhotos[0]
+        let links = ThumbnailLinks()
+        let view = VisualProgressView(signThumbnail: { links.sign($0) })
+        let (frames, host) = try show(view.environment(session), size: Self.phones[1].size)
+        try await wait(for: "the first row signs its thumbnail") { links.signed[first.id] == 1 }
+
+        let scroll = try XCTUnwrap(scrollView(in: host.view), "the timeline does not scroll")
+        let top = scroll.contentOffset
+        scroll.setContentOffset(CGPoint(x: 0, y: top.y + 4_000), animated: false)
+        try await wait(for: "the first row leaves the screen") { !shows(first, in: frames) }
+        scroll.setContentOffset(top, animated: false)
+        try await wait(for: "the first row is back on screen") { shows(first, in: frames) }
+        try await Task.sleep(for: .milliseconds(400))
+
+        let again = links.signed.filter { $0.value > 1 }.count
+        XCTAssertEqual(again, 0, "\(again) thumbnails were signed again when their rows scrolled back into view")
+    }
+
     // MARK: - The timeline beyond its first page
 
     /// Day `number` of a calendar of 28-day months, later numbers later.
@@ -863,6 +892,18 @@ final class ProgressCameraTests: XCTestCase {
         try await wait(for: "the older photos load again") { shows(baseline, in: frames) }
         try await Task.sleep(for: .milliseconds(300))
         XCTAssertNil(frames.value["compare"], "a tick on a photo that left the timeline came back with it")
+    }
+}
+
+/// Stands in for the signing of thumbnail links, and counts each photo's.
+@MainActor
+private final class ThumbnailLinks {
+    private(set) var signed: [UUID: Int] = [:]
+
+    func sign(_ photo: ProgressPhoto) -> URL {
+        signed[photo.id, default: 0] += 1
+        /* Nowhere, so nothing is fetched. */
+        return URL(fileURLWithPath: "/dev/null/\(photo.id).jpg")
     }
 }
 

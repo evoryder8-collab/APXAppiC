@@ -595,6 +595,20 @@ final class ProgressParityTests: XCTestCase {
         XCTAssertTrue(none.reachedEnd)
     }
 
+    /// A signed link lasts an hour. A timeline row keeps the one it has for
+    /// most of that, and signs a new one before the old one can fail.
+    func testASignedLinkIsKeptUntilShortlyBeforeItExpires() {
+        let signed = Date(timeIntervalSince1970: 1_800_000_000)
+        func kept(after minutes: Double) -> Bool {
+            ProgressPhotoEngine.keepsSignedLink(signedAt: signed, now: signed.addingTimeInterval(minutes * 60))
+        }
+        XCTAssertTrue(kept(after: 0))
+        XCTAssertTrue(kept(after: 45), "a link with a quarter of an hour left was signed again")
+        XCTAssertFalse(kept(after: 55), "a link about to expire was kept")
+        XCTAssertFalse(kept(after: 120), "an expired link was kept")
+        XCTAssertFalse(kept(after: -5), "a link dated after now cannot be trusted to have time left")
+    }
+
     /// A comparison must never borrow a score recorded after the photo.
     func testSnapshotNeverComesFromTheFuture() {
         let snapshots = [("2026-05-01", 4.0), ("2026-06-20", 6.0), ("2026-09-01", 9.0)].map { date, level in

@@ -391,6 +391,14 @@ enum ProgressPhotoEngine {
             .sorted { ($0.localDate, $0.capturedAt) > ($1.localDate, $1.capturedAt) }
     }
 
+    /* A signed link to a private photo is good for an hour. A timeline row
+       keeps the one it has until ten minutes before that. Signed again each
+       time the row scrolled back into view, the link was a new address and
+       the picture was downloaded again with it. */
+    static func keepsSignedLink(signedAt: Date, now: Date = .now) -> Bool {
+        (0..<3_000).contains(now.timeIntervalSince(signedAt))
+    }
+
     /// Same pose first, then most recent: the comparison a person means.
     static func preferSamePose(reference: ProgressPhoto, photos: [ProgressPhoto]) -> [ProgressPhoto] {
         photos.sorted { left, right in
