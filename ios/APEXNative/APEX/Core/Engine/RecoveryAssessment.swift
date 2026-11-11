@@ -119,18 +119,15 @@ enum RecoveryAssessment {
         return context
     }
 
-    /// Measured hours asleep per night, keyed by the morning's date. The one night an older build
-    /// kept in the recovery context counts as well.
+    /// Hours asleep per night, keyed by the morning's date, for the nights read in the fixed night
+    /// window. The one night an older build left in the recovery context is not among them: its
+    /// window shrank through the evening, so its hours can be too few.
     static func sleepHistory(from addons: [String: JSONValue]?) -> [String: Double] {
         var nights: [String: Double] = [:]
-        func add(_ date: JSONValue?, _ hours: JSONValue?) {
-            guard let date = date?.stringValue, let hours = hours?.numberValue, hours.isFinite, hours >= 0 else { return }
-            nights[date] = max(hours, nights[date] ?? 0)
-        }
-        let latest = addons?["apple_recovery_context"]?.objectValue
-        add(latest?["date"], latest?["sleep_duration_hours"])
         for row in addons?["apple_sleep_history"]?.arrayValue ?? [] {
-            add(row.objectValue?["date"], row.objectValue?["hours"])
+            guard let date = row.objectValue?["date"]?.stringValue,
+                  let hours = row.objectValue?["hours"]?.numberValue, hours.isFinite, hours >= 0 else { continue }
+            nights[date] = max(hours, nights[date] ?? 0)
         }
         return nights
     }
@@ -251,12 +248,10 @@ enum RecoveryAssessment {
         heartRateVariabilityMS: Double?, restingHeartRate: Double?, updatedAt: String
     ) -> [String: JSONValue] {
         var addons = addons
-        let stored = addons["apple_recovery_context"]?.objectValue
-        let storedHours = stored?["date"]?.stringValue == date ? stored?["sleep_duration_hours"]?.numberValue : nil
-        let hours = [sleepHours, storedHours].compactMap { $0 }.max()
+        var nights = sleepHistory(from: addons)
+        let hours = [sleepHours, nights[date]].compactMap { $0 }.max()
         if let hours {
             // Each night is kept, so the morning verdict can see a run of short ones.
-            var nights = sleepHistory(from: addons)
             nights[date] = hours
             addons["apple_sleep_history"] = .array(nights.sorted { $0.key < $1.key }.suffix(730).map {
                 .object(["date": .string($0.key), "hours": .number($0.value)])

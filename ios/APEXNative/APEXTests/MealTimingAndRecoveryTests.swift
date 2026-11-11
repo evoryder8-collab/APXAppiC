@@ -474,10 +474,23 @@ final class RecoveryAssessmentTests: XCTestCase {
         XCTAssertFalse(try context(on: "2026-11-10", addons(nights: [night("2026-11-11", 4), night("2026-11-12", 4)])).repeatedShortSleep,
                        "later nights do not rewrite an earlier morning")
         XCTAssertTrue(try context(on: "2026-11-10", addons(nights: [night("2026-11-08", 5.5), night("2026-11-09", 5.9)])).repeatedShortSleep)
+        // An older build read the night in a window that shrank through the evening.
         var beforeHistory = addons(nights: [night("2026-11-09", 5.2)])
         beforeHistory["apple_recovery_context"] = .object(["date": .string("2026-11-10"), "sleep_duration_hours": .number(4.8)])
-        XCTAssertTrue(try context(on: "2026-11-10", beforeHistory).repeatedShortSleep,
-                      "the single night an older build stored still counts")
+        XCTAssertFalse(try context(on: "2026-11-10", beforeHistory).repeatedShortSleep,
+                       "the single night an older build stored may be a shrunk read, so it is not a short night")
+        func read(_ date: String, _ hours: Double?) -> [String: JSONValue] {
+            RecoveryAssessment.addons(
+                beforeHistory, storingHealthRead: date, sleepHours: hours,
+                heartRateVariabilityMS: 41, restingHeartRate: nil, updatedAt: "\(date)T08:00:00Z"
+            )
+        }
+        XCTAssertFalse(try context(on: "2026-11-10", read("2026-11-10", nil)).repeatedShortSleep,
+                       "a read that brings no sleep does not adopt the older build's night")
+        XCTAssertEqual(RecoveryAssessment.sleepHistory(from: read("2026-11-11", 7.5)),
+                       ["2026-11-09": 5.2, "2026-11-11": 7.5], "the next day's read does not copy it into the history")
+        XCTAssertTrue(try context(on: "2026-11-10", read("2026-11-10", 5.5)).repeatedShortSleep,
+                      "the same night measured in the fixed window counts")
 
         XCTAssertTrue(try context(on: "2026-11-10", addons(checkins: [joints("2026-10-27", legs: 4)])).increasedJointDiscomfort,
                       "the level the briefing calls elevated")
