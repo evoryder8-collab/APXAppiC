@@ -260,10 +260,18 @@ struct ProgressLayoutFrames: PreferenceKey {
 }
 
 extension View {
-    func layoutFrame(_ name: String) -> some View {
-        background(GeometryReader { proxy in
+    /* Only a debug build reports frames, which is the build the layout
+       tests run. In the app people use, a marked view is the view itself:
+       nothing is measured for it and its name is never put together. */
+    func layoutFrame(_ name: @autoclosure () -> String) -> some View {
+        #if DEBUG
+        let name = name()
+        return background(GeometryReader { proxy in
             Color.clear.preference(key: ProgressLayoutFrames.self, value: [name: proxy.frame(in: .global)])
         })
+        #else
+        return self
+        #endif
     }
 }
 
