@@ -288,7 +288,10 @@ struct ProgressComparisonView: View {
                     Text(language.text(value ? "SYNCED" : "UNLOCKED"))
                         .font(APEXFont.mono(9, weight: .bold))
                         .foregroundStyle(synced == value ? .white : .white.opacity(0.55))
-                        .padding(.horizontal, 14)
+                        // A one-word label never breaks mid-word; the capsule takes the width the word needs.
+                        .lineLimit(1)
+                        .fixedSize()
+                        .padding(.horizontal, 10)
                         .frame(height: 34)
                         .background(
                             synced == value ? AnyShapeStyle(APEXColor.violet.gradient) : AnyShapeStyle(.clear),
