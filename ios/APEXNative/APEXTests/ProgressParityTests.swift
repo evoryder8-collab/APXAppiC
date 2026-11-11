@@ -327,6 +327,17 @@ final class ProgressParityTests: XCTestCase {
         )
         XCTAssertEqual(taken.apexDateKey, "2025-06-14")
 
+        /* The camera's library hands over a file, and the date is read from
+           where it lies. */
+        let file = FileManager.default.temporaryDirectory.appending(path: "\(UUID().uuidString).jpg")
+        try jpeg(takenAt: "2025:06:14 08:30:00").write(to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        XCTAssertEqual(
+            ProgressPhotoEngine.takenAt(fileURL: file, now: now), taken,
+            "the date a picked file carries was not read"
+        )
+        XCTAssertNil(ProgressPhotoEngine.takenAt(fileURL: file.appendingPathExtension("gone"), now: now))
+
         let owner = UUID()
         func row(_ date: Date) -> ProgressPhoto {
             ProgressPhotoEngine.checkpoint(

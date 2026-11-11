@@ -34,13 +34,22 @@ final class ProgressCameraController: NSObject {
     /// Live distance and subject reading, when the device can measure it.
     let reading = ProgressDepthAnalyzer()
     private var captured: ((UIImage?) -> Void)?
+    /// How the photo being taken is to be cut. Session queue only.
+    nonisolated(unsafe) private var cut: (framing: ProgressPhotoEngine.FramingMode, previewAspectRatio: Double)?
     private var lifecycleGeneration: UInt64 = 0
     /* Stands in for the system prompt where there is no camera and nobody to
        answer it, so the screen can be laid out and checked without one. */
     private let accessAnswer: (@Sendable () async -> Bool)?
+    /* Stands in for the shutter where there is no camera: the file a shot
+       produces, or nil for a shot that fails. */
+    nonisolated private let shotAnswer: (@Sendable () -> Data?)?
 
-    init(accessAnswer: (@Sendable () async -> Bool)? = nil) {
+    init(
+        accessAnswer: (@Sendable () async -> Bool)? = nil,
+        shotAnswer: (@Sendable () -> Data?)? = nil
+    ) {
         self.accessAnswer = accessAnswer
+        self.shotAnswer = shotAnswer
         super.init()
     }
 
@@ -138,27 +147,39 @@ final class ProgressCameraController: NSObject {
         }
     }
 
-    /// Takes a photo and answers once: with it, or with nil when there is none.
-    func capture(_ completion: @escaping (UIImage?) -> Void) {
+    /// Takes a photo, cut to the picture that was framed, and answers once:
+    /// with it, or with nil when there is none.
+    func capture(
+        framing: ProgressPhotoEngine.FramingMode,
+        previewAspectRatio: Double,
+        _ completion: @escaping (UIImage?) -> Void
+    ) {
         captured = completion
         sessionQueue.async { [self] in
+            cut = (framing, previewAspectRatio)
+            if let shotAnswer { return photoTaken(shotAnswer()) }
             /* A session with no live video connection raises an exception
                when asked for a photo, rather than failing. */
-            guard output.connection(with: .video)?.isActive == true else {
-                Task { @MainActor [weak self] in self?.finishCapture(with: nil) }
-                return
-            }
+            guard output.connection(with: .video)?.isActive == true else { return photoTaken(nil) }
             output.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
         }
     }
 
-    /* The main-actor half of the photo delegate: hands the capture on as the
+    /* The session queue's half of the photo delegate. The camera's file is
+       decoded and cut here, because on the main actor a full sensor frame
+       froze the screen after the countdown. The picture is handed on as the
        sensor saw it. A selfie is not flipped to match its mirrored preview,
        so every saved photo has the person's true left and right and a front
        and a rear photo of one pose can be compared. */
-    func finishCapture(with image: UIImage?) {
-        captured?(image)
-        captured = nil
+    nonisolated private func photoTaken(_ file: Data?) {
+        let image = cut.flatMap { cut in
+            file.flatMap { UIImage(data: $0) }?
+                .progressCapture(framing: cut.framing, previewAspectRatio: cut.previewAspectRatio)
+        }
+        Task { @MainActor [weak self] in
+            self?.captured?(image)
+            self?.captured = nil
+        }
     }
 }
 
@@ -182,8 +203,8 @@ extension ProgressCameraController: AVCapturePhotoCaptureDelegate {
         didFinishProcessingPhoto photo: AVCapturePhoto,
         error: Error?
     ) {
-        let image = photo.fileDataRepresentation().flatMap { UIImage(data: $0) }
-        Task { @MainActor [weak self] in self?.finishCapture(with: image) }
+        let file = photo.fileDataRepresentation()
+        sessionQueue.async { [self] in photoTaken(file) }
     }
 }
 
@@ -722,17 +743,16 @@ struct ProgressCameraView: View {
             guard Task.isCancelled == false,
                   session.accountOperationIsCurrent(operation) else { return }
             countdown = nil
-            controller.capture { image in
+            /* What was chosen when the shutter fired: the photo is cut to it
+               and saved as it. */
+            let shot = resolvedIntent
+            controller.capture(framing: shot.framing, previewAspectRatio: previewAspectRatio) { image in
                 guard session.accountOperationIsCurrent(operation) else { return }
                 guard let image else {
                     captureFailed = true
                     return
                 }
-                onCaptured(
-                    image.progressCapture(framing: framing, previewAspectRatio: previewAspectRatio),
-                    resolvedIntent,
-                    nil
-                )
+                onCaptured(image, shot, nil)
             }
         }
     }
@@ -763,9 +783,7 @@ struct ProgressLibraryPicker: UIViewControllerRepresentable {
         ) {
             /* The date lives in the file, not in the decoded image, and it is
                set first so the photo arrives with it. */
-            parent.takenAt = (info[.imageURL] as? URL)
-                .flatMap { try? Data(contentsOf: $0) }
-                .flatMap { ProgressPhotoEngine.takenAt(imageData: $0) }
+            parent.takenAt = (info[.imageURL] as? URL).flatMap { ProgressPhotoEngine.takenAt(fileURL: $0) }
             parent.image = info[.originalImage] as? UIImage
             parent.dismiss()
         }

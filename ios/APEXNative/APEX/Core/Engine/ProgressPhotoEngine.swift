@@ -247,7 +247,17 @@ enum ProgressPhotoEngine {
        names a moment that has not happened yet, and the photo is then filed
        under today. */
     static func takenAt(imageData: Data, now: Date = .now) -> Date? {
-        guard let source = CGImageSourceCreateWithData(imageData as CFData, nil),
+        takenAt(CGImageSourceCreateWithData(imageData as CFData, nil), now: now)
+    }
+
+    /// The same, read from the file where it lies. Only what the file says
+    /// about itself is read, not the picture.
+    static func takenAt(fileURL: URL, now: Date = .now) -> Date? {
+        takenAt(CGImageSourceCreateWithURL(fileURL as CFURL, nil), now: now)
+    }
+
+    private static func takenAt(_ source: CGImageSource?, now: Date) -> Date? {
+        guard let source,
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
               let exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any],
               let stamp = exif[kCGImagePropertyExifDateTimeOriginal] as? String else { return nil }

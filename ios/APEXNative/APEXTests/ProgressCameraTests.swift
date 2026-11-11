@@ -500,21 +500,38 @@ final class ProgressCameraTests: XCTestCase {
         }
     }
 
+    /// What a camera hands on for a shot that produced this file. It goes the
+    /// way a real shot does: the file is decoded and cut on the session
+    /// queue, and the picture then crosses to the main actor.
+    private func handedOn(
+        _ file: Data?, rearCamera: Bool = true,
+        framing: ProgressPhotoEngine.FramingMode = .full, previewAspectRatio: Double = 0.75
+    ) async throws -> UIImage? {
+        let controller = ProgressCameraController(accessAnswer: { true }, shotAnswer: { file })
+        /* A controller opens on the front camera. */
+        if rearCamera { controller.flip() }
+        XCTAssertEqual(controller.position, rearCamera ? .back : .front)
+        var answers: [UIImage?] = []
+        controller.capture(framing: framing, previewAspectRatio: previewAspectRatio) { answers.append($0) }
+        for _ in 0..<300 where answers.isEmpty {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        controller.stop()
+        XCTAssertEqual(answers.count, 1, "the capture never reported back")
+        return answers.first ?? nil
+    }
+
     /// C9. A saved photo keeps the person's true left and right whichever
     /// camera took it, so a selfie and a rear photo of one pose line up.
     func testAFrontCameraPhotoIsSavedWithTheSameLeftAndRightAsARearOne() async throws {
         let shot = try sidedPhoto()
         XCTAssertGreaterThan(try colour(of: shot, at: CGPoint(x: 0.25, y: 0.5)).red, 200, "the fixture is red on the left")
         XCTAssertGreaterThan(try colour(of: shot, at: CGPoint(x: 0.75, y: 0.5)).blue, 200, "and blue on the right")
+        let file = try XCTUnwrap(shot.jpegData(compressionQuality: 0.9))
 
-        for (name, position) in [("front", AVCaptureDevice.Position.front), ("rear", .back)] {
-            let controller = try await controller(on: position)
-            var saved: UIImage?
-            controller.capture { saved = $0 }
-            controller.finishCapture(with: shot)
-            controller.stop()
-
-            let image = try XCTUnwrap(saved, "the \(name) camera handed nothing on")
+        for (name, rearCamera) in [("front", false), ("rear", true)] {
+            let answer = try await handedOn(file, rearCamera: rearCamera)
+            let image = try XCTUnwrap(answer, "the \(name) camera handed nothing on")
             XCTAssertEqual(image.size, shot.size, "the \(name) camera photo is no longer upright")
             let left = try colour(of: image, at: CGPoint(x: 0.25, y: 0.5))
             let right = try colour(of: image, at: CGPoint(x: 0.75, y: 0.5))
@@ -564,7 +581,7 @@ final class ProgressCameraTests: XCTestCase {
         /* The simulator has no camera, so every capture here is a failed one. */
         let controller = ProgressCameraController(accessAnswer: { true })
         var answers: [UIImage?] = []
-        controller.capture { answers.append($0) }
+        controller.capture(framing: .full, previewAspectRatio: 0.75) { answers.append($0) }
         for _ in 0..<100 where answers.isEmpty {
             try await Task.sleep(for: .milliseconds(10))
         }
@@ -572,11 +589,34 @@ final class ProgressCameraTests: XCTestCase {
         XCTAssertNil(answers.first ?? nil)
         controller.stop()
 
-        var direct: [UIImage?] = []
-        controller.capture { direct.append($0) }
-        controller.finishCapture(with: nil)
-        XCTAssertEqual(direct.count, 1, "a photo that could not be read was dropped without a word")
-        controller.stop()
+        /* A shot that produces no file, and one whose file cannot be read. */
+        for file in [nil, Data("not a picture".utf8)] {
+            let image = try await handedOn(file)
+            XCTAssertNil(image, "a photo that could not be read was handed on")
+        }
+    }
+
+    /// The crop used to wait for the photo to reach the main actor, where a
+    /// full sensor frame froze the screen after the countdown. The camera
+    /// now hands the picture on already cut.
+    func testTheCameraHandsOnThePictureAlreadyCutToWhatWasFramed() async throws {
+        let preview = 393.0 / 852.0
+        let file = try XCTUnwrap(try sensorFrame(sideways: true).jpegData(compressionQuality: 0.9))
+
+        let fullAnswer = try await handedOn(file, framing: .full, previewAspectRatio: preview)
+        let full = try XCTUnwrap(fullAnswer, "the camera handed nothing on")
+        XCTAssertEqual(full.size.height, 800, accuracy: 1)
+        XCTAssertEqual(
+            full.size.width / full.size.height, preview, accuracy: 0.005,
+            "the whole sensor frame was handed on, still to be cut"
+        )
+        let edge = try colour(of: full, at: CGPoint(x: 0.01, y: 0.5))
+        XCTAssertTrue(edge.green > 200 && edge.red < 60, "the part of the frame the preview never showed was handed on")
+
+        let torsoAnswer = try await handedOn(file, framing: .torso, previewAspectRatio: preview)
+        let torso = try XCTUnwrap(torsoAnswer, "the camera handed nothing on")
+        XCTAssertEqual(torso.size.width, 600, accuracy: 1)
+        XCTAssertEqual(torso.size.width / torso.size.height, 0.8, accuracy: 0.005, "a torso shot was not cut to its frame")
     }
 
     /// A 3:4 sensor frame, green with a magenta band down each side edge.
