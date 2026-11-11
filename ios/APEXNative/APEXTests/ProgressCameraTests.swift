@@ -207,6 +207,164 @@ final class ProgressCameraTests: XCTestCase {
         }
     }
 
+    /// The sensor's whole frame, black with a white block in its middle 200
+    /// rows, or the rows of it that a photo keeps.
+    private func banded(rows: Range<Int>, columns: Range<Int> = 0..<600) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let size = CGSize(width: 600, height: rows.count)
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            UIColor.black.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+            UIColor.white.setFill()
+            context.fill(CGRect(x: columns.lowerBound, y: 300 - rows.lowerBound, width: columns.count, height: 200))
+        }
+    }
+
+    /// The white block a panel shows, on screen or on the card: how tall it
+    /// is in points, and where its middle sits as a share of the panel's
+    /// width and height.
+    private func block(in picture: UIImage, panel: CGRect) throws -> (height: CGFloat, middle: CGPoint) {
+        let cg = try XCTUnwrap(picture.cgImage)
+        let scale = CGFloat(cg.width) / picture.size.width
+        var pixels = [UInt8](repeating: 0, count: cg.width * cg.height * 4)
+        let context = try XCTUnwrap(CGContext(
+            data: &pixels, width: cg.width, height: cg.height, bitsPerComponent: 8, bytesPerRow: cg.width * 4,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        context.draw(cg, in: CGRect(x: 0, y: 0, width: cg.width, height: cg.height))
+        /* Clear of the label at the panel's top, the card's mark at its foot
+           and the lit divider between the card's panes. */
+        let columns = Int((panel.minX + panel.width * 0.02) * scale)..<Int((panel.maxX - panel.width * 0.02) * scale)
+        let rows = Int((panel.minY + panel.height * 0.2) * scale)..<Int((panel.minY + panel.height * 0.9) * scale)
+        var bright: (columns: ClosedRange<Int>, rows: ClosedRange<Int>)?
+        for row in rows {
+            for column in columns {
+                let offset = (row * cg.width + column) * 4
+                guard Int(pixels[offset]) + Int(pixels[offset + 1]) + Int(pixels[offset + 2]) > 384 else { continue }
+                bright = (
+                    min(column, bright?.columns.lowerBound ?? column)...max(column, bright?.columns.upperBound ?? column),
+                    (bright?.rows.lowerBound ?? row)...row
+                )
+            }
+        }
+        let found = try XCTUnwrap(bright, "the panel shows no block")
+        return (
+            CGFloat(found.rows.count) / scale,
+            CGPoint(
+                x: (CGFloat(found.columns.lowerBound + found.columns.upperBound + 1) / 2 / scale - panel.minX) / panel.width,
+                y: (CGFloat(found.rows.lowerBound + found.rows.upperBound + 1) / 2 / scale - panel.minY) / panel.height
+            )
+        )
+    }
+
+    /// A torso photo taken before the camera cut its pictures is the sensor's
+    /// whole frame. One taken since keeps the full width and gives up some
+    /// height. Each filled into a panel, the newer came out 6.7 percent
+    /// larger, so the same person was a different size on each side.
+    func testTorsoPhotosFromBeforeAndAfterTheCutShowTheSamePersonAtTheSameSize() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(session.accountOperationLease()).ownerID
+        let uncut = (0..<2).map {
+            row(owner: owner, date: "2026-08-0\($0 + 1)", key: "framing:torso:uncut\($0)", aspectRatio: 0.75)
+        }
+        let cut = (0..<2).map {
+            row(owner: owner, date: "2026-10-0\($0 + 1)", key: "framing:torso:cut\($0)", aspectRatio: 0.8)
+        }
+        var images: [UUID: UIImage] = [:]
+        for photo in uncut { images[photo.id] = banded(rows: 0..<800) }
+        for photo in cut { images[photo.id] = banded(rows: 25..<775) }
+        func bands(_ before: ProgressPhoto, _ after: ProgressPhoto) async throws -> (before: CGFloat, after: CGFloat, panel: CGFloat) {
+            let view = ProgressComparisonView(
+                before: before, after: after, onClose: {},
+                loadImage: { try XCTUnwrap(images[$0.id]) }
+            )
+            .environment(session)
+            let layout = try await layOut(
+                view, size: Self.phones[1].size, expecting: ["beforePanel", "afterPanel"],
+                named: "comparison, torso \(before.aspectRatio) beside torso \(after.aspectRatio)"
+            )
+            let screen = picture(of: try XCTUnwrap(window))
+            let left = try XCTUnwrap(layout.frames["beforePanel"]), right = try XCTUnwrap(layout.frames["afterPanel"])
+            return (try block(in: screen, panel: left).height, try block(in: screen, panel: right).height, left.height)
+        }
+
+        for (before, after) in [(uncut[0], cut[0]), (cut[0], uncut[0])] {
+            let shown = try await bands(before, after)
+            XCTAssertEqual(shown.before, shown.after, accuracy: 1, "the same person is a different size on each side")
+            XCTAssertEqual(
+                shown.before, shown.panel * 200 / 800, accuracy: 1,
+                "the pair is no longer at the size the whole frame fills the panel"
+            )
+        }
+        let older = try await bands(uncut[0], uncut[1])
+        XCTAssertEqual(older.before, older.panel * 200 / 800, accuracy: 1, "two photos from before the cut fill their panels as before")
+        XCTAssertEqual(older.after, older.panel * 200 / 800, accuracy: 1, "two photos from before the cut fill their panels as before")
+        let newer = try await bands(cut[0], cut[1])
+        XCTAssertEqual(newer.before, newer.panel * 200 / 750, accuracy: 1, "two photos taken since the cut fill their panels as before")
+        XCTAssertEqual(newer.after, newer.panel * 200 / 750, accuracy: 1, "two photos taken since the cut fill their panels as before")
+    }
+
+    /// C7. The exported card is the arrangement on screen. The screen once
+    /// applied a pan in points and the card as a share of its pane, so a
+    /// photo moved a tenth of its panel on screen sat somewhere else on the
+    /// card.
+    func testAPannedPhotoSitsOnTheCardWhereItSitsOnScreen() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(session.accountOperationLease()).ownerID
+        let before = row(owner: owner, date: "2026-08-01"), after = row(owner: owner, date: "2026-10-01")
+        /* A block narrow enough to be whole in the card's narrower pane. */
+        let frame = banded(rows: 0..<800, columns: 260..<340)
+        /* Both at twice the size, the left one a tenth of its panel across
+           and a tenth of it down. */
+        let views = ProgressPhotoEngine.ComparisonViews(
+            left: .init(scale: 2, x: 10, y: 10), right: .init(scale: 2, x: 0, y: 0)
+        )
+
+        let view = ProgressComparisonView(
+            views: views, before: before, after: after, onClose: {}, loadImage: { _ in frame }
+        )
+        .environment(session)
+        let layout = try await layOut(
+            view, size: Self.phones[1].size, expecting: ["beforePanel", "afterPanel"],
+            named: "comparison, left photo panned down"
+        )
+        let screen = picture(of: try XCTUnwrap(window))
+        let leftPanel = try XCTUnwrap(layout.frames["beforePanel"]), rightPanel = try XCTUnwrap(layout.frames["afterPanel"])
+        let onScreen = (left: try block(in: screen, panel: leftPanel), right: try block(in: screen, panel: rightPanel))
+        for (axis, unpanned, panned) in [
+            ("across", onScreen.right.middle.x, onScreen.left.middle.x), ("down", onScreen.right.middle.y, onScreen.left.middle.y),
+        ] {
+            XCTAssertEqual(unpanned, 0.5, accuracy: 0.01, "unpanned, the block is not in the middle of its panel, \(axis)")
+            XCTAssertEqual(panned, 0.6, accuracy: 0.01, "panned a tenth of its panel \(axis), the photo did not move a tenth of it")
+        }
+        XCTAssertEqual(onScreen.left.height / leftPanel.height, 0.5, accuracy: 0.01, "at twice the size the block is half the panel tall")
+
+        let card = ProgressPosterRenderer.render(ProgressPosterRenderer.Input(
+            before: frame, after: frame, beforeMoment: "", afterMoment: "", beforePose: "", afterPose: "",
+            views: views, fit: ProgressPhotoEngine.comparisonFit(before, after),
+            content: ProgressComparison.posterContent(.minimal), torsoLayout: false, athleteName: "",
+            daysApart: 61, workouts: 0, averageLoadDeltaKG: nil, matchedExercises: 0, loadedSets: 0,
+            beforeWeightKG: nil, afterWeightKG: nil
+        ))
+        /* The card's panes are 504 by 1278, from x 36 and from x 540. */
+        let onCard = (
+            left: try block(in: card, panel: CGRect(x: 36, y: 36, width: 504, height: 1278)),
+            right: try block(in: card, panel: CGRect(x: 540, y: 36, width: 504, height: 1278))
+        )
+        for (side, shown, exported) in [("left", onScreen.left, onCard.left), ("right", onScreen.right, onCard.right)] {
+            XCTAssertEqual(
+                exported.middle.x, shown.middle.x, accuracy: 0.01,
+                "the card does not show the \(side) photo where it sits on screen, across"
+            )
+            XCTAssertEqual(
+                exported.middle.y, shown.middle.y, accuracy: 0.01,
+                "the card does not show the \(side) photo where it sits on screen, down"
+            )
+        }
+        XCTAssertEqual(onCard.left.height / 1278, 0.5, accuracy: 0.01, "the card does not show the photo at the size it is on screen")
+    }
+
     /// C10. The review page shows the new photo above Retake and Save. A
     /// square or landscape photo must not widen the page and hide them.
     func testReviewingAPhotoOfAnyShapeKeepsRetakeAndSaveOnScreen() async throws {
@@ -419,21 +577,38 @@ final class ProgressCameraTests: XCTestCase {
         }
     }
 
+    /// What a camera hands on for a shot that produced this file. It goes the
+    /// way a real shot does: the file is decoded and cut on the session
+    /// queue, and the picture then crosses to the main actor.
+    private func handedOn(
+        _ file: Data?, rearCamera: Bool = true,
+        framing: ProgressPhotoEngine.FramingMode = .full, previewAspectRatio: Double = 0.75
+    ) async throws -> UIImage? {
+        let controller = ProgressCameraController(accessAnswer: { true }, shotAnswer: { file })
+        /* A controller opens on the front camera. */
+        if rearCamera { controller.flip() }
+        XCTAssertEqual(controller.position, rearCamera ? .back : .front)
+        var answers: [UIImage?] = []
+        controller.capture(framing: framing, previewAspectRatio: previewAspectRatio) { answers.append($0) }
+        for _ in 0..<300 where answers.isEmpty {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        controller.stop()
+        XCTAssertEqual(answers.count, 1, "the capture never reported back")
+        return answers.first ?? nil
+    }
+
     /// C9. A saved photo keeps the person's true left and right whichever
     /// camera took it, so a selfie and a rear photo of one pose line up.
     func testAFrontCameraPhotoIsSavedWithTheSameLeftAndRightAsARearOne() async throws {
         let shot = try sidedPhoto()
         XCTAssertGreaterThan(try colour(of: shot, at: CGPoint(x: 0.25, y: 0.5)).red, 200, "the fixture is red on the left")
         XCTAssertGreaterThan(try colour(of: shot, at: CGPoint(x: 0.75, y: 0.5)).blue, 200, "and blue on the right")
+        let file = try XCTUnwrap(shot.jpegData(compressionQuality: 0.9))
 
-        for (name, position) in [("front", AVCaptureDevice.Position.front), ("rear", .back)] {
-            let controller = try await controller(on: position)
-            var saved: UIImage?
-            controller.capture { saved = $0 }
-            controller.finishCapture(with: shot)
-            controller.stop()
-
-            let image = try XCTUnwrap(saved, "the \(name) camera handed nothing on")
+        for (name, rearCamera) in [("front", false), ("rear", true)] {
+            let answer = try await handedOn(file, rearCamera: rearCamera)
+            let image = try XCTUnwrap(answer, "the \(name) camera handed nothing on")
             XCTAssertEqual(image.size, shot.size, "the \(name) camera photo is no longer upright")
             let left = try colour(of: image, at: CGPoint(x: 0.25, y: 0.5))
             let right = try colour(of: image, at: CGPoint(x: 0.75, y: 0.5))
@@ -483,7 +658,7 @@ final class ProgressCameraTests: XCTestCase {
         /* The simulator has no camera, so every capture here is a failed one. */
         let controller = ProgressCameraController(accessAnswer: { true })
         var answers: [UIImage?] = []
-        controller.capture { answers.append($0) }
+        controller.capture(framing: .full, previewAspectRatio: 0.75) { answers.append($0) }
         for _ in 0..<100 where answers.isEmpty {
             try await Task.sleep(for: .milliseconds(10))
         }
@@ -491,11 +666,34 @@ final class ProgressCameraTests: XCTestCase {
         XCTAssertNil(answers.first ?? nil)
         controller.stop()
 
-        var direct: [UIImage?] = []
-        controller.capture { direct.append($0) }
-        controller.finishCapture(with: nil)
-        XCTAssertEqual(direct.count, 1, "a photo that could not be read was dropped without a word")
-        controller.stop()
+        /* A shot that produces no file, and one whose file cannot be read. */
+        for file in [nil, Data("not a picture".utf8)] {
+            let image = try await handedOn(file)
+            XCTAssertNil(image, "a photo that could not be read was handed on")
+        }
+    }
+
+    /// The crop used to wait for the photo to reach the main actor, where a
+    /// full sensor frame froze the screen after the countdown. The camera
+    /// now hands the picture on already cut.
+    func testTheCameraHandsOnThePictureAlreadyCutToWhatWasFramed() async throws {
+        let preview = 393.0 / 852.0
+        let file = try XCTUnwrap(try sensorFrame(sideways: true).jpegData(compressionQuality: 0.9))
+
+        let fullAnswer = try await handedOn(file, framing: .full, previewAspectRatio: preview)
+        let full = try XCTUnwrap(fullAnswer, "the camera handed nothing on")
+        XCTAssertEqual(full.size.height, 800, accuracy: 1)
+        XCTAssertEqual(
+            full.size.width / full.size.height, preview, accuracy: 0.005,
+            "the whole sensor frame was handed on, still to be cut"
+        )
+        let edge = try colour(of: full, at: CGPoint(x: 0.01, y: 0.5))
+        XCTAssertTrue(edge.green > 200 && edge.red < 60, "the part of the frame the preview never showed was handed on")
+
+        let torsoAnswer = try await handedOn(file, framing: .torso, previewAspectRatio: preview)
+        let torso = try XCTUnwrap(torsoAnswer, "the camera handed nothing on")
+        XCTAssertEqual(torso.size.width, 600, accuracy: 1)
+        XCTAssertEqual(torso.size.width / torso.size.height, 0.8, accuracy: 0.005, "a torso shot was not cut to its frame")
     }
 
     /// A 3:4 sensor frame, green with a magenta band down each side edge.
@@ -579,6 +777,35 @@ final class ProgressCameraTests: XCTestCase {
         let built = layout.frames.keys.filter { $0.hasPrefix("timelineRow") }.count
         XCTAssertGreaterThan(built, 0, "the timeline shows no photos at all")
         XCTAssertLessThan(built, 40, "\(built) of 130 rows were built on open, so the end of the list is reached at once")
+    }
+
+    private func scrollView(in view: UIView) -> UIScrollView? {
+        (view as? UIScrollView) ?? view.subviews.lazy.compactMap { self.scrollView(in: $0) }.first
+    }
+
+    /// A row that scrolls out of view and back still has its thumbnail. Its
+    /// link used to be signed again each time, and a new link is a new
+    /// address, so the picture was downloaded again as well.
+    func testAThumbnailIsNotSignedAgainWhenItsRowScrollsBackIntoView() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(session.accountOperationLease()).ownerID
+        session.data.progressPhotos = (0..<60).map { row(owner: owner, date: Self.day(200 - $0)) }
+        let first = session.data.progressPhotos[0]
+        let links = ThumbnailLinks()
+        let view = VisualProgressView(signThumbnail: { links.sign($0) })
+        let (frames, host) = try show(view.environment(session), size: Self.phones[1].size)
+        try await wait(for: "the first row signs its thumbnail") { links.signed[first.id] == 1 }
+
+        let scroll = try XCTUnwrap(scrollView(in: host.view), "the timeline does not scroll")
+        let top = scroll.contentOffset
+        scroll.setContentOffset(CGPoint(x: 0, y: top.y + 4_000), animated: false)
+        try await wait(for: "the first row leaves the screen") { !shows(first, in: frames) }
+        scroll.setContentOffset(top, animated: false)
+        try await wait(for: "the first row is back on screen") { shows(first, in: frames) }
+        try await Task.sleep(for: .milliseconds(400))
+
+        let again = links.signed.filter { $0.value > 1 }.count
+        XCTAssertEqual(again, 0, "\(again) thumbnails were signed again when their rows scrolled back into view")
     }
 
     // MARK: - The timeline beyond its first page
@@ -742,6 +969,18 @@ final class ProgressCameraTests: XCTestCase {
         try await wait(for: "the older photos load again") { shows(baseline, in: frames) }
         try await Task.sleep(for: .milliseconds(300))
         XCTAssertNil(frames.value["compare"], "a tick on a photo that left the timeline came back with it")
+    }
+}
+
+/// Stands in for the signing of thumbnail links, and counts each photo's.
+@MainActor
+private final class ThumbnailLinks {
+    private(set) var signed: [UUID: Int] = [:]
+
+    func sign(_ photo: ProgressPhoto) -> URL {
+        signed[photo.id, default: 0] += 1
+        /* Nowhere, so nothing is fetched. */
+        return URL(fileURLWithPath: "/dev/null/\(photo.id).jpg")
     }
 }
 

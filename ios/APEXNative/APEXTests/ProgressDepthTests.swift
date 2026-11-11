@@ -113,11 +113,13 @@ final class ProgressDepthTests: XCTestCase {
         )
         let map = try XCTUnwrap(buffer)
 
-        /* A person two metres away, standing left of centre in the upright
-           picture: 15 to 45 percent across, 10 to 90 percent of the height.
-           Upright x runs down the map's rows and upright y, from the top,
-           along its columns, so they fill rows 15 to 45 percent and columns
-           10 to 90 percent. Everything else is a wall at 3.2 metres. */
+        /* A person two metres away, left of centre and low in the upright
+           picture: 15 to 45 percent across, 45 to 95 percent of the way
+           down. Off centre both ways, so a box read mirrored or upside down
+           lands on the wall. Upright x runs down the map's rows and upright
+           y, from the top, along its columns, so they fill rows 15 to 45
+           percent and columns 45 to 95 percent. Everything else is a wall
+           at 3.2 metres. */
         CVPixelBufferLockBaseAddress(map, [])
         let base = try XCTUnwrap(CVPixelBufferGetBaseAddress(map))
         let rowBytes = CVPixelBufferGetBytesPerRow(map)
@@ -125,14 +127,15 @@ final class ProgressDepthTests: XCTestCase {
             let values = base.advanced(by: row * rowBytes).assumingMemoryBound(to: Float32.self)
             for column in 0..<width {
                 let onPerson = (Int(0.15 * 48)..<Int(0.45 * 48)).contains(row)
-                    && (Int(0.10 * 64)..<Int(0.90 * 64)).contains(column)
+                    && (Int(0.45 * 64)..<Int(0.95 * 64)).contains(column)
                 values[column] = onPerson ? 2.0 : 3.2
             }
         }
         CVPixelBufferUnlockBaseAddress(map, [])
 
-        /* Vision's box for that person: bottom-left origin, upright. */
-        let person = CGRect(x: 0.15, y: 0.10, width: 0.30, height: 0.80)
+        /* Vision's box for that person: bottom-left origin, upright, so the
+           5 to 55 percent it gives is measured up from the floor. */
+        let person = CGRect(x: 0.15, y: 0.05, width: 0.30, height: 0.50)
         let distance = try XCTUnwrap(ProgressFrameAnalyzer.medianDepth(in: map, region: person))
         XCTAssertEqual(distance, 2.0, accuracy: 0.01, "the pill read the wall, not the person")
 

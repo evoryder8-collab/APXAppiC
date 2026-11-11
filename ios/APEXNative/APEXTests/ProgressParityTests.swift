@@ -3,9 +3,50 @@
  * src/lib/progressPhoto.ts and src/lib/progressComparison.ts.
  */
 import ImageIO
+import Supabase
 import UniformTypeIdentifiers
 import XCTest
 @testable import APEX
+
+/// Stands in for the server's photo table. It holds every account's photos
+/// and answers a request the way the server does: with the rows that pass
+/// the filters the request names, in its order, cut at its limit.
+private final class PhotoTable: URLProtocol, @unchecked Sendable {
+    nonisolated(unsafe) static var rows: [ProgressPhoto] = []
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func stopLoading() {}
+
+    override func startLoading() {
+        let asked = request.url.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }?.queryItems ?? []
+        func filter(_ column: String, _ comparison: String) -> String? {
+            asked.first { $0.name == column && $0.value?.hasPrefix(comparison + ".") == true }?
+                .value.map { String($0.dropFirst(comparison.count + 1)) }
+        }
+        var rows = Self.rows
+        if let owner = filter("user_id", "eq") {
+            rows = rows.filter { $0.userID.uuidString.caseInsensitiveCompare(owner) == .orderedSame }
+        }
+        if let day = filter("local_date", "lte") {
+            rows = rows.filter { $0.localDate <= day }
+        }
+        rows.sort { ($0.localDate, $0.id.uuidString) > ($1.localDate, $1.id.uuidString) }
+        if let limit = asked.first(where: { $0.name == "limit" })?.value.flatMap(Int.init) {
+            rows = Array(rows.prefix(limit))
+        }
+        guard let url = request.url, let body = try? JSONEncoder().encode(rows),
+              let response = HTTPURLResponse(
+                  url: url, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"]
+              ) else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
+            return
+        }
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: body)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+}
 
 private struct ProgressFixture: Decodable {
     let photos: [PhotoRow]
@@ -260,6 +301,43 @@ final class ProgressParityTests: XCTestCase {
         XCTAssertEqual(ProgressPhotoEngine.ghostScale(row(key: "framing:torso:1", aspectRatio: 0.6)), 1, "never enlarged")
     }
 
+    /// The comparison and the exported card size a pair by the ghost's rule.
+    /// Only a torso photo the camera cut, beside a photo that has the
+    /// sensor's whole height, is drawn smaller.
+    func testOnlyACutTorsoPhotoBesideAnUncutOneIsDrawnSmallerInAComparison() {
+        func row(key: String, aspectRatio: Double) -> ProgressPhoto {
+            ProgressPhoto(
+                id: UUID(), userID: UUID(), localDate: "2026-10-01", capturedAt: "2026-10-01T07:00:00Z",
+                pose: "front", storagePath: "a", thumbnailPath: "b", width: 4, height: 5,
+                aspectRatio: aspectRatio, cropX: 0.5, cropY: 0.5, cropScale: 1, referencePhotoID: nil,
+                weightKG: nil, note: "", clientIdempotencyKey: key
+            )
+        }
+        let torso = row(key: "framing:torso:1", aspectRatio: 0.8)
+        /* A torso photo from before the camera cut its pictures. */
+        let uncutTorso = row(key: "framing:torso:0", aspectRatio: 0.75)
+        let wholeFrame = row(key: "ios-progress-1", aspectRatio: 0.75)
+        let fullBody = row(key: "framing:full:1", aspectRatio: 0.46)
+
+        for other in [uncutTorso, wholeFrame, fullBody] {
+            let after = ProgressPhotoEngine.comparisonFit(other, torso)
+            XCTAssertEqual(after.before, 1)
+            XCTAssertEqual(after.after, 0.9375, accuracy: 0.0001)
+            XCTAssertEqual(after.after, ProgressPhotoEngine.ghostScale(torso), "the ghost and the comparison disagree")
+            let before = ProgressPhotoEngine.comparisonFit(torso, other)
+            XCTAssertEqual(before.before, 0.9375, accuracy: 0.0001)
+            XCTAssertEqual(before.after, 1)
+        }
+        for (first, second) in [
+            (torso, torso), (uncutTorso, uncutTorso), (wholeFrame, wholeFrame),
+            (uncutTorso, wholeFrame), (wholeFrame, fullBody), (fullBody, fullBody),
+        ] {
+            let fit = ProgressPhotoEngine.comparisonFit(first, second)
+            XCTAssertEqual(fit.before, 1, "a pair of one kind fills its panes as before")
+            XCTAssertEqual(fit.after, 1, "a pair of one kind fills its panes as before")
+        }
+    }
+
     /// A small JPEG, stamped the way a camera stamps the moment it was taken.
     private func jpeg(takenAt stamp: String?) throws -> Data {
         let image = UIGraphicsImageRenderer(size: CGSize(width: 12, height: 16)).image { context in
@@ -289,6 +367,17 @@ final class ProgressParityTests: XCTestCase {
             "the date the file carries was not read"
         )
         XCTAssertEqual(taken.apexDateKey, "2025-06-14")
+
+        /* The camera's library hands over a file, and the date is read from
+           where it lies. */
+        let file = FileManager.default.temporaryDirectory.appending(path: "\(UUID().uuidString).jpg")
+        try jpeg(takenAt: "2025:06:14 08:30:00").write(to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        XCTAssertEqual(
+            ProgressPhotoEngine.takenAt(fileURL: file, now: now), taken,
+            "the date a picked file carries was not read"
+        )
+        XCTAssertNil(ProgressPhotoEngine.takenAt(fileURL: file.appendingPathExtension("gone"), now: now))
 
         let owner = UUID()
         func row(_ date: Date) -> ProgressPhoto {
@@ -545,6 +634,60 @@ final class ProgressParityTests: XCTestCase {
         let none = await ProgressPhotoEngine.earlierPage(firstPage: [], earlier: [], fetch: server)
         XCTAssertTrue(none.photos.isEmpty)
         XCTAssertTrue(none.reachedEnd)
+    }
+
+    /// The table holds every account's photos. The server lets a person read
+    /// only their own, and the app does not lean on that rule alone: a page
+    /// of older photos is asked for by owner. Asked for by date alone, the
+    /// day that rule is loosened another person's private photos arrive in
+    /// this one's timeline.
+    func testAPageOfOlderPhotosBringsOnlyTheOwnersPhotos() async throws {
+        let start = try XCTUnwrap(APEXDateMath.date(from: "2025-01-01"))
+        func photos(of user: UUID, days: Range<Int>) -> [ProgressPhoto] {
+            days.map { day in
+                ProgressPhotoEngine.checkpoint(
+                    id: UUID(), userID: user, takenAt: start.addingTimeInterval(Double(day) * 86_400), pose: "front",
+                    framing: .full, width: 3, height: 4, referencePhotoID: nil, weightKG: nil, note: ""
+                )
+            }
+        }
+        let owner = UUID(), client = UUID()
+        let firstPage = Array(photos(of: owner, days: 200..<320).reversed())
+        let older = photos(of: owner, days: 0..<200)
+        PhotoTable.rows = firstPage + older + photos(of: client, days: 0..<320)
+        defer { PhotoTable.rows = [] }
+
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [PhotoTable.self]
+        let service = SupabaseService(client: SupabaseClient(
+            supabaseURL: try XCTUnwrap(URL(string: "https://photos.test")), supabaseKey: "test",
+            options: .init(
+                auth: .init(accessToken: { "test" }),
+                global: .init(session: URLSession(configuration: configuration))
+            )
+        ))
+        let page = try await service.loadEarlierProgressPhotos(ownerID: owner, firstPage: firstPage, earlier: [])
+
+        let strangers = page.photos.filter { $0.userID != owner }.count
+        XCTAssertEqual(strangers, 0, "\(strangers) photos of another account came back in the owner's page")
+        let brought = Set(page.photos.map(\.id)).subtracting(firstPage.map(\.id))
+        XCTAssertEqual(brought.count, ProgressPhotoEngine.pageSize, "a page brings a full page of the owner's older photos")
+        XCTAssertTrue(brought.isSubset(of: Set(older.map(\.id))))
+        XCTAssertFalse(page.reachedEnd, "eighty of the owner's photos are still to come")
+    }
+
+    /// A signed link lasts an hour. A timeline row keeps the one it has for
+    /// most of that, and signs a new one before the old one can fail.
+    func testASignedLinkIsKeptUntilShortlyBeforeItExpires() {
+        let signed = Date(timeIntervalSince1970: 1_800_000_000)
+        func kept(after minutes: Double) -> Bool {
+            ProgressPhotoEngine.keepsSignedLink(signedAt: signed, now: signed.addingTimeInterval(minutes * 60))
+        }
+        XCTAssertTrue(kept(after: 0))
+        XCTAssertTrue(kept(after: 45), "a link with a quarter of an hour left was signed again")
+        XCTAssertFalse(kept(after: 55), "a link about to expire was kept")
+        XCTAssertFalse(kept(after: 120), "an expired link was kept")
+        XCTAssertFalse(kept(after: -5), "a link dated after now cannot be trusted to have time left")
     }
 
     /// A comparison must never borrow a score recorded after the photo.

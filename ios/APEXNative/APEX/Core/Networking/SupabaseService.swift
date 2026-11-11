@@ -132,6 +132,12 @@ actor SupabaseService {
     private var realtimeTasks: [Task<Void, Never>] = []
     private var realtimeChannel: RealtimeChannelV2?
 
+    /// A service that talks through the client it is given, so a test can
+    /// stand in for the server.
+    init(client: SupabaseClient) {
+        self.client = client
+    }
+
     init(localOnly: Bool = false) {
         if localOnly {
             client = nil

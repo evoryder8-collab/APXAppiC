@@ -223,6 +223,18 @@ enum ProgressPhotoEngine {
         return sensorAspectRatio / photo.aspectRatio
     }
 
+    /* How much smaller than filling its pane each photo of a comparison is
+       drawn, on screen and on the exported card, so the same person is the
+       same size on both sides. It is the ghost's rule, between two photos:
+       a torso photo beside one that has the sensor's whole height is drawn
+       as much smaller as its ghost is. Two torso photos, or two that are
+       not, fill their panes as they always have. */
+    static func comparisonFit(_ before: ProgressPhoto, _ after: ProgressPhoto) -> (before: Double, after: Double) {
+        let scales = (before: ghostScale(before), after: ghostScale(after))
+        let larger = max(scales.before, scales.after)
+        return (scales.before / larger, scales.after / larger)
+    }
+
     /* Full and free keep the camera preview crop from before framing modes
        existed. Torso deliberately saves a wider 4:5 source, for room around
        the shoulders and arms in a side-by-side. */
@@ -235,7 +247,17 @@ enum ProgressPhotoEngine {
        names a moment that has not happened yet, and the photo is then filed
        under today. */
     static func takenAt(imageData: Data, now: Date = .now) -> Date? {
-        guard let source = CGImageSourceCreateWithData(imageData as CFData, nil),
+        takenAt(CGImageSourceCreateWithData(imageData as CFData, nil), now: now)
+    }
+
+    /// The same, read from the file where it lies. Only what the file says
+    /// about itself is read, not the picture.
+    static func takenAt(fileURL: URL, now: Date = .now) -> Date? {
+        takenAt(CGImageSourceCreateWithURL(fileURL as CFURL, nil), now: now)
+    }
+
+    private static func takenAt(_ source: CGImageSource?, now: Date) -> Date? {
+        guard let source,
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
               let exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any],
               let stamp = exif[kCGImagePropertyExifDateTimeOriginal] as? String else { return nil }
@@ -367,6 +389,14 @@ enum ProgressPhotoEngine {
         return (firstPage + earlier)
             .filter { seen.insert($0.id).inserted }
             .sorted { ($0.localDate, $0.capturedAt) > ($1.localDate, $1.capturedAt) }
+    }
+
+    /* A signed link to a private photo is good for an hour. A timeline row
+       keeps the one it has until ten minutes before that. Signed again each
+       time the row scrolled back into view, the link was a new address and
+       the picture was downloaded again with it. */
+    static func keepsSignedLink(signedAt: Date, now: Date = .now) -> Bool {
+        (0..<3_000).contains(now.timeIntervalSince(signedAt))
     }
 
     /// Same pose first, then most recent: the comparison a person means.
