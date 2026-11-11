@@ -45,30 +45,6 @@ enum HealthImport {
     /// Anything shorter is a stray reading, not a session worth importing.
     static let minimumWorkoutMinutes = 8
 
-    /* HealthKit activity types the app has an opinion about. An unmapped type
-       is skipped rather than guessed at, matching the web. */
-    static let activityKind: [String: String] = [
-        "TraditionalStrengthTraining": "strength",
-        "FunctionalStrengthTraining": "strength",
-        "CoreTraining": "strength",
-        "HighIntensityIntervalTraining": "endurance",
-        "Running": "endurance",
-        "Cycling": "endurance",
-        "Swimming": "endurance",
-        "Rowing": "endurance",
-        "Elliptical": "endurance",
-        "StairClimbing": "endurance",
-        "JumpRope": "endurance",
-        "CrossTraining": "endurance",
-        "MixedCardio": "endurance",
-        "Hiking": "endurance",
-        "WaterSports": "endurance",
-        "Yoga": "mobility",
-        "Flexibility": "mobility",
-        "MindAndBody": "mobility",
-        "Pilates": "mobility",
-    ]
-
     struct Result: Hashable, Sendable {
         let dailyLogsTouched: Int
         let metricsTouched: Int

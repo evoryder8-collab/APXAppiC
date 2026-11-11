@@ -395,11 +395,32 @@ final class HealthImportParityTests: XCTestCase {
         XCTAssertEqual(profile.classifiedWorkouts, 2)
     }
 
-    func testShortAndUnmappedWorkoutsAreRejectedByTheSharedRules() {
+    func testHistoryBackfillClassifiesAWorkoutAsTheLiveImportDoes() throws {
+        let owner = UUID(uuidString: "10000000-0000-0000-0000-0000000000B4")!
+        func backfilled(_ type: HKWorkoutActivityType, minutes: Int = 30) -> HealthImport.Workout? {
+            HealthKitManager.historyWorkout(type, date: "2026-10-05", minutes: minutes, source: "Apple Watch")
+        }
         XCTAssertEqual(HealthImport.minimumWorkoutMinutes, 8)
-        XCTAssertEqual(HealthImport.activityKind["Running"], "endurance")
-        XCTAssertEqual(HealthImport.activityKind["Yoga"], "mobility")
-        XCTAssertNil(HealthImport.activityKind["Curling"], "an unmapped type is skipped, not guessed")
+        XCTAssertNil(backfilled(.running, minutes: 7), "a stray reading is not a session")
+        XCTAssertNil(backfilled(.other), "a type that says nothing about the training is skipped, not guessed")
+
+        XCTAssertEqual(backfilled(.taiChi)?.kind, "mobility")
+        XCTAssertEqual(backfilled(.cooldown)?.kind, "mobility")
+        XCTAssertEqual(backfilled(.crossTraining)?.kind, "strength")
+        let types: [HKWorkoutActivityType] = [
+            .running, .yoga, .traditionalStrengthTraining, .highIntensityIntervalTraining,
+            .taiChi, .cooldown, .crossTraining, .preparationAndRecovery, .walking,
+        ]
+        for type in types {
+            let live = HealthWorkoutCatalog.identity(for: type)
+            let workout = try XCTUnwrap(backfilled(type), live.fallbackName)
+            XCTAssertEqual(workout.kind, live.kind, live.fallbackName)
+            // The stored row is then read by the rule the Avatar and the 90-day profile share.
+            let row = try XCTUnwrap(HealthImport.buildRows(
+                parsed: .init(workouts: [workout]), userID: owner, dailyLogs: [], metrics: [], activities: []
+            ).activities.first)
+            XCTAssertEqual(HealthWorkoutCatalog.kind(of: row), live.kind, live.fallbackName)
+        }
     }
 
     func testHealthKitWorkoutImportHandlesHistoricalThenIncrementalResults() {

@@ -118,46 +118,26 @@ extension HealthKitManager {
         }
 
         return workouts.compactMap { workout in
-            let raw = Self.exportName(workout.workoutActivityType)
-            /* An unmapped activity is skipped rather than guessed at, exactly
-               as the web skips a type it has no opinion about. */
-            guard let kind = HealthImport.activityKind[raw] else { return nil }
-            let minutes = Int((workout.duration / 60).rounded())
-            guard minutes >= HealthImport.minimumWorkoutMinutes else { return nil }
-            return HealthImport.Workout(
+            Self.historyWorkout(
+                workout.workoutActivityType,
                 date: workout.startDate.apexDateKey,
-                activity: raw,
-                kind: kind,
-                durationMinutes: minutes,
+                minutes: Int((workout.duration / 60).rounded()),
                 source: workout.sourceRevision.source.name
             )
         }
     }
 
-    /// The names Apple writes into export.xml, so a workout imported from the
-    /// file and the same workout read from HealthKit agree.
-    nonisolated static func exportName(_ type: HKWorkoutActivityType) -> String {
-        switch type {
-        case .traditionalStrengthTraining: "TraditionalStrengthTraining"
-        case .functionalStrengthTraining: "FunctionalStrengthTraining"
-        case .coreTraining: "CoreTraining"
-        case .highIntensityIntervalTraining: "HighIntensityIntervalTraining"
-        case .running: "Running"
-        case .cycling: "Cycling"
-        case .swimming: "Swimming"
-        case .rowing: "Rowing"
-        case .elliptical: "Elliptical"
-        case .stairClimbing: "StairClimbing"
-        case .jumpRope: "JumpRope"
-        case .crossTraining: "CrossTraining"
-        case .mixedCardio: "MixedCardio"
-        case .hiking: "Hiking"
-        case .waterSports: "WaterSports"
-        case .yoga: "Yoga"
-        case .flexibility: "Flexibility"
-        case .mindAndBody: "MindAndBody"
-        case .pilates: "Pilates"
-        default: "Other"
-        }
+    /// A HealthKit workout in the shape the history import stores. Its kind and name come from
+    /// the map the live import uses, so both classify a workout the same way. A stray reading, and
+    /// a type that says nothing about the training, give nil.
+    nonisolated static func historyWorkout(
+        _ type: HKWorkoutActivityType, date: String, minutes: Int, source: String
+    ) -> HealthImport.Workout? {
+        let identity = HealthWorkoutCatalog.identity(for: type)
+        guard identity.kind != "other", minutes >= HealthImport.minimumWorkoutMinutes else { return nil }
+        return HealthImport.Workout(
+            date: date, activity: identity.fallbackName, kind: identity.kind,
+            durationMinutes: minutes, source: source
+        )
     }
 }
