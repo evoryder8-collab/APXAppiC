@@ -260,6 +260,43 @@ final class ProgressParityTests: XCTestCase {
         XCTAssertEqual(ProgressPhotoEngine.ghostScale(row(key: "framing:torso:1", aspectRatio: 0.6)), 1, "never enlarged")
     }
 
+    /// The comparison and the exported card size a pair by the ghost's rule.
+    /// Only a torso photo the camera cut, beside a photo that has the
+    /// sensor's whole height, is drawn smaller.
+    func testOnlyACutTorsoPhotoBesideAnUncutOneIsDrawnSmallerInAComparison() {
+        func row(key: String, aspectRatio: Double) -> ProgressPhoto {
+            ProgressPhoto(
+                id: UUID(), userID: UUID(), localDate: "2026-10-01", capturedAt: "2026-10-01T07:00:00Z",
+                pose: "front", storagePath: "a", thumbnailPath: "b", width: 4, height: 5,
+                aspectRatio: aspectRatio, cropX: 0.5, cropY: 0.5, cropScale: 1, referencePhotoID: nil,
+                weightKG: nil, note: "", clientIdempotencyKey: key
+            )
+        }
+        let torso = row(key: "framing:torso:1", aspectRatio: 0.8)
+        /* A torso photo from before the camera cut its pictures. */
+        let uncutTorso = row(key: "framing:torso:0", aspectRatio: 0.75)
+        let wholeFrame = row(key: "ios-progress-1", aspectRatio: 0.75)
+        let fullBody = row(key: "framing:full:1", aspectRatio: 0.46)
+
+        for other in [uncutTorso, wholeFrame, fullBody] {
+            let after = ProgressPhotoEngine.comparisonFit(other, torso)
+            XCTAssertEqual(after.before, 1)
+            XCTAssertEqual(after.after, 0.9375, accuracy: 0.0001)
+            XCTAssertEqual(after.after, ProgressPhotoEngine.ghostScale(torso), "the ghost and the comparison disagree")
+            let before = ProgressPhotoEngine.comparisonFit(torso, other)
+            XCTAssertEqual(before.before, 0.9375, accuracy: 0.0001)
+            XCTAssertEqual(before.after, 1)
+        }
+        for (first, second) in [
+            (torso, torso), (uncutTorso, uncutTorso), (wholeFrame, wholeFrame),
+            (uncutTorso, wholeFrame), (wholeFrame, fullBody), (fullBody, fullBody),
+        ] {
+            let fit = ProgressPhotoEngine.comparisonFit(first, second)
+            XCTAssertEqual(fit.before, 1, "a pair of one kind fills its panes as before")
+            XCTAssertEqual(fit.after, 1, "a pair of one kind fills its panes as before")
+        }
+    }
+
     /// A small JPEG, stamped the way a camera stamps the moment it was taken.
     private func jpeg(takenAt stamp: String?) throws -> Data {
         let image = UIGraphicsImageRenderer(size: CGSize(width: 12, height: 16)).image { context in

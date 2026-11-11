@@ -223,6 +223,18 @@ enum ProgressPhotoEngine {
         return sensorAspectRatio / photo.aspectRatio
     }
 
+    /* How much smaller than filling its pane each photo of a comparison is
+       drawn, on screen and on the exported card, so the same person is the
+       same size on both sides. It is the ghost's rule, between two photos:
+       a torso photo beside one that has the sensor's whole height is drawn
+       as much smaller as its ghost is. Two torso photos, or two that are
+       not, fill their panes as they always have. */
+    static func comparisonFit(_ before: ProgressPhoto, _ after: ProgressPhoto) -> (before: Double, after: Double) {
+        let scales = (before: ghostScale(before), after: ghostScale(after))
+        let larger = max(scales.before, scales.after)
+        return (scales.before / larger, scales.after / larger)
+    }
+
     /* Full and free keep the camera preview crop from before framing modes
        existed. Torso deliberately saves a wider 4:5 source, for room around
        the shoulders and arms in a side-by-side. */

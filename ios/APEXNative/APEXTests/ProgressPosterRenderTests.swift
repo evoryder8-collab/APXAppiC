@@ -36,6 +36,7 @@ final class ProgressPosterRenderTests: XCTestCase {
             beforePose: "FRONT",
             afterPose: "FRONT",
             views: .init(left: .init(scale: 1, x: 0, y: 0), right: .init(scale: 1, x: 0, y: 0)),
+            fit: (1, 1),
             content: ProgressComparison.posterContent(detailed ? .detailed : .minimal),
             torsoLayout: false,
             athleteName: "Constantine",
@@ -79,6 +80,76 @@ final class ProgressPosterRenderTests: XCTestCase {
         let detailed = ProgressComparison.posterContent(.detailed)
         XCTAssertTrue(detailed.stats)
         XCTAssertTrue(detailed.privateFooter)
+    }
+
+    /// The sensor's whole frame with a white band across its middle, or the
+    /// rows of it that a photo keeps.
+    private func banded(rows: Range<Int>) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let size = CGSize(width: 600, height: rows.count)
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            UIColor.black.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+            UIColor.white.setFill()
+            context.fill(CGRect(x: 0, y: 300 - rows.lowerBound, width: 600, height: 200))
+        }
+    }
+
+    private func photo(key: String, aspectRatio: Double) -> ProgressPhoto {
+        ProgressPhoto(
+            id: UUID(), userID: UUID(), localDate: "2026-10-01", capturedAt: "2026-10-01T07:00:00Z",
+            pose: "front", storagePath: "a", thumbnailPath: "b", width: 3, height: 4,
+            aspectRatio: aspectRatio, cropX: 0.5, cropY: 0.5, cropScale: 1, referencePhotoID: nil,
+            weightKG: nil, note: "", clientIdempotencyKey: key
+        )
+    }
+
+    /// A torso photo taken before the camera cut its pictures is the sensor's
+    /// whole frame. One taken since keeps the full width and gives up some
+    /// height. Each filled into a pane, the newer came out 6.7 percent
+    /// larger, so the card showed the same person at two sizes.
+    func testTorsoPhotosFromBeforeAndAfterTheCutShowTheSamePersonAtTheSameSizeOnTheCard() throws {
+        let uncutFrame = banded(rows: 0..<800), cutFrame = banded(rows: 25..<775)
+        let uncut = photo(key: "framing:torso:uncut", aspectRatio: 0.75)
+        let cut = photo(key: "framing:torso:cut", aspectRatio: 0.8)
+
+        /// How many pixels of the band each pane shows down its middle.
+        func bands(
+            _ before: (ProgressPhoto, UIImage), _ after: (ProgressPhoto, UIImage)
+        ) throws -> (before: Int, after: Int) {
+            var card = input(detailed: false)
+            card.before = before.1
+            card.after = after.1
+            /* Two torso photos, so the card has its shorter photo block:
+               panes 1120 tall, where the whole frame's band is 280. */
+            card.torsoLayout = true
+            card.fit = ProgressPhotoEngine.comparisonFit(before.0, after.0)
+            let cg = try XCTUnwrap(ProgressPosterRenderer.render(card).cgImage)
+            let data = try XCTUnwrap(cg.dataProvider?.data)
+            let bytes = try XCTUnwrap(CFDataGetBytePtr(data))
+            func band(column: Int) -> Int {
+                (400..<1000).filter { row in
+                    let offset = row * cg.bytesPerRow + column * (cg.bitsPerPixel / 8)
+                    return Int(bytes[offset]) + Int(bytes[offset + 1]) + Int(bytes[offset + 2]) > 384
+                }.count
+            }
+            /* The panes are 504 wide, from x 36 and from x 540. */
+            return (band(column: 36 + 252), band(column: 540 + 252))
+        }
+
+        for (before, after) in [((uncut, uncutFrame), (cut, cutFrame)), ((cut, cutFrame), (uncut, uncutFrame))] {
+            let shown = try bands(before, after)
+            XCTAssertEqual(shown.before, shown.after, accuracy: 2, "the same person is a different size on each side")
+            XCTAssertEqual(shown.before, 280, accuracy: 2, "the pair is no longer at the size the whole frame fills the pane")
+        }
+
+        let older = try bands((uncut, uncutFrame), (uncut, uncutFrame))
+        XCTAssertEqual(older.before, 280, accuracy: 2, "two photos from before the cut fill their panes as before")
+        XCTAssertEqual(older.after, 280, accuracy: 2, "two photos from before the cut fill their panes as before")
+        let newer = try bands((cut, cutFrame), (cut, cutFrame))
+        XCTAssertEqual(newer.before, 299, accuracy: 2, "two photos taken since the cut fill their panes as before")
+        XCTAssertEqual(newer.after, 299, accuracy: 2, "two photos taken since the cut fill their panes as before")
     }
 
     /// C7. The card draws the pan as a share of its own pane, which is how the

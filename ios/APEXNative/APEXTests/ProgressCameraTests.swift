@@ -207,6 +207,87 @@ final class ProgressCameraTests: XCTestCase {
         }
     }
 
+    /// The sensor's whole frame with a white band across its middle, or the
+    /// rows of it that a photo keeps.
+    private func banded(rows: Range<Int>) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let size = CGSize(width: 600, height: rows.count)
+        return UIGraphicsImageRenderer(size: size, format: format).image { context in
+            UIColor.black.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+            UIColor.white.setFill()
+            context.fill(CGRect(x: 0, y: 300 - rows.lowerBound, width: 600, height: 200))
+        }
+    }
+
+    /// How tall the white band is, in points, down the middle of a panel.
+    private func bandHeight(in screen: UIImage, panel: CGRect) throws -> CGFloat {
+        let cg = try XCTUnwrap(screen.cgImage)
+        let scale = CGFloat(cg.width) / screen.size.width
+        var pixels = [UInt8](repeating: 0, count: cg.width * cg.height * 4)
+        let context = try XCTUnwrap(CGContext(
+            data: &pixels, width: cg.width, height: cg.height, bitsPerComponent: 8, bytesPerRow: cg.width * 4,
+            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        ))
+        context.draw(cg, in: CGRect(x: 0, y: 0, width: cg.width, height: cg.height))
+        let column = Int(panel.midX * scale)
+        /* The middle half of the panel, clear of the label at its top. */
+        let rows = Int((panel.minY + panel.height * 0.25) * scale)..<Int((panel.minY + panel.height * 0.75) * scale)
+        let bright = rows.filter { row in
+            let offset = (row * cg.width + column) * 4
+            return Int(pixels[offset]) + Int(pixels[offset + 1]) + Int(pixels[offset + 2]) > 384
+        }
+        return CGFloat(bright.count) / scale
+    }
+
+    /// A torso photo taken before the camera cut its pictures is the sensor's
+    /// whole frame. One taken since keeps the full width and gives up some
+    /// height. Each filled into a panel, the newer came out 6.7 percent
+    /// larger, so the same person was a different size on each side.
+    func testTorsoPhotosFromBeforeAndAfterTheCutShowTheSamePersonAtTheSameSize() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(session.accountOperationLease()).ownerID
+        let uncut = (0..<2).map {
+            row(owner: owner, date: "2026-08-0\($0 + 1)", key: "framing:torso:uncut\($0)", aspectRatio: 0.75)
+        }
+        let cut = (0..<2).map {
+            row(owner: owner, date: "2026-10-0\($0 + 1)", key: "framing:torso:cut\($0)", aspectRatio: 0.8)
+        }
+        var images: [UUID: UIImage] = [:]
+        for photo in uncut { images[photo.id] = banded(rows: 0..<800) }
+        for photo in cut { images[photo.id] = banded(rows: 25..<775) }
+        func bands(_ before: ProgressPhoto, _ after: ProgressPhoto) async throws -> (before: CGFloat, after: CGFloat, panel: CGFloat) {
+            let view = ProgressComparisonView(
+                before: before, after: after, onClose: {},
+                loadImage: { try XCTUnwrap(images[$0.id]) }
+            )
+            .environment(session)
+            let layout = try await layOut(
+                view, size: Self.phones[1].size, expecting: ["beforePanel", "afterPanel"],
+                named: "comparison, torso \(before.aspectRatio) beside torso \(after.aspectRatio)"
+            )
+            let screen = picture(of: try XCTUnwrap(window))
+            let left = try XCTUnwrap(layout.frames["beforePanel"]), right = try XCTUnwrap(layout.frames["afterPanel"])
+            return (try bandHeight(in: screen, panel: left), try bandHeight(in: screen, panel: right), left.height)
+        }
+
+        for (before, after) in [(uncut[0], cut[0]), (cut[0], uncut[0])] {
+            let shown = try await bands(before, after)
+            XCTAssertEqual(shown.before, shown.after, accuracy: 1, "the same person is a different size on each side")
+            XCTAssertEqual(
+                shown.before, shown.panel * 200 / 800, accuracy: 1,
+                "the pair is no longer at the size the whole frame fills the panel"
+            )
+        }
+        let older = try await bands(uncut[0], uncut[1])
+        XCTAssertEqual(older.before, older.panel * 200 / 800, accuracy: 1, "two photos from before the cut fill their panels as before")
+        XCTAssertEqual(older.after, older.panel * 200 / 800, accuracy: 1, "two photos from before the cut fill their panels as before")
+        let newer = try await bands(cut[0], cut[1])
+        XCTAssertEqual(newer.before, newer.panel * 200 / 750, accuracy: 1, "two photos taken since the cut fill their panels as before")
+        XCTAssertEqual(newer.after, newer.panel * 200 / 750, accuracy: 1, "two photos taken since the cut fill their panels as before")
+    }
+
     /// C10. The review page shows the new photo above Retake and Save. A
     /// square or landscape photo must not widen the page and hide them.
     func testReviewingAPhotoOfAnyShapeKeepsRetakeAndSaveOnScreen() async throws {

@@ -25,6 +25,9 @@ enum ProgressPosterRenderer {
         var beforePose: String
         var afterPose: String
         var views: ProgressPhotoEngine.ComparisonViews
+        /// How much smaller than filling its pane each photo is drawn:
+        /// `ProgressPhotoEngine.comparisonFit`, as the screen draws them.
+        var fit: (before: Double, after: Double)
         var content: ProgressComparison.PosterContent
         var torsoLayout: Bool
         var athleteName: String
@@ -62,11 +65,11 @@ enum ProgressPosterRenderer {
             cg.saveGState()
             UIBezierPath(roundedRect: photo, cornerRadius: 48).addClip()
             drawCover(
-                input.before, view: input.views.left,
+                input.before, view: input.views.left, fit: input.fit.before,
                 in: CGRect(x: photoX, y: photoY, width: paneWidth, height: photoHeight)
             )
             drawCover(
-                input.after, view: input.views.right,
+                input.after, view: input.views.right, fit: input.fit.after,
                 in: CGRect(x: photoX + paneWidth, y: photoY, width: paneWidth, height: photoHeight)
             )
 
@@ -137,12 +140,13 @@ enum ProgressPosterRenderer {
     private static func drawCover(
         _ image: UIImage,
         view: ProgressPhotoEngine.ComparisonView,
+        fit: Double,
         in rect: CGRect
     ) {
         guard let context = UIGraphicsGetCurrentContext() else { return }
         context.saveGState()
         context.clip(to: rect)
-        let scale = max(rect.width / image.size.width, rect.height / image.size.height) * view.scale
+        let scale = max(rect.width / image.size.width, rect.height / image.size.height) * view.scale * fit
         let size = CGSize(width: image.size.width * scale, height: image.size.height * scale)
         /* The zoom and offset the person set on screen, carried through, so
            the export is the arrangement they actually chose. */

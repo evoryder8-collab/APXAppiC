@@ -39,6 +39,9 @@ struct ProgressComparisonView: View {
 
     private var daysApart: Int { ProgressPhotoEngine.daysBetween(before, after) }
 
+    /// One answer for the screen and the exported card.
+    private var fit: (before: Double, after: Double) { ProgressPhotoEngine.comparisonFit(before, after) }
+
     private var workoutsBetween: Int {
         let from = min(before.localDate, after.localDate)
         let to = max(before.localDate, after.localDate)
@@ -153,11 +156,11 @@ struct ProgressComparisonView: View {
             HStack(spacing: 2) {
                 let pane = CGSize(width: (proxy.size.width - 2) / 2, height: proxy.size.height)
                 panel(
-                    image: beforeImage, photo: before,
+                    image: beforeImage, photo: before, fit: fit.before,
                     label: language.text("BEFORE"), side: .left, pane: pane
                 )
                 panel(
-                    image: afterImage, photo: after,
+                    image: afterImage, photo: after, fit: fit.after,
                     label: language.text("AFTER"), side: .right, pane: pane
                 )
             }
@@ -173,6 +176,7 @@ struct ProgressComparisonView: View {
     private func panel(
         image: UIImage?,
         photo: ProgressPhoto,
+        fit: Double,
         label: String,
         side: ProgressPhotoEngine.Side,
         pane: CGSize
@@ -189,7 +193,7 @@ struct ProgressComparisonView: View {
                     Image(uiImage: image)
                         .resizable()
                         .scaledToFill()
-                        .scaleEffect(view.scale)
+                        .scaleEffect(view.scale * fit)
                         .offset(x: offset.width, y: offset.height)
                 }
             } else if loadFailed {
@@ -365,6 +369,7 @@ struct ProgressComparisonView: View {
             beforePose: language.text(before.pose.capitalized).uppercased(),
             afterPose: language.text(after.pose.capitalized).uppercased(),
             views: views,
+            fit: fit,
             content: ProgressComparison.posterContent(exportMode, includeStats: includeStats),
             /* Torso pairs get a shorter photo block, so the card does not
                stretch two chest-height frames into a full-body shape. */
