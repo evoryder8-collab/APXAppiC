@@ -11,7 +11,9 @@ import UIKit
 struct ProgressComparisonView: View {
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
-    @State private var views = ProgressPhotoEngine.ComparisonViews(
+    /// Not private, so a layout check can open the screen already zoomed
+    /// and panned.
+    @State var views = ProgressPhotoEngine.ComparisonViews(
         left: .init(scale: 1, x: 0, y: 0),
         right: .init(scale: 1, x: 0, y: 0)
     )

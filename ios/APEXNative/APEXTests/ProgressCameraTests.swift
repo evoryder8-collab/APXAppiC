@@ -207,9 +207,9 @@ final class ProgressCameraTests: XCTestCase {
         }
     }
 
-    /// The sensor's whole frame with a white band across its middle, or the
-    /// rows of it that a photo keeps.
-    private func banded(rows: Range<Int>) -> UIImage {
+    /// The sensor's whole frame, black with a white block in its middle 200
+    /// rows, or the rows of it that a photo keeps.
+    private func banded(rows: Range<Int>, columns: Range<Int> = 0..<600) -> UIImage {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         let size = CGSize(width: 600, height: rows.count)
@@ -217,28 +217,45 @@ final class ProgressCameraTests: XCTestCase {
             UIColor.black.setFill()
             context.fill(CGRect(origin: .zero, size: size))
             UIColor.white.setFill()
-            context.fill(CGRect(x: 0, y: 300 - rows.lowerBound, width: 600, height: 200))
+            context.fill(CGRect(x: columns.lowerBound, y: 300 - rows.lowerBound, width: columns.count, height: 200))
         }
     }
 
-    /// How tall the white band is, in points, down the middle of a panel.
-    private func bandHeight(in screen: UIImage, panel: CGRect) throws -> CGFloat {
-        let cg = try XCTUnwrap(screen.cgImage)
-        let scale = CGFloat(cg.width) / screen.size.width
+    /// The white block a panel shows, on screen or on the card: how tall it
+    /// is in points, and where its middle sits as a share of the panel's
+    /// width and height.
+    private func block(in picture: UIImage, panel: CGRect) throws -> (height: CGFloat, middle: CGPoint) {
+        let cg = try XCTUnwrap(picture.cgImage)
+        let scale = CGFloat(cg.width) / picture.size.width
         var pixels = [UInt8](repeating: 0, count: cg.width * cg.height * 4)
         let context = try XCTUnwrap(CGContext(
             data: &pixels, width: cg.width, height: cg.height, bitsPerComponent: 8, bytesPerRow: cg.width * 4,
             space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
         ))
         context.draw(cg, in: CGRect(x: 0, y: 0, width: cg.width, height: cg.height))
-        let column = Int(panel.midX * scale)
-        /* The middle half of the panel, clear of the label at its top. */
-        let rows = Int((panel.minY + panel.height * 0.25) * scale)..<Int((panel.minY + panel.height * 0.75) * scale)
-        let bright = rows.filter { row in
-            let offset = (row * cg.width + column) * 4
-            return Int(pixels[offset]) + Int(pixels[offset + 1]) + Int(pixels[offset + 2]) > 384
+        /* Clear of the label at the panel's top, the card's mark at its foot
+           and the lit divider between the card's panes. */
+        let columns = Int((panel.minX + panel.width * 0.02) * scale)..<Int((panel.maxX - panel.width * 0.02) * scale)
+        let rows = Int((panel.minY + panel.height * 0.2) * scale)..<Int((panel.minY + panel.height * 0.9) * scale)
+        var bright: (columns: ClosedRange<Int>, rows: ClosedRange<Int>)?
+        for row in rows {
+            for column in columns {
+                let offset = (row * cg.width + column) * 4
+                guard Int(pixels[offset]) + Int(pixels[offset + 1]) + Int(pixels[offset + 2]) > 384 else { continue }
+                bright = (
+                    min(column, bright?.columns.lowerBound ?? column)...max(column, bright?.columns.upperBound ?? column),
+                    (bright?.rows.lowerBound ?? row)...row
+                )
+            }
         }
-        return CGFloat(bright.count) / scale
+        let found = try XCTUnwrap(bright, "the panel shows no block")
+        return (
+            CGFloat(found.rows.count) / scale,
+            CGPoint(
+                x: (CGFloat(found.columns.lowerBound + found.columns.upperBound + 1) / 2 / scale - panel.minX) / panel.width,
+                y: (CGFloat(found.rows.lowerBound + found.rows.upperBound + 1) / 2 / scale - panel.minY) / panel.height
+            )
+        )
     }
 
     /// A torso photo taken before the camera cut its pictures is the sensor's
@@ -269,7 +286,7 @@ final class ProgressCameraTests: XCTestCase {
             )
             let screen = picture(of: try XCTUnwrap(window))
             let left = try XCTUnwrap(layout.frames["beforePanel"]), right = try XCTUnwrap(layout.frames["afterPanel"])
-            return (try bandHeight(in: screen, panel: left), try bandHeight(in: screen, panel: right), left.height)
+            return (try block(in: screen, panel: left).height, try block(in: screen, panel: right).height, left.height)
         }
 
         for (before, after) in [(uncut[0], cut[0]), (cut[0], uncut[0])] {
@@ -286,6 +303,66 @@ final class ProgressCameraTests: XCTestCase {
         let newer = try await bands(cut[0], cut[1])
         XCTAssertEqual(newer.before, newer.panel * 200 / 750, accuracy: 1, "two photos taken since the cut fill their panels as before")
         XCTAssertEqual(newer.after, newer.panel * 200 / 750, accuracy: 1, "two photos taken since the cut fill their panels as before")
+    }
+
+    /// C7. The exported card is the arrangement on screen. The screen once
+    /// applied a pan in points and the card as a share of its pane, so a
+    /// photo moved a tenth of its panel on screen sat somewhere else on the
+    /// card.
+    func testAPannedPhotoSitsOnTheCardWhereItSitsOnScreen() async throws {
+        let session = AppSession(developerSandboxRole: .coach)
+        let owner = try XCTUnwrap(session.accountOperationLease()).ownerID
+        let before = row(owner: owner, date: "2026-08-01"), after = row(owner: owner, date: "2026-10-01")
+        /* A block narrow enough to be whole in the card's narrower pane. */
+        let frame = banded(rows: 0..<800, columns: 260..<340)
+        /* Both at twice the size, the left one a tenth of its panel across
+           and a tenth of it down. */
+        let views = ProgressPhotoEngine.ComparisonViews(
+            left: .init(scale: 2, x: 10, y: 10), right: .init(scale: 2, x: 0, y: 0)
+        )
+
+        let view = ProgressComparisonView(
+            views: views, before: before, after: after, onClose: {}, loadImage: { _ in frame }
+        )
+        .environment(session)
+        let layout = try await layOut(
+            view, size: Self.phones[1].size, expecting: ["beforePanel", "afterPanel"],
+            named: "comparison, left photo panned down"
+        )
+        let screen = picture(of: try XCTUnwrap(window))
+        let leftPanel = try XCTUnwrap(layout.frames["beforePanel"]), rightPanel = try XCTUnwrap(layout.frames["afterPanel"])
+        let onScreen = (left: try block(in: screen, panel: leftPanel), right: try block(in: screen, panel: rightPanel))
+        for (axis, unpanned, panned) in [
+            ("across", onScreen.right.middle.x, onScreen.left.middle.x), ("down", onScreen.right.middle.y, onScreen.left.middle.y),
+        ] {
+            XCTAssertEqual(unpanned, 0.5, accuracy: 0.01, "unpanned, the block is not in the middle of its panel, \(axis)")
+            XCTAssertEqual(panned, 0.6, accuracy: 0.01, "panned a tenth of its panel \(axis), the photo did not move a tenth of it")
+        }
+        XCTAssertEqual(onScreen.left.height / leftPanel.height, 0.5, accuracy: 0.01, "at twice the size the block is half the panel tall")
+
+        let card = ProgressPosterRenderer.render(ProgressPosterRenderer.Input(
+            before: frame, after: frame, beforeMoment: "", afterMoment: "", beforePose: "", afterPose: "",
+            views: views, fit: ProgressPhotoEngine.comparisonFit(before, after),
+            content: ProgressComparison.posterContent(.minimal), torsoLayout: false, athleteName: "",
+            daysApart: 61, workouts: 0, averageLoadDeltaKG: nil, matchedExercises: 0, loadedSets: 0,
+            beforeWeightKG: nil, afterWeightKG: nil
+        ))
+        /* The card's panes are 504 by 1278, from x 36 and from x 540. */
+        let onCard = (
+            left: try block(in: card, panel: CGRect(x: 36, y: 36, width: 504, height: 1278)),
+            right: try block(in: card, panel: CGRect(x: 540, y: 36, width: 504, height: 1278))
+        )
+        for (side, shown, exported) in [("left", onScreen.left, onCard.left), ("right", onScreen.right, onCard.right)] {
+            XCTAssertEqual(
+                exported.middle.x, shown.middle.x, accuracy: 0.01,
+                "the card does not show the \(side) photo where it sits on screen, across"
+            )
+            XCTAssertEqual(
+                exported.middle.y, shown.middle.y, accuracy: 0.01,
+                "the card does not show the \(side) photo where it sits on screen, down"
+            )
+        }
+        XCTAssertEqual(onCard.left.height / 1278, 0.5, accuracy: 0.01, "the card does not show the photo at the size it is on screen")
     }
 
     /// C10. The review page shows the new photo above Retake and Save. A

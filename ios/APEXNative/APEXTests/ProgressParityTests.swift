@@ -3,9 +3,50 @@
  * src/lib/progressPhoto.ts and src/lib/progressComparison.ts.
  */
 import ImageIO
+import Supabase
 import UniformTypeIdentifiers
 import XCTest
 @testable import APEX
+
+/// Stands in for the server's photo table. It holds every account's photos
+/// and answers a request the way the server does: with the rows that pass
+/// the filters the request names, in its order, cut at its limit.
+private final class PhotoTable: URLProtocol, @unchecked Sendable {
+    nonisolated(unsafe) static var rows: [ProgressPhoto] = []
+
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+    override func stopLoading() {}
+
+    override func startLoading() {
+        let asked = request.url.flatMap { URLComponents(url: $0, resolvingAgainstBaseURL: false) }?.queryItems ?? []
+        func filter(_ column: String, _ comparison: String) -> String? {
+            asked.first { $0.name == column && $0.value?.hasPrefix(comparison + ".") == true }?
+                .value.map { String($0.dropFirst(comparison.count + 1)) }
+        }
+        var rows = Self.rows
+        if let owner = filter("user_id", "eq") {
+            rows = rows.filter { $0.userID.uuidString.caseInsensitiveCompare(owner) == .orderedSame }
+        }
+        if let day = filter("local_date", "lte") {
+            rows = rows.filter { $0.localDate <= day }
+        }
+        rows.sort { ($0.localDate, $0.id.uuidString) > ($1.localDate, $1.id.uuidString) }
+        if let limit = asked.first(where: { $0.name == "limit" })?.value.flatMap(Int.init) {
+            rows = Array(rows.prefix(limit))
+        }
+        guard let url = request.url, let body = try? JSONEncoder().encode(rows),
+              let response = HTTPURLResponse(
+                  url: url, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "application/json"]
+              ) else {
+            client?.urlProtocol(self, didFailWithError: URLError(.badServerResponse))
+            return
+        }
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: body)
+        client?.urlProtocolDidFinishLoading(self)
+    }
+}
 
 private struct ProgressFixture: Decodable {
     let photos: [PhotoRow]
@@ -593,6 +634,46 @@ final class ProgressParityTests: XCTestCase {
         let none = await ProgressPhotoEngine.earlierPage(firstPage: [], earlier: [], fetch: server)
         XCTAssertTrue(none.photos.isEmpty)
         XCTAssertTrue(none.reachedEnd)
+    }
+
+    /// The table holds every account's photos. The server lets a person read
+    /// only their own, and the app does not lean on that rule alone: a page
+    /// of older photos is asked for by owner. Asked for by date alone, the
+    /// day that rule is loosened another person's private photos arrive in
+    /// this one's timeline.
+    func testAPageOfOlderPhotosBringsOnlyTheOwnersPhotos() async throws {
+        let start = try XCTUnwrap(APEXDateMath.date(from: "2025-01-01"))
+        func photos(of user: UUID, days: Range<Int>) -> [ProgressPhoto] {
+            days.map { day in
+                ProgressPhotoEngine.checkpoint(
+                    id: UUID(), userID: user, takenAt: start.addingTimeInterval(Double(day) * 86_400), pose: "front",
+                    framing: .full, width: 3, height: 4, referencePhotoID: nil, weightKG: nil, note: ""
+                )
+            }
+        }
+        let owner = UUID(), client = UUID()
+        let firstPage = Array(photos(of: owner, days: 200..<320).reversed())
+        let older = photos(of: owner, days: 0..<200)
+        PhotoTable.rows = firstPage + older + photos(of: client, days: 0..<320)
+        defer { PhotoTable.rows = [] }
+
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [PhotoTable.self]
+        let service = SupabaseService(client: SupabaseClient(
+            supabaseURL: try XCTUnwrap(URL(string: "https://photos.test")), supabaseKey: "test",
+            options: .init(
+                auth: .init(accessToken: { "test" }),
+                global: .init(session: URLSession(configuration: configuration))
+            )
+        ))
+        let page = try await service.loadEarlierProgressPhotos(ownerID: owner, firstPage: firstPage, earlier: [])
+
+        let strangers = page.photos.filter { $0.userID != owner }.count
+        XCTAssertEqual(strangers, 0, "\(strangers) photos of another account came back in the owner's page")
+        let brought = Set(page.photos.map(\.id)).subtracting(firstPage.map(\.id))
+        XCTAssertEqual(brought.count, ProgressPhotoEngine.pageSize, "a page brings a full page of the owner's older photos")
+        XCTAssertTrue(brought.isSubset(of: Set(older.map(\.id))))
+        XCTAssertFalse(page.reachedEnd, "eighty of the owner's photos are still to come")
     }
 
     /// A signed link lasts an hour. A timeline row keeps the one it has for
