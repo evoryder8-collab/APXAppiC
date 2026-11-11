@@ -26,6 +26,7 @@ struct APEXApp: App {
             if phase == .active {
                 Task { await session.onAppBecameActive() }
             } else {
+                if phase == .background { session.onAppEnteredBackground() }
                 OrbitLocationManager.shared.persistForAppTransition()
             }
         }

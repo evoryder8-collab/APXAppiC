@@ -45,6 +45,12 @@ struct ServerSettingsGate: Sendable {
         waitingReads = []
     }
 
+    /// Changes made elsewhere stop arriving once the app is off screen, so the row in memory
+    /// counts as older until the next load. Reads that wait are kept.
+    mutating func serverCopyAged() {
+        ownerID = nil
+    }
+
     func allowsSave(for ownerID: UUID) -> Bool {
         self.ownerID == ownerID
     }
@@ -2384,6 +2390,12 @@ final class AppSession {
     func holdBrowsingDate(_ held: Bool, now: Date = .now) {
         browsingDateHeld = held
         followTodayAcrossMidnight(now: now)
+    }
+
+    /// Apple Health still delivers readings while the app is off screen. They must not send
+    /// the settings row in memory, which may now be behind the server's.
+    func onAppEnteredBackground() {
+        serverSettings.serverCopyAged()
     }
 
     func onAppBecameActive() async {

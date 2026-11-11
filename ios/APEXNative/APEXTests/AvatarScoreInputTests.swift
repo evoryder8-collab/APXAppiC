@@ -653,4 +653,20 @@ final class AvatarScoreInputTests: XCTestCase {
         XCTAssertEqual(RecoveryAssessment.sleepHistory(from: cached.serverCopyLoaded(for: owner, addons: server)),
                        ["2026-11-11": 8], "the read still waits for its own account's row")
     }
+
+    func testSettingsInMemoryStopCountingAsTheServerRowOnceTheAppIsOffScreen() {
+        var gate = ServerSettingsGate()
+        gate.serverCopyLoaded(for: owner)
+        gate.serverCopyAged()
+        XCTAssertFalse(gate.allowsSave(for: owner), "a change made on the website no longer reaches a closed app")
+        let read: ServerSettingsGate.HealthRead = { $0["watch_activity_history"] = .array([.string("read off screen")]) }
+        XCTAssertFalse(gate.sends(read, for: owner), "a background Health delivery must not send the older row")
+
+        let server: [String: JSONValue] = ["uiMode": .string("simple")]
+        let carried = gate.serverCopyLoaded(for: owner, addons: server)
+        XCTAssertEqual(carried?["uiMode"], .string("simple"), "the setting changed on the website survives")
+        XCTAssertEqual(carried?["watch_activity_history"], .array([.string("read off screen")]),
+                       "the read is sent once the app is opened and the server's row has loaded")
+        XCTAssertTrue(gate.allowsSave(for: owner))
+    }
 }
