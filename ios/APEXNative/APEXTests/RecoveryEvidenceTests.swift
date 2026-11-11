@@ -44,4 +44,17 @@ final class RecoveryEvidenceTests: XCTestCase {
         XCTAssertEqual(profile.counts[.resistance], 2, "identified lifts keep their own kind; unnamed work takes its day's")
         XCTAssertEqual(profile.classifiedWorkouts, 3, "a session where everything was skipped is not a workout")
     }
+
+    /// The Health import saves the whole settings row, so on returning to the app the server's
+    /// row has to be loaded before it. No signed-in session can run in a test, so this reads the order.
+    func testReturningToTheAppLoadsTheServerRowBeforeImportingHealth() throws {
+        let source = try String(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+            .deletingLastPathComponent().appending(path: "APEX/App/AppSession.swift"))
+        let start = try XCTUnwrap(source.range(of: "func onAppBecameActive() async {"))
+        let end = try XCTUnwrap(source.range(of: "\n    }\n", range: start.upperBound..<source.endIndex))
+        let body = source[start.upperBound..<end.lowerBound]
+        let refresh = try XCTUnwrap(body.range(of: "await refresh(includeAccess: false)"))
+        let healthImport = try XCTUnwrap(body.range(of: "await importHealthQuietly(operation: operation)"))
+        XCTAssertLessThan(refresh.lowerBound, healthImport.lowerBound)
+    }
 }

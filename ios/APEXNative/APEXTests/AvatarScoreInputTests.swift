@@ -619,4 +619,38 @@ final class AvatarScoreInputTests: XCTestCase {
         gate.serverCopyLoaded(for: nil)
         XCTAssertFalse(gate.allowsSave(for: owner), "a refresh that could not name its account")
     }
+
+    func testHealthReadOverAnOlderSettingsRowWaitsAndIsCarriedOntoTheServerRow() {
+        func night(_ date: String, _ hours: Double) -> ServerSettingsGate.HealthRead {
+            { $0 = RecoveryAssessment.addons(
+                $0, storingHealthRead: date, sleepHours: hours, heartRateVariabilityMS: 41,
+                restingHeartRate: 52, updatedAt: "\(date)T07:00:00Z") }
+        }
+        func checkin(_ date: String) -> JSONValue {
+            .array([.object(["date": .string(date), "arms": .number(1), "core": .number(1), "legs": .number(6)])])
+        }
+        var gate = ServerSettingsGate()
+        XCTAssertFalse(gate.sends(night("2026-11-09", 7.5), for: owner),
+                       "the phone's cached row must not replace the server's")
+        XCTAssertFalse(gate.sends(night("2026-11-10", 5.25), for: owner))
+
+        // Saved on the website while the phone was closed.
+        let server: [String: JSONValue] = ["joint_checkins": checkin("2026-11-10")]
+        let carried = gate.serverCopyLoaded(for: owner, addons: server)
+        XCTAssertEqual(carried?["joint_checkins"], server["joint_checkins"], "the website's check-in survives")
+        XCTAssertEqual(RecoveryAssessment.sleepHistory(from: carried), ["2026-11-09": 7.5, "2026-11-10": 5.25],
+                       "nights read offline are sent with the server's row")
+        XCTAssertNil(gate.serverCopyLoaded(for: owner, addons: carried), "a carried read is sent once")
+        XCTAssertTrue(gate.sends(night("2026-11-10", 6), for: owner), "over the server's row a read is sent at once")
+
+        var cached = ServerSettingsGate()
+        XCTAssertFalse(cached.sends(night("2026-11-11", 8), for: owner))
+        XCTAssertNil(cached.serverCopyLoaded(for: nil, addons: server), "a refresh that could not name its account")
+        var signedOut = cached
+        signedOut.reset()
+        XCTAssertNil(signedOut.serverCopyLoaded(for: UUID(), addons: server),
+                     "another account never receives a waiting read")
+        XCTAssertEqual(RecoveryAssessment.sleepHistory(from: cached.serverCopyLoaded(for: owner, addons: server)),
+                       ["2026-11-11": 8], "the read still waits for its own account's row")
+    }
 }

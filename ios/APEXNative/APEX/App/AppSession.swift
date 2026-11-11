@@ -20,18 +20,41 @@ struct AccountGenerationGate: Sendable {
 /// from the offline cache can be older than the server's, so a whole-row save the person
 /// did not ask for waits until the server's copy is on screen.
 struct ServerSettingsGate: Sendable {
-    private var ownerID: UUID?
+    /// An Apple Health read, as the change it makes to the settings addons.
+    typealias HealthRead = @Sendable (inout [String: JSONValue]) -> Void
 
-    mutating func serverCopyLoaded(for ownerID: UUID?) {
+    private var ownerID: UUID?
+    // shortcut: reads wait one by one, a few an hour while the server's row is not in memory;
+    // merge them per day if a session ever stays that way for weeks.
+    private var waitingReads: [HealthRead] = []
+
+    /// Opens the gate for the account whose server row is now in memory. Health reads that
+    /// waited are re-applied to that row; the addons to send come back, or nil when nothing changed.
+    @discardableResult
+    mutating func serverCopyLoaded(for ownerID: UUID?, addons: [String: JSONValue]? = nil) -> [String: JSONValue]? {
         self.ownerID = ownerID
+        guard ownerID != nil, let addons, !waitingReads.isEmpty else { return nil }
+        var carried = addons
+        for read in waitingReads { read(&carried) }
+        waitingReads = []
+        return carried == addons ? nil : carried
     }
 
     mutating func reset() {
         ownerID = nil
+        waitingReads = []
     }
 
     func allowsSave(for ownerID: UUID) -> Bool {
         self.ownerID == ownerID
+    }
+
+    /// Whether a Health read already applied in memory is sent now. Over an older row it waits,
+    /// so the phone's copy never replaces settings changed on the website since.
+    mutating func sends(_ read: @escaping HealthRead, for ownerID: UUID) -> Bool {
+        if allowsSave(for: ownerID) { return true }
+        waitingReads.append(read)
+        return false
     }
 }
 
@@ -1551,9 +1574,15 @@ final class AppSession {
             startedAtRevision: supplementRefreshRevision, pendingAtStart: pendingSupplementsAtStart)
         guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
         next.foods = next.foods.map(FoodHydration.resolved)
-        if !keptCachedDashboard { serverSettings.serverCopyLoaded(for: authenticatedUserID) }
+        var settingsWithWaitingHealthReads: UserSettings?
+        if !keptCachedDashboard,
+           let addons = serverSettings.serverCopyLoaded(for: authenticatedUserID, addons: next.settings?.addons) {
+            // Health reads made over the older row go onto the server's row and are sent with it.
+            next.settings?.addons = addons
+            settingsWithWaitingHealthReads = next.settings
+        }
         data = next
-        if let settingsToPersist = migratedRestingEnergySettings ?? repairedPlanSettings {
+        if let settingsToPersist = settingsWithWaitingHealthReads ?? migratedRestingEnergySettings ?? repairedPlanSettings {
             await persistUpsert(
                 settingsToPersist,
                 table: "settings",
@@ -2372,19 +2401,19 @@ final class AppSession {
             return
         }
         guard route == .portal else { return }
-        /* Health first, and independent of the network. It used to hang off the
-           end of the dashboard refresh, so any failed or slow request skipped
-           the import altogether and the card sat on "no wearable data" with a
-           button to press, for data the phone already had on disk. */
         guard let operation = accountOperationLease() else { return }
         // The bell is about today. Re-read it from what is on the phone before the slower sync,
         // so yesterday's card is gone on reopening, and again once the sync has landed.
         try? await refreshNudges(operation: operation)
         await retryPendingHydrationMutations(operation: operation)
         guard accountOperationIsCurrent(operation) else { return }
-        await importHealthQuietly(operation: operation)
-        guard accountOperationIsCurrent(operation) else { return }
+        /* The refresh comes first: the Health import saves the whole settings row, so it
+           has to start from the server's, or a change made on the website is overwritten.
+           Health still imports when the refresh fails. It comes off the phone, not the
+           network, and a failed request must not leave the day's steps unread. */
         await refresh(includeAccess: false)
+        guard accountOperationIsCurrent(operation) else { return }
+        await importHealthQuietly(operation: operation)
         guard accountOperationIsCurrent(operation) else { return }
         try? await refreshNudges(operation: operation)
     }
@@ -4393,7 +4422,7 @@ final class AppSession {
                 exerciseMinutes: snapshot.exerciseMinutes,
                 updatedAt: Date().ISO8601Format()
             ) {
-                await saveWearableActivity(wearable, operation: operation)
+                await saveWearableActivity(wearable, importedFromHealth: true, operation: operation)
                 guard accountOperationIsCurrent(operation) else { return }
             }
         }
@@ -4402,20 +4431,27 @@ final class AppSession {
             guard accountOperationIsCurrent(operation),
                   var settings = data.settings,
                   settings.userID == ownerID else { return }
-            settings.addons = RecoveryAssessment.addons(
-                settings.addons, storingHealthRead: snapshot.date, sleepHours: snapshot.sleepDurationHours,
-                heartRateVariabilityMS: snapshot.heartRateVariabilityMS,
-                restingHeartRate: snapshot.restingHeartRate, updatedAt: Date().ISO8601Format()
-            )
+            let updatedAt = Date().ISO8601Format()
+            let read: ServerSettingsGate.HealthRead = { addons in
+                addons = RecoveryAssessment.addons(
+                    addons, storingHealthRead: snapshot.date, sleepHours: snapshot.sleepDurationHours,
+                    heartRateVariabilityMS: snapshot.heartRateVariabilityMS,
+                    restingHeartRate: snapshot.restingHeartRate, updatedAt: updatedAt
+                )
+            }
+            read(&settings.addons)
             data.settings = settings
-            await persistUpsert(
-                settings,
-                table: "settings",
-                onConflict: "user_id",
-                ownerID: ownerID,
-                expectedAccountToken: operation.generation
-            )
-            guard accountOperationIsCurrent(operation) else { return }
+            // The screen already shows the read. Sending the whole row waits for the server's copy.
+            if serverSettings.sends(read, for: ownerID) {
+                await persistUpsert(
+                    settings,
+                    table: "settings",
+                    onConflict: "user_id",
+                    ownerID: ownerID,
+                    expectedAccountToken: operation.generation
+                )
+                guard accountOperationIsCurrent(operation) else { return }
+            }
         }
 
         await importHealthWorkoutChanges(operation: operation)
@@ -4425,26 +4461,33 @@ final class AppSession {
     /// suggests one, and a hand-picked level stays until the person changes it.
     func saveWearableActivity(
         _ record: WearableActivityRecord,
+        importedFromHealth: Bool = false,
         operation: AccountOperationLease
     ) async {
         guard accountOperationIsCurrent(operation),
               var settings = data.settings,
               settings.userID == operation.ownerID,
               profile?.userID == operation.ownerID else { return }
-        var history = WearableActivityRecord.history(from: settings.addons["watch_activity_history"])
-        history.removeAll { $0.date == record.date }
-        history.append(record)
-        history.sort { $0.date < $1.date }
-        settings.addons["watch_activity_history"] = .array(history.suffix(730).map(\.jsonValue))
+        let read: ServerSettingsGate.HealthRead = { addons in
+            var history = WearableActivityRecord.history(from: addons["watch_activity_history"])
+            history.removeAll { $0.date == record.date }
+            history.append(record)
+            history.sort { $0.date < $1.date }
+            addons["watch_activity_history"] = .array(history.suffix(730).map(\.jsonValue))
+        }
+        read(&settings.addons)
         data.settings = settings
-        await persistUpsert(
-            settings,
-            table: "settings",
-            onConflict: "user_id",
-            ownerID: operation.ownerID,
-            expectedAccountToken: operation.generation
-        )
-        guard accountOperationIsCurrent(operation) else { return }
+        // A record the person typed is sent like any other save. An import waits for the server's copy.
+        if !importedFromHealth || serverSettings.sends(read, for: operation.ownerID) {
+            await persistUpsert(
+                settings,
+                table: "settings",
+                onConflict: "user_id",
+                ownerID: operation.ownerID,
+                expectedAccountToken: operation.generation
+            )
+            guard accountOperationIsCurrent(operation) else { return }
+        }
         if record.date == Date().apexDateKey { publishHydrationState() }
     }
 
