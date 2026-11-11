@@ -28,7 +28,11 @@ export function performedWorkoutTypes(log: WorkoutLog): PerformedWorkoutType[] {
   }
   const movement = movements.get(log.movement_id)
   if (!movement) return []
-  if (movement.entityType === 'mobility_drill' || movement.entityType === 'yoga_pose') {
+  // A mobility or yoga sequence is the row a person's own recovery routine uses. It logs as done
+  // or not done like the other two, so it earns the same credit.
+  const mobilityFlow = movement.entityType === 'movement_sequence'
+    && movement.disciplines.some((discipline) => discipline === 'mobility' || discipline === 'yoga')
+  if (movement.entityType === 'mobility_drill' || movement.entityType === 'yoga_pose' || mobilityFlow) {
     // These catalogue modes explicitly support a completed checkmark instead
     // of measured time. Retain that evidence without inventing any duration.
     return ['mobility']

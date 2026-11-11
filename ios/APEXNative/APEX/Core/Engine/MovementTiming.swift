@@ -74,6 +74,12 @@ enum MovementTiming {
         /// Whether the total is worth stating at all. "1 of 1" on something
         /// performed once is noise dressed as progress.
         var showsSetCount: Bool { prescriptionMode != "breath" }
+
+        /// A mobility or yoga sequence, the row a person's own recovery routine uses. It is
+        /// done or not done, like any other mobility work, and earns the same credit.
+        var isMobilityFlow: Bool {
+            entityType == "movement_sequence" && disciplines.contains { $0 == "mobility" || $0 == "yoga" }
+        }
     }
 
     /// The noun for an exercise the library does not know, falling back to how
@@ -154,6 +160,8 @@ enum MovementTiming {
         case "mobility_drill", "yoga_pose":
             // The canonical logger permits an explicit completion checkmark;
             // this credits completion without manufacturing minutes or reps.
+            return [.mobility]
+        case "movement_sequence" where movement.isMobilityFlow:
             return [.mobility]
         case "conditioning_complex":
             return (log.rounds ?? 0) > 0 && (log.workSeconds ?? 0) > 0 ? [.cardio] : []

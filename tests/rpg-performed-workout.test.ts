@@ -147,6 +147,9 @@ test('known mobility completion-only logs retain bounded credit without invented
   assert.deepEqual(latest(customReceipt), latest(timedReceipt))
   const mobilityDay = { ...customReceipt, program_days: [{ ...customReceipt.program_days[0], day_type: 'mobility' as const }] }
   assert.deepEqual(latest(mobilityDay), latest(timedReceipt))
+  // A person's own routine is the catalogue mobility flow. Finished with no time typed, it earns the same.
+  const ownRoutine = { ...mobilityDay, workout_logs: [{ ...completion, movement_id: 'mobility_flow', exercise_name: 'Mobility Flow' }] }
+  assert.deepEqual(latest(ownRoutine), latest(timedReceipt))
   assert.equal(completion.duration_seconds, undefined)
   assert.equal(completion.reps, null)
 })

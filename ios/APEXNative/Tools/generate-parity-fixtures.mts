@@ -356,6 +356,13 @@ for (const persona of ['june', 'matthew'] as PersonaSlug[]) {
   scenarios.push({ name: 'same_day_self_checks', persona: 'constantine', throughDate: THROUGH, data: d })
 }
 
+/* 12: a person's own routine, finished with no time typed, is mobility work */
+{
+  const d = base('constantine')
+  log(d, session(d, '2026-06-09', 'mobility'), { exercise_name: 'Mobility Flow', movement_id: 'mobility_flow', reps: null })
+  scenarios.push({ name: 'own_routine_done_without_time', persona: 'constantine', throughDate: THROUGH, data: d })
+}
+
 function selfCheck(
   data: AppData,
   metric: FitnessEvidenceRecord['metric'],

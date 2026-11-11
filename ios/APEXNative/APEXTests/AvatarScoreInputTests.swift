@@ -311,6 +311,18 @@ final class AvatarScoreInputTests: XCTestCase {
         XCTAssertEqual(trained.joint, rested.joint)
     }
 
+    func testFinishedOwnRoutineSessionEarnsFlexibility() throws {
+        var data = dashboard(dayType: "mobility")
+        let rested = try latest(data)
+        let own = workout()
+        data.workoutSessions = [own]
+        // "My own session" finished in Tracked mode with no time typed: one row, done, no minutes.
+        data.workoutLogs = [set("mobility_flow", session: own.id, weight: nil, reps: nil)]
+        XCTAssertGreaterThan(try latest(data).flexibility, rested.flexibility,
+                             "the Avatar counts the finished routine as the 90-day profile does")
+        XCTAssertEqual(TrainingProfile90.summarize(ownerID: owner, data: data, through: "2026-10-06").counts[.mobility], 1)
+    }
+
     func testPlannedDayKeepsItsLabelForWorkTheAppCannotIdentify() throws {
         var input = try engineInput(dayType: "legs_a")
         let rested = try scores(input)

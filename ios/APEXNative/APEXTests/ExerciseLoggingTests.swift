@@ -31,6 +31,14 @@ final class ExerciseLoggingTests: XCTestCase {
 
         XCTAssertTrue(ExerciseLogging.descriptor(movementNamed: row.name, movementID: row.movementID).isSupported)
         XCTAssertTrue(TrackedWorkout.isReadyToFinish([draft]), "finishing your own routine needs no skip")
+        // Finished with no time typed, the saved row is still mobility work the Avatar credits.
+        var saved = FBWorkoutLog(
+            id: "own", sessionID: "session", exerciseID: nil, exerciseName: draft.exerciseName,
+            weightKG: draft.weightKG, skipped: draft.skipped, overrideFlag: false,
+            movementID: draft.movementID, reps: draft.reps, durationSeconds: draft.durationSeconds)
+        saved.performedTypes = MovementTiming.performedWorkoutTypes(for: saved)
+        XCTAssertEqual(saved.performedTypes, [.mobility])
+        XCTAssertTrue(saved.hasRecordedWork, "a session with no recorded work earns nothing")
         XCTAssertEqual(
             SessionBriefing.knowledgeContext(
                 dayType: "mobility", exerciseNames: [row.name], date: nil,
