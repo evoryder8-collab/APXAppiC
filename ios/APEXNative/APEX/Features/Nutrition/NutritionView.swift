@@ -527,15 +527,15 @@ private struct DailyTargetsCard: View {
 
                     Divider().opacity(0.55)
 
-                    HStack(spacing: 18) {
-                        Text(language.format("BMR: %d", targets.bmr))
-                        Text(language.format("This day's estimate: %d kcal", targets.tdee))
+                    // Long languages stack the two; the no-break space keeps the figure with its unit. Text is never scaled down.
+                    let bmr = Text(language.format("BMR: %d", targets.bmr))
+                    let estimate = Text(language.format("This day's estimate: %d kcal", targets.tdee).replacingOccurrences(of: " kcal", with: "\u{00A0}kcal"))
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 18) { bmr; estimate }
+                        VStack(alignment: .leading, spacing: 4) { bmr; estimate }
                     }
                     .font(APEXFont.body(13, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
-                    // Long languages shrink the line; the figure never wraps away from its unit.
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
 
                     Label(language.text(restingEnergyLabel), systemImage: "function")
                         .font(APEXFont.body(12, weight: .semibold))
@@ -1075,12 +1075,10 @@ private struct DailyLogCard: View {
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(language.text(allReconciled ? "Day reconciled" : "Did the day go as planned?"))
                                     .font(APEXFont.display(19))
-                                Text(language.format("This day's estimate %d kcal · PAL %.2f · %@", targets.tdee, targets.pal, language.text(targets.estimatedLevel.title)))
+                                // Wraps in long languages; the no-break space keeps the figure with its unit. Text is never scaled down.
+                                Text(language.format("This day's estimate %d kcal · PAL %.2f · %@", targets.tdee, targets.pal, language.text(targets.estimatedLevel.title)).replacingOccurrences(of: " kcal", with: "\u{00A0}kcal"))
                                     .font(APEXFont.body(11, weight: .semibold))
                                     .foregroundStyle(APEXColor.secondaryInk)
-                                    // One line that shrinks in long languages, so the figure stays with its unit.
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.6)
                             }
                             Spacer()
                             if allReconciled {
