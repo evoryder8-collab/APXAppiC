@@ -11,10 +11,18 @@ struct WatchVessel: View {
     let bands: [WatchVesselBand]
     let animates: Bool
     let motionScale: Double
+    /// Each change sends drops through the figure; each change of the second plays the goal celebration.
+    var pourToken = 0
+    var celebrationToken = 0
 
     @StateObject private var renderer: WatchVesselRenderer
 
-    init(shape: WatchVesselShape, progress: Double, bands: [WatchVesselBand], animates: Bool, motionScale: Double) {
+    init(
+        shape: WatchVesselShape, progress: Double, bands: [WatchVesselBand], animates: Bool, motionScale: Double,
+        pourToken: Int = 0, celebrationToken: Int = 0
+    ) {
+        self.pourToken = pourToken
+        self.celebrationToken = celebrationToken
         self.shape = shape
         self.progress = progress
         self.bands = bands
@@ -47,6 +55,8 @@ struct WatchVessel: View {
             renderer.setProgress(value, motionScale: liveScale, settle: !animates)
         }
         .onChange(of: bands) { _, value in renderer.setBands(value) }
+        .onChange(of: pourToken) { if animates { renderer.pour() } }
+        .onChange(of: celebrationToken) { if animates { renderer.celebrate() } }
         .onChange(of: animates) { _, value in
             renderer.setProgress(progress, motionScale: liveScale, settle: !value)
             if value { renderer.startMotion() } else { renderer.stopMotion() }
@@ -81,6 +91,7 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
     private let liquidMaterials: [SCNMaterial]
     private let glowMaterial: SCNMaterial
     private var droplets: [SCNNode] = []
+    private var sparks: [SCNNode] = []
     private let motion = CMMotionManager()
     private let motionQueue = OperationQueue()
     private let lock = NSLock()
@@ -90,6 +101,7 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
     private var wristLean = 0.0
     private var pourRequested = false
     private var pulseRequested = false
+    private var celebrationRequested = false
 
     private var fill = 0.0
     private var fillVelocity = 0.0
@@ -97,6 +109,9 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
     private var sloshVelocity = 0.0
     private var pulse = 0.0
     private var pourStart: TimeInterval?
+    private var celebrationStart: TimeInterval?
+    /// 1 while the goal is held: the liquid keeps a slow rising shimmer.
+    private var charged = 0.0
     private var lastTime: TimeInterval?
 
     init(shape: WatchVesselShape) {
@@ -112,11 +127,23 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
         apply(fill: 0, slosh: 0, wave: 0, turn: 0, pulse: 0)
     }
 
+    func pour() {
+        lock.lock()
+        pourRequested = true
+        lock.unlock()
+    }
+
+    func celebrate() {
+        lock.lock()
+        celebrationRequested = true
+        lock.unlock()
+    }
+
     func setProgress(_ progress: Double, motionScale: Double, settle: Bool) {
         let clamped = min(1, max(0, progress.isFinite ? progress : 0))
         lock.lock()
-        let rose = clamped > target + 0.0005
-        let reachedGoal = clamped >= 1 && target < 1
+        // The capsule glows by itself when the last supplement is ticked; the figure is told when to celebrate.
+        let reachedGoal = shape == .capsule && clamped >= 1 && target < 1
         target = clamped
         self.motionScale = motionScale
         if settle {
@@ -129,10 +156,12 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
             pourStart = nil
             pourRequested = false
             pulseRequested = false
+            celebrationStart = nil
+            celebrationRequested = false
+            charged = clamped >= 1 ? 1 : 0
             apply(fill: clamped, slosh: 0, wave: 0, turn: 0, pulse: 0)
-            for droplet in droplets { droplet.isHidden = true }
+            for node in droplets + sparks { node.isHidden = true }
         } else {
-            pourRequested = pourRequested || rose
             pulseRequested = pulseRequested || reachedGoal
         }
         lock.unlock()
@@ -190,17 +219,54 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
         sloshVelocity += fillVelocity * 3.2 * step * (slosh >= 0 ? 1 : -1)
         slosh += sloshVelocity * step
         pulse = max(0, pulse - pulse * 1.6 * step)
+        charged += ((target >= 1 ? 1 : 0) - charged) * min(1, step * 2)
+        if celebrationRequested {
+            celebrationRequested = false
+            celebrationStart = time
+        }
+        // The goal: a band of light climbs the figure as it spins once, then it flares, throws sparks and stands in rays.
+        var spin = 0.0
+        var sweep = -1.0
+        var rays = 0.0
+        var burstAge: Double?
+        if let start = celebrationStart {
+            let age = time - start
+            if age > Self.celebrationLength {
+                celebrationStart = nil
+            } else {
+                let turned = min(1, age / 1.8)
+                spin = 2 * Double.pi * (1 - pow(1 - turned, 3))
+                if age < 1 { sweep = age / 0.85 * 1.15 - 0.05 }
+                if age >= Self.burstTime {
+                    burstAge = age - Self.burstTime
+                    pulse = max(pulse, exp(-(age - Self.burstTime) * 1.4))
+                }
+                rays = Self.ramp(age, 0.7, 1.1) * (1 - Self.ramp(age, 3.3, Self.celebrationLength))
+            }
+        }
         let wave = (0.0035 + min(0.02, abs(fillVelocity) * 0.06)) * scale
-        let turn = (sin(time * 0.6) * 0.62 + wristLean * 0.5) * scale
+        let turn = (sin(time * 0.6) * 0.62 + wristLean * 0.5) * scale + spin
         let pourAge = pourStart.map { time - $0 }
         if let pourAge, pourAge > 1.2 { pourStart = nil }
         // Written under the lock so a settle on the main thread can never be overwritten by a stale frame.
-        apply(fill: fill, slosh: slosh, wave: wave, turn: turn, pulse: pulse)
+        apply(fill: fill, slosh: slosh, wave: wave, turn: turn, pulse: pulse, sweep: sweep, rays: rays)
         moveDroplets(age: pourAge, fill: fill)
+        moveSparks(age: burstAge)
         lock.unlock()
     }
 
-    private func apply(fill: Double, slosh: Double, wave: Double, turn: Double, pulse: Double) {
+    /// Seconds from the goal being reached to the flare, and to the end of the celebration.
+    static let burstTime = 0.85
+    static let celebrationLength = 4.2
+
+    private static func ramp(_ value: Double, _ from: Double, _ to: Double) -> Double {
+        let t = min(1, max(0, (value - from) / (to - from)))
+        return t * t * (3 - 2 * t)
+    }
+
+    private func apply(
+        fill: Double, slosh: Double, wave: Double, turn: Double, pulse: Double, sweep: Double = -1, rays: Double = 0
+    ) {
         let range = shape.liquidRange
         // Past the top at a full vessel, so ripples never cut the liquid short of the glass.
         let level = range.lowerBound + (range.upperBound - range.lowerBound) * fill + (fill >= 0.999 ? 0.08 : 0)
@@ -211,8 +277,16 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
             material.setValue(slosh, forKey: "slosh")
             material.setValue(wave, forKey: "wave")
             material.setValue(pulse, forKey: "pulse")
+            material.setValue(sweep, forKey: "sweep")
+            material.setValue(charged, forKey: "charged")
         }
         glowMaterial.setValue(pulse, forKey: "pulse")
+        glowMaterial.setValue(rays, forKey: "rays")
+        // An empty capsule is clear glass; its warm light comes up with what it holds.
+        glowMaterial.setValue(shape == .figure ? 0.3 : 0.06 + 0.34 * fill, forKey: "ambient")
+        // The figure's glow is narrowed to its column; the celebration takes the whole screen, so it opens out.
+        glowMaterial.setValue(shape.glowStretch + (1 - shape.glowStretch) * rays, forKey: "stretch")
+        cameraNode.position.z = Float(2.9 - 0.2 * rays)
         switch shape {
         case .figure: vessel.eulerAngles.y = Float(turn)
         case .capsule: vessel.eulerAngles.z = Float(Self.capsuleLean + turn * 0.45)
@@ -238,6 +312,33 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
         }
     }
 
+    /// Sparks leave the whole figure at the flare, fan out and fall away.
+    private func moveSparks(age: Double?) {
+        for (index, spark) in sparks.enumerated() {
+            let seed = Double(index)
+            let a = (seed * 0.618).truncatingRemainder(dividingBy: 1)
+            let b = (seed * 0.37).truncatingRemainder(dividingBy: 1)
+            let c = (seed * 0.77).truncatingRemainder(dividingBy: 1)
+            let life = 1.3 + 0.6 * a
+            let local = (age ?? -1) - c * 0.3
+            guard local >= 0, local <= life else {
+                spark.isHidden = true
+                continue
+            }
+            let angle = seed * 2.399963
+            let speed = 0.34 + 0.5 * a
+            let fade = 1 - local / life
+            spark.isHidden = false
+            spark.position = SCNVector3(
+                Float(cos(angle) * speed * 0.8 * local),
+                Float(0.3 + 0.62 * b + (sin(angle) * 0.5 + 0.7) * speed * local - 0.5 * local * local),
+                0.12
+            )
+            spark.scale = SCNVector3(Float(fade.squareRoot()), Float(fade.squareRoot()), 1)
+            spark.opacity = CGFloat(fade)
+        }
+    }
+
     // MARK: Scene
 
     private static let capsuleLean = 0.55
@@ -257,7 +358,7 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
         glowMaterial.setValue(shape.glowTop, forKey: "top")
         glowMaterial.setValue(shape.glowBottom, forKey: "bottom")
         // The figure sits in a narrow column, so its glow is narrowed to fade out before the column's edge.
-        glowMaterial.setValue(shape == .figure ? 2.3 : 1.2, forKey: "stretch")
+        glowMaterial.setValue(shape.glowStretch, forKey: "stretch")
         glow.firstMaterial = glowMaterial
         let glowNode = SCNNode(geometry: glow)
         glowNode.position = SCNVector3(0, 0.5, -0.6)
@@ -277,6 +378,8 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
         let glassMaterial = Self.makeMaterial(Self.glassShader, cull: .back, additive: true)
         glassMaterial.setValue(shape.glassTop, forKey: "top")
         glassMaterial.setValue(shape.glassBottom, forKey: "bottom")
+        // The capsule is a plain round shape, so a tighter edge keeps its middle clear instead of milky.
+        glassMaterial.setValue(shape == .figure ? 2.4 : 3.2, forKey: "edge")
         glass.firstMaterial = glassMaterial
         let glassNode = SCNNode(geometry: glass)
         glassNode.renderingOrder = 10
@@ -289,6 +392,28 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
         scene.rootNode.addChildNode(vessel)
 
         guard shape == .figure else { return }
+        let sparkColors = [
+            UIColor(red: 1, green: 1, blue: 1, alpha: 1),
+            UIColor(red: 0.45, green: 0.93, blue: 1, alpha: 1),
+            UIColor(red: 0.72, green: 0.55, blue: 1, alpha: 1),
+            UIColor(red: 1, green: 0.86, blue: 0.5, alpha: 1)
+        ]
+        for index in 0 ..< 46 {
+            let sphere = SCNSphere(radius: index % 3 == 0 ? 0.015 : 0.009)
+            sphere.segmentCount = 8
+            let material = SCNMaterial()
+            material.lightingModel = .constant
+            material.diffuse.contents = sparkColors[index % sparkColors.count]
+            material.blendMode = .add
+            material.readsFromDepthBuffer = false
+            material.writesToDepthBuffer = false
+            sphere.firstMaterial = material
+            let node = SCNNode(geometry: sphere)
+            node.isHidden = true
+            node.renderingOrder = 12
+            sparks.append(node)
+            scene.rootNode.addChildNode(node)
+        }
         for _ in 0 ..< 5 {
             let sphere = SCNSphere(radius: 0.011)
             sphere.segmentCount = 10
@@ -358,6 +483,8 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
     float wave;
     float pulse;
     float isSurface;
+    float sweep;
+    float charged;
     texture2d<float> bands;
     #pragma body
     float3 wp = (scn_frame.inverseViewTransform * float4(_surface.position, 1.0)).xyz;
@@ -377,11 +504,17 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
         c = mix(base, float3(1.0), 0.45) * (0.84 + 0.16 * sin(wp.x * 23.0 + t * 1.9));
     } else {
         float rim = pow(1.0 - facing, 2.0);
-        c = base * mix(0.45, 1.0, h) * (0.42 + 0.58 * facing);
+        // Lit from the upper left so the chest, arms and legs keep their roundness when the figure is full.
+        float lit = 0.6 + 0.62 * max(dot(n, normalize(float3(-0.5, 0.55, 0.65))), 0.0);
+        c = base * mix(0.45, 1.0, h) * (0.42 + 0.58 * facing) * lit;
         c += rim * mix(base, float3(1.0), 0.5) * 0.8;
         c += pow(max(dot(n, normalize(float3(-0.45, 0.7, 0.55))), 0.0), 18.0) * 0.35;
         c += smoothstep(cut - 0.03, cut, wp.y) * mix(base, float3(1.0), 0.75) * 0.5;
+        float streak = pow(0.5 + 0.5 * sin(wp.y * 15.0 - t * 2.2 + sin(wp.x * 9.0 + t * 0.6) * 0.8), 5.0);
+        c += charged * streak * mix(base, float3(1.0), 0.6) * 0.17;
     }
+    float band = wp.y - sweep;
+    c += exp(-band * band * 90.0) * float3(1.0, 0.97, 0.9) * 1.2;
     _output.color = float4(c * (1.0 + pulse * 0.6), 1.0);
     """
 
@@ -389,14 +522,15 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
     #pragma arguments
     float3 top;
     float3 bottom;
+    float edge;
     #pragma body
     float3 wp = (scn_frame.inverseViewTransform * float4(_surface.position, 1.0)).xyz;
     float3 n = normalize(_surface.normal);
     float3 v = normalize(_surface.view);
-    float rim = pow(1.0 - abs(dot(n, v)), 2.4);
+    float rim = pow(1.0 - abs(dot(n, v)), edge);
     float3 tint = mix(bottom, top, clamp(wp.y, 0.0, 1.0));
     float spec = pow(max(dot(n, normalize(float3(-0.45, 0.75, 0.5))), 0.0), 28.0);
-    float3 c = tint * (0.03 + rim * 0.95) + float3(1.0) * spec * 0.5;
+    float3 c = tint * (0.007 + rim * 0.95) + float3(1.0) * spec * 0.5;
     _output.color = float4(c, 1.0);
     """
 
@@ -406,12 +540,20 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
     float3 bottom;
     float pulse;
     float stretch;
+    float rays;
+    float ambient;
     #pragma body
     float2 p = _surface.diffuseTexcoord - float2(0.5, 0.5);
     float d = length(p * float2(stretch, 1.0)) * 2.0;
     float falloff = pow(clamp(1.0 - d, 0.0, 1.0), 2.6);
     float3 c = mix(bottom, top, clamp(0.5 - p.y, 0.0, 1.0));
-    _output.color = float4(c * falloff * (0.3 + pulse * 0.7), 1.0);
+    float angle = atan2(p.y, p.x);
+    float beams = pow(abs(sin(angle * 6.0 + scn_frame.time * 0.35)), 8.0)
+        + 0.5 * pow(abs(sin(angle * 11.0 - scn_frame.time * 0.22)), 10.0);
+    float reach = pow(clamp(1.0 - length(p) * 2.5, 0.0, 1.0), 1.15);
+    float3 light = c * falloff * (ambient + pulse * 0.7 + rays * 0.3);
+    light += mix(c, float3(1.0), 0.12) * beams * reach * rays * 1.25;
+    _output.color = float4(light, 1.0);
     """
 }
 
@@ -423,6 +565,8 @@ private extension WatchVesselShape {
         case .capsule: 0.1 ... 0.9
         }
     }
+
+    var glowStretch: Double { self == .figure ? 2.3 : 1.2 }
 
     var glowTop: SCNVector3 {
         switch self {

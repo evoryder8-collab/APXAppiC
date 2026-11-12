@@ -11,6 +11,16 @@ struct WatchHydrationView: View {
     @State private var showsCustomAmount = false
     /// Debug previews only: drinks poured by the `APEX_WATCH_PREVIEW_POUR` demo.
     @State private var previewPoured = 0.0
+    /// What the figure holds. It trails the total while the custom amount sheet covers it, so the pour is seen.
+    @State private var vesselLiters: Double?
+    /// Set by a tap on this Watch: only the wearer's own drink pours and celebrates, never a sync or a launch.
+    @State private var userAdded = false
+    @State private var pourToken = 0
+    @State private var celebrationToken = 0
+    @State private var celebrating = false
+    @State private var celebrationTitleShown = false
+    @State private var celebrationTask: Task<Void, Never>?
+    @State private var didStart = false
 
     private let aqua = WatchTint.aqua
     private let violet = WatchTint.violet
@@ -27,6 +37,10 @@ struct WatchHydrationView: View {
 
     private var fillState: WatchHydrationFillState {
         WatchHydrationFillState(liters: displayedLiters, targetLiters: hydration.targetLiters)
+    }
+
+    private var vesselProgress: Double {
+        WatchHydrationFillState(liters: vesselLiters ?? displayedLiters, targetLiters: hydration.targetLiters).progress
     }
 
     private var animationIsEnabled: Bool {
@@ -60,11 +74,13 @@ struct WatchHydrationView: View {
             if previewLiters == nil {
                 await hydration.start()
             }
+            didStart = true
             #if DEBUG
             // Lets a recording show a drink landing without Apple Health: one glass every few seconds.
             guard ProcessInfo.processInfo.environment["APEX_WATCH_PREVIEW_POUR"] != nil else { return }
             while !Task.isCancelled, displayedLiters < hydration.targetLiters + 0.2 {
                 try? await Task.sleep(for: .seconds(3))
+                userAdded = true
                 previewPoured += 0.45
             }
             #endif
@@ -77,15 +93,94 @@ struct WatchHydrationView: View {
             CustomHydrationAmountView()
                 .environmentObject(hydration)
         }
-        .onChange(of: fillState.progress >= 1) { _, reached in
-            // The drink that completes the day gets a second, different tap after the store's own.
-            guard reached, scenePhase == .active, hydration.preferences.confirmationHaptics else { return }
-            WKInterfaceDevice.current().play(.notification)
+        .onChange(of: displayedLiters) { old, _ in settleVessel(from: vesselLiters ?? old) }
+        .onChange(of: showsCustomAmount) { _, shown in
+            if shown {
+                userAdded = true
+                vesselLiters = displayedLiters
+            } else {
+                Task {
+                    // The sheet slides away first, then the drink lands.
+                    try? await Task.sleep(for: .milliseconds(400))
+                    settleVessel(from: vesselLiters ?? displayedLiters)
+                }
+            }
+        }
+        .onChange(of: animationIsEnabled && page == .water) { _, live in
+            if !live { endCelebration() }
         }
         .onChange(of: showsSupplements) { _, shown in
             // The supplements page can vanish under the user when the phone syncs an empty list.
             if !shown, page == .supplements { page = .water }
         }
+    }
+
+    // MARK: Goal
+
+    private func settleVessel(from previous: Double) {
+        guard !showsCustomAmount else { return }
+        let now = displayedLiters
+        vesselLiters = now
+        let added = userAdded
+        userAdded = false
+        guard added, now > previous else { return }
+        pourToken += 1
+        let target = hydration.targetLiters
+        let reached = WatchHydrationFillState(liters: previous, targetLiters: target).progress < 1
+            && WatchHydrationFillState(liters: now, targetLiters: target).progress >= 1
+        guard reached, scenePhase == .active else { return }
+        // The drink that completes the day gets a second, different tap after the store's own.
+        if hydration.preferences.confirmationHaptics { WKInterfaceDevice.current().play(.notification) }
+        celebrate()
+    }
+
+    /// The figure takes the whole screen, spins once under a climbing band of light, flares and stands in rays.
+    private func celebrate() {
+        guard animationIsEnabled, page == .water else { return }
+        celebrationTask?.cancel()
+        celebrationToken += 1
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.82)) { celebrating = true }
+        celebrationTask = Task {
+            try? await Task.sleep(for: .seconds(WatchVesselRenderer.burstTime))
+            guard !Task.isCancelled else { return }
+            if hydration.preferences.confirmationHaptics { WKInterfaceDevice.current().play(.success) }
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.58)) { celebrationTitleShown = true }
+            try? await Task.sleep(for: .seconds(WatchVesselRenderer.celebrationLength - WatchVesselRenderer.burstTime - 0.4))
+            guard !Task.isCancelled else { return }
+            endCelebration()
+        }
+    }
+
+    private func endCelebration() {
+        celebrationTask?.cancel()
+        celebrationTask = nil
+        guard celebrating else { return }
+        withAnimation(.smooth(duration: 0.5)) {
+            celebrating = false
+            celebrationTitleShown = false
+        }
+    }
+
+    private var celebrationTitle: some View {
+        VStack(spacing: 1) {
+            ViewThatFits(in: .horizontal) {
+                ForEach([25, 21, 18], id: \.self) { size in
+                    Text("Goal reached")
+                        .font(.system(size: CGFloat(size), weight: .heavy, design: .rounded))
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+            }
+            .foregroundStyle(LinearGradient(colors: [.white, aqua], startPoint: .top, endPoint: .bottom))
+            Text("\(hydration.preferences.formattedAmount(liters: displayedLiters).joiningUnit) today")
+                .font(.system(size: 13, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.88))
+        }
+        .shadow(color: aqua.opacity(0.7), radius: 9)
+        .padding(.horizontal, 8)
+        .scaleEffect(celebrationTitleShown ? 1 : 0.55)
+        .opacity(celebrationTitleShown ? 1 : 0)
+        .accessibilityHidden(true)
     }
 
     // MARK: Water
@@ -95,27 +190,41 @@ struct WatchHydrationView: View {
         GeometryReader { safe in
             GeometryReader { screen in
                 VStack(spacing: 4) {
-                    HStack(spacing: 0) {
+                    ZStack(alignment: .leading) {
                         WatchVessel(
                             shape: .figure,
-                            progress: fillState.progress,
+                            progress: vesselProgress,
                             bands: HydrationPalette.vesselBands(for: hydration.composition),
                             animates: animationIsEnabled && page == .water,
-                            motionScale: hydration.preferences.motionIntensity.scale
+                            motionScale: hydration.preferences.motionIntensity.scale,
+                            pourToken: pourToken,
+                            celebrationToken: celebrationToken
                         )
-                        .frame(width: screen.size.width * 0.45)
+                        .frame(width: screen.size.width * (celebrating ? 1 : 0.45))
                         .frame(maxHeight: .infinity)
 
                         readout
                             .padding(.top, safe.safeAreaInsets.top * 0.6)
                             .padding(.trailing, 12)
+                            .padding(.leading, screen.size.width * 0.45)
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                            .opacity(celebrating ? 0 : 1)
                     }
-                    notice
-                    drinks
-                        .padding(.bottom, 10)
+                    Group {
+                        notice
+                        drinks
+                            .padding(.bottom, 10)
+                    }
+                    .opacity(celebrating ? 0 : 1)
+                    .allowsHitTesting(!celebrating)
                 }
                 .frame(width: screen.size.width, height: screen.size.height)
+                .overlay(alignment: .bottom) {
+                    celebrationTitle
+                        .padding(.bottom, 14)
+                }
+                .contentShape(Rectangle())
+                .onTapGesture { if celebrating { endCelebration() } }
             }
             .ignoresSafeArea()
         }
@@ -229,6 +338,9 @@ struct WatchHydrationView: View {
             }
             .scrollIndicators(.hidden)
             .contentMargins(.horizontal, 8, for: .scrollContent)
+        } else if !didStart {
+            // Apple Health has not answered yet; an empty row keeps the figure still instead of flashing Reconnect.
+            Color.clear.frame(height: 50)
         } else {
             Button {
                 Task { await hydration.reconnect() }
@@ -252,6 +364,7 @@ struct WatchHydrationView: View {
     private func quickAdd(_ preset: WatchQuickPreset) -> some View {
         let tint = HydrationPalette.color(for: preset.paletteToken)
         return Button {
+            userAdded = true
             Task {
                 await hydration.add(
                     milliliters: Double(preset.amountML),
