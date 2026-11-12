@@ -431,9 +431,12 @@ final class LocalisationCoverageTests: XCTestCase {
         for language in languages {
             guard let table = table(language) else { continue }
             let untouched = table.filter { key, value in
+                // Names (products, supplements, programmes) and value-only
+                // templates are the same in every language; only running
+                // text, which has lowercase words, can be stranded English.
                 key == value
                     && key.count > 12
-                    && key.contains(" ")
+                    && key.split(separator: " ").filter({ $0.count > 2 && $0.allSatisfy(\.isLowercase) }).count >= 2
                     && !exerciseNames.contains(key)
             }
             XCTAssertLessThan(untouched.count, 40,

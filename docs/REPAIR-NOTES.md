@@ -2678,3 +2678,11 @@ Camera: the ghost lines up with the live preview; a saved selfie reads unmirrore
 - Tests that pinned an older code shape while the rule they guard still holds (9 tests, test-only edits): consent screen lease guard now also refuses the developer sandbox; water reconnect sets its busy flag before the Task; `hydrationConnectivity?.send`; Build/Continue `.disabled(session.isBusy || (step < 3 && !canContinue))`; wearable link condition; home schedule via `session.trainingSchedule(on:)`; sandbox skip tests seed a profile because Skip is only offered once Avatar starting points are settled.
 - Seen, not fixed: several Italian, Portuguese and German labels are wrong machine translations (e.g. German "RÜCKFORDERUNGEN" for three different RECOVERY labels). Needs a translation review pass.
 - `fail-base.txt` in the scratchpad is now empty: any failure in a later run is new.
+
+## 2026-11-12 · Translation tables rewritten where machine output was wrong
+
+- Every entry in the eight iOS `Localizable.strings` tables was read by a native-level reviewer (four ranges per language). About 12,500 values were replaced: de 2,232, de-CH 2,155, es 2,105, it 2,145, pt 2,108, ja 2,370, ro 806, th 767. Most sat in the "Translation coverage closure" blocks, which were raw machine output (German "RÜCKFORDERUNG" for recovery, "ARBEITSLOSE" for workout logged; Spanish "molinos de agua" for millilitres).
+- Hand-authored copy (`shared/productInterfaceCopy.ts`, `Tools/native-voice-copy*.mjs`) was restored wherever the review touched it; it remains the final word, and `generate-localizations.mjs` only overwrites those keys, so a regeneration keeps this pass.
+- de-CH is Swiss German dialect in its hand-written entries. It took the German fix only where it had carried the same text as German before; 79 dialect entries were left as written.
+- `LocalisationCoverageTests.testNothingIsTranslatedToItsOwnEnglish` now counts only running text (two or more lowercase words). Product, supplement and programme names and value-only templates are correctly identical in every language.
+- Not done: Portuguese still mixes "tu" and "você" in entries that were otherwise correct; Apple Health is "Apple Health" in some tables and the local app name ("Salute", "Sănătate") in others; label widths were not checked on screen; web-side translations were not reviewed.
