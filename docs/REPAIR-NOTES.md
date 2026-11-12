@@ -2637,3 +2637,10 @@ Camera: the ghost lines up with the live preview; a saved selfie reads unmirrore
 - Shader colours are linear: the glass base tint 0.03 displayed as a fifth grey and made empty glass milky. Now 0.007; the capsule has a tighter rim (`edge` 3.2) and its warm glow rises with its fill. The liquid is lit from the upper left so a full figure keeps its roundness; a slow shimmer runs while the goal is held.
 - Reconnect no longer flashes at launch (`didStart`).
 - Checked: Watch build; celebration recorded on 46 mm and 40 mm simulators; 42 web policy tests; the 38 iPhone tests that read Watch sources. Not checked: a real Watch (haptics, shader cost of the rays), the custom-amount pour (the simulator preview cannot add through Apple Health), the full 1,231-test iPhone suite after this change.
+
+### 2026-11-12 · Sweep: what else can jam an installed build's queue (backend, live)
+
+- Build 402 queues four RPCs (`log_structured_meal`, `delete_structured_meal`, `record_fitness_brain_shadow_observation`, `record_user_fitness_evidence`) and plain upserts/deletes on 32 tables. Its classifier files away only SQLSTATE 22xxx, 23xxx, 42xxx and PGRST*; every other code pauses the queue at that item. Build 420 adds `PT409` only, so plain `P0001` jams it too.
+- `20261112100000_permanent_codes_for_queued_rpc_refusals.sql` (applied): the bad-input refusals of the two evidence RPCs now carry 22023 / 23505. Their sign-in refusal stays `P0001` on purpose. Grants and SECURITY DEFINER verified unchanged after the redefinition.
+- Table triggers that raise use 42501 / 23514 already. Left alone: an RLS refusal (42501 with "row-level security") is treated as an expired sign-in and also pauses the queue; none was logged from build 402 in the last four days.
+- The 49 `settings` 401s on 10 Nov came from `FITR MAX/420` on Darwin 27, which is the simulator on the development Mac during the audit test runs, not a person's device. Local test runs reach the production API without a session; they are refused, but they should not be calling it.
