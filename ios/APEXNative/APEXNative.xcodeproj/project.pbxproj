@@ -189,6 +189,8 @@
 		8959C5F43634727949ECA305 /* FoodAmountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70E2F7B6697D817761D223A9 /* FoodAmountSheet.swift */; };
 		8BC10A8062BBE646E6EA45DF /* hydration-male.html in Resources */ = {isa = PBXBuildFile; fileRef = 8D471F877A5E7E72F1A31D06 /* hydration-male.html */; };
 		8CE770F273A44353255CDCF4 /* WatchSupplementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A0E64B41BBCF3953C66F5A1 /* WatchSupplementView.swift */; };
+		1A4F0CEDAB20261112000001 /* WatchBodyVessel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4F0CEDAB20261112000002 /* WatchBodyVessel.swift */; };
+		1A4F0CEDAB20261112000003 /* WatchBody.bin in Resources */ = {isa = PBXBuildFile; fileRef = 1A4F0CEDAB20261112000004 /* WatchBody.bin */; };
 		8D333D944FA594ACEF54CCEC /* AvatarImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A90BC08C87C7C085A26F670 /* AvatarImage.swift */; };
 		8D6FC92C25B4152CC1030D1C /* matthew.png in Resources */ = {isa = PBXBuildFile; fileRef = 859EB7961437751182D5344E /* matthew.png */; };
 		8DBAE91679035DCA8933F468 /* HealthWaterAccessHelpView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77FFE32936F43C1B57EBFBF5 /* HealthWaterAccessHelpView.swift */; };
@@ -597,6 +599,8 @@
 		98541CD1971118A4B2DE05FA /* MealSlotDefault.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealSlotDefault.swift; sourceTree = "<group>"; };
 		98E8FC4DCEC78811118B3D23 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = pt.lproj/Localizable.strings; sourceTree = "<group>"; };
 		9A0E64B41BBCF3953C66F5A1 /* WatchSupplementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchSupplementView.swift; sourceTree = "<group>"; };
+		1A4F0CEDAB20261112000002 /* WatchBodyVessel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchBodyVessel.swift; sourceTree = "<group>"; };
+		1A4F0CEDAB20261112000004 /* WatchBody.bin */ = {isa = PBXFileReference; lastKnownFileType = file; path = WatchBody.bin; sourceTree = "<group>"; };
 		9A9708E377D642AF828B1A7D /* SupplementCatalogueTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupplementCatalogueTests.swift; sourceTree = "<group>"; };
 		9BA7945C98BF562580AC539E /* OnboardingBaseline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingBaseline.swift; sourceTree = "<group>"; };
 		9D7B65E53B361387C9EFF120 /* MuscleMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscleMapView.swift; sourceTree = "<group>"; };
@@ -922,6 +926,8 @@
 				9EA63CF243F8658739BDAAB9 /* WatchHydrationView.swift */,
 				099D94337B0DA86B7416910A /* WatchSupplements.xcstrings */,
 				9A0E64B41BBCF3953C66F5A1 /* WatchSupplementView.swift */,
+				1A4F0CEDAB20261112000002 /* WatchBodyVessel.swift */,
+				1A4F0CEDAB20261112000004 /* WatchBody.bin */,
 			);
 			path = APEXWatch;
 			sourceTree = "<group>";
@@ -1453,6 +1459,7 @@
 				7C2F567D46B89C0AB7996E5E /* WatchAmount.xcstrings in Resources */,
 				7C14EBF159D9800725C5253C /* WatchAssets.xcassets in Resources */,
 				884CC5EAFFF83F218272CE79 /* WatchSupplements.xcstrings in Resources */,
+				1A4F0CEDAB20261112000003 /* WatchBody.bin in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1552,6 +1559,7 @@
 				B4BF6E3B81DB4637133F3964 /* WatchHydrationView.swift in Sources */,
 				1518BD343828E70C892A5F22 /* WatchSupplementState.swift in Sources */,
 				8CE770F273A44353255CDCF4 /* WatchSupplementView.swift in Sources */,
+				1A4F0CEDAB20261112000001 /* WatchBodyVessel.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

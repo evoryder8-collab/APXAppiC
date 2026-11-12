@@ -86,27 +86,44 @@ test('Watch hydration motion uses a smooth continuous animation clock', () => {
   assert.doesNotMatch(view, /truncatingRemainder/)
 })
 
-test('Watch hydration silhouette never floats vertically', () => {
-  const view = readFileSync(
-    new URL('../ios/APEXNative/APEXWatch/WatchHydrationView.swift', import.meta.url),
+test('Watch figure turns on the spot and never floats vertically', () => {
+  const vessel = readFileSync(
+    new URL('../ios/APEXNative/APEXWatch/WatchBodyVessel.swift', import.meta.url),
     'utf8',
   )
 
-  const silhouette = view.slice(view.indexOf('private struct HydrationSilhouetteGauge'))
-  assert.doesNotMatch(silhouette, /floatOffset/)
-  assert.doesNotMatch(silhouette, /\.offset\(y:/)
+  assert.match(vessel, /case \.figure: vessel\.eulerAngles\.y = Float\(turn\)/)
+  assert.doesNotMatch(vessel, /floatOffset/)
+  assert.doesNotMatch(vessel, /vessel\.position\.y\s*=/)
 })
 
-test('Watch silhouette and horizontal gleam preserve weighted stops in their own orientation', () => {
+test('Watch figure is built from the canonical silhouette asset', () => {
+  const project = readFileSync(projectPath, 'utf8')
+  const generator = readFileSync(
+    new URL('../ios/APEXNative/Tools/generate-watch-body-mesh.py', import.meta.url),
+    'utf8',
+  )
+  const vessel = readFileSync(
+    new URL('../ios/APEXNative/APEXWatch/WatchBodyVessel.swift', import.meta.url),
+    'utf8',
+  )
+
+  assert.match(generator, /WatchHydrationSilhouette\.png/)
+  assert.match(vessel, /forResource: "WatchBody", withExtension: "bin"/)
+  assert.match(project, /WatchBody\.bin in Resources/)
+})
+
+test('Watch figure and horizontal gleam preserve weighted stops in their own orientation', () => {
   const view = readFileSync(
     new URL('../ios/APEXNative/APEXWatch/WatchHydrationView.swift', import.meta.url),
     'utf8',
   )
 
-  assert.equal(view.match(/HydrationPalette\.stops\(/g)?.length, 1)
+  // The liquid counts upwards from the feet, the layout downwards from the surface.
+  assert.equal(view.match(/HydrationCompositionLayout\.stops\(/g)?.length, 1)
+  assert.match(view, /HydrationCompositionLayout\.stops\(for: bands, mappedInto: 0 \.\.\. 1\)/)
+  assert.match(view, /location: 1 - \$0\.location/)
   assert.equal(view.match(/HydrationPalette\.timelineStops\(/g)?.length, 1)
-  assert.match(view, /mappedInto: fillState\.baseWaterline \.\.\. 1/)
-  assert.match(view, /startPoint: \.top,\s*endPoint: \.bottom/)
   assert.match(view, /timelineStops\(for: composition, fallback: \[violet, aqua\]\)/)
   assert.match(view, /startPoint: \.leading,\s*endPoint: \.trailing/)
 })
@@ -121,7 +138,7 @@ test('Watch history offers deliberate tap and swipe deletion', () => {
   assert.match(view, /\.confirmationDialog\("Remove water entry\?"/)
 })
 
-test('Watch hydration keeps its title and settings in the native top bar', () => {
+test('Watch pages turn with the Digital Crown and keep the clock clear', () => {
   const app = readFileSync(
     new URL('../ios/APEXNative/APEXWatch/APEXWaterWatchApp.swift', import.meta.url),
     'utf8',
@@ -132,10 +149,11 @@ test('Watch hydration keeps its title and settings in the native top bar', () =>
   )
 
   assert.match(app, /NavigationStack/)
-  assert.match(view, /ToolbarItem\(placement: \.topBarTrailing\)/)
-  assert.match(view, /Label\("FITR MAX Watch", systemImage: "drop.fill"\)/)
+  assert.match(view, /\.tabViewStyle\(\.verticalPage\)/)
   assert.match(view, /\.accessibilityLabel\("Hydration settings"\)/)
   assert.match(view, /\.scrollBounceBehavior\(\.basedOnSize\)/)
+  // A title beside the clock overlapped it on every Watch size.
+  assert.doesNotMatch(view, /ToolbarItem\(placement: \.topBarTrailing\)/)
   assert.doesNotMatch(view, /\.navigationTitle\("FITR MAX(?: Watch)?"\)/)
 })
 

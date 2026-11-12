@@ -104,15 +104,21 @@ final class HydrationGaugeTests: XCTestCase {
         let silhouetteManifest = try String(
             contentsOf: watchAssets.appending(path: "WatchHydrationSilhouette.imageset/Contents.json")
         )
-        let watchView = try String(
-            contentsOf: nativeRoot.appending(path: "APEXWatch/WatchHydrationView.swift")
+        let watchVessel = try String(
+            contentsOf: nativeRoot.appending(path: "APEXWatch/WatchBodyVessel.swift")
+        )
+        let meshGenerator = try String(
+            contentsOf: nativeRoot.appending(path: "Tools/generate-watch-body-mesh.py")
         )
 
         XCTAssertTrue(project.contains("WatchAssets.xcassets"))
         XCTAssertTrue(iconManifest.contains("APEXWatchIcon.png"))
         XCTAssertTrue(iconManifest.contains(#""platform" : "watchos""#))
         XCTAssertTrue(silhouetteManifest.contains("WatchHydrationSilhouette.png"))
-        XCTAssertTrue(watchView.contains(#"Image("WatchHydrationSilhouette")"#))
+        // The Watch figure is that silhouette given depth, shipped as a mesh.
+        XCTAssertTrue(meshGenerator.contains("WatchHydrationSilhouette.png"))
+        XCTAssertTrue(watchVessel.contains(#"forResource: "WatchBody", withExtension: "bin""#))
+        XCTAssertTrue(project.contains("WatchBody.bin in Resources"))
     }
 }
 
