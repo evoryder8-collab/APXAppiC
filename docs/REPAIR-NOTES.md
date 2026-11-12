@@ -2590,3 +2590,32 @@ A Watch redesign must keep: `pendingMutations`, `deferredDeletes` and the supple
 ### Only a device can confirm
 
 Camera: the ghost lines up with the live preview; a saved selfie reads unmirrored; the saved crop matches the preview; library import dates (HEIC too); the distance pill at 2 m and the PROFILE judgement. Watch: food water matches the phone after a meal; phone changes arrive after a stepper-set goal; a reminder fires with quiet hours after midnight; the day change with the app open. Phone: a real night reads the same at 08:00 and 22:00; the 19:30 reminder on its own day; a Health import leaves the activity level alone; the joint check-in reaches the briefing; layouts of the new lines in long languages.
+
+## 2026-11-12 · Watch app redesign: 3D glass figure, supplements capsule, three pages (local only)
+
+### State
+- Commits `c7b4f5d` and the review-fix commit after it, on `codex/main-critical-repair`. Nothing pushed, build number still 420.
+- Verified on the Watch simulators only (Series 11 46 mm and SE 40 mm, watchOS 26.5). Nothing run on a real Watch.
+- APEXTests: 1,231 tests, the same 25 baseline failures, none new. `tests/watch-hydration-silhouette.test.ts`: 10 of 10.
+
+### What changed
+- `APEXWatch/WatchHydrationView.swift`: the root is a vertical-page `TabView` (water, supplements, more). The toolbar title that overlapped the clock is gone; history and settings are pushed from the third page instead of presented as sheets.
+- `APEXWatch/WatchBodyVessel.swift` (new): `WatchVessel` + `WatchVesselRenderer`, a SceneKit scene with a glass shell, a liquid cut at a world-space plane, a glow, and five drops for the pour. `.figure` is the water hero, `.capsule` the supplements header.
+- `APEXWatch/WatchBody.bin` (new, 198 KB): the figure mesh, generated from `WatchHydrationSilhouette.png` by `Tools/generate-watch-body-mesh.py` (Blender, headless). The muscle model in `APEX/Resources/MuscleMap` was tried first and rejected: it has no skull, hands or feet and reads as a flayed figure.
+- `APEXWatch/WatchSupplementView.swift`: supplements page; two new strings (`%lld of %lld`, `All taken today`) in all nine locales of `WatchSupplements.xcstrings`.
+- `WatchHydrationStore.swift`, connectivity, preferences and the complications are untouched.
+
+### SceneKit on watchOS: what was learned the hard way
+- Shader modifiers must be Metal: `texture2d<float> name;` in `#pragma arguments` and `name.sample(constexpr sampler, uv)`. `sampler2D` / `texture2D` fail to compile (the node draws magenta).
+- A material that samples a texture needs a texcoord source on the geometry, or the pipeline fails with "Vertex attribute texcoord0 is missing" and the node silently does not draw. The figure mesh reuses its position data as unused texcoords.
+- Read shader errors with `xcrun simctl spawn <udid> log show --last 2m --predicate 'processImagePath CONTAINS "APEX Water" AND subsystem CONTAINS "scenekit"'`.
+- The built product is `APEX Water.app`, not `APEXWatch.app`. Taps on a Watch simulator work through the iOS Simulator tool with the Watch UDID.
+- Debug-only launch environment for screenshots: `APEX_WATCH_PREVIEW_LITERS`, `APEX_WATCH_PREVIEW_PAGE` (`supplements`, `more`), `APEX_WATCH_PREVIEW_POUR` (adds a drink every 3 s); `-fitr-ui-test-supplements` gives two supplements.
+
+### Review (one independent correctness pass) and what was done
+- Fixed: long store messages overflowed the narrow readout column (now a full-width, three-line notice above the drinks); VoiceOver lost the status line; drops could freeze mid-air when the wrist dropped during a pour; "100%" could sit above "0.01 L to go" (percent now rounds down and reads 100 only at the goal; a remainder that prints as zero reads "Almost there"); the selected page could point at a removed supplements page; a running workout is named on the water page again; the goal haptic is now `.notification` so it differs from the store's `.success`; the renderer writes scene values under its lock.
+- Not fixed, owner's call: the new pages use fixed font sizes, so larger Dynamic Type no longer enlarges them (the old screen used text styles).
+- Not fixed, cosmetic: no pour animation for drinks added past 100 %; a custom amount pours behind its sheet; "Reconnect Apple Health" shows for a moment at launch in place of the drinks.
+
+### Only a device can confirm
+- Wrist-lean slosh (accelerometer), both haptics, frame rate and battery of a 30 fps scene, always-on appearance, and the Metal shaders on real hardware.

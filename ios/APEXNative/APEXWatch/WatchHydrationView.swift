@@ -1,4 +1,5 @@
 import SwiftUI
+import WatchKit
 
 struct WatchHydrationView: View {
     @EnvironmentObject private var hydration: WatchHydrationStore
@@ -76,6 +77,15 @@ struct WatchHydrationView: View {
             CustomHydrationAmountView()
                 .environmentObject(hydration)
         }
+        .onChange(of: fillState.progress >= 1) { _, reached in
+            // The drink that completes the day gets a second, different tap after the store's own.
+            guard reached, scenePhase == .active, hydration.preferences.confirmationHaptics else { return }
+            WKInterfaceDevice.current().play(.notification)
+        }
+        .onChange(of: showsSupplements) { _, shown in
+            // The supplements page can vanish under the user when the phone syncs an empty list.
+            if !shown, page == .supplements { page = .water }
+        }
     }
 
     // MARK: Water
@@ -101,6 +111,7 @@ struct WatchHydrationView: View {
                             .padding(.trailing, 12)
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                     }
+                    notice
                     drinks
                         .padding(.bottom, 10)
                 }
@@ -120,7 +131,7 @@ struct WatchHydrationView: View {
             .contentTransition(.numericText())
             .animation(reduceMotion ? nil : .snappy, value: displayedLiters)
 
-            Text("\(Int((fillState.progress * 100).rounded()))% of \(hydration.preferences.formattedTarget.joiningUnit)")
+            Text("\(percent)% of \(hydration.preferences.formattedTarget.joiningUnit)")
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -138,7 +149,7 @@ struct WatchHydrationView: View {
 
             Text(status)
                 .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundStyle(fillState.progress >= 1 || hydration.message != nil ? aqua : .white.opacity(0.82))
+                .foregroundStyle(fillState.progress >= 1 ? aqua : .white.opacity(0.82))
                 .fixedSize(horizontal: false, vertical: true)
                 .transition(.opacity)
                 .id(status)
@@ -149,8 +160,31 @@ struct WatchHydrationView: View {
         .accessibilityValue(
             "\(hydration.preferences.formattedAmount(liters: displayedLiters)) of "
                 + "\(hydration.preferences.formattedTarget), "
-                + "\(Int((fillState.progress * 100).rounded())) percent"
+                + "\(percent) percent, \(status)"
         )
+    }
+
+    /// Whole percent that only reads 100 once the goal is really reached, so it never contradicts the line below it.
+    private var percent: Int {
+        fillState.progress >= 1 ? 100 : min(99, Int((fillState.progress * 100).rounded(.down)))
+    }
+
+    /// Store messages and a running workout get the full width under the figure; the column beside it is too narrow.
+    @ViewBuilder
+    private var notice: some View {
+        if let message = hydration.message {
+            Text(message)
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundStyle(aqua)
+                .multilineTextAlignment(.center)
+                .lineLimit(3)
+                .padding(.horizontal, 10)
+                .transition(.opacity)
+        } else if workout.isActive {
+            Label("\(workout.activityName) active", systemImage: "figure.strengthtraining.traditional")
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundStyle(violet)
+        }
     }
 
     /// The day's total leads; its unit stays on the same line in the water colour.
@@ -168,10 +202,12 @@ struct WatchHydrationView: View {
     }
 
     private var status: String {
-        if let message = hydration.message { return message }
         if fillState.progress >= 1 { return "Goal reached" }
         let remaining = max(0, hydration.targetLiters - displayedLiters)
-        return "\(hydration.preferences.formattedAmount(liters: remaining).joiningUnit) to go"
+        let formatted = hydration.preferences.formattedAmount(liters: remaining)
+        // A sip short of the goal would otherwise print as nothing left to drink.
+        if formatted == hydration.preferences.formattedAmount(liters: 0) { return "Almost there" }
+        return "\(formatted.joiningUnit) to go"
     }
 
     @ViewBuilder

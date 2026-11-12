@@ -125,12 +125,17 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
             slosh = 0
             sloshVelocity = 0
             pulse = 0
+            // A pour cut short by a lowered wrist must not hang in mid-air or replay later.
+            pourStart = nil
+            pourRequested = false
+            pulseRequested = false
+            apply(fill: clamped, slosh: 0, wave: 0, turn: 0, pulse: 0)
+            for droplet in droplets { droplet.isHidden = true }
         } else {
             pourRequested = pourRequested || rose
             pulseRequested = pulseRequested || reachedGoal
         }
         lock.unlock()
-        if settle { apply(fill: clamped, slosh: 0, wave: 0, turn: 0, pulse: 0) }
     }
 
     func setBands(_ bands: [WatchVesselBand]) {
@@ -189,10 +194,10 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
         let turn = (sin(time * 0.6) * 0.62 + wristLean * 0.5) * scale
         let pourAge = pourStart.map { time - $0 }
         if let pourAge, pourAge > 1.2 { pourStart = nil }
-        let values = (fill, slosh, wave, turn, pulse)
+        // Written under the lock so a settle on the main thread can never be overwritten by a stale frame.
+        apply(fill: fill, slosh: slosh, wave: wave, turn: turn, pulse: pulse)
+        moveDroplets(age: pourAge, fill: fill)
         lock.unlock()
-        apply(fill: values.0, slosh: values.1, wave: values.2, turn: values.3, pulse: values.4)
-        moveDroplets(age: pourAge, fill: values.0)
     }
 
     private func apply(fill: Double, slosh: Double, wave: Double, turn: Double, pulse: Double) {

@@ -7,6 +7,7 @@ struct WatchSupplementChecklistView: View {
 
     @EnvironmentObject private var hydration: WatchHydrationStore
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var timelineAnchor = Date()
 
     private static let capsuleBands = [
@@ -49,7 +50,7 @@ struct WatchSupplementChecklistView: View {
                             }
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.trailing, 10)
-                            .animation(.snappy, value: takenCount)
+                            .animation(reduceMotion ? nil : .snappy, value: takenCount)
                             .accessibilityElement(children: .combine)
                         }
 
