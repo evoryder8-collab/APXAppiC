@@ -14,12 +14,7 @@ import HealthKit
 import SwiftUI
 import WidgetKit
 
-enum WaterDisplayMode: String, AppEnum {
-    case percent
-    case liters
-    case gallons
-    case progress
-
+extension WaterDisplayMode: AppEnum {
     static var typeDisplayRepresentation: TypeDisplayRepresentation { "Hydration display" }
     static var caseDisplayRepresentations: [WaterDisplayMode: DisplayRepresentation] {
         [
@@ -51,36 +46,6 @@ struct WaterConfigurationIntent: WidgetConfigurationIntent {
 
     init() {
         displayMode = .percent
-    }
-}
-
-struct WaterEntry: TimelineEntry {
-    let date: Date
-    let liters: Double
-    let targetLiters: Double
-    let displayMode: WaterDisplayMode
-    let composition: [HydrationCompositionBand]
-
-    var progress: Double { min(1, max(0, liters / targetLiters)) }
-    var shortText: String {
-        switch displayMode {
-        case .percent: return "\(Int((progress * 100).rounded()))%"
-        case .liters: return "\(String(format: "%.2f", liters)) L"
-        case .gallons: return "\(String(format: "%.2f", liters * 0.264_172_052)) gal"
-        case .progress: return ""
-        }
-    }
-    var detailText: String {
-        switch displayMode {
-        case .percent:
-            return "\(String(format: "%.2f", liters)) of \(String(format: "%.2f", targetLiters)) L"
-        case .liters:
-            return "of \(String(format: "%.2f", targetLiters)) L today"
-        case .gallons:
-            return "of \(String(format: "%.2f", targetLiters * 0.264_172_052)) gal"
-        case .progress:
-            return "\(Int((progress * 100).rounded()))% hydrated"
-        }
     }
 }
 
@@ -428,127 +393,11 @@ struct WaterProvider: AppIntentTimelineProvider {
     }
 }
 
-private func hydrationComplicationColor(_ token: String) -> Color {
-    switch token {
-    case "espresso": return Color(red: 0.46, green: 0.25, blue: 0.12)
-    case "tea": return Color(red: 0.20, green: 0.68, blue: 0.42)
-    case "citrus": return Color(red: 1.00, green: 0.55, blue: 0.08)
-    case "cocoa": return Color(red: 0.60, green: 0.36, blue: 0.22)
-    case "violet": return Color(red: 0.55, green: 0.34, blue: 0.94)
-    case "food": return Color(red: 0.13, green: 0.76, blue: 0.65)
-    case "external": return Color(red: 0.43, green: 0.55, blue: 0.76)
-    case "legacy": return Color(red: 0.35, green: 0.65, blue: 0.93)
-    default: return Color(red: 0.10, green: 0.74, blue: 0.94)
-    }
-}
-
-private struct CompositionProgressBar: View {
-    let progress: Double
-    let composition: [HydrationCompositionBand]
-
-    var body: some View {
-        GeometryReader { proxy in
-            let total = max(1, composition.reduce(0) { $0 + $1.milliliters })
-            let width = proxy.size.width * min(1, max(0, progress))
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .stroke(.secondary.opacity(0.45), lineWidth: 1.4)
-                HStack(spacing: 0) {
-                    ForEach(Array(composition.enumerated()), id: \.offset) { _, band in
-                        hydrationComplicationColor(band.paletteToken)
-                            .frame(width: width * Double(band.milliliters) / Double(total))
-                    }
-                }
-                .frame(width: width, alignment: .leading)
-                .clipShape(Capsule())
-            }
-        }
-        .frame(height: 8)
-    }
-}
-
-private struct CompositionRing: View {
-    let entry: WaterEntry
-    let showsValue: Bool
-
-    private var colors: [Color] {
-        let colors = entry.composition.map { hydrationComplicationColor($0.paletteToken) }
-        return colors.isEmpty ? [hydrationComplicationColor("aqua")] : colors
-    }
-
-    var body: some View {
-        ZStack {
-            Circle().stroke(.secondary.opacity(0.32), lineWidth: 5)
-            Circle()
-                .trim(from: 0, to: entry.progress)
-                .stroke(
-                    AngularGradient(colors: colors + [colors[0]], center: .center),
-                    style: StrokeStyle(lineWidth: 5, lineCap: .round)
-                )
-                .rotationEffect(.degrees(-90))
-            if showsValue {
-                Text(entry.shortText)
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .minimumScaleFactor(0.55)
-            } else {
-                Image(systemName: "drop.fill")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundStyle(colors[0])
-            }
-        }
-    }
-}
-
-struct APEXWaterComplicationView: View {
+private struct WaterComplicationFamilyView: View {
     @Environment(\.widgetFamily) private var family
     let entry: WaterEntry
 
-    var body: some View {
-        switch family {
-        case .accessoryCircular:
-            CompositionRing(entry: entry, showsValue: entry.displayMode != .progress)
-
-        case .accessoryCorner:
-            Text(entry.shortText)
-                .font(.system(size: 15, weight: .bold, design: .rounded))
-                .widgetCurvesContent()
-                .widgetLabel {
-                    Gauge(value: entry.progress) { Text("H2O") }
-                        .tint(Gradient(colors: [.cyan, .blue]))
-                }
-
-        case .accessoryInline:
-            Label(
-                entry.displayMode == .progress
-                    ? entry.detailText
-                    : "\(entry.shortText) · \(entry.detailText)",
-                systemImage: "drop.fill"
-            )
-
-        case .accessoryRectangular:
-            HStack(spacing: 9) {
-                CompositionRing(entry: entry, showsValue: entry.displayMode != .progress)
-                    .frame(width: 38, height: 38)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text("FITR MAX WATER")
-                        .font(.system(size: 10, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.cyan)
-                    if entry.displayMode != .progress {
-                        Text(entry.shortText)
-                            .font(.system(size: 19, weight: .bold, design: .rounded))
-                        Text(entry.detailText)
-                            .font(.system(size: 10, weight: .medium, design: .rounded))
-                            .foregroundStyle(.secondary)
-                    }
-                    CompositionProgressBar(progress: entry.progress, composition: entry.composition)
-                }
-                Spacer(minLength: 0)
-            }
-
-        default:
-            CompositionRing(entry: entry, showsValue: entry.displayMode != .progress)
-        }
-    }
+    var body: some View { WaterComplicationContent(family: family, entry: entry) }
 }
 
 @main
@@ -559,7 +408,7 @@ struct APEXWaterComplication: Widget {
             intent: WaterConfigurationIntent.self,
             provider: WaterProvider()
         ) { entry in
-            APEXWaterComplicationView(entry: entry)
+            WaterComplicationFamilyView(entry: entry)
                 .containerBackground(.clear, for: .widget)
         }
         .configurationDisplayName("FITR MAX Watch")

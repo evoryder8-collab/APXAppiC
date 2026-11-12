@@ -56,6 +56,18 @@ struct WatchHydrationView: View {
     }
 
     var body: some View {
+        #if DEBUG
+        if ProcessInfo.processInfo.environment["APEX_WATCH_PREVIEW_PAGE"] == "complications" {
+            WaterComplicationGallery()
+        } else {
+            pages
+        }
+        #else
+        pages
+        #endif
+    }
+
+    private var pages: some View {
         // One thing per page, turned with the Digital Crown: water, supplements, then history and settings.
         TabView(selection: $page) {
             waterPage.tag(WatchPage.water)

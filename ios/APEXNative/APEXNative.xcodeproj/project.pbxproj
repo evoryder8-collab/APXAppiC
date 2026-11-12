@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1A4F0CEDAB20261112000021 /* WaterFigureShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4F0CEDAB20261112000020 /* WaterFigureShape.swift */; };
+		1A4F0CEDAB20261112000022 /* WaterFigureShape.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4F0CEDAB20261112000020 /* WaterFigureShape.swift */; };
+		1A4F0CEDAB20261112000011 /* WaterComplicationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4F0CEDAB20261112000010 /* WaterComplicationViews.swift */; };
+		1A4F0CEDAB20261112000012 /* WaterComplicationViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A4F0CEDAB20261112000010 /* WaterComplicationViews.swift */; };
 		002E4BE70CF5D1D92C5D4094 /* ProgressPhotoEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C60B17BD340219024A2F7711 /* ProgressPhotoEngine.swift */; };
 		019A4C7BDFBE9550A37412B7 /* TrainingInduction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D5F4855EBFA6D7681E2FF1E /* TrainingInduction.swift */; };
 		0327CDA9CA16B4BC55580464 /* legs_dif.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 840094548F0DA24D2ADA77C0 /* legs_dif.jpg */; };
@@ -386,6 +390,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		1A4F0CEDAB20261112000020 /* WaterFigureShape.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterFigureShape.swift; sourceTree = "<group>"; };
+		1A4F0CEDAB20261112000010 /* WaterComplicationViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterComplicationViews.swift; sourceTree = "<group>"; };
 		0126856DBD402CDA511F39DA /* ExerciseFactFieldsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseFactFieldsView.swift; sourceTree = "<group>"; };
 		01407BB294D6CEF9BD33078A /* FoodHydration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodHydration.swift; sourceTree = "<group>"; };
 		018FB46EA0E562A118018CC0 /* plan-parity.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "plan-parity.json"; sourceTree = "<group>"; };
@@ -1039,6 +1045,8 @@
 			children = (
 				A7FE32BA4B8A7F3E8E4FC71D /* APEXWatchWidgets.entitlements */,
 				793DAF31909EE0A26501EBB8 /* APEXWaterComplication.swift */,
+				1A4F0CEDAB20261112000020 /* WaterFigureShape.swift */,
+				1A4F0CEDAB20261112000010 /* WaterComplicationViews.swift */,
 				91D36C2E80B56012F830D74B /* Info.plist */,
 			);
 			path = APEXWatchWidgets;
@@ -1560,6 +1568,8 @@
 				1518BD343828E70C892A5F22 /* WatchSupplementState.swift in Sources */,
 				8CE770F273A44353255CDCF4 /* WatchSupplementView.swift in Sources */,
 				1A4F0CEDAB20261112000001 /* WatchBodyVessel.swift in Sources */,
+				1A4F0CEDAB20261112000022 /* WaterFigureShape.swift in Sources */,
+				1A4F0CEDAB20261112000012 /* WaterComplicationViews.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1742,6 +1752,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				120C3902EDDC837DDE52C8B2 /* APEXWaterComplication.swift in Sources */,
+				1A4F0CEDAB20261112000021 /* WaterFigureShape.swift in Sources */,
+				1A4F0CEDAB20261112000011 /* WaterComplicationViews.swift in Sources */,
 				66269A8B8F72DC43714E0923 /* HydrationLedger.swift in Sources */,
 				72EA5789008F4EECD6F3C201 /* WatchHydrationFillState.swift in Sources */,
 				BA0F6D68B2F604F06C383CC7 /* WatchHydrationPreferences.swift in Sources */,
