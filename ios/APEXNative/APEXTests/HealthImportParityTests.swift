@@ -1069,7 +1069,7 @@ final class HealthAccountBoundarySourceTests: XCTestCase {
             )
             let lease = try XCTUnwrap(
                 body.range(
-                    of: "guardletoperation=session.accountOperationLease()else{return}",
+                    of: "letoperation=session.accountOperationLease()else{return}",
                     options: .backwards,
                     range: body.startIndex..<call.lowerBound
                 ),
@@ -1100,7 +1100,7 @@ final class HealthAccountBoundarySourceTests: XCTestCase {
         let session = withoutWhitespace(try source("APEX/App/AppSession.swift"))
 
         XCTAssertTrue(settings.contains(
-            "guardletoperation=session.accountOperationLease()else{return}Task{awaitsession.reconnectHealthWaterAccess(operation:operation)}"
+            "guardletoperation=session.accountOperationLease()else{return}isRequestingWaterAccess=trueTask{awaitsession.reconnectHealthWaterAccess(operation:operation)"
         ))
         XCTAssertFalse(settings.contains("health.reconnectWaterAccess()"))
         XCTAssertTrue(session.contains(
@@ -1120,7 +1120,7 @@ final class HealthAccountBoundarySourceTests: XCTestCase {
         )
         let lease = try XCTUnwrap(
             consent.range(
-                of: "guardletoperation=session.accountOperationLease()else{return}",
+                of: "letoperation=session.accountOperationLease()else{return}",
                 options: .backwards,
                 range: consent.startIndex..<request.lowerBound
             )
@@ -1248,7 +1248,7 @@ final class HealthAccountBoundarySourceTests: XCTestCase {
             handoff.range(of: "guardstartedelse{return}")
         )
         let commandSend = try XCTUnwrap(
-            handoff.range(of: "hydrationConnectivity.send(launchCommand)")
+            handoff.range(of: "hydrationConnectivity?.send(launchCommand)")
         )
         XCTAssertLessThan(launchCommand.lowerBound, healthStartCall.lowerBound)
         XCTAssertGreaterThan(successfulHandoff.lowerBound, healthStartCall.lowerBound)

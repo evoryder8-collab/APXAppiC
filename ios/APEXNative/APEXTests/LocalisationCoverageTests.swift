@@ -229,7 +229,7 @@ final class LocalisationCoverageTests: XCTestCase {
         /* Names the app owns. A translator may introduce one where the English
            left the subject implicit, which Thai in particular often needs, so
            these are allowed even when the original does not say them. */
-        let ownNames: Set<String> = ["apex", "orbit", "focus"]
+        let ownNames: Set<String> = ["apex", "fitr", "orbit", "focus"]
         let words = try! NSRegularExpression(pattern: "[A-Za-z]{4,}")
         for language in ["ja", "th"] {
             guard let table = table(language) else { continue }
@@ -305,12 +305,15 @@ final class LocalisationCoverageTests: XCTestCase {
            specifier, and a percentage written in prose is not a placeholder.
            Nothing in this app formats with the space flag. */
         let specifier = try! NSRegularExpression(
-            pattern: "%(?:[-+#0]*)(?:[0-9]+)?(?:\\.[0-9]+)?[@dfsxXeEgGcup%]"
+            pattern: "%(?:[0-9]+\\$)?(?:[-+#0]*)(?:[0-9]+)?(?:\\.[0-9]+)?[@dfsxXeEgGcup%]"
         )
+        /* "%2$@" takes the same argument as "%@": a translation may reorder. */
+        let position = try! NSRegularExpression(pattern: "^%[0-9]+\\$")
         func specifiers(_ text: String) -> [String] {
             let range = NSRange(text.startIndex..., in: text)
             return specifier.matches(in: text, range: range)
                 .compactMap { Range($0.range, in: text).map { String(text[$0]) } }
+                .map { position.stringByReplacingMatches(in: $0, range: NSRange($0.startIndex..., in: $0), withTemplate: "%") }
                 /* A literal percent consumes no argument. */
                 .filter { $0 != "%%" }
                 .sorted()

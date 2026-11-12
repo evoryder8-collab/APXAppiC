@@ -145,6 +145,7 @@
 		B12F11DE2026110800000019 /* leg-anatomy in Resources */ = {isa = PBXBuildFile; fileRef = B12F11DE2026110800000020 /* leg-anatomy */; };
 		14407EBDAB20261108000009 /* hero-lift-landmarks.json in Resources */ = {isa = PBXBuildFile; fileRef = 14407EBDAB2026110800000A /* hero-lift-landmarks.json */; };
 		1A4F0CEDAB2026110900001A /* water-volume-landmarks.json in Resources */ = {isa = PBXBuildFile; fileRef = 1A4F0CEDAB20261109000019 /* water-volume-landmarks.json */; };
+		1A4F0CEDAB20261112000031 /* natural-food-evidence.json in Resources */ = {isa = PBXBuildFile; fileRef = 1A4F0CEDAB20261112000030 /* natural-food-evidence.json */; };
 		623DEDE52B70C8DFA651E1D4 /* APEXIcon.svg in Resources */ = {isa = PBXBuildFile; fileRef = 30B06C160134CB27687F7B35 /* APEXIcon.svg */; };
 		6250713D3E5FA542A5535F97 /* training-support-parity.json in Resources */ = {isa = PBXBuildFile; fileRef = 297741B62F81B0636B34F35C /* training-support-parity.json */; };
 		65016A753C50D66AE4789CC3 /* OrbitLocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8172120F69D75C87F5025756 /* OrbitLocationManager.swift */; };
@@ -467,6 +468,7 @@
 		B12F11DE2026110800000020 /* leg-anatomy */ = {isa = PBXFileReference; lastKnownFileType = folder; path = "../../public/leg-anatomy"; sourceTree = SOURCE_ROOT; };
 		14407EBDAB2026110800000A /* hero-lift-landmarks.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/hero-lift-landmarks.json"; sourceTree = SOURCE_ROOT; };
 		1A4F0CEDAB20261109000019 /* water-volume-landmarks.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/water-volume-landmarks.json"; sourceTree = SOURCE_ROOT; };
+		1A4F0CEDAB20261112000030 /* natural-food-evidence.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "../../shared/natural-food-evidence.json"; sourceTree = SOURCE_ROOT; };
 		30B06C160134CB27687F7B35 /* APEXIcon.svg */ = {isa = PBXFileReference; path = APEXIcon.svg; sourceTree = "<group>"; };
 		30E466A7F4101C8729453FCE /* ProfileAvatarPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileAvatarPicker.swift; sourceTree = "<group>"; };
 		3155391EAD03EBC5E9C93E63 /* AdaptiveMealPlanEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveMealPlanEngine.swift; sourceTree = "<group>"; };
@@ -1067,6 +1069,7 @@
 				B12F11DE2026110800000020 /* leg-anatomy */,
 				14407EBDAB2026110800000A /* hero-lift-landmarks.json */,
 				1A4F0CEDAB20261109000019 /* water-volume-landmarks.json */,
+				1A4F0CEDAB20261112000030 /* natural-food-evidence.json */,
 				30B06C160134CB27687F7B35 /* APEXIcon.svg */,
 				FC1E568F9FFFF6AD4CC7A7DB /* Assets.xcassets */,
 				F78087ACF73AE7CD08DA1931 /* constantine-v85.json */,
@@ -1487,6 +1490,7 @@
 				B12F11DE2026110800000019 /* leg-anatomy in Resources */,
 				14407EBDAB20261108000009 /* hero-lift-landmarks.json in Resources */,
 				1A4F0CEDAB2026110900001A /* water-volume-landmarks.json in Resources */,
+				1A4F0CEDAB20261112000031 /* natural-food-evidence.json in Resources */,
 				623DEDE52B70C8DFA651E1D4 /* APEXIcon.svg in Resources */,
 				C30A5C4E317B88881A38DF5F /* Assets.xcassets in Resources */,
 				E4036F21EDE6CE6179EA150B /* InfoPlist.strings in Resources */,

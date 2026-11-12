@@ -1804,15 +1804,15 @@
 " · wearable +  mL" = "· desgaste +  mL";
 " – s" = "- S";
 "# FITR MAX training report:  " = "# FITR MAX Informe de capacitación:";
-"## Calendar overview" = "## Calendar overview";
+"## Calendar overview" = "## Resumen del calendario";
 "## Closed-day meal consistency" = "## Cerrada consistencia de comida";
 "## Current RPG stats" = "## Current RPG statistics";
-"## Daily logs" = "## Daily logs";
-"## Logged sessions" = "## Logged sessions";
+"## Daily logs" = "## Registros diarios";
+"## Logged sessions" = "## Sesiones registradas";
 "## Meal timing and pre-workout context" = "## Temporada de comida y contexto pre-trabajo";
 "## Recovery readiness" = "## Recovery preparedness";
 "### Events" = "### Events";
-"### Post-workout nutrition timing" = "### Post-workout nutrition timing";
+"### Post-workout nutrition timing" = "### Momento de la nutrición tras el entrenamiento";
 "### Workout timing relative to meals" = "### Tiempo de entrenamiento relativo a las comidas";
 
 /* Translation coverage closure 71-105 · 2026-08-27 */
@@ -2119,7 +2119,7 @@
 "Duration grows conservatively, with slower progression for new or returning runners and periodic cutbacks." = "La duración crece conservadoramente, con una progresión más lenta para corredores nuevos o retornados y recortes periódicos.";
 "EASY" = "EASY";
 "EST. WATER" = "EST. AGUA";
-"EVENT RECOVERY" = "EVENT RECOVERY";
+"EVENT RECOVERY" = "RECUPERACIÓN TRAS EL EVENTO";
 "EVIDENCE FIRST" = "LA EVIDENCIA PRIMERO";
 "Edit preset" = "Editar preset";
 "Edit receipt" = "Editar recibo";
@@ -2150,7 +2150,7 @@
 "F   g, " = "F   g,";
 "F  g" = "F  g";
 "FATS" = "FATS";
-"FINISHED WORKOUTS" = "FINISHED WORKOUTS";
+"FINISHED WORKOUTS" = "ENTRENAMIENTOS TERMINADOS";
 "Fatty fish or algae-derived EPA/DHA can address omega-3 intake." = "Los peces grasos o la EPA/DHA derivada de algas pueden abordar la ingesta de omega-3.";
 "Female" = "Mujer";
 "Final 72 h: heavy pulling and spinal loading swapped for thoracic work" = "Final 72 h: cargas pesadas y espinales intercambiadas para el trabajo torácico";
@@ -2404,7 +2404,7 @@
 "PART" = "PARTE";
 "PLAN" = "PLAN";
 "PLAN HORIZON" = "PLAN HORIZON";
-"PROTEIN SOURCES" = "PROTEIN SOURCES";
+"PROTEIN SOURCES" = "FUENTES DE PROTEÍNA";
 "Pacing remained controlled and matched the selected mission well." = "El pacto se mantuvo controlado y coincidió bien con la misión seleccionada.";
 "Pain-free range. Stop with at least 3 reps in reserve." = "Rango libre de dolor. Para con al menos 3 representantes en reserva.";
 "Pair resistance work with sustainable activity" = "Trabajo de resistencia par con actividad sostenible";
@@ -2463,12 +2463,12 @@
 "Push and pull in one session, so the whole upper body gets trained twice a week without needing four separate days to do it." = "Juntar empujes y tirones permite entrenar todo el tren superior dos veces por semana sin ocupar cuatro días distintos.";
 "Push-up benchmark week  : one fresh strict max set" = "Semana de referencia de empuje: una nueva y estricta max set";
 "Pushing day" = "Día de empuje";
-"QUICK LOG COMPLETE" = "QUICK LOG COMPLETE";
+"QUICK LOG COMPLETE" = "REGISTRO RÁPIDO COMPLETADO";
 "QUICK PICKS" = "SELECCIÓN RÁPIDA";
 "Quiet hours and the three-per-day ceiling stay synchronized with the Watch." = "Horas tranquilas y el techo de tres por día permanecen sincronizados con el reloj.";
 "RECOVERY" = "RECOVERY";
-"RECOVERY ANCHORS" = "RECOVERY ANCHORS";
-"RECOVERY INPUTS" = "RECOVERY INPUTS";
+"RECOVERY ANCHORS" = "ANCLAS DE RECUPERACIÓN";
+"RECOVERY INPUTS" = "DATOS DE RECUPERACIÓN";
 "RECOVERY NUTRITION" = "NUTRICIÓN DE RECUPERACIÓN";
 "RECOVERY PLAN" = "PLAN DE RECUPERACIÓN";
 "RECOVERY SEC" = "RECOVERY SEC";
@@ -4227,7 +4227,7 @@
 "Protect Monday and Friday so the lower body can close the gap." = "Proteger el lunes y el viernes para que el cuerpo inferior pueda cerrar la brecha.";
 "Protect Monday’s weighted squats and Friday’s split squats while keeping every rep clean." = "Proteja las sentadillas del lunes y las sentadillas del viernes mientras mantiene a cada representante limpio.";
 "Protect the next two strength sessions and progress only when the logged reps and RIR support it." = "Proteger las dos sesiones de fuerza siguientes y progresar sólo cuando los representantes registrados y RIR lo soportan.";
-"Psyllium Husk" = "Psyllium Husk";
+"Psyllium Husk" = "Cáscara de psyllium";
 "Pull A" = "Tirar de A";
 "Pull A + Focus T25" = "Tire de A + Focus T25";
 "Pull A + Gimbal + Focus T25" = "Tirar de A + Gimbal + Focus T25";

@@ -2670,3 +2670,11 @@ Camera: the ghost lines up with the live preview; a saved selfie reads unmirrore
 - `daily_logs` now upserts on `user_id,date`, the key the iPhone app already uses (`AppSession.swift` 3171, 3939). The table has no default for `id` and nothing references it, so the row takes the writer's id on conflict, as it already does for iPhone writes.
 - Known cost: the queued daily-log writes in the affected browser carry that browser's older totals for their days and will land over the current row when the deploy reaches it.
 - Checks: `tsc --noEmit` clean, `vite build` succeeds, 1,080 of 1,082 web tests pass; the two failures are `tests/food-corpus-edge-integration.test.ts` cases whose local `pg_ctl` server does not start on this Mac. Takes effect only after a web deploy; not pushed.
+
+### 2026-11-12 · The 25 standing iPhone test failures: all cleared (1,231 tests, 0 failures)
+
+- Real defect (13 tests): `shared/natural-food-evidence.json` left the app's resources when the project was regenerated for build 401 (`0134c49`); it had been hand-added to `project.pbxproj` but never to `project.yml`. Builds 401 to 420, June's 402 included, shipped without the source-backed micronutrient evidence for 111 foods. Restored in both files; takes effect in the next build.
+- Translations (3 tests): five German / Swiss German and eleven Spanish labels were still English and are translated; the format check now accepts reordered arguments (`%2$@`), which Japanese uses correctly; "FITR" joins the app's own names.
+- Tests that pinned an older code shape while the rule they guard still holds (9 tests, test-only edits): consent screen lease guard now also refuses the developer sandbox; water reconnect sets its busy flag before the Task; `hydrationConnectivity?.send`; Build/Continue `.disabled(session.isBusy || (step < 3 && !canContinue))`; wearable link condition; home schedule via `session.trainingSchedule(on:)`; sandbox skip tests seed a profile because Skip is only offered once Avatar starting points are settled.
+- Seen, not fixed: several Italian, Portuguese and German labels are wrong machine translations (e.g. German "RÜCKFORDERUNGEN" for three different RECOVERY labels). Needs a translation review pass.
+- `fail-base.txt` in the scratchpad is now empty: any failure in a later run is new.

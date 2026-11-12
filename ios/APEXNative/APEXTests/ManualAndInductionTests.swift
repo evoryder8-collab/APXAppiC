@@ -952,7 +952,7 @@ final class TrainingInductionTests: XCTestCase {
         ))
         XCTAssertFalse(completion.contains("guard let profile else { return nil }"))
         XCTAssertTrue(completion.contains(
-            "if wearableLinkRequest == .automatic,\n           let profile, profile.userID == ownerID"
+            "wearableLinkRequest == .automatic, let finishedAt,\n           let profile, profile.userID == ownerID"
         ))
         XCTAssertGreaterThanOrEqual(
             completion.components(separatedBy: "ownerID: ownerID").count - 1,
@@ -1304,7 +1304,7 @@ final class TrainingInductionTests: XCTestCase {
             "Back and the conditionally visible Skip action must stop accepting a second choice during submission"
         )
         XCTAssertTrue(
-            inductionView.contains(".disabled(session.isBusy || !canContinue)"),
+            inductionView.contains(".disabled(session.isBusy || (step < 3 && !canContinue))"),
             "Build/Continue must stop accepting a second choice while preserving its form-validation guard"
         )
     }

@@ -64,6 +64,8 @@ targets:
         buildPhase: resources
       - path: ../../shared/water-volume-landmarks.json
         buildPhase: resources
+      - path: ../../shared/natural-food-evidence.json
+        buildPhase: resources
       - path: APEX/Resources/GuidedArtwork
         type: folder
         buildPhase: resources

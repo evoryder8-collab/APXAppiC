@@ -139,8 +139,11 @@ final class CoachPlatformTests: XCTestCase {
 
         XCTAssertTrue(try source("APEX/Features/Portal/PortalShellView.swift")
             .contains("session.portalDestinationIsAllowed(destination)"))
+        /* The home screen takes its schedule from the one session helper. */
         XCTAssertTrue(try source("APEX/Features/Portal/SimpleHomeView.swift")
-            .contains("coachManaged: session.coachContext.activelyCoached"))
+            .contains("session.trainingSchedule(on: today)"))
+        XCTAssertTrue(try source("APEX/Features/Portal/PortalUIMode.swift")
+            .contains("coachManaged: coachContext.activelyCoached && !policy.canCreateCustomWorkouts"))
         let settings = try source("APEX/Features/Settings/SettingsView.swift")
         XCTAssertTrue(settings.contains("session.coachClientPolicy.canUseOrbit"))
         XCTAssertTrue(settings.contains("session.coachClientPolicy.canCreateCustomWorkouts"))

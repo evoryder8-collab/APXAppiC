@@ -30,6 +30,9 @@ final class DeveloperSandboxTests: XCTestCase {
         XCTAssertFalse(first.canOpenDeveloperSandbox)
         XCTAssertFalse(first.developerSandboxHasExternalDependencies)
         let lease = try XCTUnwrap(first.accountOperationLease())
+        /* Skip is only offered once Avatar starting points are settled. */
+        first.data.profile = DeveloperSandboxSamples.dashboard(ownerID: lease.ownerID, name: "Sample").profile
+        XCTAssertFalse(first.inductionRequiresStartingPoints)
         await first.skipInduction(operation: lease)
         XCTAssertNil(first.data.profile)
         XCTAssertNotNil(first.data.settings)
@@ -123,6 +126,7 @@ final class DeveloperSandboxTests: XCTestCase {
     func testSkippedIndividualCanBuildAndRebuildAnActualPlan() async throws {
         let session = AppSession(developerSandboxRole: .individual)
         let operation = try XCTUnwrap(session.accountOperationLease())
+        session.data.profile = DeveloperSandboxSamples.dashboard(ownerID: operation.ownerID, name: "Sample").profile
         await session.skipInduction(operation: operation)
         var input = TrainingInduction.Input(startDate: Date().apexDateKey)
         input.availableMinutes = 30
