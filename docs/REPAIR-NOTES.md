@@ -2662,3 +2662,11 @@ Camera: the ghost lines up with the live preview; a saved selfie reads unmirrore
   - `daily_logs` duplicate (user_id, date): the table has no entry in `UPSERT_CONFLICT_TARGETS` (`sync.ts:3-8`) while the server creates the day's row with a random id when a meal is logged. Adding `daily_logs: 'user_id,date'` fixes new writes but lets the two stuck operations overwrite those days with stale totals.
   - Both need a web deploy to take effect. Until then: that browser must not have its site data cleared, or the stranded sets are lost.
 - Investigation was done by a subagent from code and git history; the two server-side claims above were re-checked against production, the web-code line references were spot-checked (`sync.ts` conflict targets, `dedupeUpsertRows`, the flush call).
+
+### 2026-11-12 · Web queue: stale duplicate batch discarded, daily logs keyed by day (not deployed)
+
+- Owner approved the web fix. `isUnsendableUpsertBatch` (`src/lib/sync.ts`): the flush drops a queued array upsert that names one row twice instead of retrying it forever; nothing is re-sent from it, so the server's current rows stand. Later writes to that table are no longer held behind it.
+- Source of such batches closed: `upgradeBespokeMainProgramme` claims ids kept by matching exercises first and gives a colliding slot a name-qualified id; the seed-repair enqueue also passes through `dedupeUpsertRows`. Test reproduces the collision with two successive repairs (fails on the old code).
+- `daily_logs` now upserts on `user_id,date`, the key the iPhone app already uses (`AppSession.swift` 3171, 3939). The table has no default for `id` and nothing references it, so the row takes the writer's id on conflict, as it already does for iPhone writes.
+- Known cost: the queued daily-log writes in the affected browser carry that browser's older totals for their days and will land over the current row when the deploy reaches it.
+- Checks: `tsc --noEmit` clean, `vite build` succeeds, 1,080 of 1,082 web tests pass; the two failures are `tests/food-corpus-edge-integration.test.ts` cases whose local `pg_ctl` server does not start on this Mac. Takes effect only after a web deploy; not pushed.

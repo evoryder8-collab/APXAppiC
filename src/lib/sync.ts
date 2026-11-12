@@ -1,6 +1,9 @@
 import { importedActivityId } from './ids.ts'
 
 const UPSERT_CONFLICT_TARGETS: Readonly<Record<string, string>> = {
+  /* One row per day, and the server creates it under its own id when a meal
+     is logged; the iPhone app writes with the same key. */
+  daily_logs: 'user_id,date',
   hydration_events: 'user_id,client_idempotency_key',
   hydration_preferences: 'user_id',
   rpg_snapshots: 'user_id,date',
@@ -119,6 +122,16 @@ export function dedupeUpsertRows<T extends Record<string, unknown>>(table: strin
     result.push(row)
   }
   return result.reverse()
+}
+
+/** A batch that names one row twice is refused whole by Postgres on every
+ * attempt. No current writer produces one, so it is a stale batch from an
+ * older build; sending a de-duplicated copy would put its old rows over
+ * the present ones. */
+export function isUnsendableUpsertBatch(operation: PendingSyncOperation): boolean {
+  return operation.type === 'upsert'
+    && Array.isArray(operation.payload)
+    && dedupeUpsertRows(operation.table, operation.payload).length < operation.payload.length
 }
 
 function operationRows(operation: PendingSyncOperation): Record<string, unknown>[] {

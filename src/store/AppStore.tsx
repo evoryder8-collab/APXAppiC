@@ -63,6 +63,7 @@ import { computeTargets, nutritionPlanContext, recommendedGoalForTrainingGoal } 
 import { missingProfileTrainingGoal, repairProtectedOriginalTrainingProgrammeAddons } from '../lib/trainingInduction'
 import {
   dedupeUpsertRows,
+  isUnsendableUpsertBatch,
   enqueuePendingSyncOperation,
   hasPendingSyncForRecord,
   mergePendingSyncOperations,
@@ -590,6 +591,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         const op = nextPendingSyncOperation(queue, attemptedIds, blockedKeys, blockedGroups)
         if (!op) break
         attemptedIds.add(op.id)
+        if (isUnsendableUpsertBatch(op)) {
+          queue = loadQueue(scope).filter((queued) => queued.id !== op.id)
+          const durable = saveQueue(queue, scope)
+          if (scopeRef.current === scope) queuePersistenceDurable.current = durable
+          continue
+        }
         const conflictTarget = upsertConflictTarget(op.table)
         const syncPayload = op.type === 'upsert'
           ? normalizeSyncPayload(op.table, op.payload)
@@ -1220,7 +1227,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           const seedTables: SeedDefinitionTable[] = ['meals', 'supplements', 'programs', 'program_days', 'exercises']
           for (const table of seedTables) {
             if (repair.missing[table].length > 0) {
-              enqueue({ table, type: 'upsert', payload: repair.missing[table] })
+              enqueue({ table, type: 'upsert', payload: dedupeUpsertRows(table, repair.missing[table] as unknown as Array<Record<string, unknown>>) })
             }
           }
           if (repair.profileChanged && repair.data.profile) {

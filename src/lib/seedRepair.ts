@@ -144,20 +144,24 @@ function upgradeBespokeMainProgramme(
       ? current.exercises.filter((row) => row.program_day_id === existingDay.id)
       : []
     const currentByIdentity = new Map(currentRows.map((row) => [`${row.is_lite}|${row.name.toLocaleLowerCase('en')}`, row]))
-    return seeded.exercises
-      .filter((row) => row.program_day_id === seededDay.id)
-      .map((row) => {
-        const slot = `${row.is_lite}|${row.sort_order}`
-        /* Preserve an exercise id only when the exercise itself still matches.
-           Reusing ids by visual slot would attach old strength history to a
-           different movement after a partner-sync reorder. */
-        const existing = currentByIdentity.get(`${row.is_lite}|${row.name.toLocaleLowerCase('en')}`)
-        return {
-          ...row,
-          id: existing?.id ?? stableUpgradeId(currentProgram.user_id, `main-exercise:${mappedDay.weekday}:${kind}:${slot}`),
-          program_day_id: mappedDay.id,
-        }
-      })
+    const seededRows = seeded.exercises.filter((row) => row.program_day_id === seededDay.id)
+    const identity = (row: { is_lite: boolean; name: string }) => `${row.is_lite}|${row.name.toLocaleLowerCase('en')}`
+    /* Ids kept by a matching exercise are claimed first: a slot id minted by
+       an earlier repair may now belong to a movement that has since moved. */
+    const taken = new Set(seededRows.flatMap((row) => currentByIdentity.get(identity(row))?.id ?? []))
+    const kept = new Set<string>()
+    return seededRows.map((row) => {
+      const slot = `main-exercise:${mappedDay.weekday}:${kind}:${row.is_lite}|${row.sort_order}`
+      /* Preserve an exercise id only when the exercise itself still matches.
+         Reusing ids by visual slot would attach old strength history to a
+         different movement after a partner-sync reorder. */
+      const existing = currentByIdentity.get(identity(row))
+      let id = existing && !kept.has(existing.id) ? existing.id : stableUpgradeId(currentProgram.user_id, slot)
+      if (id !== existing?.id && taken.has(id)) id = stableUpgradeId(currentProgram.user_id, `${slot}:${identity(row)}`)
+      kept.add(id)
+      taken.add(id)
+      return { ...row, id, program_day_id: mappedDay.id }
+    })
   })
 
   const mappedExerciseIds = new Set(mappedExercises.map((row) => row.id))

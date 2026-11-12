@@ -459,3 +459,42 @@ test('retired daily supplements survive legacy upgrades and reopened repairs wit
     }
   }
 })
+
+test('a repeated programme repair never hands one exercise id to two rows', () => {
+  const seeded = buildSeedData(userId, 'constantine')
+  assert.ok(seeded.profile)
+  const main = seeded.programs.find((row) => row.slug === 'main')
+  assert.ok(main)
+  const friday = seeded.program_days.find(
+    (row) => row.program_id === main.id && row.weekday === 5 && row.name === 'Legs B · Strength',
+  )
+  assert.ok(friday)
+  const [first, second] = seeded.exercises.filter((row) => row.program_day_id === friday.id && !row.is_lite)
+  assert.ok(first && second)
+  const legacy = { ...seeded.profile, seed_version: 5 }
+
+  /* First repair: the first slot holds an unknown movement, so the seeded
+     exercise there receives a slot-derived id. */
+  const once = repairSeedDefinitions({
+    ...seeded,
+    profile: legacy,
+    exercises: seeded.exercises.map((row) => row.id === first.id
+      ? { ...row, id: '63000000-0000-4000-8000-000000000001', name: 'Retired movement' }
+      : row),
+  }, seeded)
+  const slotId = once.data.exercises.find((row) => row.program_day_id === friday.id && !row.is_lite && row.name === first.name)?.id
+  assert.ok(slotId)
+
+  /* Later the row carrying that slot id is the second exercise. */
+  const twice = repairSeedDefinitions({
+    ...once.data,
+    profile: legacy,
+    exercises: once.data.exercises
+      .filter((row) => !(row.program_day_id === friday.id && !row.is_lite && row.name === second.name))
+      .map((row) => row.id === slotId ? { ...row, name: second.name } : row),
+  }, seeded)
+
+  const ids = twice.missing.exercises.map((row) => row.id)
+  assert.equal(new Set(ids).size, ids.length)
+  assert.equal(twice.missing.exercises.find((row) => row.program_day_id === friday.id && !row.is_lite && row.name === second.name)?.id, slotId)
+})

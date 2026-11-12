@@ -16,6 +16,7 @@ import {
   syncOperationConflicts,
   syncOperationKeys,
   upsertConflictTarget,
+  isUnsendableUpsertBatch,
 } from '../src/lib/sync.ts'
 
 test('a newer edit never replaces the operation currently in flight', () => {
@@ -346,4 +347,16 @@ test('a failed record blocks only later writes for the same queued entity', () =
   assert.equal(syncOperationConflicts({ table: 'meals', type: 'delete', payload: { id: 'meal-1' } }, blocked), true)
   assert.equal(syncOperationConflicts({ table: 'meals', type: 'upsert', payload: { id: 'meal-2' } }, blocked), false)
   assert.equal(syncOperationConflicts({ table: 'daily_logs', type: 'upsert', payload: { id: 'meal-1' } }, blocked), false)
+})
+
+test('daily logs reconcile on the per-day key the server and the iPhone app use', () => {
+  assert.equal(upsertConflictTarget('daily_logs'), 'user_id,date')
+})
+
+test('a queued batch that names one row twice is discarded, not re-sent or trimmed', () => {
+  const row = { id: 'exercise-1', name: 'Front Lunge' }
+  assert.equal(isUnsendableUpsertBatch({ table: 'exercises', type: 'upsert', payload: [row, { ...row, name: 'Old' }] }), true)
+  assert.equal(isUnsendableUpsertBatch({ table: 'exercises', type: 'upsert', payload: [row, { id: 'exercise-2' }] }), false)
+  assert.equal(isUnsendableUpsertBatch({ table: 'exercises', type: 'upsert', payload: row }), false)
+  assert.equal(isUnsendableUpsertBatch({ table: 'exercises', type: 'delete', payload: [row, row] }), false)
 })
