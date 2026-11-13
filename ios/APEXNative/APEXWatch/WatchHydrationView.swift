@@ -210,7 +210,8 @@ struct WatchHydrationView: View {
                             animates: animationIsEnabled && page == .water,
                             motionScale: hydration.preferences.motionIntensity.scale,
                             pourToken: pourToken,
-                            celebrationToken: celebrationToken
+                            celebrationToken: celebrationToken,
+                            celebrating: celebrating
                         )
                         .frame(width: screen.size.width * (celebrating ? 1 : 0.45))
                         .frame(maxHeight: .infinity)
@@ -384,6 +385,8 @@ struct WatchHydrationView: View {
                     paletteToken: preset.paletteToken,
                     iconToken: preset.iconToken
                 )
+                // An add the store refused must not leave the pour armed for the next phone sync.
+                userAdded = false
             }
         } label: {
             drinkLabel(
@@ -591,18 +594,7 @@ private enum HydrationPalette {
     }
 
     static func rgb(for token: String) -> (red: Double, green: Double, blue: Double) {
-        switch token {
-        case "espresso": (0.55, 0.29, 0.13)
-        case "tea": (0.24, 0.75, 0.39)
-        case "citrus": (1.00, 0.54, 0.08)
-        case "cocoa": (0.66, 0.39, 0.24)
-        case "violet": (0.55, 0.34, 0.98)
-        case "food": (0.20, 0.78, 0.66)
-        case "external": (0.94, 0.32, 0.62)
-        case "legacy": (0.32, 0.52, 0.72)
-        case "blue": (0.11, 0.39, 0.98)
-        default: (0.08, 0.80, 0.92)
-        }
+        hydrationPaletteRGB(token)
     }
 
     /// The day's drinks in the order they were poured, weighted by volume, for the liquid in the figure.
@@ -656,7 +648,9 @@ private struct HydrationProgressGleam: View {
     let violet: Color
 
     var body: some View {
-        TimelineView(.animation(paused: !animationIsEnabled)) { timeline in
+        let stops = HydrationPalette.timelineStops(for: composition, fallback: [violet, aqua])
+        // The gleam drifts slowly; 20 frames a second is smooth and leaves the display rate to the figure.
+        return TimelineView(.animation(minimumInterval: 1.0 / 20, paused: !animationIsEnabled)) { timeline in
             let phase = animationIsEnabled ? timeline.date.timeIntervalSinceReferenceDate * 0.9 : 0
             GeometryReader { geometry in
                 let width = max(0, geometry.size.width * progress)
@@ -670,7 +664,7 @@ private struct HydrationProgressGleam: View {
                     Capsule()
                         .fill(
                             LinearGradient(
-                                stops: HydrationPalette.timelineStops(for: composition, fallback: [violet, aqua]),
+                                stops: stops,
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )

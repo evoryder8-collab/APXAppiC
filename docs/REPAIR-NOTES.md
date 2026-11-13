@@ -2700,3 +2700,15 @@ Camera: the ghost lines up with the live preview; a saved selfie reads unmirrore
 - Apple Health: every table calls the service "Apple Health" and the app by the name on the phone (Health, Salud, Salute, Saúde, ヘルスケア, Sănătate, สุขภาพ). Italian, Japanese and Thai had five water-sharing lines each that said "Salute di Apple" / "Appleのヘルスケア" / "แอปสุขภาพของ Apple" instead; they now match.
 - The labels "FLOOR", "TO" and "gain" are not referenced by any Swift file, so they are never shown; left as they are. "OWN" is the calendar code for a custom-workout day and its translations fit.
 - Verification: iPhone suite 1,231 tests, 0 failures; web 1,058 pass, the 2 failures are the local-Postgres tests that need a database this Mac does not run.
+
+## 2026-11-13 · Build 1.0.1 (421): Watch redesign quality review, five fixes, published
+
+- Pushed `codex/main-critical-repair` and `main` (137 commits) at `b5d8035`; Pages run for that commit succeeded and https://evoryder8-collab.github.io/APXAppiC/ returns 200 with the FITR MAX title. This carries the web queue fix to browsers holding stranded sets.
+- pstack code-quality review of the whole Watch redesign: no ship blockers; store and sync model untouched. Five findings fixed:
+  - Watch-face drink stops crossed for a drink between 4% and 8% of the day, and stacked the newest drink at the feet while the app puts it at the surface. The blend is now at most half a band and the order matches the app.
+  - The app and the watch face had two colour tables for the same drinks ("external" pink in one, slate in the other). One table, `hydrationPaletteRGB`, in `WaterComplicationViews.swift` (compiled into both targets).
+  - A quick-add the store refused left the pour and goal celebration armed for the next phone sync; the flag is cleared after the add returns.
+  - Tapping to end the celebration shrank the figure but left the rays and sparks playing; the renderer now fades them in 0.3 s and lets the turn finish.
+  - The progress gleam rebuilt its gradient at display rate beside the 3D figure; now 20 frames a second with the stops computed once.
+- Left as notes: SceneView resized inside a spring (watch for a hitch on the wrist), `percent` defined twice, 46 spark nodes built by two loops, `WatchHydrationView.swift` at 929 lines.
+- Build number 421 in `project.pbxproj` and `project.yml`. iPhone suite 1,231 tests, 0 failures. Archive `build/FITR-MAX-1.0.1-421.xcarchive`: ARCHIVE SUCCEEDED, iPhone, Watch and complication all 1.0.1 (421), deep/strict signature check passed.

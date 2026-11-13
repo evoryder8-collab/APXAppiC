@@ -14,13 +14,16 @@ struct WatchVessel: View {
     /// Each change sends drops through the figure; each change of the second plays the goal celebration.
     var pourToken = 0
     var celebrationToken = 0
+    /// Turning false fades the rays and sparks out, so a celebration ended by a tap does not play on in the small column.
+    var celebrating = false
 
     @StateObject private var renderer: WatchVesselRenderer
 
     init(
         shape: WatchVesselShape, progress: Double, bands: [WatchVesselBand], animates: Bool, motionScale: Double,
-        pourToken: Int = 0, celebrationToken: Int = 0
+        pourToken: Int = 0, celebrationToken: Int = 0, celebrating: Bool = false
     ) {
+        self.celebrating = celebrating
         self.pourToken = pourToken
         self.celebrationToken = celebrationToken
         self.shape = shape
@@ -57,6 +60,7 @@ struct WatchVessel: View {
         .onChange(of: bands) { _, value in renderer.setBands(value) }
         .onChange(of: pourToken) { if animates { renderer.pour() } }
         .onChange(of: celebrationToken) { if animates { renderer.celebrate() } }
+        .onChange(of: celebrating) { _, on in if !on { renderer.endCelebration() } }
         .onChange(of: animates) { _, value in
             renderer.setProgress(progress, motionScale: liveScale, settle: !value)
             if value { renderer.startMotion() } else { renderer.stopMotion() }
@@ -102,6 +106,9 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
     private var pourRequested = false
     private var pulseRequested = false
     private var celebrationRequested = false
+    private var celebrationEndRequested = false
+    /// When the celebration was ended early; its light fades from here while the turn finishes.
+    private var celebrationEnd: TimeInterval?
 
     private var fill = 0.0
     private var fillVelocity = 0.0
@@ -139,6 +146,12 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
         lock.unlock()
     }
 
+    func endCelebration() {
+        lock.lock()
+        celebrationEndRequested = true
+        lock.unlock()
+    }
+
     func setProgress(_ progress: Double, motionScale: Double, settle: Bool) {
         let clamped = min(1, max(0, progress.isFinite ? progress : 0))
         lock.lock()
@@ -158,6 +171,8 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
             pulseRequested = false
             celebrationStart = nil
             celebrationRequested = false
+            celebrationEndRequested = false
+            celebrationEnd = nil
             charged = clamped >= 1 ? 1 : 0
             apply(fill: clamped, slosh: 0, wave: 0, turn: 0, pulse: 0)
             for node in droplets + sparks { node.isHidden = true }
@@ -222,7 +237,13 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
         charged += ((target >= 1 ? 1 : 0) - charged) * min(1, step * 2)
         if celebrationRequested {
             celebrationRequested = false
+            celebrationEndRequested = false
             celebrationStart = time
+            celebrationEnd = nil
+        }
+        if celebrationEndRequested {
+            celebrationEndRequested = false
+            if celebrationStart != nil, celebrationEnd == nil { celebrationEnd = time }
         }
         // The goal: a band of light climbs the figure as it spins once, then it flares, throws sparks and stands in rays.
         var spin = 0.0
@@ -231,8 +252,19 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
         var burstAge: Double?
         if let start = celebrationStart {
             let age = time - start
+            // 1 until the celebration is ended early, then down to 0 in a third of a second.
+            let light = celebrationEnd.map { max(0, 1 - (time - $0) / 0.3) } ?? 1
             if age > Self.celebrationLength {
                 celebrationStart = nil
+                celebrationEnd = nil
+            } else if light <= 0 {
+                // Only the turn is left to finish.
+                let turned = min(1, age / 1.8)
+                spin = 2 * Double.pi * (1 - pow(1 - turned, 3))
+                if turned >= 1 {
+                    celebrationStart = nil
+                    celebrationEnd = nil
+                }
             } else {
                 let turned = min(1, age / 1.8)
                 spin = 2 * Double.pi * (1 - pow(1 - turned, 3))
@@ -241,7 +273,7 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
                     burstAge = age - Self.burstTime
                     pulse = max(pulse, exp(-(age - Self.burstTime) * 1.4))
                 }
-                rays = Self.ramp(age, 0.7, 1.1) * (1 - Self.ramp(age, 3.3, Self.celebrationLength))
+                rays = Self.ramp(age, 0.7, 1.1) * (1 - Self.ramp(age, 3.3, Self.celebrationLength)) * light
             }
         }
         let wave = (0.0035 + min(0.02, abs(fillVelocity) * 0.06)) * scale

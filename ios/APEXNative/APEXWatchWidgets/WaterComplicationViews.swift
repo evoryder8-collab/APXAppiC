@@ -65,24 +65,32 @@ struct WaterEntry: TimelineEntry {
     }
 }
 
-private func hydrationComplicationColor(_ token: String) -> Color {
+/// One colour per drink, shared by the Watch app and the watch face so a drink never changes colour between them.
+func hydrationPaletteRGB(_ token: String) -> (red: Double, green: Double, blue: Double) {
     switch token {
-    case "espresso": Color(red: 0.62, green: 0.36, blue: 0.18)
-    case "tea": Color(red: 0.20, green: 0.74, blue: 0.46)
-    case "citrus": Color(red: 1.00, green: 0.55, blue: 0.08)
-    case "cocoa": Color(red: 0.68, green: 0.42, blue: 0.26)
-    case "violet": Color(red: 0.60, green: 0.40, blue: 0.98)
-    case "food": Color(red: 0.13, green: 0.76, blue: 0.65)
-    case "external": Color(red: 0.43, green: 0.55, blue: 0.76)
-    case "legacy": Color(red: 0.35, green: 0.65, blue: 0.93)
-    default: Color(red: 0.10, green: 0.80, blue: 0.96)
+    case "espresso": (0.55, 0.29, 0.13)
+    case "tea": (0.24, 0.75, 0.39)
+    case "citrus": (1.00, 0.54, 0.08)
+    case "cocoa": (0.66, 0.39, 0.24)
+    case "violet": (0.55, 0.34, 0.98)
+    case "food": (0.20, 0.78, 0.66)
+    case "external": (0.94, 0.32, 0.62)
+    case "legacy": (0.32, 0.52, 0.72)
+    case "blue": (0.11, 0.39, 0.98)
+    default: (0.08, 0.80, 0.92)
     }
 }
 
+private func hydrationComplicationColor(_ token: String) -> Color {
+    let rgb = hydrationPaletteRGB(token)
+    return Color(red: rgb.red, green: rgb.green, blue: rgb.blue)
+}
+
 private extension WaterEntry {
-    /// The day's drinks in the order they are stacked, first at the bottom; plain water when nothing is logged.
+    /// The day's drinks from the first poured (bottom) to the latest (surface), as the app stacks them;
+    /// plain water when nothing is logged. `composition` arrives newest first.
     var drinkColors: [Color] {
-        let colors = composition.map { hydrationComplicationColor($0.paletteToken) }
+        let colors = composition.reversed().map { hydrationComplicationColor($0.paletteToken) }
         return colors.isEmpty ? [hydrationComplicationColor("aqua")] : colors
     }
 
@@ -91,12 +99,14 @@ private extension WaterEntry {
         let total = Double(max(1, composition.reduce(0) { $0 + $1.milliliters }))
         var reached = 0.0
         var stops: [Gradient.Stop] = []
-        for band in composition {
+        for band in composition.reversed() {
             let color = hydrationComplicationColor(band.paletteToken)
             let next = reached + Double(band.milliliters) / total
-            // A short blend between neighbours, so the drinks read as layers in one liquid.
-            stops.append(.init(color: color, location: min(next, reached + 0.04)))
-            stops.append(.init(color: color, location: max(reached, next - 0.04)))
+            // A short blend between neighbours, so the drinks read as layers in one liquid;
+            // never more than half a thin band, or its two stops would cross.
+            let blend = min(0.04, (next - reached) / 2)
+            stops.append(.init(color: color, location: reached + blend))
+            stops.append(.init(color: color, location: next - blend))
             reached = next
         }
         return stops.isEmpty ? [.init(color: drinkColors[0], location: 0)] : stops
