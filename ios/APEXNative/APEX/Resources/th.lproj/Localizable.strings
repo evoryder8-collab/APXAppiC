@@ -3086,7 +3086,7 @@
 "Meals and training" = "มื้ออาหารและการฝึก";
 "Metabolic rhythm" = "จังหวะเมตาบอลิซึม";
 "No meals logged for this date." = "ยังไม่มีมื้อที่บันทึกในวันนี้";
-"No supported Health data is available yet. Connect Apple Health in Settings to add VO₂ max and resting-heart-rate evidence. FITR MAX will not invent missing recovery values." = "ยังไม่มีข้อมูล Health ที่รองรับ เชื่อมต่อ Apple Health ในการตั้งค่าเพื่อเพิ่ม VO₂ max และชีพจรขณะพัก FITR MAX จะไม่สร้างค่าการฟื้นตัวที่ไม่มีข้อมูล";
+"No supported Health data is available yet. Connect Apple Health in Settings to add VO₂ max and resting-heart-rate evidence. FITR MAX will not invent missing recovery values." = "ยังไม่มีข้อมูลสุขภาพ ที่รองรับ เชื่อมต่อ Apple Health ในการตั้งค่าเพื่อเพิ่ม VO₂ max และชีพจรขณะพัก FITR MAX จะไม่สร้างค่าการฟื้นตัวที่ไม่มีข้อมูล";
 "Nutrition, water, weight, VO₂ max, resting heart rate and workouts feed the engine." = "โภชนาการ น้ำ น้ำหนัก VO₂ max ชีพจรขณะพัก และการฝึก เป็นข้อมูลให้ระบบวิเคราะห์";
 "Open Settings" = "เปิดการตั้งค่า";
 "PROGRESS TO NEXT UNLOCK" = "ความคืบหน้าสู่ระดับถัดไป";
@@ -5600,11 +5600,11 @@
 
 "Manage water access" = "จัดการสิทธิ์ข้อมูลน้ำ";
 "Enable water sharing" = "เปิดการแชร์ข้อมูลน้ำ";
-"Water sharing is on. Your logged water can be saved to Apple Health." = "เปิดการแชร์ข้อมูลน้ำแล้ว ปริมาณน้ำที่บันทึกจะบันทึกไปยังแอปสุขภาพของ Apple ได้";
-"Apple Health water sharing is optional. You can keep logging water in FITR MAX." = "การแชร์ข้อมูลน้ำกับแอปสุขภาพของ Apple เป็นทางเลือก คุณยังบันทึกน้ำใน FITR MAX ได้ตามปกติ";
-"Allow FITR MAX to save your logged water to Apple Health." = "อนุญาตให้ FITR MAX บันทึกปริมาณน้ำไปยังแอปสุขภาพของ Apple";
-"Apple Health water sharing is off." = "ปิดการแชร์ข้อมูลน้ำกับแอปสุขภาพของ Apple อยู่";
-"Share water with Apple Health" = "แชร์ข้อมูลน้ำกับแอปสุขภาพของ Apple";
+"Water sharing is on. Your logged water can be saved to Apple Health." = "เปิดการแชร์ข้อมูลน้ำแล้ว ปริมาณน้ำที่บันทึกจะบันทึกไปยัง Apple Health ได้";
+"Apple Health water sharing is optional. You can keep logging water in FITR MAX." = "การแชร์ข้อมูลน้ำกับ Apple Health เป็นทางเลือก คุณยังบันทึกน้ำใน FITR MAX ได้ตามปกติ";
+"Allow FITR MAX to save your logged water to Apple Health." = "อนุญาตให้ FITR MAX บันทึกปริมาณน้ำไปยัง Apple Health";
+"Apple Health water sharing is off." = "ปิดการแชร์ข้อมูลน้ำกับ Apple Health อยู่";
+"Share water with Apple Health" = "แชร์ข้อมูลน้ำกับ Apple Health";
 "Apple keeps this switch in Health after your first choice. Change it once, then return here." = "หลังจากเลือกครั้งแรก Apple จะให้เปลี่ยนสิทธิ์นี้ในแอปสุขภาพ เปลี่ยนที่นั่นแล้วกลับมาที่นี่";
 "Open Health and tap your profile picture." = "เปิดแอปสุขภาพแล้วแตะรูปโปรไฟล์ของคุณ";
 "Choose Apps and Services, then FITR MAX." = "เลือกแอปและบริการ แล้วเลือก FITR MAX";

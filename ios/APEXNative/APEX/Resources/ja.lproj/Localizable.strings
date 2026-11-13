@@ -5618,11 +5618,11 @@
 
 "Manage water access" = "水分データのアクセスを管理";
 "Enable water sharing" = "水分データの共有を有効にする";
-"Water sharing is on. Your logged water can be saved to Apple Health." = "水分データの共有は有効です。記録した水分量をAppleのヘルスケアに保存できます。";
-"Apple Health water sharing is optional. You can keep logging water in FITR MAX." = "Appleのヘルスケアとの水分データ共有は任意です。FITR MAXでの水分記録は引き続き利用できます。";
-"Allow FITR MAX to save your logged water to Apple Health." = "FITR MAXが記録した水分量をAppleのヘルスケアに保存することを許可します。";
-"Apple Health water sharing is off." = "Appleのヘルスケアとの水分データ共有はオフです。";
-"Share water with Apple Health" = "Appleのヘルスケアと水分データを共有";
+"Water sharing is on. Your logged water can be saved to Apple Health." = "水分データの共有は有効です。記録した水分量をApple Healthに保存できます。";
+"Apple Health water sharing is optional. You can keep logging water in FITR MAX." = "Apple Healthとの水分データ共有は任意です。FITR MAXでの水分記録は引き続き利用できます。";
+"Allow FITR MAX to save your logged water to Apple Health." = "FITR MAXが記録した水分量をApple Healthに保存することを許可します。";
+"Apple Health water sharing is off." = "Apple Healthとの水分データ共有はオフです。";
+"Share water with Apple Health" = "Apple Healthと水分データを共有";
 "Apple keeps this switch in Health after your first choice. Change it once, then return here." = "最初の選択後は、ヘルスケアでこの設定を変更します。変更したら、ここに戻ってください。";
 "Open Health and tap your profile picture." = "ヘルスケアを開き、プロフィール画像をタップします。";
 "Choose Apps and Services, then FITR MAX." = "「アプリとサービス」からFITR MAXを選びます。";

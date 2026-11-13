@@ -2693,3 +2693,10 @@ Camera: the ghost lines up with the live preview; a saved selfie reads unmirrore
 - Test mode can start in a chosen language: launch with `-apex-ui-test -apex.ui-test-language de`. It persists, and several unit tests read the app's current language, so relaunch with plain `-apex-ui-test` before running the suite.
 - Seen on screen in Spanish and German: home, programme and nutrition day screens fit. Not seen: the other six languages, the Watch, and most secondary screens.
 - Fixed: the photo comparison screen ran off a 393-pt phone in German. The sync toggle sat beside the zoom buttons with labels that never wrap ("SYNCHRONISIERT", "FREIGESCHALTET"), which pushed the whole screen wider. The toggle now drops to its own row when it does not fit (`ViewThatFits`), its labels match the helper sentence under it, and `ProgressCameraTests.testComparisonLabelsStayInsideTheirPanelsWhenThePhotosDifferInShape` runs in every offered language.
+
+## 2026-11-13 · Translation leftovers: Portuguese address form and Apple Health naming
+
+- Portuguese: 50 lines still used the formal or Brazilian form ("Escolha", "você", "seu coach", "câmera", "está correndo"). All now use European "tu" like the rest of the table; button labels use the infinitive. Two of them are hand-written copy, so `shared/productInterfaceCopy.ts` changed with the table (the web app gets the same wording). "Apple Health" is masculine throughout ("do Apple Health").
+- Apple Health: every table calls the service "Apple Health" and the app by the name on the phone (Health, Salud, Salute, Saúde, ヘルスケア, Sănătate, สุขภาพ). Italian, Japanese and Thai had five water-sharing lines each that said "Salute di Apple" / "Appleのヘルスケア" / "แอปสุขภาพของ Apple" instead; they now match.
+- The labels "FLOOR", "TO" and "gain" are not referenced by any Swift file, so they are never shown; left as they are. "OWN" is the calendar code for a custom-workout day and its translations fit.
+- Verification: iPhone suite 1,231 tests, 0 failures; web 1,058 pass, the 2 failures are the local-Postgres tests that need a database this Mac does not run.

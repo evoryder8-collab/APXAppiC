@@ -5619,11 +5619,11 @@
 
 "Manage water access" = "Gestisci accesso all’acqua";
 "Enable water sharing" = "Attiva condivisione dell’acqua";
-"Water sharing is on. Your logged water can be saved to Apple Health." = "La condivisione dell’acqua è attiva. L’acqua registrata può essere salvata in Salute di Apple.";
-"Apple Health water sharing is optional. You can keep logging water in FITR MAX." = "Condividere l’acqua con Salute di Apple è facoltativo. Puoi continuare a registrarla in FITR MAX.";
-"Allow FITR MAX to save your logged water to Apple Health." = "Consenti a FITR MAX di salvare l’acqua registrata in Salute di Apple.";
-"Apple Health water sharing is off." = "La condivisione dell’acqua con Salute di Apple è disattivata.";
-"Share water with Apple Health" = "Condividi l’acqua con Salute di Apple";
+"Water sharing is on. Your logged water can be saved to Apple Health." = "La condivisione dell’acqua è attiva. L’acqua registrata può essere salvata in Apple Health.";
+"Apple Health water sharing is optional. You can keep logging water in FITR MAX." = "Condividere l’acqua con Apple Health è facoltativo. Puoi continuare a registrarla in FITR MAX.";
+"Allow FITR MAX to save your logged water to Apple Health." = "Consenti a FITR MAX di salvare l’acqua registrata in Apple Health.";
+"Apple Health water sharing is off." = "La condivisione dell’acqua con Apple Health è disattivata.";
+"Share water with Apple Health" = "Condividi l’acqua con Apple Health";
 "Apple keeps this switch in Health after your first choice. Change it once, then return here." = "Dopo la prima scelta, Apple gestisce questo permesso in Salute. Modificalo lì, poi torna qui.";
 "Open Health and tap your profile picture." = "Apri Salute e tocca la tua foto profilo.";
 "Choose Apps and Services, then FITR MAX." = "Scegli App e servizi, poi FITR MAX.";
