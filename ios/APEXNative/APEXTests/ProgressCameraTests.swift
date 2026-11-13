@@ -179,6 +179,12 @@ final class ProgressCameraTests: XCTestCase {
     /// label has to stay inside its own panel, whichever photo is wider.
     func testComparisonLabelsStayInsideTheirPanelsWhenThePhotosDifferInShape() async throws {
         let shapes = Self.ghosts
+        // Every offered language: the controls under the photos once pushed
+        // the whole screen wider than the phone in German.
+        let original = LanguageState.shared.language
+        defer { LanguageState.shared.language = original }
+        for language in AppLanguage.allCases {
+            LanguageState.shared.language = language
         for phone in Self.phones {
             for (first, second) in [(shapes[0], shapes[1]), (shapes[1], shapes[0]), (shapes[0], shapes[2]), (shapes[3], shapes[0])] {
                 let session = AppSession(developerSandboxRole: .coach)
@@ -192,7 +198,7 @@ final class ProgressCameraTests: XCTestCase {
                 )
                 .environment(session)
                 let names = ["close", "beforePanel", "afterPanel", "beforeLabel", "afterLabel"]
-                let context = "\(phone.name), before is a \(first.name), after is a \(second.name)"
+                let context = "\(language.rawValue), \(phone.name), before is a \(first.name), after is a \(second.name)"
                 let layout = try await layOut(view, size: phone.size, expecting: names, named: "comparison, \(context)")
                 layout.assertReachable(["close", "beforePanel", "afterPanel"], context)
                 for side in ["before", "after"] {
@@ -204,6 +210,7 @@ final class ProgressCameraTests: XCTestCase {
                     )
                 }
             }
+        }
         }
     }
 

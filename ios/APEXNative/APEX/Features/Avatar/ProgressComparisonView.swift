@@ -251,15 +251,19 @@ struct ProgressComparisonView: View {
 
     private var controls: some View {
         VStack(spacing: 10) {
-            HStack(spacing: 12) {
-                Button { zoom(-0.25) } label: { zoomGlyph("minus") }
-                Text("\(Int((active == .left ? views.left : views.right).scale * 100))%")
-                    .font(APEXFont.mono(13, weight: .bold))
-                    .foregroundStyle(.white)
-                    .frame(width: 62)
-                Button { zoom(0.25) } label: { zoomGlyph("plus") }
-                Spacer()
-                syncToggle
+            // "SYNCED" is 14 letters in German and Spanish: when the toggle
+            // cannot sit beside the zoom buttons it takes its own row.
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 12) {
+                    zoomButtons
+                    Spacer()
+                    syncToggle
+                }
+                VStack(spacing: 10) {
+                    zoomButtons
+                    syncToggle
+                }
+                .frame(maxWidth: .infinity)
             }
             .padding(12)
             .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -271,6 +275,17 @@ struct ProgressComparisonView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .buttonStyle(.plain)
+    }
+
+    private var zoomButtons: some View {
+        HStack(spacing: 12) {
+            Button { zoom(-0.25) } label: { zoomGlyph("minus") }
+            Text("\(Int((active == .left ? views.left : views.right).scale * 100))%")
+                .font(APEXFont.mono(13, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 62)
+            Button { zoom(0.25) } label: { zoomGlyph("plus") }
+        }
     }
 
     private func zoomGlyph(_ symbol: String) -> some View {

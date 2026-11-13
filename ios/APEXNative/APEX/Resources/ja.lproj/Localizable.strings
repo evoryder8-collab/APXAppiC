@@ -1074,7 +1074,7 @@
 "SPIN" = "回転";
 "START" = "開始";
 "SWAP" = "入れ替え";
-"SYNCED" = "同期済み";
+"SYNCED" = "同期";
 "SEC" = "秒";
 "STEPS" = "歩数";
 "STRENGTH" = "筋力";
@@ -1255,7 +1255,7 @@
 "Today’s movement" = "今日の運動";
 "Turn on starter mode?" = "スターターモードを有効にしますか";
 "Unavailable" = "利用できません";
-"UNLOCKED" = "解除済み";
+"UNLOCKED" = "ロック解除";
 "Unexplained fainting or near-fainting" = "原因不明の失神またはその寸前";
 "This meal is empty" = "この食事は空です";
 "This is not medical clearance or diagnosis." = "これは医学的な許可や診断ではありません。";

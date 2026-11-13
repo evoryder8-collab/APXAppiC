@@ -3995,7 +3995,7 @@
 "START SESSION" = "เริ่มเซสชัน";
 "STEPS" = "ก้าว";
 "Steps" = "ก้าว";
-"SYNCED" = "ซิงก์แล้ว";
+"SYNCED" = "ซิงก์";
 "Sat" = "ส.";
 "Saved" = "บันทึกแล้ว";
 "Scheduled deload" = "สัปดาห์ลดโหลดตามกำหนด";
@@ -4016,7 +4016,7 @@
 "Tue" = "อ.";
 "Tuesday" = "วันอังคาร";
 "Typical timing variation" = "ความแปรผันของเวลาโดยทั่วไป";
-"UNLOCKED" = "ปลดล็อกแล้ว";
+"UNLOCKED" = "แยกอิสระ";
 "Unavailable" = "ไม่พร้อมใช้งาน";
 "Very low" = "ต่ำมาก";
 "Videographer" = "ช่างวิดีโอ";
