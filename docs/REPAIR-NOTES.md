@@ -2709,6 +2709,6 @@ Camera: the ghost lines up with the live preview; a saved selfie reads unmirrore
   - The app and the watch face had two colour tables for the same drinks ("external" pink in one, slate in the other). One table, `hydrationPaletteRGB`, in `WaterComplicationViews.swift` (compiled into both targets).
   - A quick-add the store refused left the pour and goal celebration armed for the next phone sync; the flag is cleared after the add returns.
   - Tapping to end the celebration shrank the figure but left the rays and sparks playing; the renderer now fades them in 0.3 s and lets the turn finish.
-  - The progress gleam rebuilt its gradient at display rate beside the 3D figure; now 20 frames a second with the stops computed once.
+  - The progress gleam rebuilt its gradient stops every frame; they are now computed once. Its clock stays uncapped: `tests/watch-hydration-silhouette.test.ts` forbids `minimumInterval` there on purpose, and a first attempt to cap it at 20 fps failed that check in CI and was withdrawn.
 - Left as notes: SceneView resized inside a spring (watch for a hitch on the wrist), `percent` defined twice, 46 spark nodes built by two loops, `WatchHydrationView.swift` at 929 lines.
 - Build number 421 in `project.pbxproj` and `project.yml`. iPhone suite 1,231 tests, 0 failures. Archive `build/FITR-MAX-1.0.1-421.xcarchive`: ARCHIVE SUCCEEDED, iPhone, Watch and complication all 1.0.1 (421), deep/strict signature check passed.

@@ -81,7 +81,7 @@ test('Watch hydration motion uses a smooth continuous animation clock', () => {
     'utf8',
   )
 
-  assert.match(view, /TimelineView\(\.animation\(minimumInterval: 1\.0 \/ 20, paused:/)
+  assert.match(view, /TimelineView\(\.animation\(paused:/)
   assert.doesNotMatch(view, /minimumInterval:/)
   assert.doesNotMatch(view, /truncatingRemainder/)
 })

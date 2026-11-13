@@ -649,8 +649,8 @@ private struct HydrationProgressGleam: View {
 
     var body: some View {
         let stops = HydrationPalette.timelineStops(for: composition, fallback: [violet, aqua])
-        // The gleam drifts slowly; 20 frames a second is smooth and leaves the display rate to the figure.
-        return TimelineView(.animation(minimumInterval: 1.0 / 20, paused: !animationIsEnabled)) { timeline in
+        // Kept on the display's own clock: a capped rate made the gleam step (pinned by watch-hydration-silhouette.test.ts).
+        return TimelineView(.animation(paused: !animationIsEnabled)) { timeline in
             let phase = animationIsEnabled ? timeline.date.timeIntervalSinceReferenceDate * 0.9 : 0
             GeometryReader { geometry in
                 let width = max(0, geometry.size.width * progress)
