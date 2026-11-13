@@ -4029,7 +4029,7 @@
 "What this session trains" = "Ce antrenează această sesiune";
 "Why this shape" = "De ce este structurată așa";
 "Worked today" = "Zone vizate azi";
-"X-RAY" = "RADIOGRAFIE";
+"X-RAY" = "RAZE X";
 "Your 12-week foundation" = "Fundația ta de 12 săptămâni";
 "Your own sessions." = "Sesiunile tale.";
 "Your personal main phase" = "Faza ta principală";
@@ -4171,7 +4171,7 @@
 "How long should your plan be?" = "Cât de lung să fie planul tău?";
 "Choose the period you can commit to. FITR MAX stores a real end date, so the plan cannot repeat forever." = "Alege perioada pe care o poți urma. FITR MAX salvează o dată reală de final, astfel încât planul să nu se repete la nesfârșit.";
 "Choose a realistic horizon. FITR MAX gives the plan a real end date instead of repeating it forever." = "Alege o perioadă realistă. FITR MAX stabilește o dată reală de final, în loc să repete planul la nesfârșit.";
-"WEEKS" = "SĂPTĂMÂNI";
+"WEEKS" = "SĂPT.";
 "MONTHS" = "LUNI";
 "%d weeks" = "%d săptămâni";
 "6 months" = "6 luni";
@@ -4587,7 +4587,7 @@
 "Keep wake time steady and seek daylight early." = "Trezește-te la aceeași oră și caută lumina zilei devreme.";
 "Know when to stop" = "Când să te oprești";
 "LOAD KG (+/−)" = "GREUTATE KG (+/−)";
-"LOG" = "ÎNREGISTREAZĂ";
+"LOG" = "ÎNREG.";
 "Lead with the elbow, not the hand, so the back works instead of the arms." = "Inițiază mișcarea din cot, nu din mână, ca să lucreze spatele și nu doar brațele.";
 "Light balance" = "Echilibru ușor";
 "Light fuel" = "Combustibil ușor";
@@ -4638,7 +4638,7 @@
 "Move only through the range you can control while breathing normally. Keep the trunk quiet and stop if the movement causes sharp pain." = "Mișcă-te doar în amplitudinea pe care o poți controla, respirând normal. Menține trunchiul stabil și oprește-te dacă apare durere ascuțită.";
 "Move to Strength base if load or recovery trends down." = "Treci la Bază de forță dacă greutățile sau recuperarea au o tendință descendentă.";
 "Move up" = "Mută în sus";
-"NONE" = "NICIUNUL";
+"NONE" = "NIMIC";
 "Natural nut butter" = "Unt natural de nuci";
 "Needs matching facts to compare" = "Necesită date comparabile";
 "Negative load means supported; zero means bodyweight; positive means added load." = "Greutatea negativă înseamnă asistență; zero înseamnă greutatea corpului; pozitivă înseamnă greutate adăugată.";
@@ -4673,7 +4673,7 @@
 "Overnight oat jar" = "Borcan de ovăz peste noapte";
 "P   g, " = "P   g, ";
 "P  g" = "P  g";
-"PART" = "PARTEA";
+"PART" = "PARȚ.";
 "PROTEIN SOURCES" = "SURSE DE PROTEINE";
 "Pain-free range. Stop with at least 3 reps in reserve." = "Amplitudine fără durere. Oprește-te cu cel puțin 3 repetări în rezervă.";
 "Pair resistance work with sustainable activity" = "Combină antrenamentul de forță cu activitate susținută";

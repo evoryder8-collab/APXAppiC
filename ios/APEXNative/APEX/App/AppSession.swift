@@ -761,7 +761,8 @@ final class AppSession {
             for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("apex.baseline-calibration.v1.") {
                 defaults.removeObject(forKey: key)
             }
-            LanguageState.shared.language = .english
+            // Launch with `-apex.ui-test-language de` to check a translation on screen.
+            LanguageState.shared.language = AppLanguage(rawValue: defaults.string(forKey: "apex.ui-test-language") ?? "en") ?? .english
             if ProcessInfo.processInfo.arguments.contains("-fitr-ui-test-june-sunday") {
                 data = APEXDebugFixture.juneSunday()
                 browsingDate = APEXDateMath.date(from: "2026-11-08")!

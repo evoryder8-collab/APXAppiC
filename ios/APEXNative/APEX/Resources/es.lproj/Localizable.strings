@@ -503,7 +503,7 @@
 "Core" = "Core";
 "Custom" = "Personalizado";
 "Custom meal" = "Comida personalizada";
-"Custom workouts" = "Entrenamientos personalizados";
+"Custom workouts" = "Rutinas propias";
 "Create meal" = "Crear comida";
 "Create preset" = "Crear preajuste";
 "Create a custom meal" = "Crear una comida personalizada";
@@ -779,7 +779,7 @@
 "Mode" = "Modo";
 "Moderate" = "Moderado";
 "Moderate to high" = "De moderado a alto";
-"MOVE" = "MOVERSE";
+"MOVE" = "MOVER";
 "MOVING" = "EN MOVIMIENTO";
 "MY WATCH SAYS" = "MI RELOJ DICE";
 "Metabolic rhythm" = "Ritmo metabólico";
@@ -2254,7 +2254,7 @@
 "Keep wake time steady and seek daylight early." = "Mantén una hora de despertar estable y busca luz natural temprano.";
 "Know when to stop" = "Saber cuándo parar";
 "LOAD KG (+/−)" = "CARGA KG (+/−)";
-"LOG" = "REGISTRAR";
+"LOG" = "REG.";
 "Lead with the elbow, not the hand, so the back works instead of the arms." = "Inicia con el codo, no con la mano: así trabaja la espalda y no solo los brazos.";
 "Light balance" = "Equilibrio ligero";
 "Light fuel" = "Energía ligera";
@@ -2287,7 +2287,7 @@
 "Lower body, single leg" = "Piernas: trabajo unilateral";
 
 /* Translation coverage closure 491-525 · 2026-08-27 */
-"MISS" = "MISS";
+"MISS" = "FALTA";
 "MONTHS" = "MESES";
 "Machines, cables and free weights available" = "Máquinas, poleas y peso libre disponibles";
 "Maintenance energy for repeatable heavy practice and recovery." = "Energía de mantenimiento para entrenar pesado de forma repetible y recuperar.";
@@ -2329,7 +2329,7 @@
 "Move only through the range you can control while breathing normally. Keep the trunk quiet and stop if the movement causes sharp pain." = "Muévete solo en la amplitud que puedas controlar mientras respiras con normalidad. Mantén el tronco quieto y para si aparece un dolor agudo.";
 "Move to Strength base if load or recovery trends down." = "Pasa a Base de fuerza si la carga o la recuperación empeoran.";
 "Move up" = "Subir";
-"NONE" = "NINGUNO";
+"NONE" = "NADA";
 "Natural nut butter" = "Crema de frutos secos natural";
 "Natural strength · Precision · Durability" = "Fuerza natural · Precisión · Durabilidad";
 "Needs matching facts to compare" = "Faltan datos equivalentes para comparar";
@@ -2401,7 +2401,7 @@
 "Overnight oat jar" = "Tarro de avena nocturna";
 "P   g, " = "P   g,";
 "P  g" = "P  g";
-"PART" = "PARTE";
+"PART" = "PARC.";
 "PLAN" = "PLAN";
 "PLAN HORIZON" = "HORIZONTE DEL PLAN";
 "PROTEIN SOURCES" = "FUENTES DE PROTEÍNA";
@@ -2471,7 +2471,7 @@
 "RECOVERY INPUTS" = "DATOS DE RECUPERACIÓN";
 "RECOVERY NUTRITION" = "NUTRICIÓN DE RECUPERACIÓN";
 "RECOVERY PLAN" = "PLAN DE RECUPERACIÓN";
-"RECOVERY SEC" = "SEG DE RECUPERACIÓN";
+"RECOVERY SEC" = "RECUP. SEG";
 "REVIEW FINAL SET" = "REVISAR ÚLTIMA SERIE";
 "RIR" = "RIR";
 "RIR  " = "RIR  ";
@@ -2701,7 +2701,7 @@
 "WHY THIS PLAN FITS" = "POR QUÉ ESTE PLAN ENCAJA";
 
 /* Translation coverage closure 876-910 · 2026-08-27 */
-"WORK SEC" = "SEG DE TRABAJO";
+"WORK SEC" = "TRABAJO SEG";
 "Walnuts" = "Nueces";
 "Walnuts or almonds" = "Nueces o almendras";
 "Warn when a jump exceeds this multiple of your typical increment" = "Avisar cuando un salto supere este múltiplo de tu incremento habitual";

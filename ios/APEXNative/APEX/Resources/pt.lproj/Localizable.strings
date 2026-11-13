@@ -503,7 +503,7 @@
 "Core" = "Core";
 "Custom" = "Personalizado";
 "Custom meal" = "Refeição personalizada";
-"Custom workouts" = "Treinos personalizados";
+"Custom workouts" = "Os teus treinos";
 "Create meal" = "Criar refeição";
 "Create preset" = "Criar predefinição";
 "Create a custom meal" = "Criar uma refeição personalizada";
@@ -517,7 +517,7 @@
 "DELETE" = "ELIMINAR";
 "DELOAD" = "DESCARGA";
 "DISTANCE" = "DISTÂNCIA";
-"DONE" = "CONCLUÍDO";
+"DONE" = "FEITO";
 "DURATION" = "DURAÇÃO";
 "Daily" = "Diário";
 "Daily log" = "Registo diário";
@@ -2254,7 +2254,7 @@
 "Keep wake time steady and seek daylight early." = "Mantém a hora de acordar estável e apanha luz do dia cedo.";
 "Know when to stop" = "Saber quando parar";
 "LOAD KG (+/−)" = "CARGA KG (+/−)";
-"LOG" = "REGISTAR";
+"LOG" = "REG.";
 "Lead with the elbow, not the hand, so the back works instead of the arms." = "Inicia com o cotovelo, não com a mão: assim puxas com as costas e não apenas com os braços.";
 "Light balance" = "Equilíbrio leve";
 "Light fuel" = "Energia leve";
@@ -2287,7 +2287,7 @@
 "Lower body, single leg" = "Pernas: trabalho unilateral";
 
 /* Translation coverage closure 491-525 · 2026-08-27 */
-"MISS" = "FALHOU";
+"MISS" = "FALTA";
 "MONTHS" = "MESES";
 "Machines, cables and free weights available" = "Máquinas, cabos e pesos livres disponíveis";
 "Maintenance energy for repeatable heavy practice and recovery." = "Energia de manutenção para treino pesado repetível e recuperação.";
@@ -2329,7 +2329,7 @@
 "Move only through the range you can control while breathing normally. Keep the trunk quiet and stop if the movement causes sharp pain." = "Move-te apenas na amplitude que consegues controlar enquanto respiras normalmente. Mantém o tronco quieto e para se surgir uma dor aguda.";
 "Move to Strength base if load or recovery trends down." = "Muda para Base de força se a carga ou a recuperação piorarem.";
 "Move up" = "Subir";
-"NONE" = "NENHUM";
+"NONE" = "NADA";
 "Natural nut butter" = "Manteiga de frutos secos natural";
 "Natural strength · Precision · Durability" = "Força natural · Precisão · Durabilidade";
 "Needs matching facts to compare" = "Faltam dados equivalentes para comparar";
@@ -2401,7 +2401,7 @@
 "Overnight oat jar" = "Overnight oats em frasco";
 "P   g, " = "P   g,";
 "P  g" = "P  g";
-"PART" = "PARTE";
+"PART" = "PARC.";
 "PLAN" = "PLANO";
 "PLAN HORIZON" = "HORIZONTE DO PLANO";
 "PROTEIN SOURCES" = "FONTES DE PROTEÍNA";
@@ -2471,7 +2471,7 @@
 "RECOVERY INPUTS" = "DADOS DE RECUPERAÇÃO";
 "RECOVERY NUTRITION" = "NUTRIÇÃO DE RECUPERAÇÃO";
 "RECOVERY PLAN" = "PLANO DE RECUPERAÇÃO";
-"RECOVERY SEC" = "RECUPERAÇÃO SEG";
+"RECOVERY SEC" = "RECUP. SEG";
 "REVIEW FINAL SET" = "REVER ÚLTIMA SÉRIE";
 "RIR" = "RIR";
 "RIR  " = "RIR  ";

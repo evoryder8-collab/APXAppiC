@@ -779,7 +779,7 @@
 "Mode" = "Modus";
 "Moderate" = "Moderat";
 "Moderate to high" = "Moderat bis hoch";
-"MOVE" = "BEWEGE";
+"MOVE" = "ZIEHE";
 "MOVING" = "I DE BEWEGIG";
 "MY WATCH SAYS" = "MINI UHR ZEIGT";
 "Metabolic rhythm" = "Stoffwechselrhythmus";
@@ -2287,7 +2287,7 @@
 "Lower body, single leg" = "Unterkörper – einbeinig";
 
 /* Translation coverage closure 491-525 · 2026-08-27 */
-"MISS" = "VERPASST";
+"MISS" = "VERP.";
 "MONTHS" = "MONATE";
 "Machines, cables and free weights available" = "Maschinen, Kabelzüge und freie Gewichte verfügbar";
 "Maintenance energy for repeatable heavy practice and recovery." = "Erhaltungsenergie für wiederholbares schweres Training und Erholung.";
@@ -2401,7 +2401,7 @@
 "Overnight oat jar" = "Overnight Oats im Glas";
 "P   g, " = "P   g, ";
 "P  g" = "P  g";
-"PART" = "TEIL";
+"PART" = "TEILW.";
 "PLAN" = "PLAN";
 "PLAN HORIZON" = "PLANZEITRAUM";
 "PROTEIN SOURCES" = "PROTEINQUELLEN";

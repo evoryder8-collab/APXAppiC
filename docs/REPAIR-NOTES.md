@@ -2686,3 +2686,10 @@ Camera: the ghost lines up with the live preview; a saved selfie reads unmirrore
 - de-CH is Swiss German dialect in its hand-written entries. It took the German fix only where it had carried the same text as German before; 79 dialect entries were left as written.
 - `LocalisationCoverageTests.testNothingIsTranslatedToItsOwnEnglish` now counts only running text (two or more lowercase words). Product, supplement and programme names and value-only templates are correctly identical in every language.
 - Not done: Portuguese still mixes "tu" and "você" in entries that were otherwise correct; Apple Health is "Apple Health" in some tables and the local app name ("Salute", "Sănătate") in others; label widths were not checked on screen; web-side translations were not reviewed.
+
+## 2026-11-13 · Translated labels checked for fit
+
+- Compact wording for labels in tight spots: calendar day codes (DONE/PART/MISS/LOG/OWN/NONE), the meal-block MOVE caption, TIMING, WEEKS, X-RAY and the WORK/RECOVERY SEC field labels. "Custom workouts" shortened in es/it/pt: the home card title broke mid-word ("ENTRENAMIEN-TOS PERSONALIZAD-OS"), which predates the rewrite.
+- Test mode can start in a chosen language: launch with `-apex-ui-test -apex.ui-test-language de`. It persists, and several unit tests read the app's current language, so relaunch with plain `-apex-ui-test` before running the suite.
+- Seen on screen in Spanish and German: home, programme and nutrition day screens fit. Not seen: the other six languages, the Watch, and most secondary screens.
+- Open: with the app in German, `ProgressCameraTests.testComparisonLabelsStayInsideTheirPanelsWhenThePhotosDifferInShape` fails (both photo panels and the close button run off a 393-pt screen). The German labels involved are unchanged by the rewrite, so this is an existing German layout fault.

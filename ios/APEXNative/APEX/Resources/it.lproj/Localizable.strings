@@ -503,7 +503,7 @@
 "Core" = "Core";
 "Custom" = "Personalizzato";
 "Custom meal" = "Pasto personalizzato";
-"Custom workouts" = "Allenamenti personalizzati";
+"Custom workouts" = "I tuoi allenamenti";
 "Create meal" = "Crea pasto";
 "Create preset" = "Crea preset";
 "Create a custom meal" = "Crea un pasto personalizzato";
@@ -779,7 +779,7 @@
 "Mode" = "Modalità";
 "Moderate" = "Moderato";
 "Moderate to high" = "Da moderato ad alto";
-"MOVE" = "MOVIMENTO";
+"MOVE" = "SPOSTA";
 "MOVING" = "IN MOVIMENTO";
 "MY WATCH SAYS" = "IL MIO OROLOGIO DICE";
 "Metabolic rhythm" = "Ritmo metabolico";
@@ -2254,7 +2254,7 @@
 "Keep wake time steady and seek daylight early." = "Mantieni costante l'orario di risveglio e cerca la luce del giorno presto.";
 "Know when to stop" = "Sapere quando fermarsi";
 "LOAD KG (+/−)" = "CARICO KG (+/−)";
-"LOG" = "REGISTRA";
+"LOG" = "REG.";
 "Lead with the elbow, not the hand, so the back works instead of the arms." = "Parti con il gomito, non con la mano: così tiri con la schiena, non solo con le braccia.";
 "Light balance" = "Equilibrio leggero";
 "Light fuel" = "Energia leggera";
@@ -2287,7 +2287,7 @@
 "Lower body, single leg" = "Gambe: lavoro unilaterale";
 
 /* Translation coverage closure 491-525 · 2026-08-27 */
-"MISS" = "MANCATO";
+"MISS" = "PERSO";
 "MONTHS" = "MESI";
 "Machines, cables and free weights available" = "Macchine, cavi e pesi liberi disponibili";
 "Maintenance energy for repeatable heavy practice and recovery." = "Energia di mantenimento per allenamenti pesanti ripetibili e per il recupero.";
@@ -2329,7 +2329,7 @@
 "Move only through the range you can control while breathing normally. Keep the trunk quiet and stop if the movement causes sharp pain." = "Muoviti solo nell’escursione che controlli respirando normalmente. Tieni fermo il busto e interrompi se compare un dolore acuto.";
 "Move to Strength base if load or recovery trends down." = "Passa a Base di forza se carico o recupero peggiorano.";
 "Move up" = "Sposta su";
-"NONE" = "NESSUNO";
+"NONE" = "NULLA";
 "Natural nut butter" = "Burro di frutta secca naturale";
 "Natural strength · Precision · Durability" = "Forza naturale · Precisione · Durata";
 "Needs matching facts to compare" = "Servono dati corrispondenti per il confronto";
@@ -2401,7 +2401,7 @@
 "Overnight oat jar" = "Avena overnight in vasetto";
 "P   g, " = "P   g, ";
 "P  g" = "P  g";
-"PART" = "PARTE";
+"PART" = "PARZ.";
 "PLAN" = "PIANO";
 "PLAN HORIZON" = "DURATA DEL PIANO";
 "PROTEIN SOURCES" = "FONTI PROTEICHE";
@@ -2590,7 +2590,7 @@
 /* Translation coverage closure 771-805 · 2026-08-27 */
 "T25 holds until week 2. Swap in mobility instead" = "T25 in pausa fino alla settimana 2. Fai mobilità al suo posto";
 "TIME SEC" = "TEMPO S";
-"TIMING" = "TEMPISTICA";
+"TIMING" = "ORARIO";
 "TRACKED SESSION" = "SESSIONE REGISTRATA";
 "TRACKED WORKOUT COMPLETE" = "ALLENAMENTO REGISTRATO COMPLETATO";
 "TRAIN SMART" = "ALLENATI CON INTELLIGENZA";
@@ -2697,7 +2697,7 @@
 "Vegetables" = "Verdure";
 "Very active" = "Molto attivo";
 "Volume reduces before race day while familiar movement rhythm remains." = "Il volume cala prima della gara, mentre resta il ritmo di movimento abituale.";
-"WEEKS" = "SETTIMANE";
+"WEEKS" = "SETT.";
 "WHY THIS PLAN FITS" = "PERCHÉ QUESTO PIANO È ADATTO";
 
 /* Translation coverage closure 876-910 · 2026-08-27 */

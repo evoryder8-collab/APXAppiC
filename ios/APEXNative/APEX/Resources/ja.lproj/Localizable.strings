@@ -2356,7 +2356,7 @@
 "Nothing matches that. You can still add it by name from the full editor." = "該当するものがありません。フルエディタから名前を入力して追加できます。";
 "Nutrition is calculated from logged meals. Enter only water and morning weight here." = "栄養は記録した食事から計算されます。ここでは水分と朝の体重だけを入力してください。";
 "Nutrition, water, weight, VO₂ max, resting heart rate and workouts feed the engine." = "栄養、水分、体重、VO₂ max、安静時心拍数、ワークアウトがエンジンに反映されます。";
-"OWN" = "所有";
+"OWN" = "自作";
 "Off by default. They appear inside Main Phase sessions when on." = "初期設定ではオフです。オンにすると、メインフェーズのセッション内に表示されます。";
 "Off keeps every new scan on the rear camera. Turn this on only when you need a camera switch." = "オフにすると、新しいスキャンは常に背面カメラで行います。カメラの切り替えが必要なときだけオンにしてください。";
 
@@ -2401,7 +2401,7 @@
 "Overnight oat jar" = "オーバーナイトオーツ（ジャー）";
 "P   g, " = "P   g, ";
 "P  g" = "P  g";
-"PART" = "パート";
+"PART" = "一部";
 "PLAN" = "プラン";
 "PLAN HORIZON" = "プラン期間";
 "PROTEIN SOURCES" = "タンパク源";
