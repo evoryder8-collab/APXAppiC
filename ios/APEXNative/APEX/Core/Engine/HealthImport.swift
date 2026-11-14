@@ -508,3 +508,22 @@ enum WearableLinkRequest: Equatable, Sendable {
     case none
     case activity(UUID)
 }
+
+/// Which iPhones an account has said hold its own Apple Health. Kept in the account's settings,
+/// so a phone signed in to someone else's account knows its Health and Watch are not theirs.
+enum HealthDeviceLink {
+    static let addonKey = "apple_health_devices"
+
+    static func devices(in addons: [String: JSONValue]) -> [String] {
+        addons[addonKey]?.arrayValue?.compactMap(\.stringValue) ?? []
+    }
+
+    /// Adds a device and keeps every other; another person's phone never unlinks the owner's.
+    static func adding(_ device: String, to addons: [String: JSONValue]) -> [String: JSONValue] {
+        let current = devices(in: addons)
+        guard !current.contains(device) else { return addons }
+        var updated = addons
+        updated[addonKey] = .array((current + [device]).map(JSONValue.string))
+        return updated
+    }
+}

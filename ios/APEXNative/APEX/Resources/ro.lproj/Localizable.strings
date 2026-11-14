@@ -5952,3 +5952,11 @@
 "This day's estimate %d kcal · PAL %.2f · %@" = "Estimarea acestei zile %d kcal · PAL %.2f · %@";
 "DAY ESTIMATE" = "ESTIMAREA ZILEI";
 "Suggested from this day's activity: %@" = "Sugestie din activitatea acestei zile: %@";
+
+/* Apple Health belongs to the iPhone's owner: asked when another account signs in */
+"Link this iPhone's Apple Health to %@?" = "Conectezi Apple Health de pe acest iPhone la %@?";
+"Link this iPhone's Apple Health to this account?" = "Conectezi Apple Health de pe acest iPhone la acest cont?";
+"Sleep, heart rate, steps, workouts and water from this iPhone and its Apple Watch will be saved to this account. Choose Not this session if you are signed in to someone else's account." = "Somnul, pulsul, pașii, antrenamentele și apa de pe acest iPhone și de pe Apple Watch-ul lui vor fi salvate în acest cont. Alege „Nu de data asta” dacă ești conectat în contul altei persoane.";
+"Link Apple Health" = "Conectează Apple Health";
+"Not this session" = "Nu de data asta";
+"No sessions since %@" = "Nicio sesiune din %@";

@@ -450,6 +450,95 @@ final class ExportReportTests: XCTestCase {
     }
 
     @MainActor
+    func testTheCoverNamesEachEarlierIdentityOnceWhateverOrderTheMonthsSwapIn() {
+        let stages = [
+            AvatarReport.IdentityStage(from: "2026-08-01", to: "2026-08-31", title: "All-rounder", workouts: 9),
+            AvatarReport.IdentityStage(from: "2026-09-01", to: "2026-09-30", title: "Strength athlete", workouts: 12),
+            AvatarReport.IdentityStage(from: "2026-10-01", to: "2026-11-30", title: "All-rounder", workouts: 14),
+            AvatarReport.IdentityStage(from: "2026-12-01", to: "2026-12-10", title: "Strength athlete", workouts: 4),
+        ]
+        let earlier = AvatarReport.earlierIdentities(stages, current: "Strength athlete")
+        XCTAssertEqual(earlier.map(\.title), ["All-rounder"])
+        XCTAssertEqual(earlier.first?.months, ["2026-08-01", "2026-10-01", "2026-11-01"])
+        XCTAssertEqual(earlier.first?.workouts, 23)
+        XCTAssertTrue(AvatarReport.earlierIdentities(Array(stages.prefix(2)), current: "All-rounder").map(\.title) == ["Strength athlete"])
+        let early = [AvatarReport.IdentityStage(from: "2026-07-01", to: "2026-07-31", title: "Building your baseline", workouts: 2)]
+        XCTAssertEqual(AvatarReport.earlierIdentities(early + stages, current: "Strength athlete").map(\.title), ["All-rounder"])
+    }
+
+    @MainActor
+    func testTheRenderedCoverPrintsEachIdentityOnce() throws {
+        var fixture = data()
+        let more = ["2026-02-09", "2026-03-02"].map { date in
+            WorkoutSession(id: UUID(), userID: user, date: date, programDayID: dayID, isLite: false, isDeload: false,
+                           isEventRecovery: false, completed: true, qualityScore: 1, startedAt: nil, completedAt: nil, notes: "")
+        }
+        fixture.workoutSessions += more
+        for session in more {
+            fixture.workoutLogs.append(WorkoutLog(id: UUID(), userID: user, sessionID: session.id, exerciseID: nil,
+                exerciseName: "Reverse Lunge", setNumber: 1, weightKG: 12, reps: 10, rir: nil, movementID: "reverse_lunge",
+                skipped: false, overrideFlag: false, createdAt: ""))
+        }
+        let profile = TrainingProfile90.summarize(ownerID: user, data: fixture, through: "2026-03-02")
+        let current = profile.athleteTitle
+        let other = current == "All-rounder" ? "Runner" : "All-rounder"
+        var report = AvatarReport(ownerID: user, displayName: "Alex Morgan", snapshots: [], partialScores: [:],
+                                  sessions: fixture.workoutSessions, logs: fixture.workoutLogs, unit: .kilograms,
+                                  trainingProfile: profile)
+        report.identityStages = [
+            .init(from: "2025-11-01", to: "2025-11-30", title: other, workouts: 6),
+            .init(from: "2025-12-01", to: "2025-12-31", title: current, workouts: 8),
+            .init(from: "2026-01-01", to: "2026-01-31", title: other, workouts: 5),
+            .init(from: "2026-02-01", to: "2026-03-02", title: current, workouts: 9),
+        ]
+        let document = try XCTUnwrap(PDFDocument(data: report.pdfData()))
+        let cover = try XCTUnwrap(document.page(at: 0)?.string)
+        let language = LanguageState.shared
+        XCTAssertEqual(cover.components(separatedBy: language.text(current)).count - 1, 1, cover)
+        XCTAssertEqual(cover.components(separatedBy: language.text(other)).count - 1, 1, cover)
+        let sample = XCTAttachment(data: report.pdfData(), uniformTypeIdentifier: "com.adobe.pdf")
+        sample.name = "Cover identities once.pdf"
+        sample.lifetime = .keepAlways
+        add(sample)
+    }
+
+    @MainActor
+    func testAnExerciseNotDoneLatelyRunsToTheReportsLastDayAndSaysSince() throws {
+        var fixture = data()
+        fixture.workoutSessions = []
+        for (index, date) in ["2026-01-05", "2026-01-12", "2026-01-19"].enumerated() {
+            let session = WorkoutSession(id: UUID(), userID: user, date: date, programDayID: dayID,
+                                         isLite: false, isDeload: false, isEventRecovery: false, completed: true,
+                                         qualityScore: 1, startedAt: nil, completedAt: nil, notes: "")
+            fixture.workoutSessions.append(session)
+            var rows = [("Dumbbell Romanian Deadlift", "dumbbell_romanian_deadlift", 16.0 + Double(index) * 2)]
+            if index < 2 { rows.append(("Reverse Lunge", "reverse_lunge", 10 + Double(index) * 2)) }
+            for (name, movement, load) in rows {
+                fixture.workoutLogs.append(WorkoutLog(id: UUID(), userID: user, sessionID: session.id,
+                    exerciseID: nil, exerciseName: name, setNumber: 1, weightKG: load, reps: 10, rir: nil,
+                    movementID: movement, skipped: false, overrideFlag: false, createdAt: ""))
+            }
+        }
+        let pdf = AvatarReport.scoped(ownerID: user, data: fixture, partialScores: [:], period: .allTime,
+                                      dates: "2026-01-05"..."2026-01-26", today: "2026-01-26").pdfData()
+        let document = try XCTUnwrap(PDFDocument(data: pdf))
+        let language = LanguageState.shared
+        let pages = (0..<document.pageCount).compactMap { document.page(at: $0)?.string }
+            .filter { $0.contains(language.text("Strength progress")) }
+        let lunge = try XCTUnwrap(pages.first { $0.contains(language.text("Lunge") + " · Reverse") })
+        let deadlift = try XCTUnwrap(pages.first { $0.contains(language.text("Romanian Deadlift")) })
+        XCTAssertTrue(lunge.contains(language.format("No sessions since %@", language.dateKey("2026-01-12"))))
+        XCTAssertTrue(deadlift.contains(language.format("No sessions since %@", language.dateKey("2026-01-19"))))
+        let sample = XCTAttachment(data: pdf, uniformTypeIdentifier: "com.adobe.pdf")
+        sample.name = "Exercise not done lately.pdf"
+        sample.lifetime = .keepAlways
+        add(sample)
+        if let path = ProcessInfo.processInfo.environment["APEX_REPORT_SAMPLE_PATH"] {
+            try pdf.write(to: URL(fileURLWithPath: path))
+        }
+    }
+
+    @MainActor
     func testUnweightedUpperBodyShowsRepeatedSessionRepTotalsWithoutALoadChart() throws {
         var fixture = data(logs: [
             log("Strict Push-Up", set: 1, weight: nil, reps: 9, at: ""),

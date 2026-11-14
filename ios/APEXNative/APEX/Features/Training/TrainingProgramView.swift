@@ -1,4 +1,3 @@
-import AudioToolbox
 import AVFoundation
 import Combine
 import SwiftUI
@@ -1657,16 +1656,66 @@ private enum WorkoutPlayerPhase: String, Codable {
     case complete
 }
 
+/// The rep beep and the spoken count share one audio session, so they mix instead of ducking each other.
+/// Only other apps' music is lowered while the workout talks.
 @MainActor
 private final class WorkoutAudioCoach: NSObject, AVSpeechSynthesizerDelegate {
     static let shared = WorkoutAudioCoach()
     private let speaker = AVSpeechSynthesizer()
+    private let engine = AVAudioEngine()
+    private let tickPlayer = AVAudioPlayerNode()
+    private var tickBuffer: AVAudioPCMBuffer?
     private var completion: (@MainActor () -> Void)?
     private var completionUtterance: ObjectIdentifier?
 
     override private init() {
         super.init()
         speaker.delegate = self
+        engine.attach(tickPlayer)
+        let format = engine.mainMixerNode.outputFormat(forBus: 0)
+        engine.connect(tickPlayer, to: engine.mainMixerNode, format: format)
+        tickPlayer.volume = 0.55
+        tickBuffer = Self.tick(format: format)
+    }
+
+    /// Called when the player opens: one session for the whole workout, so music is lowered once, not per rep.
+    func begin() {
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .voicePrompt, options: [.duckOthers, .interruptSpokenAudioAndMixWithOthers])
+        try? session.setActive(true)
+        if !engine.isRunning { try? engine.start() }
+    }
+
+    /// Called when the player closes: other apps' audio comes back to full volume.
+    func end() {
+        stop()
+        tickPlayer.stop()
+        engine.stop()
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    func tick() {
+        guard let tickBuffer else { return }
+        // A call or another app can stop the engine; the next rep picks it back up.
+        if !engine.isRunning { begin() }
+        guard engine.isRunning else { return }
+        tickPlayer.scheduleBuffer(tickBuffer, at: nil, options: .interrupts)
+        if !tickPlayer.isPlaying { tickPlayer.play() }
+    }
+
+    /// A short, soft-edged click: two tones that decay in 60 ms, quiet enough to sit under the voice.
+    private static func tick(format: AVAudioFormat) -> AVAudioPCMBuffer? {
+        let rate = format.sampleRate
+        guard rate > 0, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(rate * 0.06)),
+              let channels = buffer.floatChannelData else { return nil }
+        buffer.frameLength = buffer.frameCapacity
+        for frame in 0 ..< Int(buffer.frameLength) {
+            let t = Double(frame) / rate
+            let envelope = min(1, t / 0.002) * exp(-t * 70)
+            let value = Float(envelope * (0.7 * sin(2 * .pi * 1_760 * t) + 0.3 * sin(2 * .pi * 2_640 * t)) * 0.8)
+            for channel in 0 ..< Int(format.channelCount) { channels[channel][frame] = value }
+        }
+        return buffer
     }
 
     func stop() {
@@ -1974,6 +2023,7 @@ struct WorkoutPlayerView: View {
         .interactiveDismissDisabled()
         .onReceive(timer) { _ in tick() }
         .onAppear {
+            WorkoutAudioCoach.shared.begin()
             initializePlayer()
             if !exercises.isEmpty, phase != .complete, !watchWorkoutRequested,
                let operation = session.accountOperationLease() {
@@ -1995,6 +2045,7 @@ struct WorkoutPlayerView: View {
         .onDisappear {
             persistDraft()
             cancelAnnouncement()
+            WorkoutAudioCoach.shared.end()
             stopWatchSession()
         }
         .onChange(of: scenePhase) { _, next in
@@ -3179,7 +3230,7 @@ struct WorkoutPlayerView: View {
     private func announceRep(_ rep: Int) {
         if ticksOn {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            AudioServicesPlaySystemSound(1057)
+            WorkoutAudioCoach.shared.tick()
         }
         if voiceOn, rep <= 30 {
             WorkoutAudioCoach.shared.say("\(rep)", enabled: true)

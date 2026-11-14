@@ -67,6 +67,18 @@ struct AppRootView: View {
                 .interactiveDismissDisabled()
         }
         .animation(.snappy(duration: 0.42, extraBounce: 0.04), value: session.route)
+        // Its own view, so it never competes with the app's general alert below.
+        .background {
+            Color.clear.alert(healthLinkTitle, isPresented: Binding(
+                get: { session.healthLinkQuestion != nil && session.route == .portal && session.alertMessage == nil },
+                set: { if !$0 { session.answerHealthLink(link: false) } }
+            )) {
+                Button(language.text("Link Apple Health")) { session.answerHealthLink(link: true) }
+                Button(language.text("Not this session"), role: .cancel) { session.answerHealthLink(link: false) }
+            } message: {
+                Text(language.text("Sleep, heart rate, steps, workouts and water from this iPhone and its Apple Watch will be saved to this account. Choose Not this session if you are signed in to someone else's account."))
+            }
+        }
         .alert(AppBrand.name, isPresented: Binding(
             get: { session.alertMessage != nil },
             set: { if !$0 { session.alertMessage = nil } }
@@ -75,6 +87,13 @@ struct AppRootView: View {
         } message: {
             Text(language.text(session.alertMessage ?? ""))
         }
+    }
+
+    private var healthLinkTitle: String {
+        let name = session.profile?.displayName.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return name.isEmpty
+            ? language.text("Link this iPhone's Apple Health to this account?")
+            : language.format("Link this iPhone's Apple Health to %@?", name)
     }
 
     private var accessGateEnabled: Bool {

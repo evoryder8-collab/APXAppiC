@@ -5970,3 +5970,11 @@
 "This day's estimate %d kcal · PAL %.2f · %@" = "Schätzung für diesen Tag %d kcal · PAL %.2f · %@";
 "DAY ESTIMATE" = "TAGESSCHÄTZUNG";
 "Suggested from this day's activity: %@" = "Vorschlag aus der Aktivität dieses Tages: %@";
+
+/* Apple Health belongs to the iPhone's owner: asked when another account signs in */
+"Link this iPhone's Apple Health to %@?" = "Apple Health vo däm iPhone mit %@ verknüpfe?";
+"Link this iPhone's Apple Health to this account?" = "Apple Health vo däm iPhone mit däm Konto verknüpfe?";
+"Sleep, heart rate, steps, workouts and water from this iPhone and its Apple Watch will be saved to this account. Choose Not this session if you are signed in to someone else's account." = "Schlaf, Herzfrequenz, Schritt, Trainings und Wasser vo däm iPhone und sinere Apple Watch wärded i däm Konto gspeicheret. Wähl „Nöd i dere Sitzig“, wenn du im Konto vo öpper anderem aagmeldet bisch.";
+"Link Apple Health" = "Apple Health verknüpfe";
+"Not this session" = "Nöd i dere Sitzig";
+"No sessions since %@" = "Sit %@ kei Einheit";

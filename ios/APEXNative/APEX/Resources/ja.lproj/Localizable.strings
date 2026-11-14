@@ -5970,3 +5970,11 @@
 "This day's estimate %d kcal · PAL %.2f · %@" = "この日の推定消費 %d kcal・PAL %.2f・%@";
 "DAY ESTIMATE" = "この日の推定";
 "Suggested from this day's activity: %@" = "この日の活動からの提案: %@";
+
+/* Apple Health belongs to the iPhone's owner: asked when another account signs in */
+"Link this iPhone's Apple Health to %@?" = "このiPhoneのApple Healthを%@のアカウントにリンクしますか？";
+"Link this iPhone's Apple Health to this account?" = "このiPhoneのApple Healthをこのアカウントにリンクしますか？";
+"Sleep, heart rate, steps, workouts and water from this iPhone and its Apple Watch will be saved to this account. Choose Not this session if you are signed in to someone else's account." = "このiPhoneとApple Watchの睡眠、心拍数、歩数、ワークアウト、水分がこのアカウントに保存されます。他の人のアカウントにサインインしている場合は「今回はしない」を選んでください。";
+"Link Apple Health" = "Apple Healthをリンク";
+"Not this session" = "今回はしない";
+"No sessions since %@" = "%@以降はセッションなし";

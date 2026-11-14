@@ -11,6 +11,19 @@ final class ManualWorkoutTests: XCTestCase {
     private let user = UUID()
     private let session = UUID()
 
+    func testTheRepBeepAndSpokenCountShareOneSessionSoNeitherDucksTheOther() throws {
+        let source = try String(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "APEX/Features/Training/TrainingProgramView.swift"))
+        // A system alert sound and speech are two audio paths that lower each other; the beep plays beside the voice instead.
+        XCTAssertFalse(source.contains("AudioServicesPlaySystemSound"))
+        XCTAssertTrue(source.contains("WorkoutAudioCoach.shared.tick()"))
+        XCTAssertTrue(source.contains("session.setCategory(.playback, mode: .voicePrompt, options: [.duckOthers, .interruptSpokenAudioAndMixWithOthers])"))
+        // Music is lowered once for the whole workout and given back when the player closes.
+        XCTAssertTrue(source.contains(".onAppear {\n            WorkoutAudioCoach.shared.begin()"))
+        XCTAssertTrue(source.contains("WorkoutAudioCoach.shared.end()"))
+        XCTAssertTrue(source.contains("setActive(false, options: .notifyOthersOnDeactivation)"))
+    }
+
     func testRecentQuickLogExercisesKeepLatestFirstAndRemainBounded() {
         XCTAssertEqual(ManualWorkout.rememberExercise("row", in: ["curl", "row", "squat"]), ["row", "curl", "squat"])
         XCTAssertEqual(ManualWorkout.rememberExercise("new", in: (0..<80).map(String.init)).count, 64)

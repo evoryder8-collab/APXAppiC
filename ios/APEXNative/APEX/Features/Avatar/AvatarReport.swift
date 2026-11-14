@@ -76,6 +76,27 @@ struct AvatarReport: Transferable {
         let workouts: Int
     }
 
+    /// Every identity other than the current one, once, in the order it was first held, with the months it covered.
+    /// Months that swap back and forth would otherwise print the same two titles again and again.
+    static func earlierIdentities(_ stages: [IdentityStage], current: String) -> [(title: String, months: [String], workouts: Int)] {
+        var order: [String] = []
+        var months: [String: [String]] = [:]
+        var workouts: [String: Int] = [:]
+        // A month with too few workouts names no identity, so it is not listed as one.
+        for stage in stages where stage.title != current && stage.title != "Building your baseline" {
+            if months[stage.title] == nil { order.append(stage.title) }
+            var month = String(stage.from.prefix(7)) + "-01"
+            while month <= stage.to {
+                if months[stage.title, default: []].last != month { months[stage.title, default: []].append(month) }
+                guard let start = APEXDateMath.date(from: month),
+                      let next = APEXDateMath.calendar.date(byAdding: .month, value: 1, to: start) else { break }
+                month = APEXDateMath.key(from: next)
+            }
+            workouts[stage.title, default: 0] += stage.workouts
+        }
+        return order.map { (title: $0, months: months[$0] ?? [], workouts: workouts[$0] ?? 0) }
+    }
+
     static func identityStages(ownerID: UUID, data: DashboardData, dates: ClosedRange<String>) -> [IdentityStage] {
         var stages: [IdentityStage] = []
         var month = String(dates.lowerBound.prefix(7)) + "-01"
@@ -396,10 +417,11 @@ struct AvatarReport: Transferable {
             let inner = width - pad * 2
             let titleSize = fittingSize(language.text(profile.athleteTitle), width: inner, sizes: [30, 26, 22], weight: .heavy)
             let title = wrapped(language.text(profile.athleteTitle), width: inner, size: titleSize, weight: .heavy)
-            let stages = Array(report.identityStages.suffix(6))
-            let chips = stages.count >= 2 ? stageChips(stages, width: inner) : []
+            // The title above is the current identity; only the others appear below it, once each.
+            let earlier = Array(AvatarReport.earlierIdentities(report.identityStages, current: profile.athleteTitle).prefix(6))
+            let chips = stageChips(earlier, width: inner)
             let chipRows = Set(chips.map(\.row)).count
-            let height = pad + 16 + CGFloat(title.count) * 35 + 18 + 26 + 38 + (chips.isEmpty ? 0 : 12 + CGFloat(chipRows) * 38) + pad - 10
+            let height = pad + 16 + CGFloat(title.count) * 35 + 18 + 26 + 38 + (chips.isEmpty ? 0 : 30 + CGFloat(chipRows) * 38) + pad - 10
             let panel = CGRect(x: left, y: y, width: width, height: height)
             glass(panel, radius: 24, tint: night, opacity: 1, dark: true)
             // A mesh of light under smoked glass: deep pine into ink blue, lit by emerald, cyan, violet and a warm ember.
@@ -480,43 +502,51 @@ struct AvatarReport: Transferable {
             if !chips.isEmpty {
                 fill(CGRect(x: left + pad, y: cursor, width: inner, height: 0.7), UIColor.white.withAlphaComponent(0.16))
                 cursor += 12
+                label(language.text("Before").uppercased(with: locale), left + pad, cursor, inner, size: 9.5, weight: .bold, color: mint)
+                cursor += 18
                 for chip in chips {
                     let frame = chip.frame.offsetBy(dx: left + pad, dy: cursor)
-                    let current = chip.index == stages.count - 1
-                    if current { fill(frame, mint, radius: 10) } else { glass(frame, radius: 10, tint: .white, opacity: 0.1, dark: true) }
-                    label(chip.title, frame.minX + 10, frame.minY + 4, frame.width - 20, size: 10.5, weight: .bold,
-                          color: current ? night : .white)
-                    label(chip.dates, frame.minX + 10, frame.minY + 17.5, frame.width - 16, size: 8, weight: .medium,
-                          color: current ? night.withAlphaComponent(0.7) : faint)
-                    if chip.index < stages.count - 1, chips.first(where: { $0.index == chip.index + 1 })?.row == chip.row {
-                        centered("→", in: CGRect(x: frame.maxX, y: frame.minY, width: 16, height: frame.height), size: 11, weight: .bold, color: mint)
-                    }
+                    glass(frame, radius: 10, tint: .white, opacity: 0.1, dark: true)
+                    label(chip.title, frame.minX + 10, frame.minY + 4, frame.width - 20, size: 10.5, weight: .bold, color: .white)
+                    label(chip.dates, frame.minX + 10, frame.minY + 17.5, frame.width - 16, size: 8, weight: .medium, color: faint)
                 }
             }
             y = panel.maxY + 20
         }
 
         private struct StageChip {
-            let index: Int
             let row: Int
             let frame: CGRect
             let title: String
             let dates: String
         }
 
-        private func stageChips(_ stages: [AvatarReport.IdentityStage], width available: CGFloat) -> [StageChip] {
-            let style = Date.FormatStyle(locale: locale, calendar: APEXDateMath.calendar, timeZone: .gmt).month(.abbreviated).year()
-            func month(_ day: String) -> String { APEXDateMath.date(from: day).map { $0.formatted(style) } ?? day }
-            // Three stages per row, read left to right like a timeline.
-            let arrow: CGFloat = 16
-            let chipWidth = (available - arrow * 2) / 3
-            return stages.enumerated().map { index, stage in
-                let range = month(stage.from) == month(stage.to) ? month(stage.from) : month(stage.from) + " – " + month(stage.to)
-                let full = range + " · " + language.format("%d sessions", stage.workouts)
-                let dates = measure(full, size: 8, weight: .medium) <= chipWidth - 16 ? full : range + " · " + String(stage.workouts)
-                return StageChip(index: index, row: index / 3,
-                                 frame: CGRect(x: CGFloat(index % 3) * (chipWidth + arrow), y: CGFloat(index / 3) * 38, width: chipWidth, height: 31),
-                                 title: language.text(stage.title), dates: dates)
+        private func stageChips(_ identities: [(title: String, months: [String], workouts: Int)], width available: CGFloat) -> [StageChip] {
+            let style = Date.FormatStyle(locale: locale, calendar: APEXDateMath.calendar, timeZone: .gmt).month(.abbreviated)
+            let styleWithYear = style.year()
+            // Three per row; months that follow on read as one span, gaps as a list.
+            let gap: CGFloat = 8
+            let chipWidth = (available - gap * 2) / 3
+            return identities.enumerated().map { index, identity in
+                let showYear = Set(identity.months.map { $0.prefix(4) }).count > 1
+                func name(_ day: String) -> String {
+                    APEXDateMath.date(from: day).map { $0.formatted(showYear ? styleWithYear : style) } ?? day
+                }
+                var runs: [(first: String, last: String)] = []
+                for month in identity.months {
+                    if let last = runs.last?.last, let start = APEXDateMath.date(from: last),
+                       let next = APEXDateMath.calendar.date(byAdding: .month, value: 1, to: start), APEXDateMath.key(from: next) == month {
+                        runs[runs.count - 1].last = month
+                    } else {
+                        runs.append((month, month))
+                    }
+                }
+                let range = runs.map { $0.first == $0.last ? name($0.first) : name($0.first) + " – " + name($0.last) }.joined(separator: ", ")
+                let full = range + " · " + language.format("%d sessions", identity.workouts)
+                let dates = measure(full, size: 8, weight: .medium) <= chipWidth - 16 ? full : range
+                return StageChip(row: index / 3,
+                                 frame: CGRect(x: CGFloat(index % 3) * (chipWidth + gap), y: CGFloat(index / 3) * 38, width: chipWidth, height: 31),
+                                 title: language.text(identity.title), dates: dates)
             }
         }
 
@@ -883,7 +913,9 @@ struct AvatarReport: Transferable {
         private func drawChartCard(_ points: [ChartPoint], height: CGFloat, single: String?) {
             guard let first = points.first, let last = points.last, let bestAt = bestIndex(points) else { return }
             let best = points[bestAt]
-            let calendar = WorkoutChartCalendar(first: first.date, last: last.date)
+            // The axis runs to the report's last day, so an exercise not done lately shows the gap instead of looking cut off.
+            let end = report.reportDates.flatMap { APEXDateMath.date(from: $0.upperBound) }.map { max($0, last.date) } ?? last.date
+            let calendar = WorkoutChartCalendar(first: first.date, last: end)
             let field = CGRect(x: left, y: y, width: width, height: height)
             glass(field, radius: 24, opacity: 0.55)
             drawPlot(points, calendar: calendar, in: field, best: bestAt)
@@ -997,6 +1029,19 @@ struct AvatarReport: Transferable {
             }
             drawCurve(coordinates, baseline: plot.maxY, in: plot)
             let latest = coordinates.count - 1
+            if let last = coordinates.last, plot.maxX - last.x > 12, let day = points.last?.day {
+                let dash = UIBezierPath()
+                dash.move(to: CGPoint(x: last.x + 8, y: last.y))
+                dash.addLine(to: CGPoint(x: plot.maxX, y: last.y))
+                dash.lineWidth = 1.2
+                dash.setLineDash([3, 4], count: 2, phase: 0)
+                ink.withAlphaComponent(0.22).setStroke()
+                dash.stroke()
+                // Under the line, clear of the latest pill above it; over the line when it runs along the floor.
+                let note = language.format("No sessions since %@", language.dateKey(day))
+                let noteY = last.y + 22 > plot.maxY ? last.y - 17 : last.y + 6
+                label(note, plot.maxX - 220, noteY, 220, size: 8.5, weight: .semibold, color: muted, alignment: .right)
+            }
             let dense = coordinates.count > 30
             for (index, point) in coordinates.enumerated() where index != best && index != latest {
                 if dense {

@@ -322,6 +322,8 @@ typealias FoodSearchProvider = @Sendable (String) async throws -> FoodLookupEnve
 final class AppSession {
     @ObservationIgnored private var dashboardMutationRevision: UInt64 = 0
     var route: AppRoute = .launching
+    /// The signed-in account waiting to say whether this iPhone's Apple Health and Watch are its own.
+    var healthLinkQuestion: UUID?
     /// Shown briefly after a bespoke account signs in by email.
     var greetingPersona: Persona?
     /// The address a confirmation link was just sent to, if any. Held so the
@@ -487,6 +489,7 @@ final class AppSession {
         }
         accountGeneration.advance()
         authenticatedOwnerID = nil
+        healthLinkQuestion = nil
         browsingDate = .now
         browsingDateHeld = false
         suspendedAccessOwnerID = nil
@@ -583,17 +586,112 @@ final class AppSession {
         if isDeveloperSandbox { return false }
         guard let ownerID = authenticatedOwnerID ?? verifiedPersistenceOwnerID() else { return false }
         return defaults.bool(forKey: Self.healthImportOptInKey(ownerID: ownerID))
+            && healthLinkIsConfirmed(ownerID: ownerID)
     }
 
     private func healthImportIsEnabled(operation: AccountOperationLease) -> Bool {
         !isDeveloperSandbox && accountOperationIsCurrent(operation)
             && defaults.bool(forKey: Self.healthImportOptInKey(ownerID: operation.ownerID))
+            && healthLinkIsConfirmed(ownerID: operation.ownerID)
     }
 
     private func enableHealthImport(operation: AccountOperationLease) throws {
         guard !isDeveloperSandbox else { throw CancellationError() }
         try requireCurrentAccountOperation(operation)
         defaults.set(true, forKey: Self.healthImportOptInKey(ownerID: operation.ownerID))
+        linkHealthDevice(operation: operation)
+    }
+
+    static let healthDeviceIDKey = "apex.health-device-id"
+
+    static func healthLinkDeclinedKey(ownerID: UUID) -> String {
+        "apex.health-link.declined.\(ownerID.uuidString.lowercased())"
+    }
+
+    /// Linked before the account's settings row was on this phone; written to the row once it is.
+    static func healthLinkPendingKey(ownerID: UUID) -> String {
+        "apex.health-link.pending.\(ownerID.uuidString.lowercased())"
+    }
+
+    /// This install's own name in an account's list of Health devices. It names no person or phone model.
+    private var healthDeviceID: String {
+        if let id = defaults.string(forKey: Self.healthDeviceIDKey) { return id }
+        let id = UUID().uuidString.lowercased()
+        defaults.set(id, forKey: Self.healthDeviceIDKey)
+        return id
+    }
+
+    /// Whether this iPhone's Apple Health and Watch may read into and write from this account.
+    /// The account keeps the list, so signing in to another person's account never brings this
+    /// phone's sleep, heart, steps, workouts or water into it without asking.
+    func healthLinkIsConfirmed(ownerID: UUID) -> Bool {
+        guard !defaults.bool(forKey: Self.healthLinkDeclinedKey(ownerID: ownerID)) else { return false }
+        if defaults.bool(forKey: Self.healthLinkPendingKey(ownerID: ownerID)) { return true }
+        guard let settings = data.settings, settings.userID == ownerID else { return false }
+        return HealthDeviceLink.devices(in: settings.addons).contains(healthDeviceID)
+    }
+
+    private func linkHealthDevice(operation: AccountOperationLease) {
+        let ownerID = operation.ownerID
+        defaults.removeObject(forKey: Self.healthLinkDeclinedKey(ownerID: ownerID))
+        if healthLinkQuestion == ownerID { healthLinkQuestion = nil }
+        guard var settings = data.settings, settings.userID == ownerID else {
+            defaults.set(true, forKey: Self.healthLinkPendingKey(ownerID: ownerID))
+            return
+        }
+        defaults.removeObject(forKey: Self.healthLinkPendingKey(ownerID: ownerID))
+        let device = healthDeviceID
+        let read: ServerSettingsGate.HealthRead = { addons in addons = HealthDeviceLink.adding(device, to: addons) }
+        let before = settings.addons
+        read(&settings.addons)
+        guard settings.addons != before else { return }
+        data.settings = settings
+        // Over an older row the link waits and is sent with the server's copy.
+        guard serverSettings.sends(read, for: ownerID) else { return }
+        Task { [weak self] in
+            await self?.persistUpsert(
+                settings, table: "settings", onConflict: "user_id", ownerID: ownerID,
+                expectedAccountToken: operation.generation
+            )
+        }
+    }
+
+    /// Asks after every sign-in to an account that has not linked this iPhone, and once to an
+    /// account that read Health in here before the link existed.
+    private func askHealthLinkIfNeeded(ownerID: UUID, afterSignIn: Bool) {
+        if isDeveloperSandbox { return }
+        #if DEBUG
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() { return }
+        #endif
+        guard authenticatedOwnerID == ownerID, data.settings?.userID == ownerID else { return }
+        if defaults.bool(forKey: Self.healthLinkPendingKey(ownerID: ownerID)),
+           let operation = accountOperationLease(), operation.ownerID == ownerID {
+            linkHealthDevice(operation: operation)
+            return
+        }
+        guard !healthLinkIsConfirmed(ownerID: ownerID),
+              !defaults.bool(forKey: Self.healthLinkDeclinedKey(ownerID: ownerID)),
+              afterSignIn || defaults.bool(forKey: Self.healthImportOptInKey(ownerID: ownerID)) else { return }
+        healthLinkQuestion = ownerID
+        publishHydrationState()
+    }
+
+    /// The answer to `healthLinkQuestion`. Linking connects Apple Health for this account;
+    /// "Not this session" keeps this iPhone's Health and Watch out of it until the next sign-in.
+    func answerHealthLink(link: Bool) {
+        guard let ownerID = healthLinkQuestion else { return }
+        healthLinkQuestion = nil
+        guard let operation = accountOperationLease(), operation.ownerID == ownerID else { return }
+        if link {
+            Task { [weak self] in
+                guard let self else { return }
+                _ = await self.connectHealth(operation: operation)
+                self.publishHydrationState()
+            }
+        } else {
+            defaults.set(true, forKey: Self.healthLinkDeclinedKey(ownerID: ownerID))
+            publishHydrationState()
+        }
     }
 
     var profile: Profile? { data.profile }
@@ -993,6 +1091,7 @@ final class AppSession {
                 guard accountGeneration.accepts(accountToken) else { return }
                 try await refreshDashboard(expectedUserID: userID, refreshAccess: false)
                 guard accountGeneration.accepts(accountToken) else { return }
+                askHealthLinkIfNeeded(ownerID: userID, afterSignIn: false)
                 route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
                     ? .portal : .induction
                 guard let operation = accountOperationLease() else { return }
@@ -1049,9 +1148,11 @@ final class AppSession {
             guard accountGeneration.accepts(accountToken) else { return }
             accountToken = completeAccountBoundary()
             boundaryCompleted = true
+            defaults.removeObject(forKey: Self.healthLinkDeclinedKey(ownerID: userID))
             authenticatedOwnerID = userID
             try await refreshDashboard(expectedUserID: userID)
             guard accountGeneration.accepts(accountToken) else { return }
+            askHealthLinkIfNeeded(ownerID: userID, afterSignIn: true)
             if let profile = data.profile, profile.foundingMember == true, route != .login(profile.persona) {
                 greetingPersona = profile.persona
             }
@@ -1135,9 +1236,11 @@ final class AppSession {
             guard accountGeneration.accepts(accountToken) else { return }
             accountToken = completeAccountBoundary()
             boundaryCompleted = true
+            defaults.removeObject(forKey: Self.healthLinkDeclinedKey(ownerID: userID))
             authenticatedOwnerID = userID
             try await refreshDashboard(expectedUserID: userID)
             guard accountGeneration.accepts(accountToken) else { return }
+            askHealthLinkIfNeeded(ownerID: userID, afterSignIn: true)
             /* A returning Apple account already has a profile and goes home. A
                first-time one has none, and answers the questionnaire instead. */
             route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
@@ -4134,6 +4237,12 @@ final class AppSession {
         // activation/request must keep the Watch disconnected until access is
         // granted again, including through the validated offline entitlement.
         guard accountAccessAllowsPrivateWork(for: ownerID) else {
+            hydrationConnectivity?.publishDisconnected()
+            return
+        }
+        // The Watch is this iPhone's wearer's: it stays out of an account that is still deciding or said no.
+        guard healthLinkQuestion != ownerID,
+              !defaults.bool(forKey: Self.healthLinkDeclinedKey(ownerID: ownerID)) else {
             hydrationConnectivity?.publishDisconnected()
             return
         }
