@@ -459,7 +459,8 @@ final class ExportReportTests: XCTestCase {
         ]
         let earlier = AvatarReport.earlierIdentities(stages, current: "Strength athlete")
         XCTAssertEqual(earlier.map(\.title), ["All-rounder"])
-        XCTAssertEqual(earlier.first?.months, ["2026-08-01", "2026-10-01", "2026-11-01"])
+        XCTAssertEqual(earlier.first?.spans.map(\.from), ["2026-08-01", "2026-10-01"])
+        XCTAssertEqual(earlier.first?.spans.map(\.to), ["2026-08-31", "2026-11-30"])
         XCTAssertEqual(earlier.first?.workouts, 23)
         XCTAssertTrue(AvatarReport.earlierIdentities(Array(stages.prefix(2)), current: "All-rounder").map(\.title) == ["Strength athlete"])
         let early = [AvatarReport.IdentityStage(from: "2026-07-01", to: "2026-07-31", title: "Building your baseline", workouts: 2)]

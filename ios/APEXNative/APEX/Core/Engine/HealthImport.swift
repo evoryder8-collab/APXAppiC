@@ -513,6 +513,45 @@ enum WearableLinkRequest: Equatable, Sendable {
 /// so a phone signed in to someone else's account knows its Health and Watch are not theirs.
 enum HealthDeviceLink {
     static let addonKey = "apple_health_devices"
+    static let deviceIDKey = "apex.health-device-id"
+
+    static func declinedKey(ownerID: UUID) -> String {
+        "apex.health-link.declined.\(ownerID.uuidString.lowercased())"
+    }
+
+    /// Linked before the account's settings row was on this phone; written to the row once it is.
+    static func pendingKey(ownerID: UUID) -> String {
+        "apex.health-link.pending.\(ownerID.uuidString.lowercased())"
+    }
+
+    /// This install's own name in an account's list. It names no person or phone model.
+    static func deviceID(in defaults: UserDefaults) -> String {
+        if let id = defaults.string(forKey: deviceIDKey) { return id }
+        let id = UUID().uuidString.lowercased()
+        defaults.set(id, forKey: deviceIDKey)
+        return id
+    }
+
+    enum Moment { case signIn, launch, foreground }
+
+    /// Whether to ask an account that has not linked this iPhone: after every sign-in, on a fresh launch after
+    /// "Not this session", and whenever an account that read Health in here before the link existed comes back.
+    static func shouldAsk(at moment: Moment, declined: Bool, optedIn: Bool) -> Bool {
+        switch moment {
+        case .signIn: true
+        case .launch: declined || optedIn
+        case .foreground: !declined && optedIn
+        }
+    }
+
+    /// Whether this iPhone's Apple Health and Watch may serve the account: it said so on this phone or in its
+    /// settings, and has not answered "Not this session" since signing in.
+    static func isConfirmed(ownerID: UUID, settings: UserSettings?, defaults: UserDefaults) -> Bool {
+        guard !defaults.bool(forKey: declinedKey(ownerID: ownerID)) else { return false }
+        if defaults.bool(forKey: pendingKey(ownerID: ownerID)) { return true }
+        guard let settings, settings.userID == ownerID else { return false }
+        return devices(in: settings.addons).contains(deviceID(in: defaults))
+    }
 
     static func devices(in addons: [String: JSONValue]) -> [String] {
         addons[addonKey]?.arrayValue?.compactMap(\.stringValue) ?? []

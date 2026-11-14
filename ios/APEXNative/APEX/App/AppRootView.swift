@@ -71,7 +71,7 @@ struct AppRootView: View {
         .background {
             Color.clear.alert(healthLinkTitle, isPresented: Binding(
                 get: { session.healthLinkQuestion != nil && session.route == .portal && session.alertMessage == nil },
-                set: { if !$0 { session.answerHealthLink(link: false) } }
+                set: { _ in }
             )) {
                 Button(language.text("Link Apple Health")) { session.answerHealthLink(link: true) }
                 Button(language.text("Not this session"), role: .cancel) { session.answerHealthLink(link: false) }

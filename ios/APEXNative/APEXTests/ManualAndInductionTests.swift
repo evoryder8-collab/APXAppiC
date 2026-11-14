@@ -18,8 +18,9 @@ final class ManualWorkoutTests: XCTestCase {
         XCTAssertFalse(source.contains("AudioServicesPlaySystemSound"))
         XCTAssertTrue(source.contains("WorkoutAudioCoach.shared.tick()"))
         XCTAssertTrue(source.contains("session.setCategory(.playback, mode: .voicePrompt, options: [.duckOthers, .interruptSpokenAudioAndMixWithOthers])"))
-        // Music is lowered once for the whole workout and given back when the player closes.
-        XCTAssertTrue(source.contains(".onAppear {\n            WorkoutAudioCoach.shared.begin()"))
+        // The session starts with the first word or beep, so a muted coach never lowers music, and is given back on close.
+        XCTAssertTrue(source.contains("guard enabled else { onFinished?(); return }\n        begin()"))
+        XCTAssertFalse(source.contains("WorkoutAudioCoach.shared.begin()"))
         XCTAssertTrue(source.contains("WorkoutAudioCoach.shared.end()"))
         XCTAssertTrue(source.contains("setActive(false, options: .notifyOthersOnDeactivation)"))
     }

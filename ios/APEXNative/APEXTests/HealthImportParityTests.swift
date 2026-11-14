@@ -998,19 +998,70 @@ final class HealthAccountBoundarySourceTests: XCTestCase {
         XCTAssertEqual(HealthDeviceLink.devices(in: [HealthDeviceLink.addonKey: .string(owner)]), [])
     }
 
-    func testThisIPhonesHealthAndWatchStayOutOfAnAccountUntilItSaysTheyAreItsOwn() throws {
+    func testThisIPhonesHealthServesOnlyAnAccountThatLinkedItAndNotAfterNotThisSession() throws {
+        let suite = "apex.health-link-test.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let owner = UUID(), friend = UUID()
+        let device = HealthDeviceLink.deviceID(in: defaults)
+        XCTAssertEqual(HealthDeviceLink.deviceID(in: defaults), device, "the install keeps one name")
+        func settings(_ user: UUID, devices: [String]) -> UserSettings {
+            UserSettings(userID: user, voiceOn: true, ticksOn: true, notificationsOn: true, guardianFactor: 1,
+                         addons: devices.isEmpty ? [:] : [HealthDeviceLink.addonKey: .array(devices.map(JSONValue.string))])
+        }
+
+        // The owner's account lists this phone; a friend's lists only the friend's own phone.
+        XCTAssertTrue(HealthDeviceLink.isConfirmed(ownerID: owner, settings: settings(owner, devices: [device]), defaults: defaults))
+        XCTAssertFalse(HealthDeviceLink.isConfirmed(ownerID: friend, settings: settings(friend, devices: ["friends-phone"]), defaults: defaults))
+        XCTAssertFalse(HealthDeviceLink.isConfirmed(ownerID: friend, settings: settings(friend, devices: []), defaults: defaults))
+        // A settings row that belongs to someone else never confirms the link.
+        XCTAssertFalse(HealthDeviceLink.isConfirmed(ownerID: friend, settings: settings(owner, devices: [device]), defaults: defaults))
+
+        // "Not this session" wins over the account's list until the next sign-in clears it.
+        defaults.set(true, forKey: HealthDeviceLink.declinedKey(ownerID: owner))
+        XCTAssertFalse(HealthDeviceLink.isConfirmed(ownerID: owner, settings: settings(owner, devices: [device]), defaults: defaults))
+        defaults.removeObject(forKey: HealthDeviceLink.declinedKey(ownerID: owner))
+
+        // Connected before the account's row reached this phone: linked here until the row carries it.
+        defaults.set(true, forKey: HealthDeviceLink.pendingKey(ownerID: friend))
+        XCTAssertTrue(HealthDeviceLink.isConfirmed(ownerID: friend, settings: nil, defaults: defaults))
+    }
+
+    func testTheLinkQuestionComesBackAfterSignInAndAfterAFreshLaunchFollowingNotThisSession() {
+        // A sign-in always asks an account that has not linked this phone.
+        for declined in [false, true] {
+            for optedIn in [false, true] {
+                XCTAssertTrue(HealthDeviceLink.shouldAsk(at: .signIn, declined: declined, optedIn: optedIn))
+            }
+        }
+        // A fresh launch asks after "Not this session", and asks an account that read Health in here before.
+        XCTAssertTrue(HealthDeviceLink.shouldAsk(at: .launch, declined: true, optedIn: false))
+        XCTAssertTrue(HealthDeviceLink.shouldAsk(at: .launch, declined: false, optedIn: true))
+        XCTAssertFalse(HealthDeviceLink.shouldAsk(at: .launch, declined: false, optedIn: false))
+        // Coming back to the app never overrides "Not this session" within the same run.
+        XCTAssertFalse(HealthDeviceLink.shouldAsk(at: .foreground, declined: true, optedIn: true))
+        XCTAssertTrue(HealthDeviceLink.shouldAsk(at: .foreground, declined: false, optedIn: true))
+        XCTAssertFalse(HealthDeviceLink.shouldAsk(at: .foreground, declined: false, optedIn: false))
+    }
+
+    func testEveryHealthPathAndTheWatchWaitForTheLink() throws {
         let session = withoutWhitespace(try source("APEX/App/AppSession.swift"))
-        // Every Health read and write passes this gate, so it carries the account's own list.
+        // Every Health read and write passes this gate.
         XCTAssertTrue(session.contains(
             "privatefunchealthImportIsEnabled(operation:AccountOperationLease)->Bool{!isDeveloperSandbox&&accountOperationIsCurrent(operation)&&defaults.bool(forKey:Self.healthImportOptInKey(ownerID:operation.ownerID))&&healthLinkIsConfirmed(ownerID:operation.ownerID)}"
         ))
-        XCTAssertTrue(session.contains("returnHealthDeviceLink.devices(in:settings.addons).contains(healthDeviceID)"))
-        // Connecting Health on purpose is the link; the Watch stays out while the account decides or declines.
-        XCTAssertTrue(session.contains("defaults.set(true,forKey:Self.healthImportOptInKey(ownerID:operation.ownerID))linkHealthDevice(operation:operation)"))
-        XCTAssertTrue(session.contains("guardhealthLinkQuestion!=ownerID,!defaults.bool(forKey:Self.healthLinkDeclinedKey(ownerID:ownerID))else{hydrationConnectivity?.publishDisconnected()return}"))
-        // Each sign-in is a new session: a "Not this session" from before is forgotten and the question comes back.
-        XCTAssertEqual(session.components(separatedBy: "defaults.removeObject(forKey:Self.healthLinkDeclinedKey(ownerID:userID))authenticatedOwnerID=userIDtryawaitrefreshDashboard(expectedUserID:userID)").count - 1, 2)
-        XCTAssertEqual(session.components(separatedBy: "askHealthLinkIfNeeded(ownerID:userID,afterSignIn:true)").count - 1, 2)
+        // Connecting Health on purpose saves the link before any Health is read.
+        XCTAssertTrue(session.contains("defaults.set(true,forKey:Self.healthImportOptInKey(ownerID:operation.ownerID))awaitlinkHealthDevice(operation:operation)"))
+        XCTAssertTrue(session.contains("guardhealthLinkQuestion!=ownerID,!defaults.bool(forKey:HealthDeviceLink.declinedKey(ownerID:ownerID))else{hydrationConnectivity?.publishDisconnected()return}"))
+        XCTAssertTrue(session.contains("ifmoment!=.foreground,declined{defaults.removeObject(forKey:declinedKey)}"))
+        // Email, Apple and email-link sign-ins all ask, and hold the Watch out while the account loads.
+        XCTAssertEqual(session.components(separatedBy: "askHealthLinkIfNeeded(ownerID:userID,moment:.signIn)").count - 1, 3)
+        XCTAssertEqual(session.components(separatedBy: "healthLinkQuestion=userIDauthenticatedOwnerID=userID").count - 1, 3)
+        // A launch asks whether the refresh worked or not, and coming back to the app asks too.
+        XCTAssertEqual(session.components(separatedBy: "askHealthLinkIfNeeded(ownerID:userID,moment:.launch)").count - 1, 2)
+        XCTAssertTrue(session.contains("askHealthLinkIfNeeded(ownerID:operation.ownerID,moment:.foreground)"))
+        // A Watch workout follows the same link as the Watch's water.
+        XCTAssertTrue(session.contains("healthLinkQuestion!=operation.ownerID,!defaults.bool(forKey:HealthDeviceLink.declinedKey(ownerID:operation.ownerID)),TrainingInduction.workoutOwnerID"))
         XCTAssertTrue(session.contains("authenticatedOwnerID=nilhealthLinkQuestion=nil"))
     }
 
@@ -1138,7 +1189,7 @@ final class HealthAccountBoundarySourceTests: XCTestCase {
         XCTAssertTrue(session.contains(
             "funcreconnectHealthWaterAccess(operation:AccountOperationLease)async"
         ))
-        XCTAssertTrue(session.contains("tryenableHealthImport(operation:operation)"))
+        XCTAssertTrue(session.contains("tryawaitenableHealthImport(operation:operation)"))
         XCTAssertTrue(session.contains("awaitHealthKitManager.shared.reconnectWaterAccess()"))
         XCTAssertTrue(session.contains(
             "ifhealthImportIsEnabled(operation:operation),HealthKitManager.shared.waterWriteState==.authorized"

@@ -32,9 +32,12 @@ struct TrainingProfile90: Sendable {
         case "Cardio-focused": "Endurance athlete"
         case "Mobility-focused": "Mobility athlete"
         case "Mixed training": "All-rounder"
-        default: "Building your baseline"
+        default: Self.baselineTitle
         }
     }
+
+    /// The title of a span with too few workouts to name an identity.
+    static let baselineTitle = "Building your baseline"
 
     // These describe the mix of logged sessions. Rep counts and loads are
     // reported independently because neither establishes a person's training goal.

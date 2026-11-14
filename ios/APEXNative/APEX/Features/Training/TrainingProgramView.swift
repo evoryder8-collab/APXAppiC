@@ -1665,6 +1665,7 @@ private final class WorkoutAudioCoach: NSObject, AVSpeechSynthesizerDelegate {
     private let engine = AVAudioEngine()
     private let tickPlayer = AVAudioPlayerNode()
     private var tickBuffer: AVAudioPCMBuffer?
+    private var sessionActive = false
     private var completion: (@MainActor () -> Void)?
     private var completionUtterance: ObjectIdentifier?
 
@@ -1672,17 +1673,22 @@ private final class WorkoutAudioCoach: NSObject, AVSpeechSynthesizerDelegate {
         super.init()
         speaker.delegate = self
         engine.attach(tickPlayer)
-        let format = engine.mainMixerNode.outputFormat(forBus: 0)
-        engine.connect(tickPlayer, to: engine.mainMixerNode, format: format)
+        // A fixed format: the hardware's can read 0 Hz before the session is set up, and connecting to that traps.
+        if let format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1) {
+            engine.connect(tickPlayer, to: engine.mainMixerNode, format: format)
+            tickBuffer = Self.tick(format: format)
+        }
         tickPlayer.volume = 0.55
-        tickBuffer = Self.tick(format: format)
     }
 
-    /// Called when the player opens: one session for the whole workout, so music is lowered once, not per rep.
-    func begin() {
-        let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playback, mode: .voicePrompt, options: [.duckOthers, .interruptSpokenAudioAndMixWithOthers])
-        try? session.setActive(true)
+    /// Starts with the first word or beep, so a muted coach never lowers anyone's music; it then holds for the
+    /// whole workout, so music is lowered once, not per rep.
+    private func begin() {
+        if !sessionActive {
+            let session = AVAudioSession.sharedInstance()
+            try? session.setCategory(.playback, mode: .voicePrompt, options: [.duckOthers, .interruptSpokenAudioAndMixWithOthers])
+            sessionActive = (try? session.setActive(true)) != nil
+        }
         if !engine.isRunning { try? engine.start() }
     }
 
@@ -1691,6 +1697,8 @@ private final class WorkoutAudioCoach: NSObject, AVSpeechSynthesizerDelegate {
         stop()
         tickPlayer.stop()
         engine.stop()
+        guard sessionActive else { return }
+        sessionActive = false
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
@@ -1727,6 +1735,7 @@ private final class WorkoutAudioCoach: NSObject, AVSpeechSynthesizerDelegate {
     func say(_ text: String, enabled: Bool, onFinished: (@MainActor () -> Void)? = nil) {
         stop()
         guard enabled else { onFinished?(); return }
+        begin()
         let utterance = AVSpeechUtterance(string: text)
         utterance.rate = 0.48
         utterance.volume = 0.82
@@ -2023,7 +2032,6 @@ struct WorkoutPlayerView: View {
         .interactiveDismissDisabled()
         .onReceive(timer) { _ in tick() }
         .onAppear {
-            WorkoutAudioCoach.shared.begin()
             initializePlayer()
             if !exercises.isEmpty, phase != .complete, !watchWorkoutRequested,
                let operation = session.accountOperationLease() {
