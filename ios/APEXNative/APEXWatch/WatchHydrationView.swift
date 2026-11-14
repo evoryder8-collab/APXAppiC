@@ -158,12 +158,16 @@ struct WatchHydrationView: View {
             // Called while a view update is applying the new total, where the grow would not animate and the
             // figure jumped to the middle; from the task it gets its own animated update.
             guard !Task.isCancelled else { return }
-            withAnimation(.spring(response: 0.6, dampingFraction: 0.82)) { celebrating = true }
+            // Drawn to the middle, not thrown there: a spring with no bounce.
+            withAnimation(.smooth(duration: 0.75)) { celebrating = true }
             try? await Task.sleep(for: .seconds(WatchVesselRenderer.burstTime))
             guard !Task.isCancelled else { return }
+            // The tap lands with the flare at the head.
             if hydration.preferences.confirmationHaptics { WKInterfaceDevice.current().play(.success) }
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.58)) { celebrationTitleShown = true }
-            try? await Task.sleep(for: .seconds(WatchVesselRenderer.celebrationLength - WatchVesselRenderer.burstTime - 0.4))
+            try? await Task.sleep(for: .seconds(0.15))
+            guard !Task.isCancelled else { return }
+            celebrationTitleShown = true
+            try? await Task.sleep(for: .seconds(WatchVesselRenderer.holdEnd - WatchVesselRenderer.burstTime - 0.15))
             guard !Task.isCancelled else { return }
             endCelebration()
         }
@@ -176,17 +180,22 @@ struct WatchHydrationView: View {
             vesselWide = false
             return
         }
-        withAnimation(.smooth(duration: 0.5)) {
+        // Let go in order: the title and the light first, then the figure glides home and the readout returns.
+        // The title animates itself: a second withAnimation in this update would be merged into this one.
+        celebrationTitleShown = false
+        withAnimation(.smooth(duration: 0.75).delay(0.18), completionCriteria: .removed) {
             celebrating = false
-            celebrationTitleShown = false
         } completion: {
             // Back to the column's size once the figure is home, so fading rays are never cropped mid-way.
             if !celebrating { vesselWide = false }
         }
     }
 
+    /// Rises out of the flare's light: it comes into focus as its glow tightens into the letters,
+    /// and the amount follows a beat later.
     private var celebrationTitle: some View {
-        VStack(spacing: 1) {
+        let shown = celebrationTitleShown
+        return VStack(spacing: 1) {
             ViewThatFits(in: .horizontal) {
                 ForEach([25, 21, 18], id: \.self) { size in
                     Text("Goal reached")
@@ -196,14 +205,21 @@ struct WatchHydrationView: View {
                 }
             }
             .foregroundStyle(LinearGradient(colors: [.white, aqua], startPoint: .top, endPoint: .bottom))
+            .shadow(color: aqua.opacity(shown ? 0.7 : 1), radius: shown ? 9 : 18)
+            .blur(radius: shown ? 0 : 6)
+            .scaleEffect(shown ? 1 : 0.92)
+            .offset(y: shown ? 0 : 8)
+            .opacity(shown ? 1 : 0)
+            .animation(shown ? .smooth(duration: 0.7) : .easeIn(duration: 0.22), value: shown)
             Text("\(hydration.preferences.formattedAmount(liters: displayedLiters).joiningUnit) today")
                 .font(.system(size: 13, weight: .semibold, design: .rounded))
                 .foregroundStyle(.white.opacity(0.88))
+                .shadow(color: aqua.opacity(0.7), radius: 9)
+                .offset(y: shown ? 0 : 6)
+                .opacity(shown ? 1 : 0)
+                .animation(shown ? .smooth(duration: 0.6).delay(0.14) : .easeIn(duration: 0.18), value: shown)
         }
-        .shadow(color: aqua.opacity(0.7), radius: 9)
         .padding(.horizontal, 8)
-        .scaleEffect(celebrationTitleShown ? 1 : 0.55)
-        .opacity(celebrationTitleShown ? 1 : 0)
         .accessibilityHidden(true)
     }
 
@@ -263,7 +279,7 @@ struct WatchHydrationView: View {
     /// The readout and drinks clear before the figure slides over them, and return once it has gone back.
     private var chromeFade: Animation? {
         guard !reduceMotion else { return nil }
-        return celebrating ? .easeOut(duration: 0.15) : .easeInOut(duration: 0.3).delay(0.3)
+        return celebrating ? .easeOut(duration: 0.15) : .easeInOut(duration: 0.35).delay(0.55)
     }
 
     private var readout: some View {

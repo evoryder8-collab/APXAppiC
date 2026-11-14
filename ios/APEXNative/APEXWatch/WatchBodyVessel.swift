@@ -116,6 +116,11 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
     /// 1 while the goal is held: the liquid keeps a slow rising shimmer.
     private var charged = 0.0
     private var lastTime: TimeInterval?
+    /// How much of the idle sway is applied, and how far the camera has eased in; each moves on a spring.
+    private var swayWeight = 1.0
+    private var swayVelocity = 0.0
+    private var dolly = 0.0
+    private var dollyVelocity = 0.0
     /// Whether any spark or drop may be showing; idle frames then leave the hidden nodes alone.
     private var sparksShown = false
     private var dropletsShown = false
@@ -173,6 +178,10 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
             celebrationEndRequested = false
             celebrationEnd = nil
             charged = clamped >= 1 ? 1 : 0
+            swayWeight = 1
+            swayVelocity = 0
+            dolly = 0
+            dollyVelocity = 0
             apply(fill: clamped, slosh: 0, wave: 0, turn: 0, pulse: 0)
             for node in droplets + sparks { node.isHidden = true }
             sparksShown = false
@@ -246,59 +255,91 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
             celebrationEndRequested = false
             if celebrationStart != nil, celebrationEnd == nil { celebrationEnd = time }
         }
-        // The goal: a band of light climbs the figure as it spins once, then it flares, throws sparks and stands in rays.
+        // The goal, in order: the figure stops swaying and winds back, turns once on a spring while a band of
+        // light climbs it, flares at the head and throws embers, then rays open behind it as the camera eases in.
         var spin = 0.0
         var sweep = -1.0
+        var sweepGlow = 0.0
         var rays = 0.0
+        var light = 0.0
         var burstAge: Double?
         if let start = celebrationStart {
             let age = time - start
-            // 1 until the celebration is ended early, then down to 0 in a third of a second.
-            let light = celebrationEnd.map { max(0, 1 - (time - $0) / 0.3) } ?? 1
-            if age > Self.celebrationLength {
+            // 1 until the celebration is let go early, then eased out to 0.
+            light = celebrationEnd.map { 1 - Self.ease((time - $0) / 0.4) } ?? 1
+            spin = Self.spin(age)
+            if age > Self.celebrationLength || (light <= 0 && age > Self.spinLength) {
                 celebrationStart = nil
                 celebrationEnd = nil
-            } else if light <= 0 {
-                // Only the turn is left to finish.
-                let turned = min(1, age / 1.8)
-                spin = 2 * Double.pi * (1 - pow(1 - turned, 3))
-                if turned >= 1 {
-                    celebrationStart = nil
-                    celebrationEnd = nil
-                }
-            } else {
-                let turned = min(1, age / 1.8)
-                spin = 2 * Double.pi * (1 - pow(1 - turned, 3))
-                if age < 1 { sweep = age / 0.85 * 1.15 - 0.05 }
+                spin = 0
+                light = 0
+            } else if light > 0 {
+                sweep = -0.08 + 1.2 * Self.ease(age / Self.burstTime)
+                sweepGlow = Self.ease(age / 0.15) * (1 - Self.ease((age - Self.burstTime) / 0.3)) * light
                 if age >= Self.burstTime {
                     burstAge = age - Self.burstTime
-                    pulse = max(pulse, exp(-(age - Self.burstTime) * 1.4))
+                    pulse = max(pulse, Self.flash(age - Self.burstTime) * light)
                 }
-                rays = Self.ramp(age, 0.7, 1.1) * (1 - Self.ramp(age, 3.3, Self.celebrationLength)) * light
+                // Rays open like light through a door: fast at first, then slowly to full.
+                let opened = 1 - exp(-max(0, age - Self.burstTime - 0.05) * 5)
+                let closing = Self.ease((age - Self.holdEnd) / (Self.celebrationLength - Self.holdEnd))
+                rays = opened * (1 - closing) * light
             }
         }
+        // Critically damped springs: the sway and the camera move as if weighted, and never overshoot.
+        let celebrating = celebrationStart != nil
+        Self.spring(&swayWeight, &swayVelocity, toward: celebrating ? 0 : 1, omega: celebrating ? 6 : 2.4, step: step)
+        Self.spring(&dolly, &dollyVelocity, toward: light > 0 ? 1 : 0, omega: 3.4, step: step)
         let wave = (0.0035 + min(0.02, abs(fillVelocity) * 0.06)) * scale
-        let turn = (sin(time * 0.6) * 0.62 + wristLean * 0.5) * scale + spin
+        let turn = (sin(time * 0.6) * 0.62 + wristLean * 0.5) * scale * swayWeight + spin
         let pourAge = pourStart.map { time - $0 }
         if let pourAge, pourAge > 1.2 { pourStart = nil }
         // Written under the lock so a settle on the main thread can never be overwritten by a stale frame.
-        apply(fill: fill, slosh: slosh, wave: wave, turn: turn, pulse: pulse, sweep: sweep, rays: rays)
+        apply(
+            fill: fill, slosh: slosh, wave: wave, turn: turn, pulse: pulse,
+            sweep: sweep, sweepGlow: sweepGlow, rays: rays, dolly: dolly
+        )
         moveDroplets(age: pourAge, fill: fill)
-        moveSparks(age: burstAge)
+        moveSparks(age: burstAge, strength: light)
         lock.unlock()
     }
 
-    /// Seconds from the goal being reached to the flare, and to the end of the celebration.
-    static let burstTime = 0.85
-    static let celebrationLength = 4.2
+    /// Seconds from the goal to the flare, to the moment the celebration lets go, and to its very end.
+    static let burstTime = 0.95
+    static let holdEnd = 3.4
+    static let celebrationLength = 4.4
+    /// The turn is all but finished by then, so the celebration can end without a visible snap.
+    private static let spinLength = 2.6
 
-    private static func ramp(_ value: Double, _ from: Double, _ to: Double) -> Double {
-        let t = min(1, max(0, (value - from) / (to - from)))
-        return t * t * (3 - 2 * t)
+    /// Quintic ease in and out: no jerk at either end. Clamped to 0 ... 1.
+    private static func ease(_ value: Double) -> Double {
+        let t = min(1, max(0, value))
+        return t * t * t * (t * (t * 6 - 15) + 10)
+    }
+
+    /// One full turn: a short wind back, then a critically damped spring to 360°, with no overshoot.
+    private static func spin(_ age: Double) -> Double {
+        let back = sin(Double.pi * min(1, max(0, age / 0.4)))
+        let t = max(0, age - 0.14)
+        let omega = 3.6
+        return -0.2 * back * back + 2 * Double.pi * (1 - (1 + omega * t) * exp(-omega * t))
+    }
+
+    /// The flare: up in 70 ms, then dying away like a struck light.
+    private static func flash(_ k: Double) -> Double {
+        ease(k / 0.07) * exp(-max(0, k - 0.07) * 1.6)
+    }
+
+    private static func spring(
+        _ value: inout Double, _ velocity: inout Double, toward target: Double, omega: Double, step: Double
+    ) {
+        velocity += (omega * omega * (target - value) - 2 * omega * velocity) * step
+        value += velocity * step
     }
 
     private func apply(
-        fill: Double, slosh: Double, wave: Double, turn: Double, pulse: Double, sweep: Double = -1, rays: Double = 0
+        fill: Double, slosh: Double, wave: Double, turn: Double, pulse: Double,
+        sweep: Double = -1, sweepGlow: Double = 0, rays: Double = 0, dolly: Double = 0
     ) {
         let range = shape.liquidRange
         // Past the top at a full vessel, so ripples never cut the liquid short of the glass.
@@ -311,6 +352,7 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
             material.setValue(wave, forKey: "wave")
             material.setValue(pulse, forKey: "pulse")
             material.setValue(sweep, forKey: "sweep")
+            material.setValue(sweepGlow, forKey: "sweepGlow")
             material.setValue(charged, forKey: "charged")
         }
         glowMaterial.setValue(pulse, forKey: "pulse")
@@ -319,7 +361,7 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
         glowMaterial.setValue(shape == .figure ? 0.3 : 0.06 + 0.34 * fill, forKey: "ambient")
         // The figure's glow is narrowed to its column; the celebration takes the whole screen, so it opens out.
         glowMaterial.setValue(shape.glowStretch + (1 - shape.glowStretch) * rays, forKey: "stretch")
-        cameraNode.position.z = Float(2.9 - 0.2 * rays)
+        cameraNode.position.z = Float(2.9 - 0.2 * dolly)
         switch shape {
         case .figure: vessel.eulerAngles.y = Float(turn)
         case .capsule: vessel.eulerAngles.z = Float(Self.capsuleLean + turn * 0.45)
@@ -346,32 +388,39 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
         }
     }
 
-    /// Sparks leave the whole figure at the flare, fan out and fall away.
-    private func moveSparks(age: Double?) {
+    /// Embers leave the whole figure at the flare: thrown out fast, slowed by the air, then drifting down.
+    private func moveSparks(age: Double?, strength: Double) {
         guard age != nil || sparksShown else { return }
         sparksShown = age != nil
+        let drag = 2.6
+        let gravity = 0.55
         for (index, spark) in sparks.enumerated() {
             let seed = Double(index)
             let a = (seed * 0.618).truncatingRemainder(dividingBy: 1)
             let b = (seed * 0.37).truncatingRemainder(dividingBy: 1)
             let c = (seed * 0.77).truncatingRemainder(dividingBy: 1)
-            let life = 1.3 + 0.6 * a
-            let local = (age ?? -1) - c * 0.3
+            let life = 1.4 + 0.8 * a
+            let local = (age ?? -1) - c * 0.12
             guard local >= 0, local <= life else {
                 spark.isHidden = true
                 continue
             }
             let angle = seed * 2.399963
-            let speed = 0.34 + 0.5 * a
-            let fade = 1 - local / life
+            let speed = 0.75 + 0.9 * a
+            // Linear drag: the distance covered levels off at speed / drag, while gravity keeps a slow fall.
+            let reach = (1 - exp(-drag * local)) / drag
+            let rise = (sin(angle) * 0.5 + 0.6) * speed
+            let left = 1 - local / life
+            let twinkle = 0.8 + 0.2 * sin(local * (22 + 9 * a) + seed)
+            let size = (0.55 + 0.45 * left) * twinkle
             spark.isHidden = false
             spark.position = SCNVector3(
-                Float(cos(angle) * speed * 0.8 * local),
-                Float(0.3 + 0.62 * b + (sin(angle) * 0.5 + 0.7) * speed * local - 0.5 * local * local),
+                Float(cos(angle) * speed * 0.85 * reach),
+                Float(0.3 + 0.62 * b + (rise + gravity / drag) * reach - gravity / drag * local),
                 0.12
             )
-            spark.scale = SCNVector3(Float(fade.squareRoot()), Float(fade.squareRoot()), 1)
-            spark.opacity = CGFloat(fade)
+            spark.scale = SCNVector3(Float(size), Float(size), 1)
+            spark.opacity = CGFloat(Self.ease(local / 0.06) * pow(left, 1.6) * strength)
         }
     }
 
@@ -520,6 +569,7 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
     float pulse;
     float isSurface;
     float sweep;
+    float sweepGlow;
     float charged;
     texture2d<float> bands;
     #pragma body
@@ -550,7 +600,7 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
         c += charged * streak * mix(base, float3(1.0), 0.6) * 0.17;
     }
     float band = wp.y - sweep;
-    c += exp(-band * band * 90.0) * float3(1.0, 0.97, 0.9) * 1.2;
+    c += exp(-band * band * 90.0) * float3(1.0, 0.97, 0.9) * 1.2 * sweepGlow;
     _output.color = float4(c * (1.0 + pulse * 0.6), 1.0);
     """
 
