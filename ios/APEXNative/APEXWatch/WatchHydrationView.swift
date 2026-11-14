@@ -18,6 +18,8 @@ struct WatchHydrationView: View {
     @State private var pourToken = 0
     @State private var celebrationToken = 0
     @State private var celebrating = false
+    /// The figure's view is full width from the start of a celebration until it is back in its column.
+    @State private var vesselWide = false
     @State private var celebrationTitleShown = false
     @State private var celebrationTask: Task<Void, Never>?
     @State private var didStart = false
@@ -151,8 +153,12 @@ struct WatchHydrationView: View {
         guard animationIsEnabled, page == .water else { return }
         celebrationTask?.cancel()
         celebrationToken += 1
-        withAnimation(.spring(response: 0.6, dampingFraction: 0.82)) { celebrating = true }
+        vesselWide = true
         celebrationTask = Task {
+            // Called while a view update is applying the new total, where the grow would not animate and the
+            // figure jumped to the middle; from the task it gets its own animated update.
+            guard !Task.isCancelled else { return }
+            withAnimation(.spring(response: 0.6, dampingFraction: 0.82)) { celebrating = true }
             try? await Task.sleep(for: .seconds(WatchVesselRenderer.burstTime))
             guard !Task.isCancelled else { return }
             if hydration.preferences.confirmationHaptics { WKInterfaceDevice.current().play(.success) }
@@ -166,10 +172,16 @@ struct WatchHydrationView: View {
     private func endCelebration() {
         celebrationTask?.cancel()
         celebrationTask = nil
-        guard celebrating else { return }
+        guard celebrating else {
+            vesselWide = false
+            return
+        }
         withAnimation(.smooth(duration: 0.5)) {
             celebrating = false
             celebrationTitleShown = false
+        } completion: {
+            // Back to the column's size once the figure is home, so fading rays are never cropped mid-way.
+            if !celebrating { vesselWide = false }
         }
     }
 
@@ -213,8 +225,11 @@ struct WatchHydrationView: View {
                             celebrationToken: celebrationToken,
                             celebrating: celebrating
                         )
-                        .frame(width: screen.size.width * (celebrating ? 1 : 0.45))
+                        // Resized only outside an animation, never on each frame of one: a resize rebuilds the 3D drawable.
+                        .frame(width: screen.size.width * (vesselWide ? 1 : 0.45))
                         .frame(maxHeight: .infinity)
+                        // Only the figure's centre travels, from its column to the middle of the screen and back.
+                        .modifier(VesselCentre(x: screen.size.width * (celebrating ? 0.5 : 0.225)))
 
                         readout
                             .padding(.top, safe.safeAreaInsets.top * 0.6)
@@ -222,6 +237,7 @@ struct WatchHydrationView: View {
                             .padding(.leading, screen.size.width * 0.45)
                             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                             .opacity(celebrating ? 0 : 1)
+                            .animation(chromeFade, value: celebrating)
                     }
                     Group {
                         notice
@@ -229,6 +245,7 @@ struct WatchHydrationView: View {
                             .padding(.bottom, 10)
                     }
                     .opacity(celebrating ? 0 : 1)
+                    .animation(chromeFade, value: celebrating)
                     .allowsHitTesting(!celebrating)
                 }
                 .frame(width: screen.size.width, height: screen.size.height)
@@ -241,6 +258,12 @@ struct WatchHydrationView: View {
             }
             .ignoresSafeArea()
         }
+    }
+
+    /// The readout and drinks clear before the figure slides over them, and return once it has gone back.
+    private var chromeFade: Animation? {
+        guard !reduceMotion else { return nil }
+        return celebrating ? .easeOut(duration: 0.15) : .easeInOut(duration: 0.3).delay(0.3)
     }
 
     private var readout: some View {
@@ -637,6 +660,21 @@ private enum HydrationPalette {
         return layout.map {
             Gradient.Stop(color: color(for: $0.paletteToken), location: $0.location)
         }
+    }
+}
+
+/// Places the figure's view so its centre sits at `x`, whatever width it currently has. The centre is what
+/// animates, so the view can change size in one step while the figure glides.
+private struct VesselCentre: GeometryEffect {
+    var x: CGFloat
+
+    var animatableData: CGFloat {
+        get { x }
+        set { x = newValue }
+    }
+
+    func effectValue(size: CGSize) -> ProjectionTransform {
+        ProjectionTransform(CGAffineTransform(translationX: x - size.width / 2, y: 0))
     }
 }
 

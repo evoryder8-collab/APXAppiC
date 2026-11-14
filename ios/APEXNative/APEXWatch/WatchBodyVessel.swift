@@ -35,20 +35,16 @@ struct WatchVessel: View {
     }
 
     var body: some View {
-        GeometryReader { proxy in
-            // SceneView draws one pixel per point on the Watch; drawing it double size and halving it keeps edges crisp.
-            SceneView(
-                scene: renderer.scene,
-                pointOfView: renderer.cameraNode,
-                options: animates ? [.rendersContinuously] : [],
-                preferredFramesPerSecond: 30,
-                antialiasingMode: .multisampling2X,
-                delegate: renderer
-            )
-            .frame(width: proxy.size.width * 2, height: proxy.size.height * 2)
-            .scaleEffect(0.5, anchor: .topLeading)
-            .frame(width: proxy.size.width, height: proxy.size.height, alignment: .topLeading)
-        }
+        // SceneView already draws at the screen's pixel density (a 95 × 193 pt view renders 190 × 386 px on
+        // watchOS 27), so it is drawn at its own size; 4× multisampling keeps the glass edges smooth.
+        SceneView(
+            scene: renderer.scene,
+            pointOfView: renderer.cameraNode,
+            options: animates ? [.rendersContinuously] : [],
+            preferredFramesPerSecond: 30,
+            antialiasingMode: .multisampling4X,
+            delegate: renderer
+        )
         .onAppear {
             renderer.setBands(bands)
             renderer.setProgress(progress, motionScale: liveScale, settle: true)
@@ -120,6 +116,9 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
     /// 1 while the goal is held: the liquid keeps a slow rising shimmer.
     private var charged = 0.0
     private var lastTime: TimeInterval?
+    /// Whether any spark or drop may be showing; idle frames then leave the hidden nodes alone.
+    private var sparksShown = false
+    private var dropletsShown = false
 
     init(shape: WatchVesselShape) {
         self.shape = shape
@@ -176,6 +175,8 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
             charged = clamped >= 1 ? 1 : 0
             apply(fill: clamped, slosh: 0, wave: 0, turn: 0, pulse: 0)
             for node in droplets + sparks { node.isHidden = true }
+            sparksShown = false
+            dropletsShown = false
         } else {
             pulseRequested = pulseRequested || reachedGoal
         }
@@ -327,7 +328,8 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
 
     /// Five drops fall through the figure into the liquid when a drink is added.
     private func moveDroplets(age: Double?, fill: Double) {
-        guard !droplets.isEmpty else { return }
+        guard !droplets.isEmpty, age != nil || dropletsShown else { return }
+        dropletsShown = age != nil
         // Below the hips the figure is two separate legs, so drops end where the torso does.
         let landing = max(fill, 0.5)
         for (index, droplet) in droplets.enumerated() {
@@ -346,6 +348,8 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
 
     /// Sparks leave the whole figure at the flare, fan out and fall away.
     private func moveSparks(age: Double?) {
+        guard age != nil || sparksShown else { return }
+        sparksShown = age != nil
         for (index, spark) in sparks.enumerated() {
             let seed = Double(index)
             let a = (seed * 0.618).truncatingRemainder(dividingBy: 1)
@@ -579,12 +583,15 @@ final class WatchVesselRenderer: NSObject, ObservableObject, SCNSceneRendererDel
     float d = length(p * float2(stretch, 1.0)) * 2.0;
     float falloff = pow(clamp(1.0 - d, 0.0, 1.0), 2.6);
     float3 c = mix(bottom, top, clamp(0.5 - p.y, 0.0, 1.0));
-    float angle = atan2(p.y, p.x);
-    float beams = pow(abs(sin(angle * 6.0 + scn_frame.time * 0.35)), 8.0)
-        + 0.5 * pow(abs(sin(angle * 11.0 - scn_frame.time * 0.22)), 10.0);
-    float reach = pow(clamp(1.0 - length(p) * 2.5, 0.0, 1.0), 1.15);
     float3 light = c * falloff * (ambient + pulse * 0.7 + rays * 0.3);
-    light += mix(c, float3(1.0), 0.12) * beams * reach * rays * 1.25;
+    // The plane covers the whole view, so the beams are only worked out while the celebration shows them.
+    if (rays > 0.0) {
+        float angle = atan2(p.y, p.x);
+        float beams = pow(abs(sin(angle * 6.0 + scn_frame.time * 0.35)), 8.0)
+            + 0.5 * pow(abs(sin(angle * 11.0 - scn_frame.time * 0.22)), 10.0);
+        float reach = pow(clamp(1.0 - length(p) * 2.5, 0.0, 1.0), 1.15);
+        light += mix(c, float3(1.0), 0.12) * beams * reach * rays * 1.25;
+    }
     _output.color = float4(light, 1.0);
     """
 }
