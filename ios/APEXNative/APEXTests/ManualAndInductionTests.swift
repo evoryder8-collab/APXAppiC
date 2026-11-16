@@ -1,3 +1,4 @@
+import AVFoundation
 import XCTest
 @testable import APEX
 
@@ -36,6 +37,23 @@ final class ManualWorkoutTests: XCTestCase {
         // Pools are remembered apart, and a pool that shrinks never offers a take that no longer exists.
         XCTAssertTrue((1...5).contains(WorkoutVoiceRotation.next("done", takes: 5, defaults: defaults)))
         XCTAssertTrue((1...3).contains(WorkoutVoiceRotation.next("final", takes: 3, defaults: defaults)))
+    }
+
+    func testEveryRecordedClipPlaysInTheCoachsFormat() throws {
+        // A clip in any other format would fall back to the phone's voice without a sound of complaint.
+        let root = try XCTUnwrap(Bundle.main.url(forResource: "WorkoutVoice", withExtension: nil))
+        let languages = try FileManager.default.contentsOfDirectory(atPath: root.path)
+        XCTAssertEqual(Set(languages), Set(AppLanguage.allCases.map(\.rawValue)))
+        for language in languages {
+            let folder = root.appending(path: language)
+            let clips = try FileManager.default.contentsOfDirectory(atPath: folder.path).filter { $0.hasSuffix(".m4a") }
+            for n in 1...100 { XCTAssertTrue(clips.contains("count.\(n).m4a"), "\(language) count \(n)") }
+            for clip in clips {
+                let format = try AVAudioFile(forReading: folder.appending(path: clip)).processingFormat
+                XCTAssertEqual(format.sampleRate, 44_100, "\(language)/\(clip)")
+                XCTAssertEqual(format.channelCount, 1, "\(language)/\(clip)")
+            }
+        }
     }
 
     func testPepTalksBuildTowardTheFinishLine() {
