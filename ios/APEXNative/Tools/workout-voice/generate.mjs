@@ -105,11 +105,15 @@ function toAAC(mp3, destination, { lastWordOnly = false } = {}) {
   fs.writeFileSync(source, mp3)
   execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', source, '-af', trim, '-ar', '44100', '-ac', '1', trimmed])
   if (lastWordOnly) {
-    // Keep what follows the last pause: the final number of a short counting run.
+    // Keep the last spoken word: the stretches of sound between pauses, ignoring blips shorter than a word.
     const { duration, pauses } = silences(trimmed, 0.12)
-    const cut = pauses.map(([, end]) => end).filter((end) => end < duration - 0.1).at(-1)
-    if (cut !== undefined) {
-      execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', trimmed, '-af', `atrim=start=${Math.max(0, cut - 0.03)}`, `${trimmed}.cut.wav`])
+    const edges = [0, ...pauses.flatMap(([start, end]) => [start, Math.min(end, duration)]), duration]
+    const words = []
+    for (let i = 0; i < edges.length; i += 2) if (edges[i + 1] - edges[i] >= 0.15) words.push([edges[i], edges[i + 1]])
+    const last = words.at(-1)
+    if (last) {
+      const [from, to] = [Math.max(0, last[0] - 0.03), Math.min(duration, last[1] + 0.12)]
+      execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', trimmed, '-af', `atrim=start=${from}:end=${to}`, `${trimmed}.cut.wav`])
       fs.renameSync(`${trimmed}.cut.wav`, trimmed)
     }
   }
@@ -127,10 +131,13 @@ function silences(file, minimum) {
   return { duration: Number(h) * 3600 + Number(m) * 60 + Number(s), pauses: starts.map((start, i) => [start, ends[i] ?? Infinity]) }
 }
 
-// A long pause in the middle of a short clip is the shape of a word said twice ("Dos. Dos.").
-function soundsDoubled(file) {
+// A long pause in the middle of a short clip is the shape of a word said twice ("Dos. Dos."); a short or quiet one
+// is a breath left over from a cut, not the word.
+function soundsWrong(file) {
   const { duration, pauses } = silences(file, 0.2)
-  return pauses.some(([start, end]) => start > 0.1 && end < duration - 0.08)
+  const peak = Number(spawnSync('ffmpeg', ['-hide_banner', '-nostats', '-i', file, '-af', 'volumedetect', '-f', 'null', '-'],
+    { encoding: 'utf8' }).stderr.match(/max_volume: ([-\d.]+)/)[1])
+  return duration < 0.3 || peak < -12 || pauses.some(([start, end]) => start > 0.1 && end < duration - 0.08)
 }
 
 const signatureOf = (voiceId, take, line) =>
@@ -230,7 +237,7 @@ async function main() {
         const candidate = `${file}.take.m4a`
         const run = Boolean(runLine) && attempt > 2
         toAAC(await speak(voices[language], language, run ? runLine : line, takeSeed), candidate, { lastWordOnly: run })
-        if (soundsDoubled(candidate)) { fs.rmSync(candidate); continue }
+        if (soundsWrong(candidate)) { fs.rmSync(candidate); continue }
         fs.renameSync(candidate, file)
         retakes[key] = { seed: takeSeed, run }
         manifest.languages[language].clips[id] = signatureOf(voices[language], retakes[key], line)

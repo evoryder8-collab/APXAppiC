@@ -119,7 +119,8 @@ const copy = {
       right: 'Lado derecho.', review: 'Revisa la última serie.', complete: 'Sesión completada.' },
     noun: { set: 'Serie', hold: 'Mantener', round: 'Ronda', exercise: 'Ejercicio' },
     set: (noun, n, total) => noun === 'Mantener' ? `Mantener: ${n} de ${total}.` : `${noun} ${n} de ${total}.`,
-    group: (letter, n) => `${letter} ${n}.`,
+    // A bare "F" is read as "equis" or "ekef"; its name is unambiguous.
+    group: (letter, n) => `${letter === 'F' ? 'Efe' : letter} ${n}.`,
     countLead: 'Bien, controlado. Mantén el ritmo.',
     pushLead: 'Últimas repeticiones. ¡Aprieta, que ya lo tienes!',
     setLead: 'Seguimos enseguida.',

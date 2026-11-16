@@ -1,0 +1,430 @@
+{
+ "es/count.1": {
+  "seed": 7422,
+  "run": false
+ },
+ "de/count.10": {
+  "seed": 7523,
+  "run": true
+ },
+ "de/count.11": {
+  "seed": 7523,
+  "run": true
+ },
+ "de/count.12": {
+  "seed": 7321,
+  "run": false
+ },
+ "de/count.14": {
+  "seed": 7422,
+  "run": false
+ },
+ "de/count.18": {
+  "seed": 7321,
+  "run": false
+ },
+ "de/count.3": {
+  "seed": 7523,
+  "run": true
+ },
+ "de/count.5": {
+  "seed": 7523,
+  "run": true
+ },
+ "de/count.8": {
+  "seed": 7523,
+  "run": true
+ },
+ "de/count.8.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "de/count.80": {
+  "seed": 7422,
+  "run": false
+ },
+ "de/count.90": {
+  "seed": 7321,
+  "run": false
+ },
+ "de-CH/count.10": {
+  "seed": 7523,
+  "run": true
+ },
+ "de-CH/count.11": {
+  "seed": 7523,
+  "run": true
+ },
+ "de-CH/count.12": {
+  "seed": 7321,
+  "run": false
+ },
+ "de-CH/count.14": {
+  "seed": 7422,
+  "run": false
+ },
+ "de-CH/count.2": {
+  "seed": 7523,
+  "run": true
+ },
+ "de-CH/count.3": {
+  "seed": 7523,
+  "run": true
+ },
+ "de-CH/count.4": {
+  "seed": 7523,
+  "run": true
+ },
+ "de-CH/count.5": {
+  "seed": 7523,
+  "run": true
+ },
+ "de-CH/count.6": {
+  "seed": 7523,
+  "run": true
+ },
+ "de-CH/count.7": {
+  "seed": 7523,
+  "run": true
+ },
+ "de-CH/count.8": {
+  "seed": 7523,
+  "run": true
+ },
+ "es/count.10": {
+  "seed": 7523,
+  "run": true
+ },
+ "es/count.11": {
+  "seed": 7422,
+  "run": false
+ },
+ "es/count.12": {
+  "seed": 7523,
+  "run": true
+ },
+ "es/count.2": {
+  "seed": 7523,
+  "run": true
+ },
+ "es/count.8": {
+  "seed": 7321,
+  "run": false
+ },
+ "it/count.1": {
+  "seed": 7422,
+  "run": false
+ },
+ "it/count.10": {
+  "seed": 7523,
+  "run": true
+ },
+ "it/count.100": {
+  "seed": 7523,
+  "run": true
+ },
+ "it/count.2": {
+  "seed": 7523,
+  "run": true
+ },
+ "it/count.20": {
+  "seed": 7523,
+  "run": true
+ },
+ "it/count.5": {
+  "seed": 7321,
+  "run": false
+ },
+ "it/count.6": {
+  "seed": 7422,
+  "run": false
+ },
+ "it/count.7": {
+  "seed": 7422,
+  "run": false
+ },
+ "it/count.8": {
+  "seed": 7523,
+  "run": true
+ },
+ "it/count.9": {
+  "seed": 7321,
+  "run": false
+ },
+ "ja/count.2": {
+  "seed": 7826,
+  "run": true
+ },
+ "ja/count.2.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "ja/count.20": {
+  "seed": 7523,
+  "run": true
+ },
+ "pt/count.100": {
+  "seed": 7725,
+  "run": true
+ },
+ "pt/count.11": {
+  "seed": 7523,
+  "run": true
+ },
+ "pt/count.12": {
+  "seed": 7523,
+  "run": true
+ },
+ "pt/count.2": {
+  "seed": 7523,
+  "run": true
+ },
+ "pt/count.6": {
+  "seed": 7523,
+  "run": true
+ },
+ "pt/count.7": {
+  "seed": 7624,
+  "run": true
+ },
+ "pt/count.8": {
+  "seed": 7523,
+  "run": true
+ },
+ "ro/count.10": {
+  "seed": 7422,
+  "run": false
+ },
+ "ro/count.2": {
+  "seed": 7523,
+  "run": true
+ },
+ "ro/count.9": {
+  "seed": 7422,
+  "run": false
+ },
+ "th/count.10": {
+  "seed": 7624,
+  "run": true
+ },
+ "th/count.17": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.4": {
+  "seed": 7523,
+  "run": true
+ },
+ "th/count.5": {
+  "seed": 8331,
+  "run": true
+ },
+ "th/count.57": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.6": {
+  "seed": 7523,
+  "run": true
+ },
+ "de/count.1": {
+  "seed": 7523,
+  "run": true
+ },
+ "de-CH/count.1": {
+  "seed": 7523,
+  "run": true
+ },
+ "en/count.50": {
+  "seed": 7321,
+  "run": false
+ },
+ "pt/count.10": {
+  "seed": 7523,
+  "run": true
+ },
+ "pt/count.13.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "pt/count.17.push": {
+  "seed": 7523,
+  "run": true
+ },
+ "de/count.10.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "it/count.11": {
+  "seed": 7422,
+  "run": false
+ },
+ "it/group.C1": {
+  "seed": 7624,
+  "run": false
+ },
+ "it/group.C3": {
+  "seed": 7624,
+  "run": false
+ },
+ "pt/count.100.push": {
+  "seed": 7422,
+  "run": false
+ },
+ "pt/count.18.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "pt/count.19.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "pt/count.87.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.10.push": {
+  "seed": 7523,
+  "run": true
+ },
+ "th/count.20.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.29.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.37.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.5.push": {
+  "seed": 7523,
+  "run": true
+ },
+ "th/count.7": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.71.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.75.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.77": {
+  "seed": 7523,
+  "run": true
+ },
+ "th/count.77.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.79.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.8": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.81": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.81.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.84.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.85": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.85.push": {
+  "seed": 7927,
+  "run": true
+ },
+ "th/count.87": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.88": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.88.push": {
+  "seed": 7422,
+  "run": false
+ },
+ "th/count.89.push": {
+  "seed": 7422,
+  "run": false
+ },
+ "th/count.95": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/count.97.push": {
+  "seed": 7321,
+  "run": false
+ },
+ "th/group.A1": {
+  "seed": 7523,
+  "run": false
+ },
+ "th/group.A4": {
+  "seed": 7422,
+  "run": false
+ },
+ "th/group.B1": {
+  "seed": 7422,
+  "run": false
+ },
+ "th/group.B4": {
+  "seed": 7523,
+  "run": false
+ },
+ "th/group.C4": {
+  "seed": 7422,
+  "run": false
+ },
+ "th/group.D4": {
+  "seed": 7624,
+  "run": false
+ },
+ "th/group.E4": {
+  "seed": 7624,
+  "run": false
+ },
+ "th/group.F1": {
+  "seed": 7523,
+  "run": false
+ },
+ "th/group.F2": {
+  "seed": 7523,
+  "run": false
+ },
+ "th/group.F4": {
+  "seed": 7422,
+  "run": false
+ },
+ "ja/count.9.push": {
+  "seed": 8028,
+  "run": true
+ },
+ "ja/group.A3": {
+  "seed": 7422,
+  "run": false
+ },
+ "ja/group.E2": {
+  "seed": 7523,
+  "run": false
+ }
+}
