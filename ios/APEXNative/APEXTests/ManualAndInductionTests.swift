@@ -12,14 +12,16 @@ final class ManualWorkoutTests: XCTestCase {
     private let session = UUID()
 
     func testTheRepBeepAndSpokenCountShareOneSessionSoNeitherDucksTheOther() throws {
-        let source = try String(contentsOf: URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-            .appending(path: "APEX/Features/Training/TrainingProgramView.swift"))
+        let training = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "APEX/Features/Training")
+        let source = try ["TrainingProgramView.swift", "WorkoutVoice.swift"]
+            .map { try String(contentsOf: training.appending(path: $0)) }.joined(separator: "\n")
         // A system alert sound and speech are two audio paths that lower each other; the beep plays beside the voice instead.
         XCTAssertFalse(source.contains("AudioServicesPlaySystemSound"))
         XCTAssertTrue(source.contains("WorkoutAudioCoach.shared.tick()"))
         XCTAssertTrue(source.contains("session.setCategory(.playback, mode: .voicePrompt, options: [.duckOthers, .interruptSpokenAudioAndMixWithOthers])"))
         // The session starts with the first word or beep, so a muted coach never lowers music, and is given back on close.
-        XCTAssertTrue(source.contains("guard enabled else { onFinished?(); return }\n        begin()"))
+        XCTAssertTrue(source.contains("guard enabled, !parts.isEmpty else { onFinished?(); return }\n        begin()"))
         XCTAssertFalse(source.contains("WorkoutAudioCoach.shared.begin()"))
         XCTAssertTrue(source.contains("WorkoutAudioCoach.shared.end()"))
         XCTAssertTrue(source.contains("setActive(false, options: .notifyOthersOnDeactivation)"))

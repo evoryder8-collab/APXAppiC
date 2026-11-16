@@ -1656,113 +1656,6 @@ private enum WorkoutPlayerPhase: String, Codable {
     case complete
 }
 
-/// The rep beep and the spoken count share one audio session, so they mix instead of ducking each other.
-/// Only other apps' music is lowered while the workout talks.
-@MainActor
-private final class WorkoutAudioCoach: NSObject, AVSpeechSynthesizerDelegate {
-    static let shared = WorkoutAudioCoach()
-    private let speaker = AVSpeechSynthesizer()
-    private let engine = AVAudioEngine()
-    private let tickPlayer = AVAudioPlayerNode()
-    private var tickBuffer: AVAudioPCMBuffer?
-    private var sessionActive = false
-    private var completion: (@MainActor () -> Void)?
-    private var completionUtterance: ObjectIdentifier?
-
-    override private init() {
-        super.init()
-        speaker.delegate = self
-        engine.attach(tickPlayer)
-        // A fixed format: the hardware's can read 0 Hz before the session is set up, and connecting to that traps.
-        if let format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1) {
-            engine.connect(tickPlayer, to: engine.mainMixerNode, format: format)
-            tickBuffer = Self.tick(format: format)
-        }
-        tickPlayer.volume = 0.55
-    }
-
-    /// Starts with the first word or beep, so a muted coach never lowers anyone's music; it then holds for the
-    /// whole workout, so music is lowered once, not per rep.
-    private func begin() {
-        if !sessionActive {
-            let session = AVAudioSession.sharedInstance()
-            try? session.setCategory(.playback, mode: .voicePrompt, options: [.duckOthers, .interruptSpokenAudioAndMixWithOthers])
-            sessionActive = (try? session.setActive(true)) != nil
-        }
-        if !engine.isRunning { try? engine.start() }
-    }
-
-    /// Called when the player closes: other apps' audio comes back to full volume.
-    func end() {
-        stop()
-        tickPlayer.stop()
-        engine.stop()
-        guard sessionActive else { return }
-        sessionActive = false
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-    }
-
-    func tick() {
-        guard let tickBuffer else { return }
-        // A call or another app can stop the engine; the next rep picks it back up.
-        if !engine.isRunning { begin() }
-        guard engine.isRunning else { return }
-        tickPlayer.scheduleBuffer(tickBuffer, at: nil, options: .interrupts)
-        if !tickPlayer.isPlaying { tickPlayer.play() }
-    }
-
-    /// A short, soft-edged click: two tones that decay in 60 ms, quiet enough to sit under the voice.
-    private static func tick(format: AVAudioFormat) -> AVAudioPCMBuffer? {
-        let rate = format.sampleRate
-        guard rate > 0, let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(rate * 0.06)),
-              let channels = buffer.floatChannelData else { return nil }
-        buffer.frameLength = buffer.frameCapacity
-        for frame in 0 ..< Int(buffer.frameLength) {
-            let t = Double(frame) / rate
-            let envelope = min(1, t / 0.002) * exp(-t * 70)
-            let value = Float(envelope * (0.7 * sin(2 * .pi * 1_760 * t) + 0.3 * sin(2 * .pi * 2_640 * t)) * 0.8)
-            for channel in 0 ..< Int(format.channelCount) { channels[channel][frame] = value }
-        }
-        return buffer
-    }
-
-    func stop() {
-        completion = nil
-        completionUtterance = nil
-        speaker.stopSpeaking(at: .immediate)
-    }
-
-    func say(_ text: String, enabled: Bool, onFinished: (@MainActor () -> Void)? = nil) {
-        stop()
-        guard enabled else { onFinished?(); return }
-        begin()
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = 0.48
-        utterance.volume = 0.82
-        completion = onFinished
-        completionUtterance = ObjectIdentifier(utterance)
-        speaker.speak(utterance)
-    }
-
-    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        let identifier = ObjectIdentifier(utterance)
-        Task { @MainActor [weak self] in self?.finish(identifier) }
-    }
-
-    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        let identifier = ObjectIdentifier(utterance)
-        Task { @MainActor [weak self] in self?.finish(identifier) }
-    }
-
-    private func finish(_ identifier: ObjectIdentifier) {
-        guard completionUtterance == identifier else { return }
-        let callback = completion
-        completion = nil
-        completionUtterance = nil
-        callback?()
-    }
-}
-
 struct WorkoutPlayerView: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
@@ -2033,6 +1926,9 @@ struct WorkoutPlayerView: View {
         .onReceive(timer) { _ in tick() }
         .onAppear {
             initializePlayer()
+            let names = exercises.map { (name: $0.name, spoken: language.text($0.name)) }
+            let code = language.language.rawValue
+            Task { await WorkoutVoiceNames.prefetch(names, language: code) }
             if !exercises.isEmpty, phase != .complete, !watchWorkoutRequested,
                let operation = session.accountOperationLease() {
                 let launchID = UUID()
@@ -2829,7 +2725,7 @@ struct WorkoutPlayerView: View {
                     Button(language.text("Finish review")) {
                         guard lastSetResolved else { return }
                         phase = .complete
-                        WorkoutAudioCoach.shared.say(language.text("Session complete"), enabled: voiceOn)
+                        WorkoutAudioCoach.shared.speak([.line("cue.complete", fallback: language.text("Session complete"))], enabled: voiceOn)
                     }
                     .buttonStyle(APEXPrimaryButtonStyle(color: accent))
                     .disabled(!lastSetResolved)
@@ -3043,7 +2939,7 @@ struct WorkoutPlayerView: View {
             text: warmupText,
             duration: warmupDuration
         ) != nil {
-            WorkoutAudioCoach.shared.say(language.text("Warm-up started"), enabled: voiceOn)
+            WorkoutAudioCoach.shared.speak([.line("cue.warmup", fallback: language.text("Warm-up started"))], enabled: voiceOn)
         } else {
             beginActiveSet()
         }
@@ -3195,7 +3091,7 @@ struct WorkoutPlayerView: View {
             let previous = timerRemaining
             timerRemaining = max(0, timerRemaining - wholeSeconds)
             if previous > 30, timerRemaining <= 30 {
-                    WorkoutAudioCoach.shared.say(language.text("30 seconds"), enabled: voiceOn)
+                    WorkoutAudioCoach.shared.speak([.line("cue.thirty", fallback: language.text("30 seconds"))], enabled: voiceOn)
             }
             resolveExpiredCountdown()
         case .review:
@@ -3228,20 +3124,22 @@ struct WorkoutPlayerView: View {
         if capped != announcedRep, repElapsed > 0.1 {
             announcedRep = capped
             actualReps = capped
-            announceRep(capped)
+            announceRep(capped, target: target)
         }
         if let target, repElapsed >= Double(target) * duration + 0.3 {
             endCurrentSet(skipped: false)
         }
     }
 
-    private func announceRep(_ rep: Int) {
+    private func announceRep(_ rep: Int, target: Int?) {
         if ticksOn {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             WorkoutAudioCoach.shared.tick()
         }
         if voiceOn, rep <= 30 {
-            WorkoutAudioCoach.shared.say("\(rep)", enabled: true)
+            // The last two reps of a set are called with more push.
+            let push = target.map { $0 >= 4 && rep >= $0 - 1 } ?? false
+            WorkoutAudioCoach.shared.speak([.line(push ? "count.\(rep).push" : "count.\(rep)", fallback: "\(rep)")], enabled: true)
         }
     }
 
@@ -3289,18 +3187,25 @@ struct WorkoutPlayerView: View {
         phase = .active
         lastClockTick = .now
         persistDraft()
-        let introduction = currentWorkPosition?.groupLabel.map {
-                "\($0). \(language.text(exercise.name)). \(language.text("Round")) \(currentSet) \(language.text("of")) \(exercise.sets)."
-            } ?? language.format(
-                "%@. %@ %d of %d.", language.text(exercise.name),
-                language.text(MovementTiming.movement(named: exercise.name)?.setNoun
-                    ?? MovementTiming.fallbackNoun(repUnit: exercise.repUnit)).capitalized,
-                currentSet, exercise.sets
-            )
-        let side = setExecution.side.map { language.text($0 == .left ? "Left side" : "Right side") }
-        let announcement = side.map { "\(introduction) \($0)." } ?? introduction
+        let groupLabel = currentWorkPosition?.groupLabel
+        let noun = groupLabel == nil
+            ? (MovementTiming.movement(named: exercise.name)?.setNoun ?? MovementTiming.fallbackNoun(repUnit: exercise.repUnit))
+            : "round"
+        let spokenName = language.text(exercise.name)
+        let setText = groupLabel == nil
+            ? "\(language.text(noun).capitalized) \(currentSet) \(language.text("of")) \(exercise.sets)."
+            : "\(language.text("Round")) \(currentSet) \(language.text("of")) \(exercise.sets)."
+        var parts: [VoicePart] = []
+        if let groupLabel { parts.append(.line("group.\(groupLabel)", fallback: groupLabel)) }
+        parts.append(.exercise(spoken: spokenName))
+        parts.append(.setCall(noun: noun, number: currentSet, total: exercise.sets, fallback: setText))
+        if let side = setExecution.side {
+            parts.append(side == .left ? .line("cue.left", fallback: language.text("Left side"))
+                : .line("cue.right", fallback: language.text("Right side")))
+        }
+        let announcement = parts.map(\.fallback).joined(separator: " ")
         let token = cadenceGate.begin(voiceEnabled: voiceOn)
-        WorkoutAudioCoach.shared.say(announcement, enabled: voiceOn) {
+        WorkoutAudioCoach.shared.speak(parts, enabled: voiceOn) {
             if let token { releaseAnnouncement(token) }
         }
         if let token {
@@ -3330,7 +3235,7 @@ struct WorkoutPlayerView: View {
             paused = false
             phase = .sideSwitch
             persistDraft()
-            WorkoutAudioCoach.shared.say(language.text("Right side"), enabled: voiceOn)
+            WorkoutAudioCoach.shared.speak([.line("cue.right", fallback: language.text("Right side"))], enabled: voiceOn)
             return
         case .record(let work, let skipped):
             measuredWork = work
@@ -3352,7 +3257,7 @@ struct WorkoutPlayerView: View {
             performedFinish = .now
             phase = .review
             persistDraft()
-            WorkoutAudioCoach.shared.say(language.text("Review the final set"), enabled: voiceOn)
+            WorkoutAudioCoach.shared.speak([.line("cue.review", fallback: language.text("Review the final set"))], enabled: voiceOn)
         } else {
             let rest = currentBreakPlan
             timerRemaining = PlayerTimeline.restCountdownSeconds(
@@ -3366,7 +3271,7 @@ struct WorkoutPlayerView: View {
             if timerRemaining == 0, lastSetResolved {
                 advanceAfterRest()
             } else {
-                WorkoutAudioCoach.shared.say(language.text("Rest"), enabled: voiceOn)
+                WorkoutAudioCoach.shared.speak([.line("cue.rest", fallback: language.text("Rest"))], enabled: voiceOn)
             }
         }
     }

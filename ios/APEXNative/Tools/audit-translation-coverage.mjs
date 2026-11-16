@@ -189,6 +189,9 @@ const internalLiterals = {
   'WorkoutReceipt.swift': ['FITR_WORKOUT_TIMING_V1|'],
   'SimpleHomeView.swift': ['simple-training-mode- - '],
   'AvatarReport.swift': ['Archivo_Expanded-ExtraBold', 'ReportFonts', 'ArchivoExpanded-ExtraBold'],
+  // Recorded voice clip names and their folders.
+  'WorkoutVoice.swift': ['WorkoutVoice/ ', 'set. . . ', 'WorkoutVoice/ / .mp3'],
+  'TrainingProgramView.swift': ['count. .push'],
 }
 
 const prose = new Map()

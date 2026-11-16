@@ -693,6 +693,15 @@ actor SupabaseService {
         )
     }
 
+    /// An exercise name in the workout voice, made once by the server and kept there for every phone.
+    func workoutVoiceClip(name: String, spoken: String, language: String) async throws -> Data {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        return try await client.functions.invoke(
+            "workout-voice",
+            options: .init(body: ["name": name, "spoken": spoken, "language": language])
+        ) { data, _ in data }
+    }
+
     func searchFoods(query: String) async throws -> FoodLookupEnvelope {
         guard let client else { throw APEXServiceError.configurationMissing }
         return try await client.functions.invoke(
