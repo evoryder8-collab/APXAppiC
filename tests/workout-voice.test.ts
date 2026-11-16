@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 
 // @ts-expect-error plain ES module without type declarations
-import { groupLetters, linesFor, maxCount, maxGroupPosition, maxSets, setNouns, voiceLanguages } from '../ios/APEXNative/Tools/workout-voice/lines.mjs'
+import { boostKinds, groupLetters, linesFor, maxCount, maxGroupPosition, maxSets, setNouns, voiceLanguages } from '../ios/APEXNative/Tools/workout-voice/lines.mjs'
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8')
 const player = read('../ios/APEXNative/APEX/Features/Training/TrainingProgramView.swift')
@@ -41,6 +41,20 @@ test('every line the player can ask for is recorded', () => {
   // The app's own limits match what was recorded.
   assert.match(voice, /\["set", "hold", "round", "exercise"\]\.contains\(noun\) && \(1\.\.\.total\)\.contains\(number\) && total <= 10/)
   assert.match(player, /if voiceOn, rep <= 30 \{/)
+})
+
+test('every pep talk the player asks for is recorded, acted the same way in every language', () => {
+  const english = new Map(linesFor('en').map((line: { id: string; text: string }) => [line.id, line.text]))
+  const tagOf = (text: string) => text.match(/^\[[^\]]+\]/u)?.[0]
+  for (const language of voiceLanguages) {
+    for (const line of linesFor(language) as { id: string; text: string }[]) {
+      if (line.id.startsWith('boost.')) assert.equal(tagOf(line.text), tagOf(english.get(line.id) ?? ''), `${language} ${line.id}`)
+    }
+  }
+  const choice = player.slice(player.indexOf('func boostKind'), player.indexOf('func endCurrentSet'))
+  const asked = new Set([...choice.matchAll(/return "([a-z]+)"/g), ...player.matchAll(/VoicePart\.boost\("([a-z]+)"\)/g)].map((m) => m[1]))
+  assert.deepEqual([...asked].sort(), [...boostKinds].sort())
+  for (const kind of boostKinds) assert.ok(english.has(`boost.${kind}.20`), `${kind} has at least twenty takes`)
 })
 
 test('names voiced on the server sound like the recorded lines', () => {

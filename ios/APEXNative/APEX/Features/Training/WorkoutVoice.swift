@@ -28,6 +28,43 @@ struct VoicePart: Equatable {
         let known = ["set", "hold", "round", "exercise"].contains(noun) && (1...total).contains(number) && total <= 10
         return known ? line("set.\(noun).\(number).\(total)", fallback: fallback) : VoicePart(clip: nil, fallback: fallback)
     }
+
+    /// A motivational take from one pool (`start`, `warm`, `final`, `finale`, `done`): the take heard least recently.
+    /// Nothing when this language has none recorded, so the phone's voice never reads a pep talk.
+    @MainActor
+    static func boost(_ kind: String) -> VoicePart? {
+        let folder = "WorkoutVoice/\(LanguageState.shared.language.rawValue)"
+        var takes: [URL] = []
+        while let take = Bundle.main.url(forResource: "boost.\(kind).\(takes.count + 1)", withExtension: "m4a", subdirectory: folder) {
+            takes.append(take)
+        }
+        guard !takes.isEmpty else { return nil }
+        return VoicePart(clip: takes[WorkoutVoiceRotation.next(kind, takes: takes.count) - 1], fallback: "")
+    }
+
+    /// How long this part takes to say: the clip's own length, or an estimate for the phone's voice.
+    var expectedMilliseconds: Int {
+        if let clip, let file = try? AVAudioFile(forReading: clip) {
+            return Int(Double(file.length) / file.processingFormat.sampleRate * 1_000)
+        }
+        return fallback.count * 65
+    }
+}
+
+/// Remembers the order each pool's takes were heard in on this phone, so a take comes back only after every
+/// other take in its pool has played.
+enum WorkoutVoiceRotation {
+    static let key = "apex.workout-voice.boost-history"
+
+    /// The next take (1-based): one not heard yet, else the one heard longest ago.
+    static func next(_ kind: String, takes: Int, defaults: UserDefaults = .standard) -> Int {
+        var history = defaults.dictionary(forKey: key) as? [String: [Int]] ?? [:]
+        let heard = (history[kind] ?? []).filter { (1...takes).contains($0) }
+        let pick = (1...takes).filter { !heard.contains($0) }.randomElement() ?? heard[0]
+        history[kind] = heard.filter { $0 != pick } + [pick]
+        defaults.set(history, forKey: key)
+        return pick
+    }
 }
 
 /// Exercise names are voiced once by the `workout-voice` server function and kept on this phone, so the
@@ -172,6 +209,8 @@ final class WorkoutAudioCoach: NSObject, AVSpeechSynthesizerDelegate {
             if !voicePlayer.isPlaying { voicePlayer.play() }
             return
         }
+        // A pep talk whose clip will not play is skipped, not read out by the phone.
+        guard !part.fallback.isEmpty else { partFinished(current); return }
         let utterance = AVSpeechUtterance(string: part.fallback)
         utterance.rate = 0.48
         utterance.volume = 0.82

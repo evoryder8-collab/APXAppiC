@@ -27,6 +27,17 @@ final class ManualWorkoutTests: XCTestCase {
         XCTAssertTrue(source.contains("setActive(false, options: .notifyOthersOnDeactivation)"))
     }
 
+    func testAPepTalkComesBackOnlyAfterEveryOtherTakeInItsPoolHasPlayed() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: "boost-rotation-\(UUID())"))
+        let picks = (0..<60).map { _ in WorkoutVoiceRotation.next("final", takes: 20, defaults: defaults) }
+        for start in 0...(picks.count - 20) {
+            XCTAssertEqual(Set(picks[start..<start + 20]).count, 20, "any 20 in a row are all different")
+        }
+        // Pools are remembered apart, and a pool that shrinks never offers a take that no longer exists.
+        XCTAssertTrue((1...5).contains(WorkoutVoiceRotation.next("done", takes: 5, defaults: defaults)))
+        XCTAssertTrue((1...3).contains(WorkoutVoiceRotation.next("final", takes: 3, defaults: defaults)))
+    }
+
     func testRecentQuickLogExercisesKeepLatestFirstAndRemainBounded() {
         XCTAssertEqual(ManualWorkout.rememberExercise("row", in: ["curl", "row", "squat"]), ["row", "curl", "squat"])
         XCTAssertEqual(ManualWorkout.rememberExercise("new", in: (0..<80).map(String.init)).count, 64)

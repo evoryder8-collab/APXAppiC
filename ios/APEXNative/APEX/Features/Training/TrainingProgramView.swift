@@ -2725,7 +2725,9 @@ struct WorkoutPlayerView: View {
                     Button(language.text("Finish review")) {
                         guard lastSetResolved else { return }
                         phase = .complete
-                        WorkoutAudioCoach.shared.speak([.line("cue.complete", fallback: language.text("Session complete"))], enabled: voiceOn)
+                        let celebration = voiceOn ? VoicePart.boost("done") : nil
+                        WorkoutAudioCoach.shared.speak([.line("cue.complete", fallback: language.text("Session complete"))] + [celebration].compactMap { $0 },
+                                                       enabled: voiceOn)
                     }
                     .buttonStyle(APEXPrimaryButtonStyle(color: accent))
                     .disabled(!lastSetResolved)
@@ -3203,7 +3205,9 @@ struct WorkoutPlayerView: View {
             parts.append(side == .left ? .line("cue.left", fallback: language.text("Left side"))
                 : .line("cue.right", fallback: language.text("Right side")))
         }
-        let announcement = parts.map(\.fallback).joined(separator: " ")
+        if voiceOn, !continuingRightSide, let kind = boostKind(for: exercise), let boost = VoicePart.boost(kind) {
+            parts.append(boost)
+        }
         let token = cadenceGate.begin(voiceEnabled: voiceOn)
         WorkoutAudioCoach.shared.speak(parts, enabled: voiceOn) {
             if let token { releaseAnnouncement(token) }
@@ -3211,13 +3215,23 @@ struct WorkoutPlayerView: View {
         if let token {
             // Mirrors the web's bounded speech fail-safe, without starting
             // repetitions while a functioning voice is giving instructions.
-            let milliseconds = min(9_000, max(2_500, announcement.count * 65 + 1_000))
+            let expected = parts.reduce(1_000) { $0 + $1.expectedMilliseconds + 140 }
+            let milliseconds = min(15_000, max(2_500, expected))
             announcementFallback = Task { @MainActor in
                 do { try await Task.sleep(for: .milliseconds(milliseconds)) }
                 catch { return }
                 releaseAnnouncement(token)
             }
         }
+    }
+
+    /// Which pep talk this set call ends with: more of it the closer the finish line.
+    private func boostKind(for exercise: Exercise) -> String? {
+        if nextWorkPosition == nil { return "finale" }
+        if currentWorkOffset == 0 { return "start" }
+        if exercise.sets >= 2, currentSet == exercise.sets { return "final" }
+        if exercise.sets >= 3, currentSet == 2 { return "warm" }
+        return nil
     }
 
     private func endCurrentSet(skipped: Bool) {

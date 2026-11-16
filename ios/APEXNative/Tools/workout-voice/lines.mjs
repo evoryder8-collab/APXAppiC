@@ -1,6 +1,7 @@
 // Every line the guided-workout voice speaks, written for speech in each language, with
 // Eleven v4 acting tags. The app plays these clips; exercise names are voiced on demand.
 // Source of truth for Tools/workout-voice/generate.mjs and the app's clip manifest.
+import fs from 'node:fs'
 
 export const voiceLanguages = ['en', 'de', 'de-CH', 'it', 'es', 'pt', 'ja', 'ro', 'th']
 
@@ -58,6 +59,8 @@ const copy = {
     countLead: 'Nice and controlled. Keep the tempo.',
     pushLead: 'Last reps now. Dig in, finish strong!',
     setLead: 'Next exercise coming up.',
+    // Every line gets a spoken-before context: alone, a one-word cue is sometimes said twice.
+    cueLead: 'Good work so far.',
   },
   de: {
     cue: { warmup: 'Aufwärmen gestartet.', thirty: 'Noch dreißig Sekunden.', rest: 'Pause.', left: 'Linke Seite.',
@@ -68,6 +71,7 @@ const copy = {
     countLead: 'Schön kontrolliert. Halte das Tempo.',
     pushLead: 'Die letzten Wiederholungen. Beiß dich durch!',
     setLead: 'Gleich geht es weiter.',
+    cueLead: 'Gute Arbeit bis jetzt.',
   },
   it: {
     cue: { warmup: 'Riscaldamento iniziato.', thirty: 'Trenta secondi.', rest: 'Recupero.', left: 'Lato sinistro.',
@@ -78,6 +82,7 @@ const copy = {
     countLead: 'Bene, controllato. Mantieni il ritmo.',
     pushLead: 'Ultime ripetizioni. Non mollare adesso!',
     setLead: 'Si riparte tra poco.',
+    cueLead: 'Ottimo lavoro finora.',
   },
   es: {
     cue: { warmup: 'Calentamiento iniciado.', thirty: 'Treinta segundos.', rest: 'Descanso.', left: 'Lado izquierdo.',
@@ -88,6 +93,7 @@ const copy = {
     countLead: 'Bien, controlado. Mantén el ritmo.',
     pushLead: 'Últimas repeticiones. ¡Aprieta, que ya lo tienes!',
     setLead: 'Seguimos enseguida.',
+    cueLead: 'Buen trabajo hasta ahora.',
   },
   pt: {
     cue: { warmup: 'Aquecimento iniciado.', thirty: 'Trinta segundos.', rest: 'Descanso.', left: 'Lado esquerdo.',
@@ -98,6 +104,7 @@ const copy = {
     countLead: 'Isso, controlado. Mantém o ritmo.',
     pushLead: 'Últimas repetições. Força, já está quase!',
     setLead: 'Já vamos continuar.',
+    cueLead: 'Bom trabalho até agora.',
   },
   ja: {
     cue: { warmup: 'ウォームアップ、スタート。', thirty: '残り、さんじゅうびょう。', rest: '休憩。', left: '左側。', right: '右側。',
@@ -110,6 +117,7 @@ const copy = {
     countLead: 'いいですね、コントロールして。テンポをキープ。',
     pushLead: 'ラスト、もうひと踏ん張り！',
     setLead: 'まもなく次にいきます。',
+    cueLead: 'ここまで、いい調子です。',
   },
   ro: {
     cue: { warmup: 'Încălzirea a început.', thirty: 'Treizeci de secunde.', rest: 'Pauză.', left: 'Partea stângă.',
@@ -120,6 +128,7 @@ const copy = {
     countLead: 'Bine, controlat. Păstrează ritmul.',
     pushLead: 'Ultimele repetări. Hai, încă puțin!',
     setLead: 'Continuăm imediat.',
+    cueLead: 'Bună treabă până acum.',
   },
   th: {
     cue: { warmup: 'เริ่มวอร์มอัปแล้ว', thirty: 'อีกสามสิบวินาที', rest: 'พัก', left: 'ข้างซ้าย', right: 'ข้างขวา',
@@ -130,6 +139,7 @@ const copy = {
     countLead: 'ดีมาก ควบคุมจังหวะไว้',
     pushLead: 'ครั้งสุดท้ายแล้ว สู้อีกนิด!',
     setLead: 'เดี๋ยวไปต่อกัน',
+    cueLead: 'ทำได้ดีมาก',
   },
 }
 
@@ -158,6 +168,15 @@ const tag = {
   group: '[clear, energetic]',
 }
 
+// Motivational takes the coach adds to a set call or the finish, one file per language (boosts/<lang>.json) with
+// the same order and count in each. The app rotates every pool so the take heard least recently plays next
+// (WorkoutVoice.swift `VoicePart.boost`). start: first set of the workout. warm: second set of an exercise with three
+// or more sets. final: last set of an exercise. finale: last set of the workout. done: after "Session complete".
+// warm and final come up several times a workout, so they have the most takes.
+export const boostKinds = ['start', 'warm', 'final', 'finale', 'done']
+const boostPools = (language) => language === 'de-CH' ? swiss(boostPools('de'))
+  : JSON.parse(fs.readFileSync(new URL(`./boosts/${language}.json`, import.meta.url), 'utf8'))
+
 /** Every clip for one language: `id` names the file, `text` is what is sent, `previousText` sets the mood unspoken. */
 export function linesFor(language) {
   const c = copy[language]
@@ -169,7 +188,7 @@ export function linesFor(language) {
     lines.push({ id: `count.${n}.push`, text: `${tag.push} ${capital(num[n - 1])}!`, previousText: c.pushLead })
   }
   for (const [key, text] of Object.entries(c.cue)) {
-    lines.push({ id: `cue.${key}`, text: `${tag[key]} ${text}` })
+    lines.push({ id: `cue.${key}`, text: `${tag[key]} ${text}`, previousText: c.cueLead })
   }
   for (const noun of setNouns) {
     for (let total = 1; total <= maxSets; total += 1) {
@@ -185,8 +204,12 @@ export function linesFor(language) {
   }
   for (const letter of groupLetters) {
     for (let n = 1; n <= maxGroupPosition; n += 1) {
-      lines.push({ id: `group.${letter}${n}`, text: `${tag.group} ${c.group(letter, num[n - 1])}` })
+      lines.push({ id: `group.${letter}${n}`, text: `${tag.group} ${c.group(letter, num[n - 1])}`, previousText: c.setLead })
     }
+  }
+  const pools = boostPools(language)
+  for (const kind of boostKinds) {
+    pools[kind].forEach((text, index) => lines.push({ id: `boost.${kind}.${index + 1}`, text }))
   }
   return lines
 }
