@@ -3138,7 +3138,7 @@ struct WorkoutPlayerView: View {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             WorkoutAudioCoach.shared.tick()
         }
-        if voiceOn, rep <= 30 {
+        if voiceOn, rep <= 100 {
             // The last two reps of a set are called with more push.
             let push = target.map { $0 >= 4 && rep >= $0 - 1 } ?? false
             WorkoutAudioCoach.shared.speak([.line(push ? "count.\(rep).push" : "count.\(rep)", fallback: "\(rep)")], enabled: true)

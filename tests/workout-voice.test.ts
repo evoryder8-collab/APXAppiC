@@ -40,7 +40,7 @@ test('every line the player can ask for is recorded', () => {
   }
   // The app's own limits match what was recorded.
   assert.match(voice, /\["set", "hold", "round", "exercise"\]\.contains\(noun\) && \(1\.\.\.total\)\.contains\(number\) && total <= 10/)
-  assert.match(player, /if voiceOn, rep <= 30 \{/)
+  assert.match(player, new RegExp(`if voiceOn, rep <= ${maxCount} \\{`))
 })
 
 test('every pep talk the player asks for is recorded, acted the same way in every language', () => {

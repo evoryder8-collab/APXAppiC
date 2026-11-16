@@ -8,7 +8,7 @@ export const voiceLanguages = ['en', 'de', 'de-CH', 'it', 'es', 'pt', 'ja', 'ro'
 // Eleven v4 has no Swiss or European Portuguese code; the voice chosen for each carries the accent.
 export const elevenLanguageCode = { en: 'en', de: 'de', 'de-CH': 'de', it: 'it', es: 'es', pt: 'pt', ja: 'ja', ro: 'ro', th: 'th' }
 
-export const maxCount = 30
+export const maxCount = 100
 export const maxSets = 10
 export const groupLetters = ['A', 'B', 'C', 'D', 'E', 'F']
 export const maxGroupPosition = 4
@@ -41,6 +41,36 @@ const numbers = {
   th: ['หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า', 'สิบ', 'สิบเอ็ด', 'สิบสอง', 'สิบสาม', 'สิบสี่',
     'สิบห้า', 'สิบหก', 'สิบเจ็ด', 'สิบแปด', 'สิบเก้า', 'ยี่สิบ', 'ยี่สิบเอ็ด', 'ยี่สิบสอง', 'ยี่สิบสาม', 'ยี่สิบสี่', 'ยี่สิบห้า',
     'ยี่สิบหก', 'ยี่สิบเจ็ด', 'ยี่สิบแปด', 'ยี่สิบเก้า', 'สามสิบ'],
+}
+
+// Thirty-one to one hundred follow each language's regular pattern from its tens.
+const tens = {
+  en: ['thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety'],
+  de: ['dreißig', 'vierzig', 'fünfzig', 'sechzig', 'siebzig', 'achtzig', 'neunzig'],
+  it: ['trenta', 'quaranta', 'cinquanta', 'sessanta', 'settanta', 'ottanta', 'novanta'],
+  es: ['treinta', 'cuarenta', 'cincuenta', 'sesenta', 'setenta', 'ochenta', 'noventa'],
+  pt: ['trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'],
+  ja: ['さんじゅう', 'よんじゅう', 'ごじゅう', 'ろくじゅう', 'ななじゅう', 'はちじゅう', 'きゅうじゅう'],
+  ro: ['treizeci', 'patruzeci', 'cincizeci', 'șaizeci', 'șaptezeci', 'optzeci', 'nouăzeci'],
+  th: ['สามสิบ', 'สี่สิบ', 'ห้าสิบ', 'หกสิบ', 'เจ็ดสิบ', 'แปดสิบ', 'เก้าสิบ'],
+}
+const hundred = { en: 'one hundred', de: 'hundert', it: 'cento', es: 'cien', pt: 'cem', ja: 'ひゃく', ro: 'o sută', th: 'หนึ่งร้อย' }
+const compound = {
+  en: (ten, one) => `${ten}-${one}`,
+  de: (ten, one) => `${one === 'eins' ? 'ein' : one}und${ten}`,
+  // trentuno, trentotto, trentatré
+  it: (ten, one) => /^[uo]/.test(one) ? ten.slice(0, -1) + one : one === 'tre' ? `${ten}tré` : ten + one,
+  es: (ten, one) => `${ten} y ${one}`,
+  pt: (ten, one) => `${ten} e ${one}`,
+  ja: (ten, one) => ten + one,
+  ro: (ten, one) => `${ten} și ${one}`,
+  th: (ten, one) => ten + (one === 'หนึ่ง' ? 'เอ็ด' : one),
+}
+for (const [language, words] of Object.entries(numbers)) {
+  for (let n = 31; n <= maxCount; n += 1) {
+    const ten = tens[language][Math.floor(n / 10) - 3]
+    words.push(n === 100 ? hundred[language] : n % 10 === 0 ? ten : compound[language](ten, words[(n % 10) - 1]))
+  }
 }
 
 // Japanese counters change the number's sound (いっかい, ろっかい, はっかい, じゅっかい).
