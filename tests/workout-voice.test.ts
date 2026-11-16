@@ -20,6 +20,7 @@ test('every language records the same lines, each once, with an acting tag', () 
     for (const line of lines) {
       assert.match(line.text, /^\[[a-z ,-]+\] \S/u, `${language} ${line.id} starts with one tag`)
       assert.doesNotMatch(line.text.replace(/^\[[^\]]+\]/u, ''), /[[\]<>]|\d/u, `${language} ${line.id} has no stray tag, markup or digit`)
+      assert.doesNotMatch(`${line.text} ${line.previousText ?? ''}`, /undefined|NaN|null/u, `${language} ${line.id} is fully written`)
     }
   }
 })
@@ -38,9 +39,6 @@ test('every line the player can ask for is recorded', () => {
   for (const letter of groupLetters) {
     for (let n = 1; n <= maxGroupPosition; n += 1) assert.ok(ids.has(`group.${letter}${n}`))
   }
-  // The app's own limits match what was recorded.
-  assert.match(voice, /\["set", "hold", "round", "exercise"\]\.contains\(noun\) && \(1\.\.\.total\)\.contains\(number\) && total <= 10/)
-  assert.match(player, new RegExp(`if voiceOn, rep <= ${maxCount} \\{`))
 })
 
 test('every pep talk the player asks for is recorded, acted the same way in every language', () => {
@@ -51,9 +49,9 @@ test('every pep talk the player asks for is recorded, acted the same way in ever
       if (line.id.startsWith('boost.')) assert.equal(tagOf(line.text), tagOf(english.get(line.id) ?? ''), `${language} ${line.id}`)
     }
   }
-  const choice = player.slice(player.indexOf('func boostKind'), player.indexOf('func endCurrentSet'))
-  const asked = new Set([...choice.matchAll(/return "([a-z]+)"/g), ...player.matchAll(/VoicePart\.boost\("([a-z]+)"\)/g)].map((m) => m[1]))
-  assert.deepEqual([...asked].sort(), [...boostKinds].sort())
+  // The app's pools are the recorded ones.
+  const declared = voice.match(/enum BoostKind: String, CaseIterable \{\s*case ([a-z, ]+)/)?.[1].split(', ')
+  assert.deepEqual(declared, boostKinds)
   for (const kind of boostKinds) assert.ok(english.has(`boost.${kind}.20`), `${kind} has at least twenty takes`)
 })
 

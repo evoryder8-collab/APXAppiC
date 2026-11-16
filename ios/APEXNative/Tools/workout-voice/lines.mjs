@@ -1,6 +1,6 @@
 // Every line the guided-workout voice speaks, written for speech in each language, with
 // Eleven v4 acting tags. The app plays these clips; exercise names are voiced on demand.
-// Source of truth for Tools/workout-voice/generate.mjs and the app's clip manifest.
+// Source of truth for Tools/workout-voice/generate.mjs and the clip manifest it keeps beside it.
 import fs from 'node:fs'
 
 export const voiceLanguages = ['en', 'de', 'de-CH', 'it', 'es', 'pt', 'ja', 'ro', 'th']
@@ -139,9 +139,10 @@ const copy = {
   ja: {
     cue: { warmup: 'ウォームアップ、スタート。', thirty: '残り、さんじゅうびょう。', rest: '休憩。', left: '左側。', right: '右側。',
       review: '最終セットを確認してください。', complete: 'セッション完了。' },
-    // Japanese states the total first, then which one this is.
-    jaSet: { set: (n, t) => `ぜん${t}セットちゅう、${n}セットめ。`, round: (n, t) => `ぜん${t}ラウンドちゅう、${n}ラウンドめ。`,
-      exercise: (n, t) => `ぜん${t}しゅもくちゅう、${n}しゅもくめ。`,
+    // Japanese states the total first, then which one this is; a hold counts in times (いっかい), so these take numbers.
+    jaSet: { set: (n, t) => `ぜん${numbers.ja[t - 1]}セットちゅう、${numbers.ja[n - 1]}セットめ。`,
+      round: (n, t) => `ぜん${numbers.ja[t - 1]}ラウンドちゅう、${numbers.ja[n - 1]}ラウンドめ。`,
+      exercise: (n, t) => `ぜん${numbers.ja[t - 1]}しゅもくちゅう、${numbers.ja[n - 1]}しゅもくめ。`,
       hold: (n, t) => `キープ。ぜん${jaTimes[t - 1]}ちゅう、${jaTimes[n - 1]}め。` },
     group: (letter, n) => `${letter}の${n}。`,
     countLead: 'いいですね、コントロールして。テンポをキープ。',
@@ -227,7 +228,7 @@ export function linesFor(language) {
       for (let n = 1; n <= total; n += 1) {
         const mood = n === 1 ? tag.setFirst : n === total ? tag.setFinal : tag.setMiddle
         let text
-        if (language === 'ja') text = c.jaSet[noun](num[n - 1], num[total - 1])
+        if (language === 'ja') text = c.jaSet[noun](n, total)
         else if (language === 'th') text = c.thSet[noun](num[n - 1], num[total - 1])
         else text = c.set(c.noun[noun], num[n - 1], num[total - 1])
         lines.push({ id: `set.${noun}.${n}.${total}`, text: `${mood} ${text}`, previousText: c.setLead })

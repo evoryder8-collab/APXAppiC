@@ -1926,9 +1926,11 @@ struct WorkoutPlayerView: View {
         .onReceive(timer) { _ in tick() }
         .onAppear {
             initializePlayer()
-            let names = exercises.map { (name: $0.name, spoken: language.text($0.name)) }
-            let code = language.language.rawValue
-            Task { await WorkoutVoiceNames.prefetch(names, language: code) }
+            if voiceOn {
+                let names = exercises.map { (name: $0.name, spoken: language.text($0.name)) }
+                let code = language.language.rawValue
+                Task { await WorkoutVoiceNames.prefetch(names, language: code) }
+            }
             if !exercises.isEmpty, phase != .complete, !watchWorkoutRequested,
                let operation = session.accountOperationLease() {
                 let launchID = UUID()
@@ -2725,7 +2727,7 @@ struct WorkoutPlayerView: View {
                     Button(language.text("Finish review")) {
                         guard lastSetResolved else { return }
                         phase = .complete
-                        let celebration = voiceOn ? VoicePart.boost("done") : nil
+                        let celebration = voiceOn ? VoicePart.boost(.done) : nil
                         WorkoutAudioCoach.shared.speak([.line("cue.complete", fallback: language.text("Session complete"))] + [celebration].compactMap { $0 },
                                                        enabled: voiceOn)
                     }
@@ -3138,7 +3140,7 @@ struct WorkoutPlayerView: View {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             WorkoutAudioCoach.shared.tick()
         }
-        if voiceOn, rep <= 100 {
+        if voiceOn {
             // The last two reps of a set are called with more push.
             let push = target.map { $0 >= 4 && rep >= $0 - 1 } ?? false
             WorkoutAudioCoach.shared.speak([.line(push ? "count.\(rep).push" : "count.\(rep)", fallback: "\(rep)")], enabled: true)
@@ -3200,12 +3202,14 @@ struct WorkoutPlayerView: View {
         var parts: [VoicePart] = []
         if let groupLabel { parts.append(.line("group.\(groupLabel)", fallback: groupLabel)) }
         parts.append(.exercise(spoken: spokenName))
-        parts.append(.setCall(noun: noun, number: currentSet, total: exercise.sets, fallback: setText))
+        parts.append(.line("set.\(noun).\(currentSet).\(exercise.sets)", fallback: setText))
         if let side = setExecution.side {
             parts.append(side == .left ? .line("cue.left", fallback: language.text("Left side"))
                 : .line("cue.right", fallback: language.text("Right side")))
         }
-        if voiceOn, !continuingRightSide, let kind = boostKind(for: exercise), let boost = VoicePart.boost(kind) {
+        if voiceOn, !continuingRightSide,
+           let kind = BoostKind.forSet(currentSet, of: exercise.sets, firstOfWorkout: currentWorkOffset == 0, lastOfWorkout: nextWorkPosition == nil),
+           let boost = VoicePart.boost(kind) {
             parts.append(boost)
         }
         let token = cadenceGate.begin(voiceEnabled: voiceOn)
@@ -3215,23 +3219,14 @@ struct WorkoutPlayerView: View {
         if let token {
             // Mirrors the web's bounded speech fail-safe, without starting
             // repetitions while a functioning voice is giving instructions.
-            let expected = parts.reduce(1_000) { $0 + $1.expectedMilliseconds + 140 }
-            let milliseconds = min(15_000, max(2_500, expected))
+            let expected = 1_000 + WorkoutAudioCoach.expectedMilliseconds(parts)
+            let milliseconds = min(20_000, max(2_500, expected))
             announcementFallback = Task { @MainActor in
                 do { try await Task.sleep(for: .milliseconds(milliseconds)) }
                 catch { return }
                 releaseAnnouncement(token)
             }
         }
-    }
-
-    /// Which pep talk this set call ends with: more of it the closer the finish line.
-    private func boostKind(for exercise: Exercise) -> String? {
-        if nextWorkPosition == nil { return "finale" }
-        if currentWorkOffset == 0 { return "start" }
-        if exercise.sets >= 2, currentSet == exercise.sets { return "final" }
-        if exercise.sets >= 3, currentSet == 2 { return "warm" }
-        return nil
     }
 
     private func endCurrentSet(skipped: Bool) {

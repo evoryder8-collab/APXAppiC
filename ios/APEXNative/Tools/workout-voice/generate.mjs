@@ -19,10 +19,12 @@ const model = 'eleven_v4'
 const voiceSettings = { stability: 0.45, similarity_boost: 0.8, use_speaker_boost: true }
 const seed = 7_220
 
+let key
 function apiKey() {
   try {
-    return execFileSync('security', ['find-generic-password', '-a', 'fitr-max', '-s', 'elevenlabs-api-key', '-w'],
+    key ??= execFileSync('security', ['find-generic-password', '-a', 'fitr-max', '-s', 'elevenlabs-api-key', '-w'],
       { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
+    return key
   } catch {
     throw new Error('No ElevenLabs key in the Keychain (account fitr-max, service elevenlabs-api-key).')
   }
@@ -86,9 +88,10 @@ function toAAC(mp3, destination) {
   fs.rmSync(trimmed)
 }
 
-async function inBatches(items, size, work) {
+async function inBatches(items, size, work, afterBatch) {
   for (let index = 0; index < items.length; index += size) {
     await Promise.all(items.slice(index, index + size).map(work))
+    afterBatch?.()
   }
 }
 
@@ -129,8 +132,9 @@ async function main() {
   if (command === 'build') {
     const voices = JSON.parse(fs.readFileSync(voicesFile, 'utf8'))
     const languages = args.length ? args : voiceLanguages
-    const manifest = fs.existsSync(path.join(resources, 'manifest.json'))
-      ? JSON.parse(fs.readFileSync(path.join(resources, 'manifest.json'), 'utf8')) : { model, languages: {} }
+    // The manifest stays with the tool, not in the app: it records what each clip was made from.
+    const manifestFile = path.join(here, 'manifest.json')
+    const manifest = fs.existsSync(manifestFile) ? JSON.parse(fs.readFileSync(manifestFile, 'utf8')) : { model, languages: {} }
     for (const language of languages) {
       const voiceId = voices[language]
       if (!voiceId) throw new Error(`voices.json names no voice for ${language}`)
@@ -139,16 +143,23 @@ async function main() {
       const lines = linesFor(language).filter((line) => !line.id.startsWith('boost.') || pepTalkLanguages.includes(language))
       const signature = (line) => createHash('sha256').update(JSON.stringify([model, voiceId, voiceSettings, seed, line])).digest('hex').slice(0, 16)
       const previous = manifest.languages[language]?.clips ?? {}
+      const ready = {}
       let made = 0
+      // Saved after every batch, so a run cut short never pays for the same clip twice.
       await inBatches(lines, 4, async (line) => {
         const file = path.join(directory, `${line.id}.m4a`)
         // A clip is remade only when its words, voice or settings changed.
-        if (fs.existsSync(file) && previous[line.id] === signature(line)) return
-        toAAC(await speak(voiceId, language, line), file)
-        made += 1
+        if (!fs.existsSync(file) || previous[line.id] !== signature(line)) {
+          toAAC(await speak(voiceId, language, line), file)
+          made += 1
+        }
+        ready[line.id] = signature(line)
+      }, () => {
+        manifest.languages[language] = { voice: voiceId, clips: { ...previous, ...ready } }
+        fs.writeFileSync(manifestFile, JSON.stringify(manifest, null, 1))
       })
-      manifest.languages[language] = { voice: voiceId, clips: Object.fromEntries(lines.map((line) => [line.id, signature(line)])) }
-      fs.writeFileSync(path.join(resources, 'manifest.json'), JSON.stringify(manifest, null, 1))
+      manifest.languages[language] = { voice: voiceId, clips: ready }
+      fs.writeFileSync(manifestFile, JSON.stringify(manifest, null, 1))
       console.log(`${language}: ${lines.length} clips, ${made} made now`)
     }
     return

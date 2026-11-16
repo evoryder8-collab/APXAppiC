@@ -3,7 +3,7 @@ import CryptoKit
 import Foundation
 
 /// One piece of a spoken line: a recorded clip when the app has it, otherwise the phone's own voice says `fallback`.
-struct VoicePart: Equatable {
+struct VoicePart {
     let clip: URL?
     let fallback: String
 
@@ -22,24 +22,18 @@ struct VoicePart: Equatable {
         return VoicePart(clip: FileManager.default.fileExists(atPath: file.path) ? file : nil, fallback: spoken)
     }
 
-    /// The recorded call for this set, when one exists: "Set 2 of 4", "Round 1 of 3", "Hold 3 of 3".
+    /// A motivational take from one pool: the take heard least recently. Nothing when this language has none
+    /// recorded, so the phone's voice never reads a pep talk. Picking moves the rotation on, so only call it for a
+    /// take that will play.
     @MainActor
-    static func setCall(noun: String, number: Int, total: Int, fallback: String) -> VoicePart {
-        let known = ["set", "hold", "round", "exercise"].contains(noun) && (1...total).contains(number) && total <= 10
-        return known ? line("set.\(noun).\(number).\(total)", fallback: fallback) : VoicePart(clip: nil, fallback: fallback)
-    }
-
-    /// A motivational take from one pool (`start`, `warm`, `final`, `finale`, `done`): the take heard least recently.
-    /// Nothing when this language has none recorded, so the phone's voice never reads a pep talk.
-    @MainActor
-    static func boost(_ kind: String) -> VoicePart? {
+    static func boost(_ kind: BoostKind) -> VoicePart? {
         let folder = "WorkoutVoice/\(LanguageState.shared.language.rawValue)"
         var takes: [URL] = []
-        while let take = Bundle.main.url(forResource: "boost.\(kind).\(takes.count + 1)", withExtension: "m4a", subdirectory: folder) {
+        while let take = Bundle.main.url(forResource: "boost.\(kind.rawValue).\(takes.count + 1)", withExtension: "m4a", subdirectory: folder) {
             takes.append(take)
         }
         guard !takes.isEmpty else { return nil }
-        return VoicePart(clip: takes[WorkoutVoiceRotation.next(kind, takes: takes.count) - 1], fallback: "")
+        return VoicePart(clip: takes[WorkoutVoiceRotation.next(kind.rawValue, takes: takes.count) - 1], fallback: "")
     }
 
     /// How long this part takes to say: the clip's own length, or an estimate for the phone's voice.
@@ -48,6 +42,20 @@ struct VoicePart: Equatable {
             return Int(Double(file.length) / file.processingFormat.sampleRate * 1_000)
         }
         return fallback.count * 65
+    }
+}
+
+/// The pep-talk pools (`Tools/workout-voice/boosts/<lang>.json`).
+enum BoostKind: String, CaseIterable {
+    case start, warm, final, finale, done
+
+    /// Which pep talk a set call ends with: more of it the closer the finish line.
+    static func forSet(_ set: Int, of sets: Int, firstOfWorkout: Bool, lastOfWorkout: Bool) -> BoostKind? {
+        if lastOfWorkout { return .finale }
+        if firstOfWorkout { return .start }
+        if sets >= 2, set == sets { return .final }
+        if sets >= 3, set == 2 { return .warm }
+        return nil
     }
 }
 
@@ -70,6 +78,8 @@ enum WorkoutVoiceRotation {
 /// Exercise names are voiced once by the `workout-voice` server function and kept on this phone, so the
 /// gym needs no signal. Names in a workout are fetched when it opens.
 enum WorkoutVoiceNames {
+    // shortcut: the file is named by language and words only, so a phone keeps a name it already has after the
+    // server's voice changes; change "WorkoutVoice" below to a new folder whenever voices.json changes.
     static func file(spoken: String, language: String) -> URL {
         let digest = SHA256.hash(data: Data("\(language)|\(spoken)".utf8)).map { String(format: "%02x", $0) }.joined()
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -178,6 +188,15 @@ final class WorkoutAudioCoach: NSObject, AVSpeechSynthesizerDelegate {
         speaker.stopSpeaking(at: .immediate)
     }
 
+    /// A breath between "Bulgarian split squat", "Set two of four" and "Right side".
+    static let breath = 140
+
+    /// How long `parts` take to say, breaths included, for the player's fail-safe. Bluetooth headphones finish each
+    /// part a few hundred milliseconds late, and the next part waits for that.
+    static func expectedMilliseconds(_ parts: [VoicePart]) -> Int {
+        parts.reduce(0) { $0 + $1.expectedMilliseconds + breath + 400 }
+    }
+
     /// Speaks the parts in order with a breath between them, then calls `onFinished`.
     func speak(_ parts: [VoicePart], enabled: Bool, onFinished: (@MainActor () -> Void)? = nil) {
         stop()
@@ -186,11 +205,6 @@ final class WorkoutAudioCoach: NSObject, AVSpeechSynthesizerDelegate {
         queue = parts
         completion = onFinished
         playNext()
-    }
-
-    /// A line with no recording, in the phone's own voice.
-    func say(_ text: String, enabled: Bool, onFinished: (@MainActor () -> Void)? = nil) {
-        speak([VoicePart(clip: nil, fallback: text)], enabled: enabled, onFinished: onFinished)
     }
 
     private func playNext() {
@@ -214,32 +228,17 @@ final class WorkoutAudioCoach: NSObject, AVSpeechSynthesizerDelegate {
         let utterance = AVSpeechUtterance(string: part.fallback)
         utterance.rate = 0.48
         utterance.volume = 0.82
-        utterance.voice = AVSpeechSynthesisVoice(language: Self.speechLanguage)
+        utterance.voice = AVSpeechSynthesisVoice(language: LanguageState.shared.language.locale.identifier(.bcp47))
         speaking = ObjectIdentifier(utterance)
         speaker.speak(utterance)
     }
 
     private func partFinished(_ finishedGeneration: Int) {
         guard finishedGeneration == generation else { return }
-        // A breath between "Bulgarian split squat", "Set two of four" and "Right side".
         Task { @MainActor [weak self] in
-            try? await Task.sleep(for: .milliseconds(140))
+            try? await Task.sleep(for: .milliseconds(Self.breath))
             guard let self, finishedGeneration == self.generation else { return }
             self.playNext()
-        }
-    }
-
-    private static var speechLanguage: String {
-        switch LanguageState.shared.language {
-        case .english: "en-US"
-        case .german: "de-DE"
-        case .swissGerman: "de-CH"
-        case .italian: "it-IT"
-        case .spanish: "es-ES"
-        case .portuguese: "pt-PT"
-        case .japanese: "ja-JP"
-        case .romanian: "ro-RO"
-        case .thai: "th-TH"
         }
     }
 

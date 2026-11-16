@@ -38,6 +38,18 @@ final class ManualWorkoutTests: XCTestCase {
         XCTAssertTrue((1...3).contains(WorkoutVoiceRotation.next("final", takes: 3, defaults: defaults)))
     }
 
+    func testPepTalksBuildTowardTheFinishLine() {
+        // A four-set exercise mid-workout: quiet first set, heating up on the second, nothing on the third, last set.
+        XCTAssertEqual((1...4).map { BoostKind.forSet($0, of: 4, firstOfWorkout: false, lastOfWorkout: false) }, [nil, .warm, nil, .final])
+        XCTAssertEqual(BoostKind.forSet(1, of: 4, firstOfWorkout: true, lastOfWorkout: false), .start)
+        XCTAssertEqual(BoostKind.forSet(3, of: 3, firstOfWorkout: false, lastOfWorkout: true), .finale)
+        // A one-set workout is both first and last: the finish line wins.
+        XCTAssertEqual(BoostKind.forSet(1, of: 1, firstOfWorkout: true, lastOfWorkout: true), .finale)
+        // Two sets have no middle; zero sets cannot crash it.
+        XCTAssertEqual(BoostKind.forSet(2, of: 2, firstOfWorkout: false, lastOfWorkout: false), .final)
+        XCTAssertNil(BoostKind.forSet(1, of: 0, firstOfWorkout: false, lastOfWorkout: false))
+    }
+
     func testRecentQuickLogExercisesKeepLatestFirstAndRemainBounded() {
         XCTAssertEqual(ManualWorkout.rememberExercise("row", in: ["curl", "row", "squat"]), ["row", "curl", "squat"])
         XCTAssertEqual(ManualWorkout.rememberExercise("new", in: (0..<80).map(String.init)).count, 64)

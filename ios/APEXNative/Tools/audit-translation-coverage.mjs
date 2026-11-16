@@ -190,8 +190,8 @@ const internalLiterals = {
   'SimpleHomeView.swift': ['simple-training-mode- - '],
   'AvatarReport.swift': ['Archivo_Expanded-ExtraBold', 'ReportFonts', 'ArchivoExpanded-ExtraBold'],
   // Recorded voice clip names and their folders.
-  'WorkoutVoice.swift': ['WorkoutVoice/ ', 'set. . . ', 'WorkoutVoice/ / .mp3'],
-  'TrainingProgramView.swift': ['count. .push'],
+  'WorkoutVoice.swift': ['WorkoutVoice/ ', 'WorkoutVoice/ / .mp3'],
+  'TrainingProgramView.swift': ['count. .push', 'set. . . '],
 }
 
 const prose = new Map()
