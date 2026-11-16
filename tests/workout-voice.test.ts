@@ -62,6 +62,11 @@ test('names voiced on the server sound like the recorded lines', () => {
     assert.ok(generator.includes(setting), `generator: ${setting}`)
     assert.ok(server.includes(setting), `server: ${setting}`)
   }
+  // Names get the same unspoken lead-in as the recorded set calls.
+  for (const language of voiceLanguages) {
+    const setLead = (linesFor(language) as { id: string; previousText?: string }[]).find((line) => line.id === 'set.set.1.1')?.previousText
+    assert.ok(setLead && server.includes(`'${setLead}'`), `server lead for ${language}`)
+  }
   // The key stays in the Keychain and in the function's secrets, never in the repository.
   assert.match(generator, /find-generic-password/)
   assert.match(server, /Deno\.env\.get\('ELEVENLABS_API_KEY'\)/)

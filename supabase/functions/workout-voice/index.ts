@@ -12,6 +12,12 @@ const model = 'eleven_v4'
 const voiceSettings = { stability: 0.45, similarity_boost: 0.8, use_speaker_boost: true }
 const seed = 7_220
 const dailyLimit = 150
+// Said before the name but not spoken, as for the recorded set calls (`setLead` in lines.mjs): alone, a short name
+// like "Plank" is sometimes said twice.
+const lead: Record<string, string> = {
+  en: 'Next exercise coming up.', de: 'Gleich geht es weiter.', 'de-CH': 'Gleich geht es weiter.', it: 'Si riparte tra poco.',
+  es: 'Seguimos enseguida.', pt: 'Já vamos continuar.', ja: 'まもなく次にいきます。', ro: 'Continuăm imediat.', th: 'เดี๋ยวไปต่อกัน',
+}
 
 function reply(body: unknown, status: number): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json; charset=utf-8' } })
@@ -26,7 +32,7 @@ async function digest(text: string): Promise<string> {
   return [...new Uint8Array(hash)].map((byte) => byte.toString(16).padStart(2, '0')).join('').slice(0, 40)
 }
 
-/** The spoken line for a name; the same rule as `exerciseNameLine` in lines.mjs. */
+/** The spoken line for a name, acted like the recorded set calls. */
 export function nameLine(spoken: string): string {
   return `[clear, confident] ${spoken.trim().replace(/[.。]+$/u, '')}.`
 }
@@ -67,7 +73,7 @@ Deno.serve(async (request) => {
   if (!owned?.length) return reply({ state: 'invalid', message: 'Not an exercise in your plan' }, 403)
 
   const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
-  const path = `${language}/${await digest(`${model}|${voice}|${seed}|${language}|${nameLine(spoken)}`)}.mp3`
+  const path = `${language}/${await digest(`${model}|${voice}|${seed}|${language}|${lead[language]}|${nameLine(spoken)}`)}.mp3`
   const cached = await admin.storage.from('workout-voice').download(path)
   if (cached.data) return audio(cached.data)
 
@@ -79,7 +85,10 @@ Deno.serve(async (request) => {
   const generated = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}?output_format=mp3_44100_64`, {
     method: 'POST',
     headers: { 'xi-api-key': elevenKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text: nameLine(spoken), model_id: model, language_code: elevenLanguage[language], voice_settings: voiceSettings, seed }),
+    body: JSON.stringify({
+      text: nameLine(spoken), previous_text: lead[language], model_id: model, language_code: elevenLanguage[language],
+      voice_settings: voiceSettings, seed,
+    }),
   })
   if (!generated.ok) {
     console.error('elevenlabs', generated.status, (await generated.text()).slice(0, 200))

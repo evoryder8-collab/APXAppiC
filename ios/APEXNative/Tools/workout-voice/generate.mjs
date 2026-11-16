@@ -9,7 +9,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { elevenLanguageCode, linesFor, voiceLanguages } from './lines.mjs'
+import { elevenLanguageCode, linesFor, pepTalkLanguages, voiceLanguages } from './lines.mjs'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const resources = path.resolve(here, '../../APEX/Resources/WorkoutVoice')
@@ -136,7 +136,7 @@ async function main() {
       if (!voiceId) throw new Error(`voices.json names no voice for ${language}`)
       const directory = path.join(resources, language)
       fs.mkdirSync(directory, { recursive: true })
-      const lines = linesFor(language)
+      const lines = linesFor(language).filter((line) => !line.id.startsWith('boost.') || pepTalkLanguages.includes(language))
       const signature = (line) => createHash('sha256').update(JSON.stringify([model, voiceId, voiceSettings, seed, line])).digest('hex').slice(0, 16)
       const previous = manifest.languages[language]?.clips ?? {}
       let made = 0

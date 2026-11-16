@@ -204,6 +204,8 @@ const tag = {
 // or more sets. final: last set of an exercise. finale: last set of the workout. done: after "Session complete".
 // warm and final come up several times a workout, so they have the most takes.
 export const boostKinds = ['start', 'warm', 'final', 'finale', 'done']
+// Pep talks are recorded for these languages first; the others' scripts are written and wait their turn.
+export const pepTalkLanguages = ['en', 'de', 'th']
 const boostPools = (language) => language === 'de-CH' ? swiss(boostPools('de'))
   : JSON.parse(fs.readFileSync(new URL(`./boosts/${language}.json`, import.meta.url), 'utf8'))
 
