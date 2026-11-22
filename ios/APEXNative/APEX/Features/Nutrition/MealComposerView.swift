@@ -951,7 +951,7 @@ struct MealComposerView: View {
 
     private func isFavourite(_ item: MealComposerItem) -> Bool {
         guard let foodID = item.foodID else { return false }
-        return session.data.foodPreferences.first { $0.foodID == foodID }?.favourite == true
+        return session.data.foodPreferences.first { $0.foodID == foodID }?.isFavourite(in: draft.mealSlot) == true
     }
 
     private func toggleFavourite(_ item: MealComposerItem) {
@@ -966,6 +966,7 @@ struct MealComposerView: View {
                 try await session.setFoodFavourite(
                     food,
                     favourite: nextValue,
+                    in: draft.mealSlot,
                     operation: operation
                 )
             } catch is CancellationError {
@@ -1477,7 +1478,8 @@ private struct MealFoodPicker: View {
             }.sorted { lhs, rhs in
                 let left = prefs[lhs.id.lowercased()]
                 let right = prefs[rhs.id.lowercased()]
-                if (left?.favourite ?? false) != (right?.favourite ?? false) { return left?.favourite == true }
+                let (leftStar, rightStar) = (left?.isFavourite(in: slot) == true, right?.isFavourite(in: slot) == true)
+                if leftStar != rightStar { return leftStar }
                 if (left?.usageCount ?? 0) != (right?.usageCount ?? 0) { return (left?.usageCount ?? 0) > (right?.usageCount ?? 0) }
                 return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
             }
@@ -1549,7 +1551,7 @@ private struct MealFoodPicker: View {
                             FoodFavouriteButton(
                                 id: food.id,
                                 foodName: food.localizedName(language.language),
-                                isFavourite: preference(for: food)?.favourite == true
+                                isFavourite: preference(for: food)?.isFavourite(in: slot) == true
                             ) { toggleFavourite(food) }
 
                             Button { quickAdd(food, remembered: remembered[food.id.lowercased()]) } label: {
@@ -1618,10 +1620,10 @@ private struct MealFoodPicker: View {
 
     private func toggleFavourite(_ food: Food) {
         guard let operation = session.accountOperationLease() else { return }
-        let nextValue = preference(for: food)?.favourite != true
+        let nextValue = preference(for: food)?.isFavourite(in: slot) != true
         Task {
             do {
-                try await session.setFoodFavourite(food, favourite: nextValue, operation: operation)
+                try await session.setFoodFavourite(food, favourite: nextValue, in: slot, operation: operation)
             } catch is CancellationError {
                 return
             } catch {

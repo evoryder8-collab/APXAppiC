@@ -967,6 +967,8 @@ struct FoodPreference: Codable, Identifiable, Hashable, Sendable {
     var usageCount: Int
     var lastUsedAt: String?
     var hidden: Bool
+    /// The dayline blocks (kinds) this favourite is saved to; none means every meal.
+    var favouriteMealBlocks: [String]?
 
     enum CodingKeys: String, CodingKey {
         case id, aliases, favourite, hidden
@@ -977,6 +979,33 @@ struct FoodPreference: Codable, Identifiable, Hashable, Sendable {
         case usualUnit = "usual_unit"
         case usageCount = "usage_count"
         case lastUsedAt = "last_used_at"
+        case favouriteMealBlocks = "favourite_meal_blocks"
+    }
+
+    /// A favourite saved to particular meals shows only in them; one starred outside a meal, or before
+    /// favourites had meals, shows in every meal. A nil block asks about any meal.
+    func isFavourite(in block: String?) -> Bool {
+        guard favourite else { return false }
+        guard let block, let blocks = favouriteMealBlocks, !blocks.isEmpty else { return true }
+        return blocks.contains(block)
+    }
+
+    /// The star set or cleared for one meal, or for every meal when `block` is nil. Always writes a
+    /// list (empty for "every meal" or "none"), because an upsert leaves a missing column untouched.
+    func starred(_ on: Bool, in block: String?) -> FoodPreference {
+        var next = self
+        guard let block else {
+            next.favourite = on
+            next.favouriteMealBlocks = []
+            return next
+        }
+        guard on != isFavourite(in: block) else { return self }
+        let saved = favouriteMealBlocks ?? []
+        let current = favourite ? (saved.isEmpty ? MealBlocks.defaults.map(\.kind) : saved) : []
+        let blocks = current.filter { $0 != block } + (on ? [block] : [])
+        next.favourite = !blocks.isEmpty
+        next.favouriteMealBlocks = blocks
+        return next
     }
 }
 

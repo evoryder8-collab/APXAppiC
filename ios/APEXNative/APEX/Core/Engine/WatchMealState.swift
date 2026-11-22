@@ -111,6 +111,9 @@ struct WatchMealSnapshot: Codable, Equatable, Sendable {
     /// Everything logged on the phone's today and the day before, in each block's order.
     var logs: [WatchMealLog]
     var favourites: [WatchMealPortion]
+    /// Per block, the food IDs of the favourites saved to it. Absent from a phone older than favourites
+    /// per meal: then every favourite shows in every block, as before.
+    var favouritesByBlock: [String: [String]]? = nil
     /// Per block, the phone's Food Memory ranking for it, at the amounts last used there.
     var memory: [String: [WatchMealPortion]]
     var acknowledgedIDs: [UUID]
@@ -227,8 +230,8 @@ struct WatchMealState: Codable, Equatable, Sendable {
         return logged + added
     }
 
-    /// Foods to add to a block: yesterday's, at yesterday's amounts and in its order; then favourites,
-    /// those this block uses most first; then the rest of the block's Food Memory. A food already in
+    /// Foods to add to a block: yesterday's, at yesterday's amounts and in its order; then the favourites
+    /// saved to this block, those it uses most first; then the rest of the block's Food Memory. A food already in
     /// today's meal is not offered again.
     func suggestions(day: String, block: String, limit: Int = 16) -> [Suggestion] {
         guard let snapshot else { return [] }
@@ -244,7 +247,8 @@ struct WatchMealState: Codable, Equatable, Sendable {
         }
         let memory = snapshot.memory[block] ?? []
         let rank = Dictionary(memory.enumerated().map { ($1.foodID, $0) }, uniquingKeysWith: { first, _ in first })
-        let favourites = snapshot.favourites.enumerated().sorted {
+        let saved = snapshot.favouritesByBlock.map { Set($0[block] ?? []) }
+        let favourites = snapshot.favourites.enumerated().filter { saved?.contains($0.element.foodID) ?? true }.sorted {
             (rank[$0.element.foodID] ?? Int.max, $0.offset) < (rank[$1.element.foodID] ?? Int.max, $1.offset)
         }
         for (_, favourite) in favourites {

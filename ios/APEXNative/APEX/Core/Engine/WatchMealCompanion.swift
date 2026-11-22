@@ -78,25 +78,43 @@ enum WatchMealCompanion {
             }
         }
 
+        /* Each block gets the favourites saved to it, most recently used first; the portions are
+           shared, so a food starred for several meals travels once. */
         var favourites: [WatchMealPortion] = []
+        var favouritePortions: [UUID: WatchMealPortion?] = [:]
+        func favouritePortion(_ preference: FoodPreference) -> WatchMealPortion? {
+            if let cached = favouritePortions[preference.foodID] { return cached }
+            let id = preference.foodID.uuidString.lowercased()
+            let entry = latest[id]
+            var portion: WatchMealPortion?
+            if let food = catalogue[id] ?? entry.map(MealMemory.food(from:)) {
+                // The amount confirmed in history wins over the preference row, exactly as the phone opens it.
+                let selection = FoodPortionMath.defaultSelection(
+                    food, preference: preference,
+                    remembered: entry.map { MealMemory.Selection(foodID: id, quantity: $0.quantity, unit: $0.unit) }
+                )
+                if let perUnit = gramsPerUnit(food, quantity: selection.quantity, unit: selection.unit.rawValue, entry: entry),
+                   remember(id) {
+                    portion = WatchMealPortion(
+                        foodID: id, quantity: selection.quantity, unit: selection.unit.rawValue,
+                        gramsPerUnit: perUnit, entryID: entry?.id
+                    )
+                }
+            }
+            favouritePortions[preference.foodID] = portion
+            if let portion { favourites.append(portion) }
+            return portion
+        }
         let starred = data.foodPreferences
             .filter { $0.userID == ownerID && $0.favourite && !$0.hidden }
             .sorted { ($0.lastUsedAt ?? "") > ($1.lastUsedAt ?? "") }
-        for preference in starred where favourites.count < favouriteLimit {
-            let id = preference.foodID.uuidString.lowercased()
-            let entry = latest[id]
-            guard let food = catalogue[id] ?? entry.map(MealMemory.food(from:)) else { continue }
-            // The amount confirmed in history wins over the preference row, exactly as the phone opens it.
-            let selection = FoodPortionMath.defaultSelection(
-                food, preference: preference,
-                remembered: entry.map { MealMemory.Selection(foodID: id, quantity: $0.quantity, unit: $0.unit) }
-            )
-            guard let perUnit = gramsPerUnit(food, quantity: selection.quantity, unit: selection.unit.rawValue, entry: entry),
-                  remember(id) else { continue }
-            favourites.append(WatchMealPortion(
-                foodID: id, quantity: selection.quantity, unit: selection.unit.rawValue,
-                gramsPerUnit: perUnit, entryID: entry?.id
-            ))
+        var favouritesByBlock: [String: [String]] = [:]
+        for block in blocks {
+            var ids: [String] = []
+            for preference in starred where ids.count < favouriteLimit && preference.isFavourite(in: block.kind) {
+                if let portion = favouritePortion(preference) { ids.append(portion.foodID) }
+            }
+            favouritesByBlock[block.kind] = ids
         }
 
         var memory: [String: [WatchMealPortion]] = [:]
@@ -125,6 +143,7 @@ enum WatchMealCompanion {
             foods: foods.values.sorted { $0.id < $1.id },
             logs: logs,
             favourites: favourites,
+            favouritesByBlock: favouritesByBlock,
             memory: memory,
             acknowledgedIDs: acknowledgedIDs
         )

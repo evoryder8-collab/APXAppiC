@@ -88,6 +88,52 @@ final class WatchMealTests: XCTestCase {
         XCTAssertEqual(offered.map(\.portion.quantity), [3, 25, 1])
     }
 
+    func testEachMealOffersOnlyTheFavouritesSavedToIt() {
+        var published = snapshot(favourites: [portion("oats", 60), portion("whey", 30), portion("potato", 200)])
+        published.favouritesByBlock = ["breakfast": ["oats", "whey"], "lunch": ["whey", "potato"], "snack": []]
+        let state = state(published)
+
+        XCTAssertEqual(state.suggestions(day: today, block: "breakfast").map(\.food.id), ["oats", "whey"])
+        XCTAssertEqual(state.suggestions(day: today, block: "lunch").map(\.food.id), ["whey", "potato"])
+        XCTAssertTrue(state.suggestions(day: today, block: "snack").isEmpty, "Breakfast's oats stay out of the snack")
+        let older = self.state(snapshot(favourites: [portion("oats", 60), portion("whey", 30)]))
+        XCTAssertEqual(older.suggestions(day: today, block: "snack").count, 2,
+                       "A phone older than favourites per meal: every favourite everywhere, as before")
+    }
+
+    func testAStarInsideAMealSavesTheFavouriteToThatMealOnly() throws {
+        let plain = FoodPreference(
+            id: UUID(), userID: owner, foodID: UUID(), personalName: nil, aliases: [], favourite: false,
+            usualAmount: nil, usualUnit: nil, usageCount: 3, lastUsedAt: nil, hidden: false
+        )
+        let dinner = plain.starred(true, in: "dinner")
+        XCTAssertTrue(dinner.isFavourite(in: "dinner"))
+        XCTAssertFalse(dinner.isFavourite(in: "breakfast"))
+        XCTAssertTrue(dinner.isFavourite(in: nil), "Still a favourite where no meal is asked about")
+        let evening = dinner.starred(true, in: "post_workout")
+        XCTAssertEqual(evening.favouriteMealBlocks, ["dinner", "post_workout"])
+        let none = evening.starred(false, in: "dinner").starred(false, in: "post_workout")
+        XCTAssertFalse(none.favourite)
+        XCTAssertEqual(none.favouriteMealBlocks, [])
+
+        var everywhere = plain
+        everywhere.favourite = true
+        XCTAssertTrue(["breakfast", "lunch", "dinner", "snack", "post_workout"].allSatisfy { everywhere.isFavourite(in: $0) },
+                      "A favourite from before meals had their own is in every meal")
+        XCTAssertEqual(Set(everywhere.starred(false, in: "dinner").favouriteMealBlocks ?? []),
+                       ["breakfast", "lunch", "snack", "post_workout"], "Unstarred at dinner, kept everywhere else")
+        XCTAssertEqual(everywhere.starred(true, in: "dinner"), everywhere)
+
+        XCTAssertTrue(dinner.starred(true, in: nil).isFavourite(in: "breakfast"), "A star outside a meal is every meal")
+        XCTAssertFalse(dinner.starred(false, in: nil).favourite)
+
+        let sent = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(none)) as? [String: Any])
+        XCTAssertEqual(sent["favourite_meal_blocks"] as? [String], [],
+                       "The list always travels, so the upsert replaces what the server held")
+        let legacy = try JSONEncoder().encode(plain)
+        XCTAssertNil(try JSONDecoder().decode(FoodPreference.self, from: legacy).favouriteMealBlocks)
+    }
+
     func testFoodsAlreadyInTodaysMealAndPlannedPrescriptionsAreNotOffered() {
         let state = state(snapshot(logs: [
             log(yesterday, "breakfast", portion("oats", 60)),
@@ -288,6 +334,29 @@ final class WatchMealTests: XCTestCase {
         var watch = WatchMealState()
         watch.accept(published, ownerID: owner)
         XCTAssertEqual(watch.suggestions(day: today, block: "breakfast").prefix(2).map(\.food.name), ["Oats", "Home granola"])
+    }
+
+    func testThePhoneSendsEachMealOnlyTheFavouritesSavedToIt() {
+        let (oats, potato, whey) = (UUID(), UUID(), UUID())
+        var data = DashboardData.empty
+        data.foods = [catalogueFood(oats, "Oats", kcal: 372), catalogueFood(potato, "Sweet potato", kcal: 90),
+                      catalogueFood(whey, "Whey", kcal: 370)]
+        func favourite(_ food: UUID, _ blocks: [String]?) -> FoodPreference {
+            FoodPreference(
+                id: UUID(), userID: owner, foodID: food, personalName: nil, aliases: [], favourite: true,
+                usualAmount: 50, usualUnit: "g", usageCount: 1, lastUsedAt: nil, hidden: false, favouriteMealBlocks: blocks
+            )
+        }
+        data.foodPreferences = [favourite(oats, ["breakfast"]), favourite(potato, ["dinner", "post_workout"]), favourite(whey, nil)]
+
+        let published = WatchMealCompanion.snapshot(
+            ownerID: owner, day: today, data: data, language: .english, localize: { $0 }, revision: 1, acknowledgedIDs: []
+        )
+        let id = { (food: UUID) in food.uuidString.lowercased() }
+        XCTAssertEqual(Set(published.favouritesByBlock?["breakfast"] ?? []), [id(oats), id(whey)])
+        XCTAssertEqual(Set(published.favouritesByBlock?["dinner"] ?? []), [id(potato), id(whey)])
+        XCTAssertEqual(published.favouritesByBlock?["lunch"], [id(whey)])
+        XCTAssertEqual(published.favourites.count, 3, "A food saved to several meals travels once")
     }
 
     func testAFoodOnlyHistoryKnowsIsOneFoodSoTodaysServingIsNotOfferedAgain() {

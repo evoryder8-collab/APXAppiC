@@ -5735,9 +5735,11 @@ final class AppSession {
         }
     }
 
+    /// Stars or unstars `food` for one meal (a dayline block kind), or for every meal when `block` is nil.
     func setFoodFavourite(
         _ food: Food,
         favourite: Bool,
+        in block: String? = nil,
         operation: AccountOperationLease
     ) async throws {
         try requireCurrentAccountOperation(operation)
@@ -5751,13 +5753,11 @@ final class AppSession {
         let existing = data.foodPreferences.first {
             $0.userID == operation.ownerID && $0.foodID == foodID
         }
-        let value = FoodPreference(
-            id: existing?.id ?? UUID(), userID: operation.ownerID, foodID: foodID,
-            personalName: existing?.personalName, aliases: existing?.aliases ?? [],
-            favourite: favourite, usualAmount: existing?.usualAmount,
-            usualUnit: existing?.usualUnit, usageCount: existing?.usageCount ?? 0,
-            lastUsedAt: existing?.lastUsedAt, hidden: existing?.hidden ?? false
-        )
+        let value = (existing ?? FoodPreference(
+            id: UUID(), userID: operation.ownerID, foodID: foodID,
+            personalName: nil, aliases: [], favourite: false, usualAmount: nil,
+            usualUnit: nil, usageCount: 0, lastUsedAt: nil, hidden: false
+        )).starred(favourite, in: block)
         data.foodPreferences.removeAll {
             $0.userID == operation.ownerID && $0.foodID == foodID
         }

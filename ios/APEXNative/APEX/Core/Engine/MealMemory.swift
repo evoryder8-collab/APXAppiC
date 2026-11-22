@@ -504,7 +504,8 @@ enum MealMemory {
                 usualUnit: item.unit,
                 usageCount: (previous?.usageCount ?? 0) + 1,
                 lastUsedAt: usedAt,
-                hidden: previous?.hidden ?? false
+                hidden: previous?.hidden ?? false,
+                favouriteMealBlocks: previous?.favouriteMealBlocks
             )
             if touchedSet.insert(foodID).inserted { touched.append(foodID) }
         }
