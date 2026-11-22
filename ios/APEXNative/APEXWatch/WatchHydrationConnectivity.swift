@@ -5,6 +5,7 @@ import Foundation
 final class WatchHydrationConnectivity: NSObject, WCSessionDelegate {
     var snapshotHandler: ((HydrationCompanionSnapshot) -> Void)?
     var supplementSnapshotHandler: ((WatchSupplementSnapshot) -> Void)?
+    var mealSnapshotHandler: ((WatchMealSnapshot) -> Void)?
     var disconnectHandler: ((String) -> Void)?
     var workoutCommandHandler: ((WatchWorkoutCommand) -> Void)?
     var readyHandler: (() -> Void)?
@@ -40,6 +41,23 @@ final class WatchHydrationConnectivity: NSObject, WCSessionDelegate {
         let isQueued = session.outstandingUserInfoTransfers.contains { transfer in
             guard let queued = transfer.userInfo[WatchSupplementKeys.mutation] as? Data,
                   let decoded = try? JSONDecoder().decode(WatchSupplementMutation.self, from: queued)
+            else { return false }
+            return decoded.id == mutation.id
+        }
+        if !isQueued { session.transferUserInfo(payload) }
+        if session.isReachable {
+            session.sendMessage(payload, replyHandler: nil, errorHandler: nil)
+        }
+    }
+
+    /// Durable like a supplement tick: queued once with the system, and sent at once when the phone is near.
+    func send(_ mutation: WatchMealMutation) {
+        guard let session, session.activationState == .activated,
+              let data = try? JSONEncoder().encode(mutation) else { return }
+        let payload: [String: Any] = [WatchMealKeys.mutation: data]
+        let isQueued = session.outstandingUserInfoTransfers.contains { transfer in
+            guard let queued = transfer.userInfo[WatchMealKeys.mutation] as? Data,
+                  let decoded = try? JSONDecoder().decode(WatchMealMutation.self, from: queued)
             else { return false }
             return decoded.id == mutation.id
         }
@@ -90,6 +108,8 @@ final class WatchHydrationConnectivity: NSObject, WCSessionDelegate {
             .flatMap { try? HydrationCompanionSnapshot.decode($0) }
         let supplements = (payload[WatchSupplementKeys.snapshot] as? Data)
             .flatMap { try? JSONDecoder().decode(WatchSupplementSnapshot.self, from: $0) }
+        let meals = (payload[WatchMealKeys.snapshot] as? Data)
+            .flatMap { try? WatchMealSnapshot.decode($0) }
         Task { @MainActor [weak self] in
             guard let self else { return }
             if disconnected {
@@ -100,6 +120,7 @@ final class WatchHydrationConnectivity: NSObject, WCSessionDelegate {
             // the same actor turn; independently scheduled callbacks can race.
             if let snapshot { self.snapshotHandler?(snapshot) }
             if let supplements { self.supplementSnapshotHandler?(supplements) }
+            if let meals { self.mealSnapshotHandler?(meals) }
             if let command { self.workoutCommandHandler?(command) }
             if notifyReady { self.readyHandler?() }
         }

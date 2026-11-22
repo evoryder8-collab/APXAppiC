@@ -27,7 +27,7 @@ settings:
     IPHONEOS_DEPLOYMENT_TARGET: 17.0
     DEVELOPMENT_TEAM: UG979XDY72
     CODE_SIGN_STYLE: Automatic
-    CURRENT_PROJECT_VERSION: 423
+    CURRENT_PROJECT_VERSION: 424
     MARKETING_VERSION: 1.0.1
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED: YES
@@ -148,6 +148,7 @@ targets:
       - path: APEXWatch
       - path: APEX/Core/Engine/WatchHydrationAmountAdjustment.swift
       - path: APEX/Core/Engine/WatchSupplementState.swift
+      - path: APEX/Core/Engine/WatchMealState.swift
       - path: APEX/Core/Engine/HydrationLedger.swift
       - path: APEX/Core/Engine/WatchHydrationFillState.swift
       - path: APEX/Core/Engine/WatchHydrationPreferences.swift

@@ -411,6 +411,9 @@ final class AppSession {
     @ObservationIgnored private let hydrationConnectivity: HydrationPhoneConnectivity?
     @ObservationIgnored private let hydrationMutationQueue = HydrationMutationQueue()
     @ObservationIgnored private let supplementMutationQueue = SupplementMutationQueue()
+    /// The same one-at-a-time order, for meals added on the Watch.
+    @ObservationIgnored private let watchMealQueue = SupplementMutationQueue()
+    @ObservationIgnored private var watchMealSnapshotCache: (fingerprint: Int, snapshot: WatchMealSnapshot)?
     @ObservationIgnored private var hydrationMutationsInFlight: Set<UUID> = []
     private var bootstrapped = false
     private var realtimeDebounceTask: Task<Void, Never>?
@@ -475,6 +478,9 @@ final class AppSession {
         }
         hydrationConnectivity?.supplementMutationHandler = { [weak self] mutation in
             await self?.handleWatchSupplementMutation(mutation)
+        }
+        hydrationConnectivity?.mealMutationHandler = { [weak self] mutation in
+            await self?.handleWatchMealMutation(mutation)
         }
         hydrationConnectivity?.companionRefreshHandler = { [weak self] in
             self?.publishHydrationState()
@@ -4250,7 +4256,151 @@ final class AppSession {
             revision: HydrationComplicationRefreshPolicy.revision(),
             acknowledgedDeleteIDs: acknowledgedHydrationDeleteIDs(ownerID: ownerID)
         )
-        hydrationConnectivity?.publish(snapshot, supplements: makeWatchSupplementSnapshot(ownerID: ownerID, day: day))
+        hydrationConnectivity?.publish(
+            snapshot,
+            supplements: makeWatchSupplementSnapshot(ownerID: ownerID, day: day),
+            meals: makeWatchMealSnapshot(ownerID: ownerID, day: day)
+        )
+    }
+
+    private func makeWatchMealSnapshot(ownerID: UUID, day: String) -> WatchMealSnapshot? {
+        guard data.profile?.userID == ownerID else { return nil }
+        var journal = watchMealJournal(ownerID: ownerID)
+        let language = LanguageState.shared
+        // Water republishes on every drink; the meal ranking is rebuilt only when what it reads changed.
+        var hasher = Hasher()
+        hasher.combine(ownerID)
+        hasher.combine(day)
+        hasher.combine(language.language.rawValue)
+        hasher.combine(journal.acknowledgedIDs)
+        hasher.combine(data.settings?.addons["meal_blocks"])
+        hasher.combine(data.loggedMeals.map(\.clientIdempotencyKey))
+        hasher.combine(data.loggedFoodEntries.count)
+        hasher.combine(data.foods.count)
+        hasher.combine(data.foodPreferences)
+        let fingerprint = hasher.finalize()
+        if let cached = watchMealSnapshotCache, cached.fingerprint == fingerprint { return cached.snapshot }
+        let revision = journal.nextRevision()
+        saveWatchMealJournal(journal, ownerID: ownerID)
+        let snapshot = WatchMealCompanion.snapshot(
+            ownerID: ownerID, day: day, data: data, language: language.language,
+            localize: { language.text($0) }, revision: revision, acknowledgedIDs: journal.acknowledgedIDs
+        )
+        watchMealSnapshotCache = (fingerprint, snapshot)
+        return snapshot
+    }
+
+    private func watchMealJournal(ownerID: UUID) -> WatchMealJournal {
+        defaults.data(forKey: WatchMealKeys.journal(ownerID: ownerID))
+            .flatMap { try? JSONDecoder().decode(WatchMealJournal.self, from: $0) }
+            ?? WatchMealJournal()
+    }
+
+    private func saveWatchMealJournal(_ journal: WatchMealJournal, ownerID: UUID) {
+        guard let encoded = try? JSONEncoder().encode(journal) else { return }
+        defaults.set(encoded, forKey: WatchMealKeys.journal(ownerID: ownerID))
+    }
+
+    /// Foods added on the Watch join that block's meal once, then the Watch is told so in the next snapshot.
+    /// Acknowledged once on the dayline, or when it never can be (a malformed day). Any other failure leaves it
+    /// on the Watch, which sends it again on its next contact with the phone.
+    private func handleWatchMealMutation(_ mutation: WatchMealMutation) async {
+        guard let operation = accountOperationLease(), operation.ownerID == mutation.ownerID,
+              verifiedPersistenceOwnerID() == operation.ownerID,
+              accountAccessAllowsPrivateWork(for: operation.ownerID) else { return }
+        do {
+            try await watchMealQueue.enqueue(requireCurrent: {
+                try self.requireCurrentAccountOperation(operation)
+            }) {
+                guard self.accountAccessAllowsPrivateWork(for: operation.ownerID) else { throw CancellationError() }
+                if !self.watchMealJournal(ownerID: operation.ownerID).acknowledgedIDs.contains(mutation.id) {
+                    try await self.addWatchMeal(mutation, operation: operation)
+                    try self.requireCurrentAccountOperation(operation)
+                }
+                var journal = self.watchMealJournal(ownerID: operation.ownerID)
+                journal.acknowledge(mutation.id)
+                self.saveWatchMealJournal(journal, ownerID: operation.ownerID)
+                self.publishHydrationState()
+            }.value
+        } catch {
+            // Not acknowledged: the Watch keeps the foods and sends them again when it reconnects.
+        }
+    }
+
+    func addWatchMeal(_ mutation: WatchMealMutation, operation: AccountOperationLease) async throws {
+        let ownerID = operation.ownerID
+        let ownedEntries = data.loggedFoodEntries.filter { $0.userID == ownerID }
+        /* No shortcut on this phone's own copy: it can hold a save the server never got, if the app was
+           stopped mid-call. Saving again is safe; the meal's stable operation key makes it a replay. */
+        guard ISO8601DateFormatter.apexDateOnly.date(from: mutation.day)?.apexDateKey == mutation.day else { return }
+        let items = mutation.items.compactMap {
+            WatchMealCompanion.composerItem($0, foods: data.foods, ownedEntries: ownedEntries)
+        }
+        guard !items.isEmpty, items.count == mutation.items.count else { throw APEXServiceError.incompleteFood }
+        let mutationKey = mutation.id.uuidString.lowercased()
+        func stableID(_ namespace: String) -> UUID {
+            APEXStableID.scopedUUID(namespace: namespace, date: mutationKey, userID: ownerID)
+        }
+        let block = MealBlocks.normalized(data.settings?.addons["meal_blocks"]).first { $0.kind == mutation.block }
+        let finishedAt = WatchMealCompanion.finishedAt(
+            addedAt: mutation.addedAt, day: mutation.day, blockTime: block?.time ?? "12:00"
+        )
+        if try await appendToBlockMeal(
+            items, mutation: mutation, operationID: stableID("watch-meal-append"),
+            fallbackTime: finishedAt, operation: operation
+        ) { return }
+        // An empty block, or a meal that changed elsewhere and cannot take the foods without overwriting it.
+        try await saveStructuredMeal(
+            WatchMealCompanion.newMeal(
+                items, day: mutation.day, block: mutation.block,
+                name: LanguageState.shared.text(block?.label ?? mutation.block.capitalized),
+                finishedAt: finishedAt, mealID: stableID("watch-meal"), operationID: stableID("watch-meal-new")
+            ),
+            operation: operation
+        )
+    }
+
+    /// Adds the foods to the meal the dayline shows for the block. False when there is none, or when the
+    /// server refuses the edit because the meal changed elsewhere.
+    private func appendToBlockMeal(
+        _ items: [MealComposerItem],
+        mutation: WatchMealMutation,
+        operationID: UUID,
+        fallbackTime: Date,
+        operation: AccountOperationLease
+    ) async throws -> Bool {
+        func blockMeal() -> LoggedMeal? {
+            WatchMealCompanion.blockMeal(
+                day: mutation.day, block: mutation.block, ownerID: operation.ownerID, meals: data.loggedMeals
+            )
+        }
+        guard var meal = blockMeal() else { return false }
+        var snapshot: MealEditSnapshot
+        do {
+            snapshot = try await mealEditSnapshot(meal, operation: operation)
+        } catch APEXServiceError.staleMeal {
+            // This phone holds an older copy than the server: read the day again and append to what it holds now.
+            try? await refreshDashboard(expectedUserID: operation.ownerID)
+            try requireCurrentAccountOperation(operation)
+            guard let current = blockMeal() else { return false }
+            do {
+                snapshot = try await mealEditSnapshot(current, operation: operation)
+            } catch APEXServiceError.staleMeal {
+                return false
+            }
+            meal = current
+        }
+        do {
+            try await saveStructuredMeal(
+                WatchMealCompanion.appending(
+                    items, to: meal, snapshot: snapshot, operationID: operationID, fallbackTime: fallbackTime
+                ),
+                operation: operation
+            )
+            return true
+        } catch let error where !(error is CancellationError) && SyncFailurePolicy.classify(error) == .permanent {
+            return false
+        }
     }
 
     private func beginHydrationMutation(_ mutation: HydrationCompanionMutation) -> Bool {

@@ -4,6 +4,7 @@ import WatchKit
 struct WatchHydrationView: View {
     @EnvironmentObject private var hydration: WatchHydrationStore
     @EnvironmentObject private var workout: WatchWorkoutSessionController
+    @EnvironmentObject private var meals: WatchMealStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     @Environment(\.scenePhase) private var scenePhase
@@ -53,6 +54,8 @@ struct WatchHydrationView: View {
         )
     }
 
+    private var showsMeals: Bool { meals.state.snapshot != nil }
+
     private var showsSupplements: Bool {
         !hydration.supplements.visibleItems.isEmpty && hydration.supplements.snapshot != nil
     }
@@ -70,9 +73,12 @@ struct WatchHydrationView: View {
     }
 
     private var pages: some View {
-        // One thing per page, turned with the Digital Crown: water, supplements, then history and settings.
+        // One thing per page, turned with the Digital Crown: water, meals, supplements, then history and settings.
         TabView(selection: $page) {
             waterPage.tag(WatchPage.water)
+            if showsMeals {
+                WatchMealsPage().tag(WatchPage.meals)
+            }
             if showsSupplements {
                 WatchSupplementChecklistView(
                     animates: animationIsEnabled && page == .supplements,
@@ -126,6 +132,9 @@ struct WatchHydrationView: View {
         .onChange(of: showsSupplements) { _, shown in
             // The supplements page can vanish under the user when the phone syncs an empty list.
             if !shown, page == .supplements { page = .water }
+        }
+        .onChange(of: showsMeals) { _, shown in
+            if !shown, page == .meals { page = .water }
         }
     }
 
@@ -503,12 +512,14 @@ struct WatchHydrationView: View {
 
 private enum WatchPage: Hashable {
     case water
+    case meals
     case supplements
     case more
 
     static var initial: WatchPage {
         #if DEBUG
         switch ProcessInfo.processInfo.environment["APEX_WATCH_PREVIEW_PAGE"] {
+        case "meals": return .meals
         case "supplements": return .supplements
         case "more": return .more
         default: return .water
@@ -524,6 +535,7 @@ enum WatchTint {
     static let violet = Color(red: 0.55, green: 0.34, blue: 0.98)
     static let gold = Color(red: 1.0, green: 0.76, blue: 0.29)
     static let ember = Color(red: 1.0, green: 0.45, blue: 0.2)
+    static let leaf = Color(red: 0.36, green: 0.88, blue: 0.52)
 }
 
 /// Frosted glass that takes the colour of what it holds, lit along its top edge; it dips and brightens under a finger.

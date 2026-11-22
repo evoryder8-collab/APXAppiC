@@ -511,6 +511,16 @@ enum MealMemory {
         return touched.compactMap { working[$0] }
     }
 
+    /// Planned prescriptions are written into history as meals so the dayline
+    /// can show them, but they were never a choice the user made.
+    static func isPlannedPrescription(_ entry: LoggedFoodEntry, foodByID: [String: Food]) -> Bool {
+        if entry.snapshotBrand == "APEX plan" { return true }
+        if entry.snapshotName.lowercased().contains("planned prescription") { return true }
+        guard let foodID = entry.foodID?.uuidString.lowercased(),
+              let provider = foodByID[foodID]?.providerProductID else { return false }
+        return provider.hasPrefix("apex-plan:")
+    }
+
     // MARK: - Ranking
 
     static func rank(
@@ -531,16 +541,8 @@ enum MealMemory {
         var entriesByMeal: [UUID: [LoggedFoodEntry]] = [:]
         for entry in entries { entriesByMeal[entry.mealID, default: []].append(entry) }
 
-        /* Planned prescriptions are written into history as meals so the dayline
-           can show them, but they were never a choice the user made. */
         func isSyntheticPlannedMeal(_ meal: LoggedMeal) -> Bool {
-            (entriesByMeal[meal.id] ?? []).contains { entry in
-                if entry.snapshotBrand == "APEX plan" { return true }
-                if entry.snapshotName.lowercased().contains("planned prescription") { return true }
-                guard let foodID = entry.foodID?.uuidString.lowercased(),
-                      let provider = foodByID[foodID]?.providerProductID else { return false }
-                return provider.hasPrefix("apex-plan:")
-            }
+            (entriesByMeal[meal.id] ?? []).contains { isPlannedPrescription($0, foodByID: foodByID) }
         }
 
         let eligibleSlotMeals = meals.filter { meal in

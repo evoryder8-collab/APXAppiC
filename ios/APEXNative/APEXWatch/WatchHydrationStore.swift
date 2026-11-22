@@ -51,6 +51,11 @@ final class WatchHydrationStore: ObservableObject {
     @Published private(set) var preferences: WatchHydrationPreferences
     @Published private(set) var supplements = WatchSupplementState()
     private var supplementOwnerID: UUID?
+    /// Meals share this store's connection and account, nothing else.
+    private(set) lazy var meals = WatchMealStore(
+        defaults: defaults, connectivity: connectivity, ownerID: activeOwnerID ?? supplementOwnerID,
+        haptics: { [weak self] in self?.preferences.confirmationHaptics ?? true }
+    )
     @Published var message: String?
 
     private let healthStore = HKHealthStore()
@@ -170,6 +175,12 @@ final class WatchHydrationStore: ObservableObject {
         }
         connectivity.readyHandler = { [weak self] in
             self?.synchronizeSupplements()
+            self?.meals.replayPending()
+        }
+        connectivity.mealSnapshotHandler = { [weak self] snapshot in
+            // Like the checklist: only for the account the hydration snapshot just connected.
+            guard let self, self.activeOwnerID == snapshot.ownerID else { return }
+            self.meals.accept(snapshot)
         }
         connectivity.snapshotHandler = { [weak self] snapshot in
             self?.apply(snapshot)
@@ -838,6 +849,7 @@ final class WatchHydrationStore: ObservableObject {
         )
         activeOwnerID = snapshot.ownerID
         restoreSupplements(ownerID: snapshot.ownerID)
+        meals.follow(snapshot.ownerID)
         WatchWorkoutSessionController.shared.updateActiveOwner(
             snapshot.ownerID,
             revision: snapshot.revision
@@ -873,6 +885,7 @@ final class WatchHydrationStore: ObservableObject {
         activeOwnerID = nil
         supplementOwnerID = nil
         supplements = WatchSupplementState()
+        meals.disconnect()
         defaults.removeObject(forKey: WatchSupplementKeys.activeOwner)
         WatchWorkoutSessionController.shared.disconnect(
             ownerID: disconnectedOwnerID,

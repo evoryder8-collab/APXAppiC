@@ -337,6 +337,7 @@ struct APEXWaterWatchApp: App {
                 WatchHydrationView()
             }
             .environmentObject(hydration)
+            .environmentObject(hydration.meals)
             .environmentObject(workout)
         }
     }

@@ -186,6 +186,7 @@ const internalLiterals = {
   'MealMemory.swift': ['beef steak', 'sirloin steak', 'Rindersteak', 'bistecca di manzo'],
   'PlayerTimeline.swift': ['Morning circle · ', 'FITR_WARMUP_V1| | '],
   'WatchSupplementState.swift': ['fitr.watch.supplements.state. .v1', 'fitr.phone.supplements.journal. .v1'],
+  'WatchMealState.swift': ['fitr.watch.meals.state. .v1', 'fitr.phone.meals.journal. .v1'],
   'WorkoutReceipt.swift': ['FITR_WORKOUT_TIMING_V1|'],
   'SimpleHomeView.swift': ['simple-training-mode- - '],
   'AvatarReport.swift': ['Archivo_Expanded-ExtraBold', 'ReportFonts', 'ArchivoExpanded-ExtraBold'],

@@ -5,6 +5,7 @@ import Foundation
 final class HydrationPhoneConnectivity: NSObject, WCSessionDelegate {
     var mutationHandler: ((HydrationCompanionMutation) async -> Void)?
     var supplementMutationHandler: ((WatchSupplementMutation) async -> Void)?
+    var mealMutationHandler: ((WatchMealMutation) async -> Void)?
     var companionRefreshHandler: (() -> Void)?
     private let session: WCSession?
     private let defaults = UserDefaults.standard
@@ -22,7 +23,11 @@ final class HydrationPhoneConnectivity: NSObject, WCSessionDelegate {
         session?.activate()
     }
 
-    func publish(_ snapshot: HydrationCompanionSnapshot, supplements: WatchSupplementSnapshot) {
+    func publish(
+        _ snapshot: HydrationCompanionSnapshot,
+        supplements: WatchSupplementSnapshot,
+        meals: WatchMealSnapshot?
+    ) {
         guard let session, let data = try? snapshot.encoded(),
               supplements.ownerID == snapshot.ownerID,
               let supplementData = try? JSONEncoder().encode(supplements) else { return }
@@ -33,6 +38,11 @@ final class HydrationPhoneConnectivity: NSObject, WCSessionDelegate {
         payload.removeValue(forKey: HydrationCompanionKeys.disconnectedRevision)
         payload[HydrationCompanionKeys.snapshot] = data
         payload[WatchSupplementKeys.snapshot] = supplementData
+        if let meals, meals.ownerID == snapshot.ownerID, let mealData = try? meals.encoded() {
+            payload[WatchMealKeys.snapshot] = mealData
+        } else {
+            payload.removeValue(forKey: WatchMealKeys.snapshot)
+        }
         try? session.updateApplicationContext(payload)
         if session.isReachable {
             session.sendMessage(payload, replyHandler: nil, errorHandler: nil)
@@ -51,7 +61,8 @@ final class HydrationPhoneConnectivity: NSObject, WCSessionDelegate {
             previousVisibleSignature: defaults.string(forKey: Self.visibleSignatureKey),
             newVisibleSignature: visibleSignature
         ) {
-            session.transferCurrentComplicationUserInfo(payload)
+            // Meals stay out of the watch face's small transfer budget; the face never shows them.
+            session.transferCurrentComplicationUserInfo(payload.filter { $0.key != WatchMealKeys.snapshot })
             defaults.set(visibleSignature, forKey: Self.visibleSignatureKey)
         }
 #endif
@@ -112,11 +123,14 @@ final class HydrationPhoneConnectivity: NSObject, WCSessionDelegate {
             .flatMap { try? HydrationCompanionMutation.decode($0) }
         let supplementMutation = (payload[WatchSupplementKeys.mutation] as? Data)
             .flatMap { try? JSONDecoder().decode(WatchSupplementMutation.self, from: $0) }
+        let mealMutation = (payload[WatchMealKeys.mutation] as? Data)
+            .flatMap { try? JSONDecoder().decode(WatchMealMutation.self, from: $0) }
         let requestsSnapshot = payload[WatchSupplementKeys.request] as? Bool == true
         Task { @MainActor [weak self] in
             if requestsSnapshot { self?.companionRefreshHandler?() }
             if let mutation { await self?.mutationHandler?(mutation) }
             if let supplementMutation { await self?.supplementMutationHandler?(supplementMutation) }
+            if let mealMutation { await self?.mealMutationHandler?(mealMutation) }
         }
     }
 }
