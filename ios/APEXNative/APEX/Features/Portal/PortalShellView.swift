@@ -38,6 +38,7 @@ struct PortalShellView: View {
                     destinationView(destination)
                 }
         }
+        .trainTogetherJoinFlow()
         .safeAreaInset(edge: .bottom, spacing: 0) {
             HStack {
                 Spacer()

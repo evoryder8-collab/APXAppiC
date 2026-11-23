@@ -2803,3 +2803,90 @@ ElevenLabs usage this month after recording, audition and retakes: about 210,000
 **Not changed.** The web still has one star per food (it shows favourites in every meal); food search ranking still treats any favourite as a favourite.
 
 **Delivered.** Migration applied to the live project (version `20261122193458`): the owner's 30 favourites became 27 placed in their meals and 3 in every meal; the other account's 5 favourites were placed too (its build 402 does not read the column). Archive `build/FITR-MAX-1.0.1-425.xcarchive` (iPhone, Watch and complication 1.0.1 (425), `codesign --verify --deep --strict` OK), installed with `devicectl` on iConstantine Main and the Watch Ultra 3 (the Watch's first attempt timed out; the second installed); both report 1.0.1 (425).
+
+## 2026-11-23 · Train together: live rooms where one guided workout drives every phone (build 426, server not yet applied)
+
+**What the owner asked.** A coach (or anyone with a partner) opens a room for a guided workout. Everyone talks on whatever video call they already use. The host's screen drives every phone in the room, while each phone records its own person's sets. Members only watch the prep list until the host starts. Only the host (or, in a friends room, anyone) can pause, add time or move on. Paid subscribers and coaches' clients only, but switched off for the TestFlight beta. The design and every decision are in the side-session note `group-workout-design.md`, revisions 1-5.
+
+**How it works.**
+- **One versioned snapshot.** A room is one snapshot (`TrainTogether.State`: step, position, side, anchor time on the server clock, pause, added time, step number, sound and voice), stored in `group_workouts` and broadcast on the private Realtime channel `group:<id>`.
+  - Every phone derives what to show from the snapshot with `TrainTogether.Timeline.now`.
+  - Automatic steps (a rest running out, a counted set finishing, the side switch, the 5 s lead-in before each set) need no message.
+- **Presses.** A press is `Timeline.apply`, sent as an action against the last state the server confirmed, with its version.
+  - A press that lost to a newer one is dropped, along with anything queued behind it.
+  - If sending fails, the phone takes the server's copy back.
+- **Server clock.** Each phone measures its offset from it at join (shortest of three round trips).
+- **Saving.** Joining copies the frozen plan into the joiner's own account as an inactive day under a `group` program, with stable IDs, through `CustomWorkoutLifecycle.persistMutation`. The normal player then records each set and the normal save stores it.
+- **Sets a phone missed.** Sets slept through (phone locked or offline) are filled in only when the room simply ran on. After a jump, only the set on screen counts.
+- **Two kinds of room.**
+  - With friends: up to 10 people. Everyone controls by default, and everyone sees first names. Shared sets are each person's opt-in, sent only in their presence entry.
+  - Class: up to 50 people. Only the host controls it. Members see a head count only, and their presence key changes each visit. During rest the host sees "n of m logged".
+  - The class lobby is a pager the members follow card by card.
+- **Invites.**
+  - A 6-character code, a QR code, a share link to the web page `#/join/<code>`, and `apex://join/<code>`.
+  - A Paste button on the Join screen and on the welcome screen. The code survives sign-up and is tried once.
+- **Access.** `train_together_allowed` is "may use the app" while `feature_access_policy('train_together').paid_only` is false (the TestFlight beta), and "paid" when it is true.
+  - Paid means a founding account, an App Store subscription (free trial included), or a seat under a coach whose status is `active`.
+  - The owner's calls, settled by the design's recommendations: trials count, founding accounts count.
+  - To launch: `update feature_access_policy set paid_only = true where feature = 'train_together'`. Only once Phase 5's StoreKit mirror writes `source = 'app_store'` and paying coaches are `active`.
+  - Family Sharing on Premium is an App Store Connect setting, listed for the owner, not built.
+- **Access hold.** An access change no longer tears down an open guided or tracked workout. `AppSession.openWorkoutScreens` holds the gate until the screen closes.
+
+**Server.** Migration `supabase/migrations/20261123120000_train_together.sql`. **NOT YET APPLIED.** The apply was declined twice in the implementing session, and the owner has to approve that prompt there.
+- **What it adds:**
+  - the `account_entitlements.source` column (the four no-expiry accounts become `founding`);
+  - `feature_access_policy`;
+  - `group_workouts`, `group_workout_members` and `group_workout_join_attempts`, all RPC-only with RLS on and no policies;
+  - the room RPCs;
+  - plan and state validators;
+  - Realtime policies on `realtime.messages`: members listen and track presence, only the host broadcasts.
+- **Build 402.** It calls none of this, and `get_my_app_access` is untouched. Its answers were recorded before the apply: all six accounts are `granted`, and four have no expiry.
+- **Integration test.** `tests/train-together-db-integration.sql` rolls back. It covers:
+  - access with the switch off and on;
+  - shared control;
+  - a class member who cannot control;
+  - the 10-person cap;
+  - wrong codes counting against the join limit;
+  - out-of-range plans and states refused;
+  - ended rooms;
+  - grants.
+
+**Checks.**
+- `APEXTests/TrainTogetherTests`: 16 tests. They cover the timeline (lobby, rolling steps, per-side sets, presses, pause and resume, +30 s, two simultaneous presses), the step number surviving a round trip and a pause, slept-through sets, bounds, private notes, codes, the joiner's rows and the clock offset.
+- Full iPhone unit suite: 1,283 tests, 0 failures.
+- Translation audit: 100% in all nine languages, with 55 new strings in eight tables.
+- Web: `npm run build` passes. `npm test` has the same 2 failures as before this change, both needing a local Postgres server.
+
+**Reviews (pstack thermo-nuclear correctness + code quality), fixed before commit.**
+- A set was recorded early with 0 reps on the pressing phone and after every pause, because a new step was judged from a timestamp that moves on a round trip or a resume. The step number now decides it.
+- A failed press left the phone out of step.
+- A press that lost a race could still win.
+- Wrong codes never counted against the join limit; the raise rolled the attempt back.
+- Nothing bounded a room's numbers, so one member could crash every phone in it.
+- Opening a room ended the host's scheduled classes. Now only a room already under way closes.
+- Sets slept through were never recorded.
+- The pending code retried itself on every launch.
+- A leaver's sets were stranded. Leaving now goes to the save.
+- The host's private exercise notes were copied to joiners.
+- Class members saw each other's account ids in presence.
+- Quality:
+  - room mode drives the player's own per-side and spoken-intro code instead of copies;
+  - the lobby is drawn from the room, not a player phase;
+  - the room views moved out of the 3,400-line player;
+  - the rep rules live once in `PlayerTimeline`, and `usesSides`/`usesAutomaticCadence` moved there with all callers;
+  - one access function on the server;
+  - exact error tokens.
+
+**Left as is.**
+- The anonymous web preview has no rate limit.
+- Presence keys in friends rooms are the person's account id, so a member could post a fake shared set under a friend's name.
+- A joiner still finishes sign-up and the induction before the room opens.
+- The access screen has no "Subscribe to train with Anna" line yet. With the switch off, nobody reaches it.
+- No push notifications or Live Activity: the screen stays on in a room instead.
+- The web page has no "Get FITR MAX" button, because the repo has no App Store or TestFlight URL.
+- Not yet tried with two devices and a real call. That needs the migration applied.
+
+**Next (owner's requests, design revision 5).**
+- Saved favourites to host from.
+- The challenge wheel, with a shared equipment survey and only challenges everyone can do.
+- June needs build 426 or later. External TestFlight is stuck at 401, so either add her as an internal tester in App Store Connect or install it from Xcode.

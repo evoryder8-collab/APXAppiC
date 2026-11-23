@@ -7903,6 +7903,67 @@ final class AppSession {
         return true
     }
 
+    // MARK: - Train together
+
+    var trainTogetherClient: SupabaseClient? { isDeveloperSandbox ? nil : service.client }
+
+    /// A code from a link or the welcome screen, kept until the room opens so it
+    /// survives signing up and relaunching.
+    var pendingTrainTogetherCode: String? = UserDefaults.standard.string(forKey: "fitr.train-together.pending-code") {
+        didSet { UserDefaults.standard.set(pendingTrainTogetherCode, forKey: "fitr.train-together.pending-code") }
+    }
+
+    /// "Join a workout" asked for the code sheet without a code.
+    var trainTogetherJoinRequested = false
+
+    /// While any workout screen is open, an access change waits until it closes.
+    var openWorkoutScreens = 0
+
+    /// Puts a joined room's workout into this account as an inactive day, so
+    /// the normal player and the normal save run on it. Joining again rewrites
+    /// the same rows.
+    func installTrainTogetherDay(_ rows: TrainTogether.AnchorRows, operation: AccountOperationLease) async throws {
+        try requireCurrentAccountOperation(operation)
+        let userID = operation.ownerID
+        guard rows.day.userID == userID, rows.exercises.allSatisfy({ $0.userID == userID }) else {
+            throw CancellationError()
+        }
+        func merging(into current: DashboardData) -> DashboardData {
+            var result = current
+            if !result.programs.contains(where: { $0.id == rows.program.id }) { result.programs.append(rows.program) }
+            result.programDays.removeAll { $0.id == rows.day.id }
+            result.programDays.append(rows.day)
+            result.exercises.removeAll { $0.programDayID == rows.day.id }
+            result.exercises.append(contentsOf: rows.exercises)
+            return result
+        }
+        guard !isDeveloperSandbox && !APEXRuntimeEnvironment.usesLocalUITestFixture() else {
+            data = merging(into: data)
+            return
+        }
+        let writes: [OfflineOperation] = [
+            try .upsert(rows.program, table: "programs", onConflict: nil),
+            try .upsert(rows.day, table: "program_days", onConflict: nil),
+        ] + (try rows.exercises.map { try .upsert($0, table: "exercises", onConflict: nil) })
+        let committed = try await CustomWorkoutLifecycle.persistMutation(
+            snapshot: { (self.dashboardMutationRevision, self.data) },
+            merge: merging(into:),
+            requireCurrent: { try self.requireCurrentAccountOperation(operation) },
+            saveDashboard: { proposed in try await self.offlineStore.saveDashboard(proposed, for: userID) },
+            enqueue: {
+                try await self.offlineStore.enqueue(parent: writes[0], dependents: Array(writes.dropFirst()), for: userID)
+            }
+        )
+        try requireCurrentAccountOperation(operation)
+        data = committed
+        let count = try? await offlineStore.pendingOperations(for: userID).count
+        if accountOperationIsCurrent(operation), let count { pendingSyncCount = count }
+        Task { @MainActor [weak self] in
+            guard let self, self.accountOperationIsCurrent(operation) else { return }
+            await self.flushPendingChanges(for: userID)
+        }
+    }
+
     /*
      * Install a generated starter plan.
      *

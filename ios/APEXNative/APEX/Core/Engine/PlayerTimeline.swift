@@ -67,6 +67,27 @@ enum PlayerTimeline {
         max(1.6, exercise.tempoUp + exercise.tempoDown + exercise.tempoPause + 0.4)
     }
 
+    static func usesAutomaticCadence(for exercise: Exercise) -> Bool {
+        exercise.repUnit == "reps" || exercise.repUnit == "max"
+    }
+
+    static func usesSides(_ exercise: Exercise) -> Bool {
+        exercise.perSide || MovementTiming.movement(named: exercise.name, movementID: exercise.movementID)?.unilateral == true
+    }
+
+    /// The rep a paced set is on after `elapsed` seconds of movement, or nil
+    /// before the first one.
+    static func countedRep(after elapsed: Double, for exercise: Exercise) -> Int? {
+        guard elapsed > 0.1 else { return nil }
+        let rep = Int(elapsed / repDuration(exercise)) + 1
+        return repTarget(exercise).map { min($0, rep) } ?? rep
+    }
+
+    /// How long a paced set with a target lasts once it starts moving.
+    static func countedSetSeconds(_ exercise: Exercise) -> Double? {
+        repTarget(exercise).map { Double($0) * repDuration(exercise) + 0.3 }
+    }
+
     static func timedSeconds(_ exercise: Exercise) -> Int? {
         let mid = Int((Double(exercise.repMin + exercise.repMax) / 2).rounded())
         if exercise.repUnit == "seconds" { return mid }

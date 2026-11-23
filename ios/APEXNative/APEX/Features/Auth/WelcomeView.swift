@@ -219,6 +219,32 @@ struct WelcomeView: View {
         .buttonStyle(PressShrink())
         .padding(.top, 24)
         .rise(appeared, delay: 0.40)
+        .overlay(alignment: .bottom) { workoutCode.offset(y: 52) }
+    }
+
+    /// Someone invited to train together keeps their code through sign-up and
+    /// lands in the workout afterwards.
+    @ViewBuilder
+    private var workoutCode: some View {
+        if let code = session.pendingTrainTogetherCode {
+            Text(language.format("Workout %@ is waiting for you after you sign in", code))
+                .font(APEXFont.body(12, weight: .semibold))
+                .foregroundStyle(APEXColor.violet)
+                .fixedSize()
+        } else {
+            HStack(spacing: 8) {
+                Text(language.text("Joining a workout?"))
+                    .font(APEXFont.body(12, weight: .semibold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                PasteButton(payloadType: String.self) { strings in
+                    session.pendingTrainTogetherCode = strings.lazy.compactMap(TrainTogether.code(in:)).first
+                }
+                .labelStyle(.titleAndIcon)
+                .buttonBorderShape(.capsule)
+                .controlSize(.small)
+            }
+            .fixedSize()
+        }
     }
 
     // MARK: - Apple

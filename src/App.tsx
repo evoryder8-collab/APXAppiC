@@ -49,6 +49,7 @@ const Login = lazy(() => import('./pages/Login').then((module) => ({ default: mo
 const VisualProgress = lazy(() => import('./pages/VisualProgress').then((module) => ({ default: module.VisualProgress })))
 const NeutralEntry = lazy(() => import('./components/NeutralEntry').then((module) => ({ default: module.NeutralEntry })))
 const OrbitHome = lazy(() => import('./orbit/pages/OrbitHome').then((module) => ({ default: module.OrbitHome })))
+const JoinWorkout = lazy(() => import('./pages/JoinWorkout').then((module) => ({ default: module.JoinWorkout })))
 const RoutePlanner = lazy(() => import('./orbit/pages/RoutePlanner').then((module) => ({ default: module.RoutePlanner })))
 const LiveRun = lazy(() => import('./orbit/pages/LiveRun').then((module) => ({ default: module.LiveRun })))
 const RunDebrief = lazy(() => import('./orbit/pages/RunDebrief').then((module) => ({ default: module.RunDebrief })))
@@ -159,6 +160,17 @@ function Reminders() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data.meals, data.supplements, data.profile?.training_time, data.settings?.notifications_on])
   return null
+}
+
+/* The Train together share link is public: it must open before sign-in. */
+function PublicJoinOrShell() {
+  const { pathname } = useLocation()
+  if (!pathname.startsWith('/join/')) return <Shell />
+  return (
+    <Suspense fallback={<LoadingSurface />}>
+      <Routes><Route path="/join/:code" element={<JoinWorkout />} /><Route path="*" element={<JoinWorkout />} /></Routes>
+    </Suspense>
+  )
 }
 
 function Shell() {
@@ -303,7 +315,7 @@ export default function App() {
         <PrivateStoreScope>
           <HashRouter>
             <AmbientBackground />
-            <Shell />
+            <PublicJoinOrShell />
           </HashRouter>
         </PrivateStoreScope>
       </AppStoreProvider>

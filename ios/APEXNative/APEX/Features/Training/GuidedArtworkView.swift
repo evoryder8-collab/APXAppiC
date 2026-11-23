@@ -15,7 +15,7 @@ struct GuidedPoseCadence: Decodable {
     }
 
     func cue(for exercise: Exercise, elapsed: Double, reduceMotion: Bool) -> Cue? {
-        guard GuidedWorkout.usesAutomaticCadence(for: exercise),
+        guard PlayerTimeline.usesAutomaticCadence(for: exercise),
               exercise.tempoDown > 0, exercise.tempoUp > 0,
               exercise.tempoPause >= 0, elapsed.isFinite,
               exercise.tempoPause == 0 || pause != .mid else { return nil }

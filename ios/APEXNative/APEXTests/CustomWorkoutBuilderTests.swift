@@ -928,7 +928,7 @@ final class CustomWorkoutBuilderTests: XCTestCase {
             signedLoadKG: 24, skipped: false
         )
 
-        XCTAssertFalse(GuidedWorkout.usesAutomaticCadence(for: carry))
+        XCTAssertFalse(PlayerTimeline.usesAutomaticCadence(for: carry))
         XCTAssertEqual(input.distanceMeters, 40)
         XCTAssertNil(input.durationSeconds)
         XCTAssertEqual(input.weightKG, 24)
@@ -949,7 +949,7 @@ final class CustomWorkoutBuilderTests: XCTestCase {
             signedLoadKG: 10, skipped: false
         )
 
-        XCTAssertFalse(GuidedWorkout.usesAutomaticCadence(for: wristRoller))
+        XCTAssertFalse(PlayerTimeline.usesAutomaticCadence(for: wristRoller))
         XCTAssertEqual(input.reps, 3)
         XCTAssertNil(input.rounds)
         XCTAssertNil(input.durationSeconds)

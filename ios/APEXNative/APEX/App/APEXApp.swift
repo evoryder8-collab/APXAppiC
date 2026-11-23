@@ -15,7 +15,11 @@ struct APEXApp: App {
                 .preferredColorScheme(.light)
                 .task { await session.bootstrap() }
                 .onOpenURL { url in
-                    Task { await session.handleAuthCallback(url) }
+                    if url.host() == "join", let code = TrainTogether.code(in: url.absoluteString) {
+                        session.pendingTrainTogetherCode = code
+                    } else {
+                        Task { await session.handleAuthCallback(url) }
+                    }
                 }
                 // Midnight with the app open: a screen left on today moves to the new day.
                 .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in

@@ -354,6 +354,8 @@ struct TrainingProgramView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 14)
 
+                TrainTogetherJoinButton(accent: accent)
+
                 #if DEBUG
                 if let inductionInstallEvidence {
                     Text("Induction installed")
@@ -1074,9 +1076,6 @@ enum TrackedWorkout {
 }
 
 enum GuidedWorkout {
-    static func usesAutomaticCadence(for exercise: Exercise) -> Bool {
-        exercise.repUnit == "reps" || exercise.repUnit == "max"
-    }
 
     static func setInput(
         for exercise: Exercise,
@@ -1220,6 +1219,7 @@ struct TrackedWorkoutView: View {
             .environment(session)
         }
         .onAppear {
+            session.openWorkoutScreens += 1
             guard !watchWorkoutRequested,
                   let operation = session.accountOperationLease() else { return }
             let launchID = UUID()
@@ -1236,6 +1236,7 @@ struct TrackedWorkoutView: View {
             }
         }
         .onDisappear {
+            session.openWorkoutScreens -= 1
             watchWorkoutStartTask?.cancel()
             watchWorkoutStartTask = nil
             if let operation = watchWorkoutOperation,
@@ -1418,6 +1419,8 @@ struct WorkoutDayView: View {
     var slug: String = "main"
     @State private var showGuidedPlayer = false
     @State private var showTrackedWorkout = false
+    @State private var showTrainTogether = false
+    @State private var trainTogetherRoom: TrainTogetherRoom?
 
     /* The planner decides what today actually prescribes: event tapers, the
        championship leg rule, scheduled and marked deloads, recovery micros. */
@@ -1578,6 +1581,16 @@ struct WorkoutDayView: View {
                         }
                     }
                     .accessibilityIdentifier("workout-start-session")
+
+                    Button {
+                        showTrainTogether = true
+                    } label: {
+                        Label(language.text("Train together"), systemImage: "person.2.fill")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(accent)
+                    .accessibilityIdentifier("workout-train-together")
                 } else if plan.hasWalkOnly {
                     Button {
                         showGuidedPlayer = true
@@ -1595,7 +1608,7 @@ struct WorkoutDayView: View {
         }
         .navigationTitle(language.text(day.name))
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(isPresented: $showGuidedPlayer) {
+        .fullScreenCover(isPresented: $showGuidedPlayer, onDismiss: { trainTogetherRoom = nil }) {
             WorkoutPlayerView(
                 day: day,
                 exercises: sessionExercises,
@@ -1603,8 +1616,24 @@ struct WorkoutDayView: View {
                 lite: lite,
                 date: min(date, Date().apexDateKey),
                 warmupText: plan.warmup,
-                warmupDuration: plan.warmupDuration
+                warmupDuration: plan.warmupDuration,
+                room: trainTogetherRoom
             )
+        }
+        .sheet(isPresented: $showTrainTogether, onDismiss: {
+            if trainTogetherRoom != nil { showGuidedPlayer = true }
+        }) {
+            TrainTogetherHostSheet(
+                title: day.name,
+                plan: TrainTogether.Plan(
+                    name: day.name, warmupText: plan.warmup, warmupDuration: plan.warmupDuration,
+                    exercises: sessionExercises.map(TrainTogether.PlanExercise.init)
+                ),
+                accent: accent
+            ) { room in
+                trainTogetherRoom = room
+            }
+            .environment(session)
         }
         .fullScreenCover(isPresented: $showTrackedWorkout) {
             TrackedWorkoutView(day: day, exercises: sessionExercises, accent: accent, lite: lite, date: min(date, Date().apexDateKey))
@@ -1627,20 +1656,23 @@ struct WorkoutDayView: View {
 
     /// Reads the planned set count, which a taper or deload may have reduced.
     private func prescription(_ planned: PlannedExercise) -> String {
-        let exercise = planned.exercise
+        Self.prescription(planned.exercise, sets: planned.plannedSets, language: language)
+    }
+
+    static func prescription(_ exercise: Exercise, sets: Int, language: LanguageState) -> String {
         let reps = exercise.repUnit == "max" ? language.text("MAX") : exercise.repMin == exercise.repMax ? "\(exercise.repMax)" : "\(exercise.repMin)–\(exercise.repMax)"
         let unit = language.text(exercise.repUnit.uppercased())
         let movement = MovementTiming.movement(named: exercise.name)
         let noun = language.text(
-            (planned.plannedSets == 1
+            (sets == 1
                 ? movement?.setNoun
                 : movement?.setNounPlural)
             ?? MovementTiming.fallbackNoun(repUnit: exercise.repUnit)
         ).uppercased(with: language.language.locale)
         // Something performed once does not need a count in front of it.
-        let lead = planned.plannedSets == 1 && movement?.showsSetCount == false
+        let lead = sets == 1 && movement?.showsSetCount == false
             ? noun
-            : "\(planned.plannedSets) \(noun)"
+            : "\(sets) \(noun)"
         return exercise.perSide
             ? language.format("%@ · %@ %@ / SIDE", lead, reps, unit)
             : language.format("%@ · %@ %@", lead, reps, unit)
@@ -1712,6 +1744,13 @@ struct WorkoutPlayerView: View {
     @State private var cadenceGate = GuidedCadenceGate()
     @State private var announcementFallback: Task<Void, Never>?
 
+    /* Train together: when a room is attached, roomTick shows where the room
+       is and presses go to the room instead of moving this player. */
+    @State private var room: TrainTogetherRoom?
+    @State private var lastRoomStep: TrainTogether.Step?
+    @State private var roomMuted = false
+    @State private var shareMySets = false
+
     private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     init(
@@ -1721,7 +1760,8 @@ struct WorkoutPlayerView: View {
         lite: Bool,
         date: String,
         warmupText: String,
-        warmupDuration: Int
+        warmupDuration: Int,
+        room: TrainTogetherRoom? = nil
     ) {
         self.day = day
         self.exercises = exercises
@@ -1735,6 +1775,7 @@ struct WorkoutPlayerView: View {
             duration: warmupDuration
         )
         _phase = State(initialValue: warmup == nil ? .active : .warmup)
+        _room = State(initialValue: room)
         _timerRemaining = State(initialValue: warmup ?? 0)
         _timerTotal = State(initialValue: warmup ?? 0)
     }
@@ -1884,8 +1925,12 @@ struct WorkoutPlayerView: View {
         return language.format("FITR MAX paces you: %@s up, %@s down", up, down)
     }
 
-    private var voiceOn: Bool { !session.isDeveloperSandbox && (session.data.settings?.voiceOn ?? true) }
-    private var ticksOn: Bool { !session.isDeveloperSandbox && (session.data.settings?.ticksOn ?? true) }
+    private var voiceOn: Bool {
+        !session.isDeveloperSandbox && (room.map { $0.state.voice && !roomMuted } ?? (session.data.settings?.voiceOn ?? true))
+    }
+    private var ticksOn: Bool {
+        !session.isDeveloperSandbox && (room.map { $0.state.sound && !roomMuted } ?? (session.data.settings?.ticksOn ?? true))
+    }
 
     var body: some View {
         ZStack {
@@ -1893,8 +1938,15 @@ struct WorkoutPlayerView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     playerHeader
-                    progressStrip
-                    phaseContent
+                    if let room, room.state.phase == .lobby {
+                        TrainTogetherLobby(room: room, exercises: exercises, accent: accent, shareMySets: $shareMySets)
+                    } else {
+                        progressStrip
+                        if let room {
+                            TrainTogetherBanner(room: room, accent: accent) { detachFromRoom(leaving: false) }
+                        }
+                        phaseContent
+                    }
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 8)
@@ -1902,7 +1954,7 @@ struct WorkoutPlayerView: View {
             }
         }
         .overlay(alignment: .bottomTrailing) {
-            if !exercises.isEmpty && phase != .complete && completedSession == nil {
+            if room == nil && !exercises.isEmpty && phase != .complete && completedSession == nil {
                 Button {
                     openAlreadyFinished()
                 } label: {
@@ -1925,6 +1977,8 @@ struct WorkoutPlayerView: View {
         .interactiveDismissDisabled()
         .onReceive(timer) { _ in tick() }
         .onAppear {
+            session.openWorkoutScreens += 1
+            if room != nil { UIApplication.shared.isIdleTimerDisabled = true }
             initializePlayer()
             if voiceOn {
                 let names = exercises.map { (name: $0.name, spoken: language.text($0.name)) }
@@ -1949,6 +2003,9 @@ struct WorkoutPlayerView: View {
             }
         }
         .onDisappear {
+            session.openWorkoutScreens -= 1
+            UIApplication.shared.isIdleTimerDisabled = false
+            if let room { Task { await room.close(leaving: false) } }
             persistDraft()
             cancelAnnouncement()
             WorkoutAudioCoach.shared.end()
@@ -1963,7 +2020,11 @@ struct WorkoutPlayerView: View {
                 persistDraft()
             }
         }
-        .onChange(of: setInputs) { _, _ in persistDraft() }
+        .onChange(of: setInputs) { _, _ in
+            persistDraft()
+            publishRoomPresence()
+        }
+        .onChange(of: shareMySets) { _, _ in publishRoomPresence() }
         .onChange(of: paused) { _, next in
             if next { cancelAnnouncement() }
             persistDraft()
@@ -1975,7 +2036,19 @@ struct WorkoutPlayerView: View {
         .confirmationDialog(language.text("Leave this workout?"), isPresented: $showExit, titleVisibility: .visible) {
             Button(language.text("Leave workout")) {
                 persistDraft()
-                dismiss()
+                if room != nil {
+                    // A joiner's sets live only here, so leaving goes to the save, not away.
+                    detachFromRoom(leaving: true)
+                    performedFinish = performedFinish ?? .now
+                    phase = .complete
+                } else {
+                    dismiss()
+                }
+            }
+            if room?.isHost == true, room?.ended == false {
+                Button(language.text("End for everyone"), role: .destructive) {
+                    if let room { Task { await room.endForEveryone() } }
+                }
             }
             Button(language.text("Delete"), role: .destructive) {
                 clearDraft()
@@ -2262,23 +2335,27 @@ struct WorkoutPlayerView: View {
                     .lineLimit(1)
                 Spacer()
 
-                Button {
-                    updateSettings { $0.voiceOn.toggle() }
-                } label: {
-                    Image(systemName: voiceOn ? "speaker.wave.2.fill" : "speaker.slash.fill")
-                        .frame(width: 35, height: 35)
-                        .background(.white.opacity(0.7), in: Circle())
-                }
-                .buttonStyle(.plain)
+                if let room {
+                    TrainTogetherHeaderButtons(room: room, muted: $roomMuted, accent: accent)
+                } else {
+                    Button {
+                        updateSettings { $0.voiceOn.toggle() }
+                    } label: {
+                        Image(systemName: voiceOn ? "speaker.wave.2.fill" : "speaker.slash.fill")
+                            .frame(width: 35, height: 35)
+                            .background(.white.opacity(0.7), in: Circle())
+                    }
+                    .buttonStyle(.plain)
 
-                Button {
-                    updateSettings { $0.ticksOn.toggle() }
-                } label: {
-                    Image(systemName: ticksOn ? "metronome.fill" : "metronome")
-                        .frame(width: 35, height: 35)
-                        .background(.white.opacity(0.7), in: Circle())
+                    Button {
+                        updateSettings { $0.ticksOn.toggle() }
+                    } label: {
+                        Image(systemName: ticksOn ? "metronome.fill" : "metronome")
+                            .frame(width: 35, height: 35)
+                            .background(.white.opacity(0.7), in: Circle())
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
 
             GeometryReader { proxy in
@@ -2321,10 +2398,10 @@ struct WorkoutPlayerView: View {
                         selected: phase == .warmup,
                         complete: phase != .warmup,
                         accessibilityName: language.text("Warm-up")
-                    ) { returnToWarmup() }
+                    ) { press(.backToWarmup) { returnToWarmup() } }
                         .id("warmup")
 
-                    ForEach(Array(workSequence.enumerated()), id: \.offset) { _, position in
+                    ForEach(Array(workSequence.enumerated()), id: \.offset) { offset, position in
                             let exerciseIndex = position.exerciseIndex
                             let exercise = exercises[exerciseIndex]
                             let set = position.setNumber
@@ -2341,7 +2418,7 @@ struct WorkoutPlayerView: View {
                                 accessibilityName: position.groupLabel.map {
                                     "\($0), \(language.text(exercise.name)), \(language.text("Round")) \(set)"
                                 } ?? language.format("%@, %@ %d", language.text(exercise.name), noun, set)
-                            ) { jump(toExercise: exerciseIndex, set: set) }
+                            ) { press(.jump(position: offset)) { jump(toExercise: exerciseIndex, set: set) } }
                                 .id("\(exerciseIndex)-\(set)")
                     }
                 }
@@ -2350,6 +2427,7 @@ struct WorkoutPlayerView: View {
             .onChange(of: currentIndex) { _, _ in scrollToCurrent(proxy) }
             .onChange(of: currentSet) { _, _ in scrollToCurrent(proxy) }
         }
+        .disabled(!canPress)
     }
 
     private func scrollToCurrent(_ proxy: ScrollViewProxy) {
@@ -2422,13 +2500,15 @@ struct WorkoutPlayerView: View {
                     .font(APEXFont.mono(54))
                     .foregroundStyle(accent)
                     .contentTransition(.numericText())
-                HStack(spacing: 12) {
-                    Button(language.text(paused ? "Resume" : "Pause")) { paused.toggle() }
-                        .buttonStyle(.bordered)
-                    Button(language.text("Skip")) { beginActiveSet() }
-                        .buttonStyle(.borderedProminent)
-                        .tint(accent)
-                        .accessibilityIdentifier("workout-skip-warmup")
+                if canPress {
+                    HStack(spacing: 12) {
+                        Button(language.text(paused ? "Resume" : "Pause")) { press(paused ? .resume : .pause) { paused.toggle() } }
+                            .buttonStyle(.bordered)
+                        Button(language.text("Skip")) { press(.advance) { beginActiveSet() } }
+                            .buttonStyle(.borderedProminent)
+                            .tint(accent)
+                            .accessibilityIdentifier("workout-skip-warmup")
+                    }
                 }
             }
             .frame(maxWidth: .infinity)
@@ -2451,6 +2531,13 @@ struct WorkoutPlayerView: View {
                     Text(language.text(current.name))
                         .font(APEXFont.display(32))
                         .multilineTextAlignment(.center)
+
+                    if let getReady = roomLeadInLeft {
+                        Text(language.format("Get ready · %d", getReady))
+                            .font(APEXFont.mono(14, weight: .bold))
+                            .foregroundStyle(accent)
+                            .contentTransition(.numericText())
+                    }
 
                     if let side = setExecution.side {
                         Text(language.text(side == .left ? "Left side" : "Right side"))
@@ -2485,7 +2572,7 @@ struct WorkoutPlayerView: View {
                         Text(language.text(current.perSide ? "Hold · per side" : "Hold"))
                             .font(APEXFont.mono(13))
                             .foregroundStyle(APEXColor.secondaryInk)
-                    } else if !GuidedWorkout.usesAutomaticCadence(for: current) {
+                    } else if !PlayerTimeline.usesAutomaticCadence(for: current) {
                         Text("\(actualReps)")
                             .font(APEXFont.mono(72))
                             .foregroundStyle(accent)
@@ -2513,15 +2600,16 @@ struct WorkoutPlayerView: View {
                         }
                     }
 
+                    if canPress {
                     HStack(spacing: 12) {
-                        if timedSeconds(current) != nil || GuidedWorkout.usesAutomaticCadence(for: current) {
-                            Button(language.text(paused ? "Resume" : "Pause")) { paused.toggle() }
+                        if timedSeconds(current) != nil || PlayerTimeline.usesAutomaticCadence(for: current) {
+                            Button(language.text(paused ? "Resume" : "Pause")) { press(paused ? .resume : .pause) { paused.toggle() } }
                                 .buttonStyle(.bordered)
                                 .accessibilityIdentifier("workout-pause-set")
                         }
 
                         Button {
-                            endCurrentSet(skipped: false)
+                            press(.advance) { endCurrentSet(skipped: false) }
                         } label: {
                             Label(language.text("Done"), systemImage: "checkmark")
                                 .frame(maxWidth: .infinity)
@@ -2530,13 +2618,14 @@ struct WorkoutPlayerView: View {
                         .tint(accent)
                         .accessibilityIdentifier("workout-end-set")
                     }
+                    }
 
                     HStack {
                         /* "Skip set" is wrong on a stretch flow you hold once
                            and on a carry you walk once. The movement says what
                            its unit of work is called. */
                         Button(language.format("Skip %@", skipNoun(current))) {
-                            endCurrentSet(skipped: true)
+                            if room != nil { skipMyRoomSet() } else { endCurrentSet(skipped: true) }
                         }
                             .buttonStyle(.plain)
                             .foregroundStyle(APEXColor.secondaryInk)
@@ -2576,13 +2665,15 @@ struct WorkoutPlayerView: View {
                     .foregroundStyle(accent)
                     .contentTransition(.numericText())
                     .accessibilityIdentifier("workout-side-switch-countdown")
-                HStack(spacing: 12) {
-                    Button(language.text(paused ? "Resume" : "Pause")) { paused.toggle() }
-                        .buttonStyle(.bordered)
-                    Button(language.text("Continue")) { beginActiveSet(continuingRightSide: true) }
-                        .buttonStyle(.borderedProminent)
-                        .tint(accent)
-                        .accessibilityIdentifier("workout-continue-right-side")
+                if canPress {
+                    HStack(spacing: 12) {
+                        Button(language.text(paused ? "Resume" : "Pause")) { press(paused ? .resume : .pause) { paused.toggle() } }
+                            .buttonStyle(.bordered)
+                        Button(language.text("Continue")) { press(.advance) { beginActiveSet(continuingRightSide: true) } }
+                            .buttonStyle(.borderedProminent)
+                            .tint(accent)
+                            .accessibilityIdentifier("workout-continue-right-side")
+                    }
                 }
             }
             .frame(maxWidth: .infinity)
@@ -2667,17 +2758,27 @@ struct WorkoutPlayerView: View {
                     .background(.white.opacity(0.54), in: RoundedRectangle(cornerRadius: 23, style: .continuous))
                 }
 
-                HStack(spacing: 12) {
-                    Button(language.text("+30s")) {
-                        timerRemaining += 30
-                        timerTotal += 30
+                if let room { TrainTogetherRestLines(room: room, position: lastRoomStep?.position ?? 0) }
+
+                if canPress {
+                    HStack(spacing: 12) {
+                        if room != nil {
+                            Button(language.text(paused ? "Resume" : "Pause")) { press(paused ? .resume : .pause) {} }
+                                .buttonStyle(.bordered)
+                        }
+                        Button(language.text("+30s")) {
+                            press(.addTime(30)) {
+                                timerRemaining += 30
+                                timerTotal += 30
+                            }
+                        }
+                        .buttonStyle(.bordered)
+                        Button(language.text(room == nil ? "Continue" : "Next set")) { press(.advance) { advanceAfterRest() } }
+                            .buttonStyle(.borderedProminent)
+                            .tint(accent)
+                            .disabled(room == nil && !lastSetResolved)
+                            .accessibilityIdentifier("workout-skip-rest")
                     }
-                    .buttonStyle(.bordered)
-                    Button(language.text("Continue")) { advanceAfterRest() }
-                        .buttonStyle(.borderedProminent)
-                        .tint(accent)
-                        .disabled(!lastSetResolved)
-                        .accessibilityIdentifier("workout-skip-rest")
                 }
             }
             .frame(maxWidth: .infinity)
@@ -2841,11 +2942,15 @@ struct WorkoutPlayerView: View {
     }
 
     private var suggestedWeight: Double {
-        guard let exercise = current else { return 0 }
-        return session.data.workoutLogs
-            .filter { $0.exerciseID == exercise.id && $0.weightKG != nil }
-            .sorted { $0.createdAt > $1.createdAt }
-            .first?.weightKG ?? 0
+        current.map(suggestedWeight(for:)) ?? 0
+    }
+
+    private func suggestedWeight(for exercise: Exercise) -> Double {
+        let logs = session.data.workoutLogs.filter { $0.weightKG != nil }.sorted { $0.createdAt > $1.createdAt }
+        if let own = logs.first(where: { $0.exerciseID == exercise.id }) { return own.weightKG ?? 0 }
+        // A room's exercise is new to this account; the person's own last weight for the movement fits.
+        guard room != nil, let movementID = exercise.movementID else { return 0 }
+        return logs.first { $0.movementID == movementID }?.weightKG ?? 0
     }
 
     private var restHeading: String {
@@ -2926,6 +3031,18 @@ struct WorkoutPlayerView: View {
         lastClockTick = now
         currentWeight = suggestedWeight
 
+        if room != nil {
+            // Only this person's own sets come back; the room says where it is.
+            let restored = workoutOwnerID.flatMap { ownerID in
+                PlayerTimeline.DraftStore.load(
+                    userID: ownerID, dayID: day.id, date: date, lite: lite, exerciseIDs: exercises.map(\.id)
+                )
+            }.map { restore($0, now: now) } ?? false
+            if !restored { startedAt = now }
+            publishRoomPresence()
+            return
+        }
+
         if let ownerID = workoutOwnerID,
            let draft = PlayerTimeline.DraftStore.load(
                 userID: ownerID,
@@ -2973,7 +3090,7 @@ struct WorkoutPlayerView: View {
         performedFinish = ExternalWorkoutImport.parseTimestamp(draft.performedFinish)
         repElapsed = max(0, draft.repElapsed.isFinite ? draft.repElapsed : 0)
         announcedRep = max(0, draft.announcedRep)
-        setExecution = draft.setExecution ?? GuidedSetExecution(perSide: current.map(usesSides) ?? false)
+        setExecution = draft.setExecution ?? GuidedSetExecution(perSide: current.map(PlayerTimeline.usesSides) ?? false)
 
         reconcileTimers(persistedAt: draft.persistedAt, now: now)
         lastDraftSave = now
@@ -3029,6 +3146,15 @@ struct WorkoutPlayerView: View {
     private func handleScenePhase(_ next: ScenePhase) {
         guard didInitialize else { return }
         let now = Date()
+        // A room never pauses for one phone; coming back reads where it is now.
+        if let room {
+            if next == .active {
+                lastClockTick = now
+                Task { await room.refresh() }
+            }
+            persistDraft()
+            return
+        }
         if next == .active {
             if let suspendedAt {
                 reconcileTimers(persistedAt: suspendedAt.ISO8601Format(), now: now)
@@ -3073,6 +3199,10 @@ struct WorkoutPlayerView: View {
 
     private func tick() {
         guard didInitialize, scenePhase == .active else { return }
+        if let room {
+            roomTick(room)
+            return
+        }
         let now = Date()
         let wallDelta = max(0, now.timeIntervalSince(lastClockTick))
         lastClockTick = now
@@ -3098,9 +3228,7 @@ struct WorkoutPlayerView: View {
                     WorkoutAudioCoach.shared.speak([.line("cue.thirty", fallback: language.text("30 seconds"))], enabled: voiceOn)
             }
             resolveExpiredCountdown()
-        case .review:
-            break
-        case .complete:
+        case .review, .complete:
             break
         }
     }
@@ -3119,18 +3247,14 @@ struct WorkoutPlayerView: View {
             return
         }
 
-        guard GuidedWorkout.usesAutomaticCadence(for: current) else { return }
+        guard PlayerTimeline.usesAutomaticCadence(for: current) else { return }
 
-        let duration = PlayerTimeline.repDuration(current)
-        let target = targetReps(current)
-        let rep = Int(repElapsed / duration) + 1
-        let capped = target.map { min($0, rep) } ?? rep
-        if capped != announcedRep, repElapsed > 0.1 {
-            announcedRep = capped
-            actualReps = capped
-            announceRep(capped, target: target)
+        if let rep = PlayerTimeline.countedRep(after: repElapsed, for: current), rep != announcedRep {
+            announcedRep = rep
+            actualReps = rep
+            announceRep(rep, target: targetReps(current))
         }
-        if let target, repElapsed >= Double(target) * duration + 0.3 {
+        if let seconds = PlayerTimeline.countedSetSeconds(current), repElapsed >= seconds {
             endCurrentSet(skipped: false)
         }
     }
@@ -3147,9 +3271,6 @@ struct WorkoutPlayerView: View {
         }
     }
 
-    private func usesSides(_ exercise: Exercise) -> Bool {
-        exercise.perSide || MovementTiming.movement(named: exercise.name, movementID: exercise.movementID)?.unilateral == true
-    }
 
     private func cancelAnnouncement() {
         announcementFallback?.cancel()
@@ -3179,10 +3300,10 @@ struct WorkoutPlayerView: View {
         if continuingRightSide {
             setExecution.beginRightSide()
         } else {
-            setExecution = GuidedSetExecution(perSide: usesSides(exercise))
+            setExecution = GuidedSetExecution(perSide: PlayerTimeline.usesSides(exercise))
         }
         paused = false
-        actualReps = timedSeconds(exercise) == nil && !GuidedWorkout.usesAutomaticCadence(for: exercise)
+        actualReps = timedSeconds(exercise) == nil && !PlayerTimeline.usesAutomaticCadence(for: exercise)
             ? (targetReps(exercise) ?? 0)
             : 0
         repElapsed = 0
@@ -3191,22 +3312,7 @@ struct WorkoutPlayerView: View {
         phase = .active
         lastClockTick = .now
         persistDraft()
-        let groupLabel = currentWorkPosition?.groupLabel
-        let noun = groupLabel == nil
-            ? (MovementTiming.movement(named: exercise.name)?.setNoun ?? MovementTiming.fallbackNoun(repUnit: exercise.repUnit))
-            : "round"
-        let spokenName = language.text(exercise.name)
-        let setText = groupLabel == nil
-            ? "\(language.text(noun).capitalized) \(currentSet) \(language.text("of")) \(exercise.sets)."
-            : "\(language.text("Round")) \(currentSet) \(language.text("of")) \(exercise.sets)."
-        var parts: [VoicePart] = []
-        if let groupLabel { parts.append(.line("group.\(groupLabel)", fallback: groupLabel)) }
-        parts.append(.exercise(spoken: spokenName))
-        parts.append(.line("set.\(noun).\(currentSet).\(exercise.sets)", fallback: setText))
-        if let side = setExecution.side {
-            parts.append(side == .left ? .line("cue.left", fallback: language.text("Left side"))
-                : .line("cue.right", fallback: language.text("Right side")))
-        }
+        var parts = setIntroduction(exercise, groupLabel: currentWorkPosition?.groupLabel, setNumber: currentSet)
         if voiceOn, !continuingRightSide,
            let kind = BoostKind.forSet(currentSet, of: exercise.sets, firstOfWorkout: currentWorkOffset == 0, lastOfWorkout: nextWorkPosition == nil),
            let boost = VoicePart.boost(kind) {
@@ -3227,6 +3333,25 @@ struct WorkoutPlayerView: View {
                 releaseAnnouncement(token)
             }
         }
+    }
+
+    /// What the coach says as a set starts: group, exercise, set count, side.
+    private func setIntroduction(_ exercise: Exercise, groupLabel: String?, setNumber: Int) -> [VoicePart] {
+        let noun = groupLabel == nil
+            ? (MovementTiming.movement(named: exercise.name)?.setNoun ?? MovementTiming.fallbackNoun(repUnit: exercise.repUnit))
+            : "round"
+        let setText = groupLabel == nil
+            ? "\(language.text(noun).capitalized) \(setNumber) \(language.text("of")) \(exercise.sets)."
+            : "\(language.text("Round")) \(setNumber) \(language.text("of")) \(exercise.sets)."
+        var parts: [VoicePart] = []
+        if let groupLabel { parts.append(.line("group.\(groupLabel)", fallback: groupLabel)) }
+        parts.append(.exercise(spoken: language.text(exercise.name)))
+        parts.append(.line("set.\(noun).\(setNumber).\(exercise.sets)", fallback: setText))
+        if let side = setExecution.side {
+            parts.append(side == .left ? .line("cue.left", fallback: language.text("Left side"))
+                : .line("cue.right", fallback: language.text("Right side")))
+        }
+        return parts
     }
 
     private func endCurrentSet(skipped: Bool) {
@@ -3407,4 +3532,177 @@ struct WorkoutPlayerView: View {
     private func clock(_ seconds: Int) -> String {
         String(format: "%02d:%02d", max(0, seconds) / 60, max(0, seconds) % 60)
     }
+
+    // MARK: - Train together
+
+    private var canPress: Bool { room?.canControl ?? true }
+
+    private func press(_ action: TrainTogether.Action, otherwise solo: () -> Void) {
+        if let room { room.send(action) } else { solo() }
+    }
+
+    private var roomLeadInLeft: Int? {
+        guard let room, let step = lastRoomStep, step.phase == .work else { return nil }
+        let left = room.timeline.leadIn(step.side) - step.elapsed
+        return left > 0 ? Int(left.rounded(.up)) : nil
+    }
+
+    /// Shows where the room is. A set this phone saw end is recorded in its own
+    /// person's list, just as the solo player records it.
+    private func roomTick(_ room: TrainTogetherRoom) {
+        let now = Date()
+        lastClockTick = now
+        defer { persistDraftIfNeeded(at: now) }
+        if room.ended {
+            finishEndedRoom(room)
+            return
+        }
+        // The final review and the save are each person's own.
+        guard phase != .review, phase != .complete else { return }
+        let step = room.step()
+        let previous = lastRoomStep
+        lastRoomStep = step
+        // The lobby is drawn from the room itself; nothing moves until Start.
+        guard step.phase != .lobby else { return }
+        let changed = previous.map { !$0.isSameStep(as: step) } ?? true
+        if changed, let previous {
+            for (offset, passed) in room.timeline.workPassed(from: previous, to: step).enumerated() {
+                closeRoomWork(position: passed.position, side: passed.side, room: room,
+                              lastSeen: offset == 0 && previous.phase == .work ? previous : nil)
+            }
+        }
+        if workSequence.indices.contains(step.position) {
+            currentIndex = workSequence[step.position].exerciseIndex
+            currentSet = workSequence[step.position].setNumber
+        }
+        let remainingBefore = timerRemaining
+        paused = step.paused
+        timerTotal = Int((step.duration ?? 0).rounded())
+        timerRemaining = Int((step.remaining ?? 0).rounded(.up))
+        if changed, previous?.phase == .lobby { startedAt = now }
+        switch step.phase {
+        case .lobby:
+            break
+        case .warmup:
+            if changed { WorkoutAudioCoach.shared.speak([.line("cue.warmup", fallback: language.text("Warm-up started"))], enabled: voiceOn) }
+            phase = .warmup
+        case .work:
+            if changed { enterRoomWork(step) }
+            phase = .active
+            guard let current else { break }
+            repElapsed = max(0, step.elapsed - room.timeline.leadIn(step.side))
+            if timedSeconds(current) != nil || PlayerTimeline.usesAutomaticCadence(for: current) {
+                let reps = room.timeline.counted(at: step.position, side: step.side, elapsed: step.elapsed).reps
+                if PlayerTimeline.usesAutomaticCadence(for: current), reps > announcedRep, !step.paused {
+                    announcedRep = reps
+                    announceRep(reps, target: targetReps(current))
+                }
+                actualReps = reps
+            }
+        case .sideSwitch:
+            if changed { WorkoutAudioCoach.shared.speak([.line("cue.right", fallback: language.text("Right side"))], enabled: voiceOn) }
+            phase = .sideSwitch
+        case .rest:
+            if changed {
+                WorkoutAudioCoach.shared.speak([.line("cue.rest", fallback: language.text("Rest"))], enabled: voiceOn)
+            } else if remainingBefore > 30, timerRemaining <= 30 {
+                WorkoutAudioCoach.shared.speak([.line("cue.thirty", fallback: language.text("30 seconds"))], enabled: voiceOn)
+            }
+            phase = .rest
+        case .review:
+            performedFinish = performedFinish ?? .now
+            phase = setInputs.isEmpty ? .complete : .review
+            WorkoutAudioCoach.shared.speak([.line("cue.review", fallback: language.text("Review the final set"))], enabled: voiceOn)
+        }
+    }
+
+    private func enterRoomWork(_ step: TrainTogether.Step) {
+        cancelAnnouncement()
+        guard workSequence.indices.contains(step.position) else { return }
+        let position = workSequence[step.position]
+        let exercise = exercises[position.exerciseIndex]
+        if step.side == .right {
+            setExecution.beginRightSide()
+        } else {
+            setExecution = GuidedSetExecution(perSide: step.side != nil)
+            currentWeight = suggestedWeight
+        }
+        actualReps = timedSeconds(exercise) == nil && !PlayerTimeline.usesAutomaticCadence(for: exercise)
+            ? (targetReps(exercise) ?? 0)
+            : 0
+        repElapsed = 0
+        announcedRep = 0
+        performedFinish = nil
+        // The fixed lead-in, not the speech, starts the reps, so every phone counts together.
+        WorkoutAudioCoach.shared.speak(
+            setIntroduction(exercise, groupLabel: position.groupLabel, setNumber: position.setNumber),
+            enabled: voiceOn
+        )
+    }
+
+    /// Records one set the room finished. `lastSeen` is the step this phone was
+    /// showing; a set it slept through ran its full course.
+    private func closeRoomWork(position index: Int, side: TrainTogether.Side?, room: TrainTogetherRoom, lastSeen: TrainTogether.Step?) {
+        guard workSequence.indices.contains(index) else { return }
+        let position = workSequence[index]
+        let exercise = exercises[position.exerciseIndex]
+        if lastSeen == nil {
+            if side == .right {
+                setExecution.beginRightSide()
+            } else {
+                setExecution = GuidedSetExecution(perSide: side != nil)
+                currentWeight = suggestedWeight(for: exercise)
+            }
+        }
+        let fullCourse = room.timeline.duration(.work, index, side, extra: 0)
+        // A set that ran its course counts every rep; one ended by a press counts what was shown.
+        let elapsed: TimeInterval = lastSeen.map { step in
+            let ranOut = step.duration.map { step.start.addingTimeInterval($0) <= room.serverNow } ?? false
+            return ranOut ? (step.duration ?? step.elapsed) : step.elapsed
+        } ?? fullCourse ?? 0
+        let measured = room.timeline.counted(at: index, side: side, elapsed: elapsed).reps
+        guard case let .record(work, skipped) = setExecution.finish(work: measured, skipped: false),
+              !setInputs.contains(where: { $0.exerciseID == exercise.id && $0.setNumber == position.setNumber }) else { return }
+        setInputs.append(GuidedWorkout.setInput(
+            for: exercise, setNumber: position.setNumber, measuredWork: work,
+            signedLoadKG: currentWeight, skipped: skipped
+        ))
+    }
+
+    /// Skipping is this person's own; the room carries on.
+    private func skipMyRoomSet() {
+        guard let current else { return }
+        setInputs.removeAll { $0.exerciseID == current.id && $0.setNumber == currentSet }
+        setInputs.append(GuidedWorkout.setInput(
+            for: current, setNumber: currentSet, measuredWork: 0, signedLoadKG: currentWeight, skipped: true
+        ))
+    }
+
+    private func finishEndedRoom(_ room: TrainTogetherRoom) {
+        if phase != .review && phase != .complete {
+            if let step = lastRoomStep, step.phase == .work {
+                closeRoomWork(position: step.position, side: step.side, room: room, lastSeen: step)
+            }
+            performedFinish = performedFinish ?? .now
+            phase = .complete
+        }
+        detachFromRoom(leaving: false)
+    }
+
+    /// From here on this phone is a normal solo workout.
+    private func detachFromRoom(leaving: Bool) {
+        guard let room else { return }
+        Task { await room.close(leaving: leaving) }
+        self.room = nil
+        lastRoomStep = nil
+        UIApplication.shared.isIdleTimerDisabled = false
+        lastClockTick = .now
+        subSecond = 0
+    }
+
+    private func publishRoomPresence() {
+        guard let room else { return }
+        room.publish(TrainTogetherPresence(setInputs: setInputs, sharing: shareMySets && room.info.kind == .friends))
+    }
+
 }

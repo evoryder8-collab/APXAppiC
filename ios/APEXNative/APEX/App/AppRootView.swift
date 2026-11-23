@@ -60,6 +60,7 @@ struct AppRootView: View {
                     && protectedRoute
                     && entitlements.resolution != .resolving
                     && !entitlements.isUnlocked
+                    && session.openWorkoutScreens == 0
             },
             set: { _ in }
         )) {
@@ -111,7 +112,8 @@ struct AppRootView: View {
     private func accessProtected<Content: View>(
         @ViewBuilder content: () -> Content
     ) -> some View {
-        if !accessGateEnabled || entitlements.isUnlocked {
+        // An open workout finishes and saves before an access change takes over the screen.
+        if !accessGateEnabled || entitlements.isUnlocked || session.openWorkoutScreens > 0 {
             content()
         } else if entitlements.resolution == .resolving {
             APEXLaunchView()
