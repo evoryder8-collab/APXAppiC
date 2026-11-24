@@ -2804,7 +2804,7 @@ ElevenLabs usage this month after recording, audition and retakes: about 210,000
 
 **Delivered.** Migration applied to the live project (version `20261122193458`): the owner's 30 favourites became 27 placed in their meals and 3 in every meal; the other account's 5 favourites were placed too (its build 402 does not read the column). Archive `build/FITR-MAX-1.0.1-425.xcarchive` (iPhone, Watch and complication 1.0.1 (425), `codesign --verify --deep --strict` OK), installed with `devicectl` on iConstantine Main and the Watch Ultra 3 (the Watch's first attempt timed out; the second installed); both report 1.0.1 (425).
 
-## 2026-11-23 · Train together: live rooms where one guided workout drives every phone (build 426, server not yet applied)
+## 2026-11-23 · Train together: live rooms where one guided workout drives every phone (build 426)
 
 **What the owner asked.** A coach (or anyone with a partner) opens a room for a guided workout. Everyone talks on whatever video call they already use. The host's screen drives every phone in the room, while each phone records its own person's sets. Members only watch the prep list until the host starts. Only the host (or, in a friends room, anyone) can pause, add time or move on. Paid subscribers and coaches' clients only, but switched off for the TestFlight beta. The design and every decision are in the side-session note `group-workout-design.md`, revisions 1-5.
 
@@ -2832,7 +2832,7 @@ ElevenLabs usage this month after recording, audition and retakes: about 210,000
   - Family Sharing on Premium is an App Store Connect setting, listed for the owner, not built.
 - **Access hold.** An access change no longer tears down an open guided or tracked workout. `AppSession.openWorkoutScreens` holds the gate until the screen closes.
 
-**Server.** Migration `supabase/migrations/20261123120000_train_together.sql`. **NOT YET APPLIED.** The apply was declined twice in the implementing session, and the owner has to approve that prompt there.
+**Server.** Migration `supabase/migrations/20261124062155_train_together.sql`, applied to the live project on 2026-11-24 as version `20261124062155` (written as `20261123120000`, renamed to the applied version). The project-scoped `supabase` connector declined it three times, the last time after the owner's yes, so it went through the account connector, which applies without that prompt.
 - **What it adds:**
   - the `account_entitlements.source` column (the four no-expiry accounts become `founding`);
   - `feature_access_policy`;
@@ -2840,8 +2840,10 @@ ElevenLabs usage this month after recording, audition and retakes: about 210,000
   - the room RPCs;
   - plan and state validators;
   - Realtime policies on `realtime.messages`: members listen and track presence, only the host broadcasts.
-- **Build 402.** It calls none of this, and `get_my_app_access` is untouched. Its answers were recorded before the apply: all six accounts are `granted`, and four have no expiry.
-- **Integration test.** `tests/train-together-db-integration.sql` rolls back. It covers:
+- **Build 402.** It calls none of this, and `get_my_app_access` is untouched. Its answers for `('ios', 402)` were recorded before the apply and again after it, and they are identical for all six accounts: `granted`, no seat, no update required; four have no expiry, two expire on 31 Dec 2027. June's account and the owner's are among the four.
+- **Founding.** Exactly the four no-expiry rows became `source = 'founding'`; the two expiring rows stayed `testflight`. `paid_only` is `false`.
+- **Web page.** The live `#/join/<code>` page now reaches the server without signing in; a made-up code shows "We can't find this workout".
+- **Integration test.** `tests/train-together-db-integration.sql` rolls back. It passed against the live project after the apply ("train together checks passed"), and afterwards the room tables held no rows, no test account remained, and the switch was still off. It covers:
   - access with the switch off and on;
   - shared control;
   - a class member who cannot control;
@@ -2884,7 +2886,7 @@ ElevenLabs usage this month after recording, audition and retakes: about 210,000
 - The access screen has no "Subscribe to train with Anna" line yet. With the switch off, nobody reaches it.
 - No push notifications or Live Activity: the screen stays on in a room instead.
 - The web page has no "Get FITR MAX" button, because the repo has no App Store or TestFlight URL.
-- Not yet tried with two devices and a real call. That needs the migration applied.
+- Not yet tried with two devices and a real call.
 
 **Next (owner's requests, design revision 5).**
 - Saved favourites to host from.
