@@ -66,14 +66,46 @@ struct WatchMealPortion: Codable, Equatable, Hashable, Sendable {
 
     private var isMeasured: Bool { unit == "g" || unit == "ml" }
 
-    /// One turn of the crown: 5 or 10 g, half a serving, a whole piece unless the amount is already a half.
+    /// The finest change: 1 g or ml, so any whole amount can be reached; half a serving; a whole piece unless the
+    /// amount is already a half.
     var step: Double {
-        if isMeasured { return quantity < 50 ? 5 : 10 }
+        if isMeasured { return 1 }
         if unit == "serving" { return 0.5 }
         return quantity.rounded() == quantity ? 1 : 0.5
     }
 
-    var maximum: Double { max(quantity * 4, isMeasured ? 1_000 : 12) }
+    var maximum: Double { max(quantity * 4, isMeasured ? 2_000 : 12) }
+}
+
+/// Turns crown detents or a finger's travel into whole steps of an amount: one step at a time when slow, up to ten
+/// at a time when fast, so 52 g and 466 g are both a short turn away. A pause or a change of direction starts slow
+/// again, which is how an exact figure is reached after a fast spin.
+struct WatchMealAmountDial: Equatable, Sendable {
+    private var lastTime: TimeInterval?
+    private var lastDirection = 0.0
+    /// Steps per second, smoothed so one quick detent cannot leap ahead.
+    private var rate = 0.0
+    /// Travel not yet worth a whole step.
+    private var remainder = 0.0
+
+    mutating func steps(for travel: Double, travelPerStep: Double, at time: TimeInterval) -> Int {
+        guard travel.isFinite, travel != 0, travelPerStep > 0 else { return 0 }
+        let direction: Double = travel > 0 ? 1 : -1
+        let elapsed = lastTime.map { time - $0 } ?? .infinity
+        if elapsed > 0.3 || direction != lastDirection {
+            rate = 0
+            remainder = 0
+        } else {
+            rate = rate * 0.5 + abs(travel) / travelPerStep / max(elapsed, 0.01) * 0.5
+        }
+        lastTime = time
+        lastDirection = direction
+        remainder += travel / travelPerStep
+        let whole = remainder.rounded(.towardZero)
+        remainder -= whole
+        let multiplier = min(10, max(1, (rate / 8).rounded(.down)))
+        return Int(max(-10_000, min(10_000, whole * multiplier)))
+    }
 }
 
 /// One food logged into a dayline block.

@@ -2892,3 +2892,33 @@ ElevenLabs usage this month after recording, audition and retakes: about 210,000
 - Saved favourites to host from.
 - The challenge wheel, with a shared equipment survey and only challenges everyone can do.
 - June needs build 426 or later. External TestFlight is stuck at 401, so either add her as an internal tester in App Store Connect or install it from Xcode.
+
+## 2026-11-24 · Watch meal amounts: any whole gram, quickly and exactly (build 427)
+
+**What the owner saw.** Adding a food on the Watch, the amount moved only in 5 g steps below 50 g and 10 g steps above, so 52 g or 66 g could not be set. There was no finger swipe and no way to type a figure. In his words: "I wanna be accurate, at the moment is useless in this state."
+
+**What changed.**
+- `WatchMealPortion.step` is 1 for grams and millilitres. Servings stay at a half. Pieces stay at one, or a half when the amount already ends in a half. The most a measured food can be set to is now 2,000 g, or four times the remembered amount if that is more; it was 1,000 g.
+- `WatchMealAmountDial` (in `WatchMealState.swift`) turns crown detents and finger travel into whole steps:
+  - turned slowly, each step is one gram;
+  - turned fast, each step is several grams, up to ten, according to the smoothed speed;
+  - a pause of more than 0.3 s, or a change of direction, starts again at one gram, so a fast spin ends on an exact figure.
+- The amount page (`WatchMealPortionView`):
+  - **Crown:** turns through the dial, with the system's tick on each detent.
+  - **Swipe:** a sideways swipe across the amount moves it 1 g per 5 pt of travel, faster when fast, with a click every 80 ms at most when the wearer has haptics on. An up-and-down swipe still scrolls.
+  - **Buttons:** − and + nudge it by 1 g.
+  - **Typing:** "Type an amount" opens the Watch's own input (keyboard, Scribble or dictation), and the figure becomes the amount, rounded to a whole gram.
+  - **Starting value:** the remembered amount the food was offered at.
+  - **Without the phone:** all of it works, because nothing on this page needs the phone.
+- Two new strings, "Swipe or turn the crown" and "Type an amount", are in all nine `WatchMeals` locales.
+
+**Checks.**
+- `WatchMealTests` gained 3 tests, 28 in all, which pass:
+  - every whole gram is one step away;
+  - slow detents give exactly 1 g each;
+  - a fast spin moves more than 200 g in 40 detents, never more than 10 g at once, and caps at 10;
+  - after reversing or pausing it is 1 g again;
+  - swipe travel adds up across small moves;
+  - bad input moves nothing.
+- The Watch app builds for the simulator.
+- How the crown and the swipe feel on the wrist can only be judged on the owner's Watch.

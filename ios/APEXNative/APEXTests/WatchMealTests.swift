@@ -236,6 +236,53 @@ final class WatchMealTests: XCTestCase {
         XCTAssertEqual(WatchMealState.previousDay("not a day"), "")
     }
 
+    // MARK: - The amount
+
+    func testEveryWholeGramIsOneStepAway() {
+        XCTAssertEqual(portion("rice", 50).step, 1, "52 g is two steps from 50 g")
+        XCTAssertEqual(portion("rice", 180).step, 1)
+        XCTAssertEqual(portion("milk", 250, "ml").step, 1)
+        XCTAssertEqual(portion("oats", 1, "serving", grams: 40).step, 0.5)
+        XCTAssertEqual(portion("egg", 2, "piece", grams: 60).step, 1)
+        XCTAssertEqual(portion("egg", 1.5, "piece", grams: 60).step, 0.5)
+        XCTAssertGreaterThanOrEqual(portion("rice", 50).maximum, 2_000)
+    }
+
+    func testTheDialMovesOneStepAtATimeWhenSlowAndFasterWhenFast() {
+        var dial = WatchMealAmountDial()
+        // Slow detents: one gram each, so 50 g becomes exactly 52 g.
+        let slow = [0.0, 0.25].map { dial.steps(for: 1, travelPerStep: 1, at: $0) }
+        XCTAssertEqual(slow, [1, 1])
+
+        // A fast spin: forty detents 20 ms apart move far more than forty grams, never more than ten at once.
+        let spin = (1...40).map { dial.steps(for: 1, travelPerStep: 1, at: 1 + Double($0) * 0.02) }
+        XCTAssertEqual(spin.first, 1, "A spin starts at one gram")
+        XCTAssertTrue(spin.allSatisfy { (1...10).contains($0) })
+        XCTAssertGreaterThan(spin.reduce(0, +), 200)
+        XCTAssertGreaterThanOrEqual(spin.last ?? 0, 5)
+
+        // Turning back after a spin, or pausing, is one gram again: that is how an exact figure is reached.
+        XCTAssertEqual(dial.steps(for: -1, travelPerStep: 1, at: 1.82), -1)
+        _ = (1...20).map { dial.steps(for: -1, travelPerStep: 1, at: 1.82 + Double($0) * 0.02) }
+        XCTAssertEqual(dial.steps(for: -1, travelPerStep: 1, at: 3), -1)
+
+        // The fastest spin tops out at ten grams a detent.
+        var flick = WatchMealAmountDial()
+        let fastest = (1...30).map { flick.steps(for: 1, travelPerStep: 1, at: Double($0) * 0.005) }
+        XCTAssertEqual(fastest.max(), 10)
+    }
+
+    func testASlowSwipeCountsItsTravelAcrossSmallMoves() {
+        var dial = WatchMealAmountDial()
+        // Five points of finger travel are one gram, however the moves are split.
+        XCTAssertEqual(dial.steps(for: 2.5, travelPerStep: 5, at: 0), 0)
+        XCTAssertEqual(dial.steps(for: 2.5, travelPerStep: 5, at: 0.2), 1)
+        XCTAssertEqual(dial.steps(for: 12, travelPerStep: 5, at: 0.45), 2)
+        XCTAssertEqual(dial.steps(for: .nan, travelPerStep: 5, at: 0.5), 0)
+        XCTAssertEqual(dial.steps(for: .infinity, travelPerStep: 5, at: 0.5), 0)
+        XCTAssertEqual(dial.steps(for: 5, travelPerStep: 0, at: 0.5), 0)
+    }
+
     // MARK: - Phone fixtures
 
     private func catalogueFood(_ id: UUID, _ name: String, kcal: Double, piece: Double? = nil) -> Food {

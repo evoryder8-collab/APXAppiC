@@ -1,4 +1,5 @@
 import SwiftUI
+import WatchKit
 
 /// The meals page: today's dayline blocks around a day dial, the one nearest the clock lit.
 struct WatchMealsPage: View {
@@ -246,7 +247,8 @@ struct WatchMealBlockView: View {
     }
 }
 
-/// The amount, turned with the Digital Crown, then one tap to add it.
+/// The amount: the crown or a sideways swipe moves it a gram at a time when slow and faster when fast, the
+/// buttons nudge it by one, and an exact figure can be typed. Then one tap adds it.
 private struct WatchMealPortionView: View {
     let block: WatchMealBlock
     let day: String
@@ -255,6 +257,12 @@ private struct WatchMealPortionView: View {
     @EnvironmentObject private var meals: WatchMealStore
     @Environment(\.dismiss) private var dismiss
     @State private var quantity: Double
+    /// The crown's own position; each detent moves the amount through the dial.
+    @State private var crown = 0.0
+    @State private var dial = WatchMealAmountDial()
+    @State private var swipeIsSideways: Bool?
+    @State private var swipeTravel = 0.0
+    @State private var lastHaptic = -Double.infinity
     /// The crown turns the amount from the moment the page opens, not the page.
     @FocusState private var amountFocused: Bool
 
@@ -279,6 +287,14 @@ private struct WatchMealPortionView: View {
         var value = portion
         value.quantity = quantity
         return value
+    }
+
+    /// Always empty, so the field shows its prompt; a typed figure becomes the amount.
+    private var typed: Binding<Double?> {
+        Binding(get: { nil }, set: { value in
+            if let value { set(value, haptic: false) }
+            amountFocused = true
+        })
     }
 
     var body: some View {
@@ -306,28 +322,43 @@ private struct WatchMealPortionView: View {
                         }
                     }
                 }
+                .contentShape(Rectangle())
+                .simultaneousGesture(swipe)
                 .focusable()
                 .focused($amountFocused)
                 .digitalCrownRotation(
-                    $quantity, from: step, through: maximum,
-                    by: step, sensitivity: .low, isContinuous: false, isHapticFeedbackEnabled: true
+                    $crown, from: -1_000_000, through: 1_000_000,
+                    by: 1, sensitivity: .medium, isContinuous: false, isHapticFeedbackEnabled: true
                 )
+                .onChange(of: crown) { old, new in turn(new - old, travelPerStep: 1, haptic: false) }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text(verbatim: food.name))
                 .accessibilityValue(Text(verbatim: WatchMealFormat.amount(adjusted)))
                 .accessibilityAdjustableAction { direction in
                     switch direction {
-                    case .increment: change(by: step)
-                    case .decrement: change(by: -step)
+                    case .increment: set(quantity + step, haptic: false)
+                    case .decrement: set(quantity - step, haptic: false)
                     @unknown default: break
                     }
                 }
+
+                Text("Swipe or turn the crown", tableName: "WatchMeals")
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 Text("\(Int(adjusted.kcal(food))) kcal · \(Int(adjusted.protein(food))) g protein",
                      tableName: "WatchMeals")
                     .font(.system(size: 12, weight: .medium, design: .rounded))
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
+
+                TextField(value: typed, format: .number.precision(.fractionLength(0...1)),
+                          prompt: Text("Type an amount", tableName: "WatchMeals")) {
+                    Text("Type an amount", tableName: "WatchMeals")
+                }
+                .multilineTextAlignment(.center)
 
                 Button {
                     if meals.add([(food, adjusted)], block: block.id, day: day) {
@@ -348,8 +379,24 @@ private struct WatchMealPortionView: View {
         .onAppear { amountFocused = true }
     }
 
+    /// A sideways swipe across the amount; an up-and-down one is left to the page's scroll.
+    private var swipe: some Gesture {
+        DragGesture(minimumDistance: 6)
+            .onChanged { value in
+                let sideways = value.translation.width
+                if swipeIsSideways == nil { swipeIsSideways = abs(sideways) > abs(value.translation.height) * 1.2 }
+                guard swipeIsSideways == true else { return }
+                turn(sideways - swipeTravel, travelPerStep: 5, haptic: true)
+                swipeTravel = sideways
+            }
+            .onEnded { _ in
+                swipeIsSideways = nil
+                swipeTravel = 0
+            }
+    }
+
     private func stepButton(_ systemImage: String, by delta: Double) -> some View {
-        Button { change(by: delta) } label: {
+        Button { set(quantity + delta, haptic: false) } label: {
             Image(systemName: systemImage)
                 .font(.system(size: 13, weight: .bold))
                 .frame(width: 30, height: 30)
@@ -357,8 +404,21 @@ private struct WatchMealPortionView: View {
         .buttonStyle(WatchGlassButtonStyle(tint: WatchTint.leaf, cornerRadius: 15))
     }
 
-    private func change(by delta: Double) {
-        quantity = max(step, (quantity + delta).rounded(toMultipleOf: step))
+    private func turn(_ travel: Double, travelPerStep: Double, haptic: Bool) {
+        let steps = dial.steps(for: travel, travelPerStep: travelPerStep, at: Date.timeIntervalSinceReferenceDate)
+        if steps != 0 { set(quantity + Double(steps) * step, haptic: haptic) }
+    }
+
+    /// The crown ticks by itself; a swipe ticks here, at most every 80 ms, when the wearer keeps haptics on.
+    private func set(_ value: Double, haptic: Bool) {
+        let next = min(maximum, max(step, value.rounded(toMultipleOf: step)))
+        guard next.isFinite, next != quantity else { return }
+        quantity = next
+        let now = Date.timeIntervalSinceReferenceDate
+        if haptic, meals.hapticsEnabled, now - lastHaptic >= 0.08 {
+            WKInterfaceDevice.current().play(.click)
+            lastHaptic = now
+        }
     }
 }
 

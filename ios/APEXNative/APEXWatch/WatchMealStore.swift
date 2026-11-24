@@ -11,6 +11,7 @@ final class WatchMealStore: ObservableObject {
     private let connectivity: WatchHydrationConnectivity
     /// The wearer's confirmation-haptics setting, which the water page already honours.
     private let haptics: () -> Bool
+    var hapticsEnabled: Bool { haptics() }
 
     init(
         defaults: UserDefaults,
