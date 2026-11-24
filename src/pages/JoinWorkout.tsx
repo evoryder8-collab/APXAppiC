@@ -28,6 +28,8 @@ const COPY: Record<string, Record<IntroLanguage, string>> = {
   'On now': { en: 'On now', ro: 'În desfășurare acum', th: 'กำลังเริ่มอยู่ตอนนี้' },
   'This workout has ended.': { en: 'This workout has ended.', ro: 'Acest antrenament s-a încheiat.', th: 'เวิร์กเอาต์นี้จบแล้ว' },
   'Exercises': { en: 'Exercises', ro: 'Exerciții', th: 'ท่าฝึก' },
+  'Group workout': { en: 'Group workout', ro: 'Antrenament de grup', th: 'เวิร์กเอาต์แบบกลุ่ม' },
+  'The workout is drawn on the wheel once everyone is in.': { en: 'The workout is drawn on the wheel once everyone is in.', ro: 'Antrenamentul se alege la roată când sunt toți acolo.', th: 'เมื่อทุกคนเข้ามาครบ จะหมุนวงล้อเลือกเวิร์กเอาต์' },
   'Have ready: {items}': { en: 'Have ready: {items}', ro: 'Pregătește: {items}', th: 'เตรียมไว้: {items}' },
   'Your code': { en: 'Your code', ro: 'Codul tău', th: 'รหัสของคุณ' },
   'Joining needs FITR MAX Premium': { en: 'Joining needs FITR MAX Premium', ro: 'Pentru a te alătura ai nevoie de FITR MAX Premium', th: 'การเข้าร่วมต้องใช้ FITR MAX Premium' },
@@ -120,12 +122,15 @@ export function JoinWorkout() {
         ) : (
           <>
             <h1 className="mt-3 font-display text-3xl font-black tracking-tight break-words text-ink">{heading}</h1>
-            <p className="mt-1 text-lg font-bold break-words text-ink-soft">{preview.title}</p>
+            <p className="mt-1 text-lg font-bold break-words text-ink-soft">{preview.exercises.length === 0 ? t('Group workout') : preview.title}</p>
             <p className="mt-4 text-base font-black text-violet-700">
               {ended ? t('This workout has ended.') : preview.status === 'live' ? t('On now') : startValid && (
                 <><span className="whitespace-nowrap">{when}</span> <span className="whitespace-nowrap">({zone})</span></>
               )}
             </p>
+            {preview.exercises.length === 0 && !ended && (
+              <p className="mt-6 text-sm font-semibold text-ink-soft">{t('The workout is drawn on the wheel once everyone is in.')}</p>
+            )}
             {preview.exercises.length > 0 && (
               <section className="mt-6">
                 <h2 className="font-mono text-[10px] font-black tracking-[0.2em] text-ink-faint uppercase">{t('Exercises')}</h2>

@@ -42,9 +42,11 @@ enum TrainTogether {
         var step: Int
         var sound: Bool
         var voice: Bool
+        /// The challenge wheel, in a room still choosing its workout.
+        var wheel: Wheel?
 
         enum CodingKeys: String, CodingKey {
-            case phase, position, side, anchor, step, sound, voice
+            case phase, position, side, anchor, step, sound, voice, wheel
             case pausedAt = "paused_at"
             case extraSeconds = "extra_seconds"
         }
@@ -222,6 +224,10 @@ enum TrainTogether {
         case backToWarmup
         case sound(Bool)
         case voice(Bool)
+        /// The host's focus for the wheel; a new focus clears the last spin.
+        case wheelFocus(Focus)
+        /// A spin drawn on the host's phone, started at the press.
+        case spin(slots: [String], landing: Int)
     }
 
     struct Timeline: Sendable {
@@ -362,7 +368,8 @@ enum TrainTogether {
 
             switch action {
             case .start:
-                guard state.phase == .lobby else { return state }
+                // A room still choosing its workout has nothing to start.
+                guard state.phase == .lobby, !sequence.isEmpty else { return state }
                 begin(self.next(.lobby, 0, nil))
             case .advance:
                 guard step.phase.isRunning else { return state }
@@ -390,6 +397,22 @@ enum TrainTogether {
             case .voice(let on):
                 var changed = state
                 changed.voice = on
+                return changed
+            // The wheel only turns while the room is still choosing its workout.
+            case .wheelFocus(let focus):
+                guard state.phase == .lobby, sequence.isEmpty,
+                      state.wheel?.focus != focus || state.wheel?.spin != nil else { return state }
+                var changed = state
+                changed.wheel = Wheel(focus: focus, spin: nil)
+                return changed
+            case .spin(let slots, let landing):
+                guard state.phase == .lobby, sequence.isEmpty,
+                      slots.indices.contains(landing), slots.count <= Wheel.mostSlots else { return state }
+                var changed = state
+                changed.wheel = Wheel(
+                    focus: state.wheel?.focus ?? .fullBody,
+                    spin: Wheel.Spin(at: time, slots: slots, landing: landing)
+                )
                 return changed
             }
             return next
@@ -429,5 +452,22 @@ enum TrainTogether {
 
     static func clockOffset(_ samples: [ClockSample]) -> TimeInterval {
         samples.filter { $0.roundTrip >= 0 }.min { $0.roundTrip < $1.roundTrip }?.offset ?? 0
+    }
+}
+
+extension TrainTogether.State {
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        phase = try values.decode(TrainTogether.Phase.self, forKey: .phase)
+        position = try values.decode(Int.self, forKey: .position)
+        side = try values.decodeIfPresent(TrainTogether.Side.self, forKey: .side)
+        anchor = try values.decode(Date.self, forKey: .anchor)
+        pausedAt = try values.decodeIfPresent(Date.self, forKey: .pausedAt)
+        extraSeconds = try values.decode(Int.self, forKey: .extraSeconds)
+        step = try values.decode(Int.self, forKey: .step)
+        sound = try values.decode(Bool.self, forKey: .sound)
+        voice = try values.decode(Bool.self, forKey: .voice)
+        // A wheel this phone cannot read never costs it the rest of the room.
+        wheel = try? values.decodeIfPresent(TrainTogether.Wheel.self, forKey: .wheel)
     }
 }

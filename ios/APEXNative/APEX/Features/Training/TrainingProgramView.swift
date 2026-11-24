@@ -354,7 +354,7 @@ struct TrainingProgramView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 14)
 
-                TrainTogetherJoinButton(accent: accent)
+                GroupWorkoutCard()
 
                 #if DEBUG
                 if let inductionInstallEvidence {

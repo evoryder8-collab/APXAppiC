@@ -3,8 +3,9 @@ import Observation
 import Supabase
 
 /// A room as the server reports it. The identity fields never change; the
-/// live ones (state, version, control, status, head count) are copied out by
-/// `TrainTogetherRoom.adopt` whenever a newer version arrives.
+/// live ones (state, version, control, status, head count, and once the plan
+/// and title) are copied out by `TrainTogetherRoom.adopt` whenever a newer
+/// version arrives.
 struct TrainTogetherRoomInfo: Decodable, Sendable {
     let id: UUID
     let code: String
@@ -46,6 +47,7 @@ enum TrainTogetherError: String, Error, Equatable {
     case notAllowed = "not_allowed"
     case classNotAllowed = "class_not_allowed"
     case tooManyRooms = "too_many_rooms"
+    case planChosen = "plan_chosen"
     case unavailable
 
     init(_ error: Error) {
@@ -62,6 +64,7 @@ enum TrainTogetherError: String, Error, Equatable {
         case .notAllowed: "Only the host can do that."
         case .classNotAllowed: "Only a coach can open a class."
         case .tooManyRooms: "You have too many workouts open. End one first."
+        case .planChosen: "The workout for this room is already chosen."
         case .unavailable: "Could not reach the workout. Check your connection and try again."
         }
     }
@@ -110,6 +113,8 @@ struct TrainTogetherPresence: Codable, Equatable, Sendable {
 
     var logged: Int
     var set: SharedSet?
+    /// The kit this person ticked for the wheel; nil until they answer.
+    var kit: [TrainTogether.Kit]?
 
     /// What this person shows the room: how many sets they have logged and,
     /// only when they chose to share in a friends room, their last set.
@@ -118,6 +123,12 @@ struct TrainTogetherPresence: Codable, Equatable, Sendable {
         set = sharing ? setInputs.last { !$0.skipped }.map {
             SharedSet(exercise: $0.exerciseName, set: $0.setNumber, reps: $0.reps, kg: $0.weightKG, rir: $0.rir)
         } : nil
+    }
+
+    /// What this person shows while the room spins its wheel: the kit they have.
+    init(kit: [TrainTogether.Kit]) {
+        logged = 0
+        self.kit = kit
     }
 }
 
@@ -129,8 +140,11 @@ struct TrainTogetherPresence: Codable, Equatable, Sendable {
 final class TrainTogetherRoom {
     let client: SupabaseClient
     let myUserID: UUID
-    let timeline: TrainTogether.Timeline
     let info: TrainTogetherRoomInfo
+    /// The workout, which a room opened without one gets once, from its wheel.
+    private(set) var plan: TrainTogether.Plan
+    private(set) var title: String
+    private(set) var timeline: TrainTogether.Timeline
     /// What this phone shows: the server's copy plus any press still being sent.
     private(set) var state: TrainTogether.State
     /// The last state and version the server confirmed.
@@ -145,6 +159,8 @@ final class TrainTogetherRoom {
     private(set) var present: [UUID: TrainTogetherPresence] = [:]
     private(set) var names: [UUID: String] = [:]
     private(set) var hostAwaySince: Date?
+    /// The kit this phone sent for the wheel; nil until its person answers.
+    private(set) var myKit: [TrainTogether.Kit]?
     private(set) var lastError: TrainTogetherError?
 
     @ObservationIgnored private var channel: RealtimeChannelV2?
@@ -152,6 +168,7 @@ final class TrainTogetherRoom {
     @ObservationIgnored private var queued: [(action: TrainTogether.Action, time: Date)] = []
     @ObservationIgnored private var writer: Task<Void, Never>?
     @ObservationIgnored private var trackedPresence: TrainTogetherPresence?
+    @ObservationIgnored private var presenceKey: UUID?
 
     private struct RoomID: Encodable, Sendable { let p_id: UUID }
 
@@ -159,6 +176,9 @@ final class TrainTogetherRoom {
         self.client = client
         self.myUserID = myUserID
         self.info = info
+        plan = info.plan
+        title = info.title
+        timeline = Self.timeline(info.plan, roomID: info.id, title: info.title, ownerID: myUserID)
         state = info.state
         confirmed = info.state
         version = info.version
@@ -166,11 +186,32 @@ final class TrainTogetherRoom {
         ended = info.status == "ended"
         memberCount = info.memberCount
         offset = info.serverNow.timeIntervalSinceNow
-        timeline = TrainTogether.Timeline(
-            exercises: TrainTogether.anchorRows(plan: info.plan, roomID: info.id, title: info.title, ownerID: myUserID).exercises,
-            warmupText: info.plan.warmupText,
-            warmupDuration: info.plan.warmupDuration
+    }
+
+    private static func timeline(_ plan: TrainTogether.Plan, roomID: UUID, title: String, ownerID: UUID) -> TrainTogether.Timeline {
+        TrainTogether.Timeline(
+            exercises: TrainTogether.anchorRows(plan: plan, roomID: roomID, title: title, ownerID: ownerID).exercises,
+            warmupText: plan.warmupText,
+            warmupDuration: plan.warmupDuration
         )
+    }
+
+    /// True while the room is still choosing its workout on the wheel.
+    var choosing: Bool { plan.exercises.isEmpty }
+
+    private var others: [TrainTogetherPresence] {
+        present.filter { $0.key != presenceKey }.map(\.value)
+    }
+
+    /// Everyone in the room, this phone included. Presence can run ahead of
+    /// the roster just after someone joins, so the larger count wins.
+    var headcount: Int { max(memberCount + 1, others.count + 1) }
+
+    /// How many people here have sent the kit they have, this phone included.
+    var kitAnswered: Int { others.filter { $0.kit != nil }.count + (myKit == nil ? 0 : 1) }
+
+    var commonKit: Set<TrainTogether.Kit> {
+        TrainTogether.Wheel.commonKit(others.map(\.kit) + [myKit], headcount: headcount)
     }
 
     var serverNow: Date { Date().addingTimeInterval(offset) }
@@ -237,6 +278,8 @@ final class TrainTogetherRoom {
         let room = TrainTogetherRoom(client: client, myUserID: userID, info: info)
         await room.measureClock()
         await room.connect()
+        // Anything sent between the reply above and the subscription is read here.
+        await room.refresh()
         await room.refreshRoster()
         return room
     }
@@ -257,6 +300,7 @@ final class TrainTogetherRoom {
         // In a class, members are known to the room by a key of this visit only,
         // so they never see each other's accounts; the host keeps their own id.
         let key = info.kind == .class && !info.isHost ? UUID() : myUserID
+        presenceKey = key
         let channel = client.realtimeV2.channel("group:\(info.id.uuidString.lowercased())") { config in
             config.isPrivate = true
             config.presence.key = key.uuidString.lowercased()
@@ -397,12 +441,33 @@ final class TrainTogetherRoom {
         }
     }
 
+    /// The host makes the challenge the wheel landed on this room's workout.
+    func choose(_ challenge: TrainTogether.Challenge) async {
+        struct Params: Encodable { let p_id: UUID; let p_plan: AnyJSON }
+        guard info.isHost, choosing else { return }
+        do {
+            let data = try await client.rpc("group_workout_set_plan", params: Params(
+                p_id: info.id, p_plan: try Self.json(challenge.plan())
+            )).execute().data
+            adopt(try TrainTogetherCoding.decoder.decode(TrainTogetherRoomInfo.self, from: data), force: true)
+            lastError = nil
+        } catch {
+            lastError = TrainTogetherError(error)
+            await refresh(force: true)
+        }
+    }
+
     /// The class host's lobby card, sent straight to the room without a write.
     func show(card index: Int) {
         guard info.isHost, info.kind == .class, state.phase == .lobby, focus != index else { return }
         focus = index
         let channel = channel
         Task { await channel?.broadcast(event: "focus", message: ["focus": .integer(index)]) }
+    }
+
+    func share(kit: [TrainTogether.Kit]) {
+        myKit = kit
+        publish(TrainTogetherPresence(kit: kit))
     }
 
     func publish(_ presence: TrainTogetherPresence) {
@@ -417,7 +482,9 @@ final class TrainTogetherRoom {
     /// press that was shown but never confirmed. An older copy never wins.
     private func adopt(_ reply: TrainTogetherRoomInfo, force: Bool = false) {
         if reply.status == "ended" { ended = true }
+        if reply.memberCount != memberCount { Task { await refreshRoster() } }
         memberCount = reply.memberCount
+        take(plan: reply.plan, title: reply.title)
         accept(version: reply.version, state: reply.state, sharedControl: reply.sharedControl, force: force)
     }
 
@@ -438,7 +505,18 @@ final class TrainTogetherRoom {
         guard let payload = message["payload"]?.objectValue,
               let data = try? JSONEncoder().encode(payload),
               let event = try? TrainTogetherCoding.decoder.decode(Event.self, from: data) else { return }
+        // A broadcast can be sent by a phone without passing the server's checks,
+        // so the workout it announces is read from the server instead.
+        if payload["plan"] != nil, choosing { Task { await refresh(force: true) } }
         accept(version: event.version, state: event.state, sharedControl: event.shared_control)
+    }
+
+    /// A room's workout is chosen once, so only an empty plan is ever replaced.
+    private func take(plan newPlan: TrainTogether.Plan, title newTitle: String) {
+        guard choosing, !newPlan.exercises.isEmpty else { return }
+        plan = newPlan
+        title = newTitle
+        timeline = Self.timeline(newPlan, roomID: info.id, title: newTitle, ownerID: myUserID)
     }
 
     private func receive(focus message: JSONObject) {
@@ -458,6 +536,7 @@ final class TrainTogetherRoom {
             if names[id] == nil { unknown = true }
         }
         hostAwaySince = hostIsHere ? nil : (hostAwaySince ?? .now)
-        if unknown { Task { await refreshRoster() } }
+        // A class member's key changes every visit and is never on the roster; the head count brings their names.
+        if unknown, info.kind == .friends { Task { await refreshRoster() } }
     }
 }

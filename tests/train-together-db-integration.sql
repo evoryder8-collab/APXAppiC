@@ -228,5 +228,84 @@ begin
   if has_table_privilege('authenticated', 'public.group_workouts', 'select') then raise exception 'rooms readable'; end if;
 end$$;
 
+-- A room opened without a workout: it cannot start, its wheel is bounded,
+-- and the host chooses the workout once.
+do $$
+declare
+  lobby jsonb := '{"phase":"lobby","position":0,"step":0,"extra_seconds":0,"sound":true,"voice":false,"anchor":"2026-11-24T08:00:00.000Z"}';
+  plan jsonb := '{"name":"Push-up ladder","warmup_text":"","warmup_duration":180,"exercises":[{"name":"Push-Up","movement_id":"push_up","sets":3,"rep_min":10,"rep_max":10,"rest_sec":60}]}';
+  room jsonb;
+  reply jsonb;
+begin
+  update public.feature_access_policy set paid_only = false where feature = 'train_together';
+  perform pg_temp.act_as('founder');
+  room := public.group_workout_create('friends', 'Group workout', now(), '{"name":"Group workout","exercises":[]}', lobby);
+  if jsonb_array_length(room -> 'plan' -> 'exercises') <> 0 then raise exception 'room should open without a workout'; end if;
+  if not pg_temp.fails(format('select public.group_workout_set_state(%L::uuid, 1, %L::jsonb)', room ->> 'id',
+      lobby || '{"phase":"warmup","step":1}'), 'invalid_state') then
+    raise exception 'a room without a workout started';
+  end if;
+  reply := public.group_workout_set_state((room ->> 'id')::uuid, 1, lobby || '{"wheel":{"focus":"push","spin":{"at":"2026-11-24T08:01:00.000Z","slots":["push-up-ladder","shoulder-burner"],"landing":1}}}');
+  if not (reply ->> 'accepted')::boolean or reply -> 'state' -> 'wheel' ->> 'focus' <> 'push' then raise exception 'spin refused %', reply; end if;
+  if not pg_temp.fails(format('select public.group_workout_set_state(%L::uuid, 2, %L::jsonb)', room ->> 'id',
+      lobby || '{"wheel":{"focus":"push","spin":{"at":"2026-11-24T08:01:00.000Z","slots":["a"],"landing":3}}}'), 'invalid_state') then
+    raise exception 'a landing outside the wheel was stored';
+  end if;
+  if not pg_temp.fails(format('select public.group_workout_set_state(%L::uuid, 2, %L::jsonb)', room ->> 'id',
+      lobby || '{"wheel":{"focus":"legs"}}'), 'invalid_state') then
+    raise exception 'an unknown focus was stored';
+  end if;
+  perform pg_temp.act_as('payer');
+  perform public.group_workout_join(room ->> 'code');
+  if not pg_temp.fails(format('select public.group_workout_set_plan(%L::uuid, %L::jsonb)', room ->> 'id', plan), 'not_allowed') then
+    raise exception 'a member chose the workout';
+  end if;
+  perform pg_temp.act_as('founder');
+  if not pg_temp.fails(format('select public.group_workout_set_plan(%L::uuid, %L::jsonb)', room ->> 'id',
+      '{"name":"x","exercises":[]}'), 'invalid_plan') then
+    raise exception 'an empty workout was chosen';
+  end if;
+  reply := public.group_workout_set_plan((room ->> 'id')::uuid, plan);
+  if reply ->> 'title' <> 'Push-up ladder' or jsonb_array_length(reply -> 'plan' -> 'exercises') <> 1
+     or reply -> 'state' ? 'wheel' or (reply ->> 'version')::int <> 3 then
+    raise exception 'choosing the workout %', reply;
+  end if;
+  if not pg_temp.fails(format('select public.group_workout_set_plan(%L::uuid, %L::jsonb)', room ->> 'id', plan), 'plan_chosen') then
+    raise exception 'the workout was chosen twice';
+  end if;
+  reply := public.group_workout_set_state((room ->> 'id')::uuid, 3, lobby || '{"phase":"warmup","step":1}');
+  if not (reply ->> 'accepted')::boolean then raise exception 'the chosen workout did not start %', reply; end if;
+  if (public.group_workout_preview(room ->> 'code') ->> 'title') <> 'Push-up ladder' then raise exception 'preview title'; end if;
+end$$;
+
+-- Hardening: validators answer false, an older phone's switch keeps the wheel,
+-- and a room leaves its lobby only into its warm-up or first set.
+do $$
+declare
+  lobby jsonb := '{"phase":"lobby","position":0,"step":0,"extra_seconds":0,"sound":true,"voice":false,"anchor":"2026-11-24T08:00:00.000Z"}';
+  plan jsonb := '{"name":"Push-up ladder","warmup_text":"","warmup_duration":180,"exercises":[{"name":"Push-Up","sets":3,"rep_min":10,"rep_max":10,"rest_sec":60},{"name":"Plank","sets":3,"rep_min":30,"rep_max":30,"rest_sec":30}]}';
+  room jsonb;
+  reply jsonb;
+begin
+  if public.group_workout_state_is_valid(lobby - 'sound') is distinct from false then raise exception 'a state missing sound must be false'; end if;
+  if public.group_workout_state_is_valid(lobby || '{"wheel":{}}') is distinct from false then raise exception 'an empty wheel must be false'; end if;
+  if public.group_workout_plan_is_valid('{"name":"x"}') is distinct from false then raise exception 'a plan without exercises must be false'; end if;
+  perform pg_temp.act_as('founder');
+  room := public.group_workout_create('friends', 'Group workout', now(), '{"name":"Group workout","exercises":[]}', lobby);
+  if not pg_temp.fails(format('select public.group_workout_set_state(%L::uuid, 1, %L::jsonb)', room ->> 'id', lobby - 'sound'), 'invalid_state') then
+    raise exception 'a state without sound was stored';
+  end if;
+  reply := public.group_workout_set_state((room ->> 'id')::uuid, 1, lobby || '{"wheel":{"focus":"pull"}}');
+  reply := public.group_workout_set_state((room ->> 'id')::uuid, 2, lobby || '{"sound":false}');
+  if reply -> 'state' -> 'wheel' ->> 'focus' is distinct from 'pull' then raise exception 'the wheel was wiped %', reply; end if;
+  reply := public.group_workout_set_plan((room ->> 'id')::uuid, plan);
+  if not pg_temp.fails(format('select public.group_workout_set_state(%L::uuid, 4, %L::jsonb)', room ->> 'id',
+      lobby || '{"phase":"review","step":1}'), 'invalid_state') then
+    raise exception 'an older phone started the room at its end';
+  end if;
+  reply := public.group_workout_set_state((room ->> 'id')::uuid, 4, lobby || '{"phase":"warmup","step":1}');
+  if not (reply ->> 'accepted')::boolean then raise exception 'the warm-up start was refused'; end if;
+end$$;
+
 select 'train together checks passed' as result;
 rollback;

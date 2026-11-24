@@ -386,6 +386,7 @@ struct SimpleHomeView: View {
                     if dailyTrainingSessions.count > 1 {
                         dailyTrainingList
                     }
+                    GroupWorkoutCard()
                     if session.coachClientPolicy.canCreateCustomWorkouts {
                         Button { showManualLogger = true } label: {
                             Label(language.text("Quick log"), systemImage: "square.and.pencil")

@@ -27,8 +27,10 @@ struct TrainTogetherHostSheet: View {
                 Section {
                     Text(language.text(title))
                         .font(APEXFont.display(22))
-                    Text(language.format("%d exercises", plan.exercises.count))
-                        .font(APEXFont.mono(11))
+                    Text(plan.exercises.isEmpty
+                         ? language.text("Everyone ticks the kit they have, then you spin the wheel for the workout.")
+                         : language.format("%d exercises", plan.exercises.count))
+                        .font(plan.exercises.isEmpty ? APEXFont.body(13, weight: .medium) : APEXFont.mono(11))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
                 if canHostClass {
@@ -54,11 +56,13 @@ struct TrainTogetherHostSheet: View {
                     Section { Text(language.text(message)).foregroundStyle(.orange) }
                 }
             }
-            .navigationTitle(language.text("Train together"))
+            .navigationTitle(language.text(plan.exercises.isEmpty ? "Group workout" : "Train together"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
+                    // A room being opened must reach its screen, or it would stay open with nobody in it.
                     Button(language.text("Cancel")) { dismiss() }
+                        .disabled(working)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(language.text("Open room")) { open() }
@@ -66,6 +70,7 @@ struct TrainTogetherHostSheet: View {
                         .accessibilityIdentifier("train-together-open-room")
                 }
             }
+            .interactiveDismissDisabled(working)
             .task {
                 guard let client = session.trainTogetherClient else {
                     allowed = false
@@ -102,36 +107,13 @@ struct TrainTogetherHostSheet: View {
     }
 }
 
-/// "Join a workout" for the Training page.
-struct TrainTogetherJoinButton: View {
-    @Environment(AppSession.self) private var session
-    @State private var language = LanguageState.shared
-    let accent: Color
-
-    var body: some View {
-        Button {
-            session.trainTogetherJoinRequested = true
-        } label: {
-            Label(language.text("Join a workout"), systemImage: "person.2.fill")
-                .font(APEXFont.body(13, weight: .bold))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.horizontal, 16)
-                .frame(minHeight: 46)
-                .background(accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        }
-        .buttonStyle(.plain)
-        .foregroundStyle(accent)
-        .accessibilityIdentifier("train-together-join")
-    }
-}
-
 /// The code a link, a message or the welcome screen brought, then the room.
 private struct TrainTogetherJoinSheet: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     @State private var language = LanguageState.shared
     @State var code: String
-    let onJoined: (TrainTogetherRoom, TrainTogether.AnchorRows) -> Void
+    let onJoined: (TrainTogetherRoom) -> Void
     @State private var working = false
     @State private var message: String?
 
@@ -180,8 +162,10 @@ private struct TrainTogetherJoinSheet: View {
                         session.pendingTrainTogetherCode = nil
                         dismiss()
                     }
+                    .disabled(working)
                 }
             }
+            .interactiveDismissDisabled(working)
             .task {
                 if TrainTogether.code(in: code) != nil { join() }
             }
@@ -190,88 +174,94 @@ private struct TrainTogetherJoinSheet: View {
 
     private func join() {
         guard !working, let found = TrainTogether.code(in: code),
-              let client = session.trainTogetherClient,
-              let operation = session.accountOperationLease() else { return }
+              let client = session.trainTogetherClient else { return }
         working = true
         message = nil
         // A saved code is tried once; it must never retry itself on every launch.
         session.pendingTrainTogetherCode = nil
         Task {
             defer { working = false }
-            var opened: TrainTogetherRoom?
             do {
                 let room = try await TrainTogetherRoom.join(client: client, code: found)
-                opened = room
-                let rows = TrainTogether.anchorRows(
-                    plan: room.info.plan, roomID: room.info.id, title: room.info.title, ownerID: operation.ownerID
-                )
-                try await session.installTrainTogetherDay(rows, operation: operation)
                 dismiss()
-                onJoined(room, rows)
+                onJoined(room)
             } catch {
-                await opened?.close(leaving: false)
                 message = ((error as? TrainTogetherError) ?? .unavailable).message
             }
         }
     }
 }
 
-/// Presents the join sheet when a link, the welcome screen or the Training
-/// page asks for it, then the joined workout full screen.
-struct TrainTogetherJoinFlow: ViewModifier {
+/// Presents the join sheet when a link, the welcome screen or "Join" asks
+/// for it, or the host sheet when "Start" does, then the room full screen.
+struct TrainTogetherFlow: ViewModifier {
     @Environment(AppSession.self) private var session
-    @State private var joined: JoinedRoom?
-    /// Held until the code sheet has finished closing, so the workout can open.
-    @State private var arrived: JoinedRoom?
+    @State private var opened: OpenedRoom?
+    /// Held until the sheet has finished closing, so the room can open.
+    @State private var arrived: OpenedRoom?
 
-    private struct JoinedRoom: Identifiable {
+    private struct OpenedRoom: Identifiable {
         let id: UUID
         let room: TrainTogetherRoom
-        let rows: TrainTogether.AnchorRows
+    }
+
+    private enum Sheet: String, Identifiable {
+        case start, join
+        var id: String { rawValue }
+    }
+
+    /// A code from a link or "Join" wins over "Start".
+    private var request: Sheet? {
+        guard opened == nil, arrived == nil else { return nil }
+        if session.pendingTrainTogetherCode != nil || session.trainTogetherJoinRequested { return .join }
+        return session.trainTogetherStartRequested ? .start : nil
     }
 
     func body(content: Content) -> some View {
         content
-            .sheet(isPresented: Binding(
-                get: {
-                    joined == nil && arrived == nil
-                        && (session.pendingTrainTogetherCode != nil || session.trainTogetherJoinRequested)
-                },
-                set: { open in
-                    if !open {
+            // Presented by item, so a closing sheet keeps showing what it was opened for.
+            .sheet(item: Binding(
+                get: { request },
+                set: { sheet in
+                    if sheet == nil {
                         session.trainTogetherJoinRequested = false
+                        session.trainTogetherStartRequested = false
                         session.pendingTrainTogetherCode = nil
                     }
                 }
             ), onDismiss: {
-                joined = arrived
+                opened = arrived
                 arrived = nil
-            }) {
-                TrainTogetherJoinSheet(code: session.pendingTrainTogetherCode ?? "") { room, rows in
-                    session.trainTogetherJoinRequested = false
-                    arrived = JoinedRoom(id: room.info.id, room: room, rows: rows)
+            }) { sheet in
+                Group {
+                    if sheet == .start {
+                        TrainTogetherHostSheet(
+                            title: "Group workout",
+                            plan: TrainTogether.Plan(name: "Group workout", warmupText: "", warmupDuration: 0, exercises: []),
+                            accent: APEXColor.violet
+                        ) { room in
+                            session.trainTogetherStartRequested = false
+                            arrived = OpenedRoom(id: room.info.id, room: room)
+                        }
+                    } else {
+                        TrainTogetherJoinSheet(code: session.pendingTrainTogetherCode ?? "") { room in
+                            session.trainTogetherJoinRequested = false
+                            arrived = OpenedRoom(id: room.info.id, room: room)
+                        }
+                        .presentationDetents([.medium])
+                    }
                 }
                 .environment(session)
-                .presentationDetents([.medium])
             }
-            .fullScreenCover(item: $joined) { joined in
-                WorkoutPlayerView(
-                    day: joined.rows.day,
-                    exercises: joined.rows.exercises,
-                    accent: APEXColor.violet,
-                    lite: false,
-                    date: Date().apexDateKey,
-                    warmupText: joined.room.info.plan.warmupText,
-                    warmupDuration: joined.room.info.plan.warmupDuration,
-                    room: joined.room
-                )
-                .environment(session)
+            .fullScreenCover(item: $opened) { opened in
+                TrainTogetherRoomScreen(room: opened.room)
+                    .environment(session)
             }
     }
 }
 
 extension View {
-    func trainTogetherJoinFlow() -> some View { modifier(TrainTogetherJoinFlow()) }
+    func trainTogetherFlow() -> some View { modifier(TrainTogetherFlow()) }
 
     func trainTogetherHostFlow(
         isPresented: Binding<Bool>, day: ProgramDay?, exercises: [Exercise], warmupText: String,
@@ -313,14 +303,14 @@ struct TrainTogetherHostFlow: ViewModifier {
     let lite: Bool
     let date: String
     /// Held until the host sheet has finished closing, so the workout can open.
+    @State private var arrived: TrainTogetherRoom?
     @State private var opened: TrainTogetherRoom?
-    @State private var hosting: TrainTogetherRoom?
 
     func body(content: Content) -> some View {
         content
             .sheet(isPresented: $isPresented, onDismiss: {
-                hosting = opened
-                opened = nil
+                opened = arrived
+                arrived = nil
             }) {
                 if let day {
                     TrainTogetherHostSheet(
@@ -331,16 +321,16 @@ struct TrainTogetherHostFlow: ViewModifier {
                         ),
                         accent: accent
                     ) { room in
-                        opened = room
+                        arrived = room
                     }
                     .environment(session)
                 }
             }
             .fullScreenCover(isPresented: Binding(
-                get: { hosting != nil },
-                set: { open in if !open { hosting = nil } }
+                get: { opened != nil },
+                set: { open in if !open { opened = nil } }
             )) {
-                if let day, let hosting {
+                if let day, let opened {
                     WorkoutPlayerView(
                         day: day,
                         exercises: exercises,
@@ -349,100 +339,56 @@ struct TrainTogetherHostFlow: ViewModifier {
                         date: min(date, Date().apexDateKey),
                         warmupText: warmupText,
                         warmupDuration: warmupDuration,
-                        room: hosting
+                        room: opened
                     )
                     .environment(session)
                 }
             }
             // The day's date is counted from the shared date, which a Sunday midnight would move a week on under an open workout.
-            .onChange(of: hosting != nil) { _, open in session.holdBrowsingDate(open) }
+            .onChange(of: opened != nil) { _, open in session.holdBrowsingDate(open) }
     }
 }
 
-/// The room before Start: who is hosting, how to invite, and the exercises,
-/// which a class follows card by card as the host swipes.
-struct TrainTogetherLobby: View {
+/// Who is hosting, who is here, how to invite, and the room's switches.
+struct TrainTogetherInviteCard: View {
     @State private var language = LanguageState.shared
     let room: TrainTogetherRoom
-    let exercises: [Exercise]
     let accent: Color
-    @Binding var shareMySets: Bool
-    @State private var page: Int?
+    /// Nil while the room is still choosing its workout, when there are no sets to share.
+    var shareMySets: Binding<Bool>?
     @State private var showQR = false
 
-    private var synced: Bool { room.info.kind == .class }
-
     var body: some View {
-        VStack(spacing: 16) {
-            GlassCard(radius: 30, padding: 20) {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text(language.text(room.info.kind == .class ? "CLASS" : "TRAIN TOGETHER"))
-                        .font(APEXFont.mono(10, weight: .bold))
-                        .tracking(1.5)
-                        .foregroundStyle(accent)
-                    Text(language.text(room.info.title))
-                        .font(APEXFont.display(26))
-                    Text(startLine)
-                        .font(APEXFont.body(13, weight: .semibold))
-                        .foregroundStyle(APEXColor.secondaryInk)
-                    Text(peopleLine)
-                        .font(APEXFont.body(13, weight: .semibold))
-                        .accessibilityIdentifier("train-together-people")
-                    if room.isHost || room.info.kind == .friends {
-                        invite
-                    }
-                    if room.info.kind == .friends {
-                        Toggle(language.text("Let the others see my sets"), isOn: $shareMySets)
-                            .font(APEXFont.body(13, weight: .semibold))
-                        if room.isHost {
-                            Toggle(language.text("Everyone can control"), isOn: Binding(
-                                get: { room.sharedControl },
-                                set: { room.setSharedControl($0) }
-                            ))
-                            .font(APEXFont.body(13, weight: .semibold))
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                LazyHStack(spacing: 12) {
-                    ForEach(Array(exercises.enumerated()), id: \.offset) { index, exercise in
-                        card(exercise, focused: index == (page ?? room.focus))
-                            .containerRelativeFrame(.horizontal)
-                            .id(index)
-                    }
-                }
-                .scrollTargetLayout()
-            }
-            .scrollTargetBehavior(.paging)
-            .scrollPosition(id: $page)
-            .scrollDisabled(synced && !room.isHost)
-            .frame(height: 300)
-            .onChange(of: page) { _, index in
-                if let index, synced, room.isHost { room.show(card: index) }
-            }
-            .onChange(of: room.focus) { _, focus in
-                guard synced, !room.isHost, page != focus else { return }
-                withAnimation(.smooth(duration: 0.45)) { page = focus }
-            }
-            .onAppear { page = room.focus }
-
-            if room.canControl {
-                Button {
-                    room.send(.start)
-                } label: {
-                    Label(language.text("Start"), systemImage: "play.fill")
-                }
-                .buttonStyle(APEXPrimaryButtonStyle(color: accent))
-                .accessibilityIdentifier("train-together-start")
-            } else {
-                Text(language.format("Waiting for %@ to start", room.info.hostName))
+        GlassCard(radius: 30, padding: 20) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(language.text(room.info.kind == .class ? "CLASS" : "TRAIN TOGETHER"))
+                    .font(APEXFont.mono(10, weight: .bold))
+                    .tracking(1.5)
+                    .foregroundStyle(accent)
+                Text(language.text(room.title))
+                    .font(APEXFont.display(26))
+                Text(startLine)
                     .font(APEXFont.body(13, weight: .semibold))
                     .foregroundStyle(APEXColor.secondaryInk)
-                    .frame(maxWidth: .infinity)
+                Text(peopleLine)
+                    .font(APEXFont.body(13, weight: .semibold))
+                    .accessibilityIdentifier("train-together-people")
+                if room.isHost || room.info.kind == .friends {
+                    invite
+                }
+                if room.info.kind == .friends, let shareMySets {
+                    Toggle(language.text("Let the others see my sets"), isOn: shareMySets)
+                        .font(APEXFont.body(13, weight: .semibold))
+                }
+                if room.info.kind == .friends, room.isHost {
+                    Toggle(language.text("Everyone can control"), isOn: Binding(
+                        get: { room.sharedControl },
+                        set: { room.setSharedControl($0) }
+                    ))
+                    .font(APEXFont.body(13, weight: .semibold))
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -457,7 +403,7 @@ struct TrainTogetherLobby: View {
 
     private var peopleLine: String {
         guard room.showsNames else {
-            return language.format("%d training", room.memberCount + 1)
+            return language.format("%d training", room.headcount)
         }
         let others = room.names
             .filter { $0.key != room.myUserID && $0.key != room.info.hostUserID }
@@ -505,6 +451,63 @@ struct TrainTogetherLobby: View {
             }
         }
     }
+}
+
+/// The room before Start: who is hosting, how to invite, and the exercises,
+/// which a class follows card by card as the host swipes.
+struct TrainTogetherLobby: View {
+    @State private var language = LanguageState.shared
+    let room: TrainTogetherRoom
+    let exercises: [Exercise]
+    let accent: Color
+    @Binding var shareMySets: Bool
+    @State private var page: Int?
+
+    private var synced: Bool { room.info.kind == .class }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            TrainTogetherInviteCard(room: room, accent: accent, shareMySets: $shareMySets)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(spacing: 12) {
+                    ForEach(Array(exercises.enumerated()), id: \.offset) { index, exercise in
+                        card(exercise, focused: index == (page ?? room.focus))
+                            .containerRelativeFrame(.horizontal)
+                            .id(index)
+                    }
+                }
+                .scrollTargetLayout()
+            }
+            .scrollTargetBehavior(.paging)
+            .scrollPosition(id: $page)
+            .scrollDisabled(synced && !room.isHost)
+            .frame(height: 300)
+            .onChange(of: page) { _, index in
+                if let index, synced, room.isHost { room.show(card: index) }
+            }
+            .onChange(of: room.focus) { _, focus in
+                guard synced, !room.isHost, page != focus else { return }
+                withAnimation(.smooth(duration: 0.45)) { page = focus }
+            }
+            .onAppear { page = room.focus }
+
+            if room.canControl {
+                Button {
+                    room.send(.start)
+                } label: {
+                    Label(language.text("Start"), systemImage: "play.fill")
+                }
+                .buttonStyle(APEXPrimaryButtonStyle(color: accent))
+                .accessibilityIdentifier("train-together-start")
+            } else {
+                Text(language.format("Waiting for %@ to start", room.info.hostName))
+                    .font(APEXFont.body(13, weight: .semibold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+    }
 
     private func card(_ exercise: Exercise, focused: Bool) -> some View {
         GlassCard(radius: 24, padding: 14) {
@@ -547,10 +550,10 @@ struct TrainTogetherHeaderButtons: View {
     let accent: Color
 
     var body: some View {
-        Label("\(room.memberCount + 1)", systemImage: "person.2.fill")
+        Label("\(room.headcount)", systemImage: "person.2.fill")
             .font(APEXFont.mono(11, weight: .bold))
             .foregroundStyle(accent)
-            .accessibilityLabel(language.format("%d training", room.memberCount + 1))
+            .accessibilityLabel(language.format("%d training", room.headcount))
         if room.canControl {
             circle(room.state.voice ? "speaker.wave.2.fill" : "speaker.slash.fill",
                    label: room.state.voice ? "Turn the voice off for everyone" : "Turn the voice on for everyone") {

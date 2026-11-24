@@ -7916,6 +7916,9 @@ final class AppSession {
     /// "Join a workout" asked for the code sheet without a code.
     var trainTogetherJoinRequested = false
 
+    /// "Group workout" asked to open a room whose workout the wheel will choose.
+    var trainTogetherStartRequested = false
+
     /// While any workout screen is open, an access change waits until it closes.
     var openWorkoutScreens = 0
 

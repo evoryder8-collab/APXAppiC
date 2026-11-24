@@ -2988,3 +2988,112 @@ Installed with `devicectl`. iConstantine Main and the Watch Ultra 3 both report 
 - The archive `build/FITR-MAX-1.0.1-430.xcarchive` was built from a clean worktree of `7edae17a`. iPhone, Watch and complication are all 1.0.1 (430), and `codesign --verify --deep --strict` passed.
 - Installed with `devicectl`. iConstantine Main and the Watch Ultra 3 both report 1.0.1 (430).
 - How the macro lines read with a real day's targets has only been seen on the simulator, not yet on the owner's wrist.
+
+## 2026-11-24 · Group workout: open a room, everyone ticks their kit, the host spins the wheel (build 431)
+
+**What the owner asked.** After trying build 427, the owner had three complaints:
+- "Join a workout" was the only option, and it sat buried in the Advanced view instead of being a shortcut on the Simple dashboard.
+- There was no "Group workout" that creates the room.
+- There was no lucky wheel in the room. The host should spin it and everyone inside should watch where it lands.
+
+**What changed for people.**
+- **The card.** A "Group workout" card has Start and "Join with a code". It sits on the Simple dashboard below the day's tiles, and on the Training page in place of the old button.
+- **Start.** Start opens a room with no workout yet; the host sheet says the wheel will choose it.
+- **The wheel lobby.** In that room's lobby:
+  - Everyone ticks the kit they have: dumbbells, kettlebell, bands, pull-up bar, bench or step, backpack, towel, sturdy chair or skipping rope. Bodyweight, floor space and a wall always count, and a mat is never required ("A mat helps").
+  - The host picks the focus: Full body, Push, Pull, Upper body, Lower body or HIIT.
+  - The wheel holds only the challenges for that focus whose kit everyone has. Anyone who hasn't answered, or isn't connected yet, counts as having no kit, so nobody gets a workout they can't do.
+  - The host spins. Every phone turns the same wheel for 6 s on the server clock and stops on the same slice, with a tick as each slice passes and a buzz on landing. The landed slice stays bright while the rest dim.
+  - Everyone sees the result: the name, the focus, about how long it takes, and each exercise with its sets and reps.
+  - The host chooses "Train this" or "Spin again". "Train this" makes the challenge the room's workout on every phone, and it goes into each person's account as for any room. The room then becomes the normal lobby with Start.
+- **Leaving.** A host who leaves a room that is still choosing ends it for everyone.
+
+**The challenges.** There are 40 (`TrainTogetherChallenges.swift`), built only from exercise-catalogue movements with 3–6 moves each:
+
+| Focus | Challenges | Needing no kit |
+|---|---|---|
+| Full body | 8 | 5 |
+| Push | 6 | 4 |
+| Pull | 6 | 4 |
+| Upper body | 6 | 4 |
+| Lower body | 6 | 4 |
+| HIIT | 8 | 5 |
+
+- Each challenge's kit comes from its movements' catalogue equipment, so it can't disagree with them.
+- The test checks:
+  - every movement exists;
+  - every focus rule (no pulling in Push, no pushing or leg-led moves in Pull, timed work with rest in HIIT, and so on);
+  - each challenge's length;
+  - that every focus fills the wheel with no kit.
+- **Pull without kit.** The four no-kit Pull challenges lean on few movements (prone floor row, locust pose, Pilates swimming, wall slide). The first library put hip thrusts and glute bridges in Pull, and those were replaced with back and core moves.
+- **Table row.** It needs a sturdy table, which the kit list doesn't ask about.
+
+**How it works.**
+- **The snapshot.** It gains `wheel` (focus, plus the spin's start, slots and landing), decoded so that a wheel a phone can't read never costs it the rest of the room. The presses `.wheelFocus` and `.spin` work only in the lobby of a room with no workout.
+- **Presence.** It carries each person's kit.
+- **The server.** `group_workout_set_plan` sets the workout once, host only, before Start.
+- **The room.** It reads a broadcast workout back from the server instead of trusting it. Its plan, title and timeline change once, from empty. A joiner rereads the room right after subscribing.
+- **One room screen.** `TrainTogetherRoomScreen` serves joiners and Group workout hosts. It shows the wheel until a workout is chosen, then installs the workout and opens the player. It holds the access gate while open and closes its room when it goes away.
+- **The sheet.** The code sheet and the Start sheet are one item-driven sheet, so a closing sheet keeps its content. Cancel is disabled while a room is being opened or joined.
+
+**Server.** Both migrations were applied to the live project with the account connector and renamed to their applied versions. Build 402 calls none of these functions, and `get_my_app_access` is untouched.
+- `20261124074408_train_together_wheel.sql`:
+  - a plan may have 0 exercises;
+  - a room without a workout can't leave its lobby;
+  - the wheel validator;
+  - `group_workout_set_plan`.
+- `20261124083235_train_together_wheel_hardening.sql`, from the correctness review:
+  - **Validators.** Every validator returns false, never null, so a state or plan with a key missing is refused.
+  - **Leaving the lobby.** A room leaves its lobby only into its warm-up or first set. A 427/428 phone that never got the chosen workout could otherwise send everyone to the end.
+  - **Old switches.** Such a phone's sound or voice switch keeps the wheel it doesn't know about.
+  - **Slots.** At most 12, as in the app.
+
+**Checks.**
+- The rolled-back database checks passed against the live project. They are recorded in `tests/train-together-db-integration.sql` and cover:
+  - a room opened without a workout;
+  - the wheel's bounds;
+  - choosing once, host only;
+  - the hardening rules.
+- `TrainTogetherChallengeTests`, 10 tests covering the library rules, kit, the common-kit rule, landing slot equals pointer slot for every wheel size, a seeded draw, the snapshot and lenient decoding. With `TrainTogetherTests` that makes 26, all passing.
+- Full iPhone unit suite on top of 430: 1,298 tests, 0 failures.
+- Translation audit: 100% in all nine languages, with 71 new strings in eight tables. Catalogue equipment names used only for matching are raw strings.
+- `npm run audit` passes. `npm run build` passes.
+- On the simulator, signed in as a second founding account:
+  - the card on the Simple dashboard;
+  - Start, then the room (codes HVHD4A and NM85KY);
+  - kit sent ("1 of 1 have ticked their kit");
+  - Pull focus, and the wheel refilled with Pull challenges;
+  - the spin landing under the pointer;
+  - "Train this", after which the server showed title "Floor pull", 5 exercises and the wheel cleared, and the phone opened the normal lobby with Start.
+
+**Reviews (pstack thermo-nuclear correctness + code quality), fixed before commit.**
+- **Correctness:**
+  - an old build's Start skipping the room to its end;
+  - null validators;
+  - trusting broadcast plans and spins;
+  - Cancel during Open room orphaning a room;
+  - the closing sheet swapping content;
+  - an unclosed room when the screen is torn down;
+  - a joiner missing the plan for up to 20 s;
+  - a host leaving a choosing room open;
+  - class-room roster calls on every kit tap;
+  - a failed install not leaving;
+  - an unknown challenge spinning forever.
+- **Quality:**
+  - one head count for the room (two counts could differ on one screen);
+  - the room keeps the kit this phone sent;
+  - a pure, tested common-kit rule;
+  - the builder's own time estimate reused;
+  - wheel presses refused once a workout exists, instead of being cleaned up at Start;
+  - one slot-fill rule;
+  - the pointer maths in the model;
+  - the sandbox check inside the card;
+  - names that no longer clash.
+- **Left as is:**
+  - the two request flags are not merged into one enum;
+  - `TrainTogetherRoomScreen` and the card stay in the wheel file.
+
+**Left.**
+- A 427/428 phone in a wheel room never gets the chosen workout. Everyone needs 431 or later.
+- No two-phone check of the wheel on a real device yet.
+- The lobby's big gap under the invite card, seen in 427, is unchanged.
