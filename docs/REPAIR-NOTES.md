@@ -2922,3 +2922,12 @@ ElevenLabs usage this month after recording, audition and retakes: about 210,000
   - bad input moves nothing.
 - The Watch app builds for the simulator.
 - How the crown and the swipe feel on the wrist can only be judged on the owner's Watch.
+- Full iPhone unit suite: 1,293 tests, 0 failures.
+
+**Delivered.** Commit `7b3fe47f` is on `main` and `codex/main-critical-repair`, and the Pages deploy succeeded.
+
+The archive `build/FITR-MAX-1.0.1-427.xcarchive` was built from a clean worktree of `7b3fe47f`. The Train together session had briefly edited three files in the shared checkout while the first attempt was building, so that attempt was stopped and thrown away.
+- iPhone, Watch and complication: 1.0.1 (427).
+- `codesign --verify --deep --strict` OK.
+
+Installed with `devicectl`. iConstantine Main and the Watch Ultra 3 both report 1.0.1 (427), which also brings Train together (426) to the owner's devices.
