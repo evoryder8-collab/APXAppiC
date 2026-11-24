@@ -2931,3 +2931,19 @@ The archive `build/FITR-MAX-1.0.1-427.xcarchive` was built from a clean worktree
 - `codesign --verify --deep --strict` OK.
 
 Installed with `devicectl`. iConstantine Main and the Watch Ultra 3 both report 1.0.1 (427), which also brings Train together (426) to the owner's devices.
+
+## 2026-11-24 · Train together from the calendar: host any planned day (build 428)
+
+**What was wrong.** The first try of Train together on a device found that only the day's own workout page (`WorkoutDayView`) had the "Train together" button. That page opens only for a day that has a workout today. Most workouts start from the calendar's day sheet (`WorkoutDaySheet`), which had Guided and Tracked but no Train together, so on a rest day nobody could host.
+
+**Fix.**
+- The day sheet now shows "Train together" under Guided and Tracked, in the same place as on the workout page.
+- Hosting is one shared piece in `TrainTogetherViews.swift`, which both screens use: `TrainTogetherHostButton`, plus the `trainTogetherHostFlow` modifier that opens the host sheet and then the guided player in room mode.
+- The flow is attached at the top of each screen, not to the button. The day sheet hides its start buttons once a session is recorded, and a player attached to them would close mid-workout.
+- `WorkoutDayView` lost its own copy of the host sheet and room state. Its solo player no longer takes a room.
+
+**Checks.**
+- iPhone unit suite (`APEXTests`) on `7b3fe47f` plus this change: 1,286 tests, 0 failures.
+- No new strings; "Train together" is already in every table.
+- On the simulator, signed in as a second founding account, the day sheet for Thursday 26 Nov shows the button. It opened a friends room on the live server: code `94KZC8`, 4 exercises, shared control, lobby.
+- The live web page `#/join/94KZC8` showed the room without signing in: host first name, time, the four exercises, the kit to have ready, the code, "Open in the app" and "Add to calendar".

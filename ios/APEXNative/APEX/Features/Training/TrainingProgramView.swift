@@ -1420,7 +1420,6 @@ struct WorkoutDayView: View {
     @State private var showGuidedPlayer = false
     @State private var showTrackedWorkout = false
     @State private var showTrainTogether = false
-    @State private var trainTogetherRoom: TrainTogetherRoom?
 
     /* The planner decides what today actually prescribes: event tapers, the
        championship leg rule, scheduled and marked deloads, recovery micros. */
@@ -1582,15 +1581,8 @@ struct WorkoutDayView: View {
                     }
                     .accessibilityIdentifier("workout-start-session")
 
-                    Button {
-                        showTrainTogether = true
-                    } label: {
-                        Label(language.text("Train together"), systemImage: "person.2.fill")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(accent)
-                    .accessibilityIdentifier("workout-train-together")
+                    TrainTogetherHostButton(accent: accent) { showTrainTogether = true }
+                        .accessibilityIdentifier("workout-train-together")
                 } else if plan.hasWalkOnly {
                     Button {
                         showGuidedPlayer = true
@@ -1608,7 +1600,7 @@ struct WorkoutDayView: View {
         }
         .navigationTitle(language.text(day.name))
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(isPresented: $showGuidedPlayer, onDismiss: { trainTogetherRoom = nil }) {
+        .fullScreenCover(isPresented: $showGuidedPlayer) {
             WorkoutPlayerView(
                 day: day,
                 exercises: sessionExercises,
@@ -1616,25 +1608,14 @@ struct WorkoutDayView: View {
                 lite: lite,
                 date: min(date, Date().apexDateKey),
                 warmupText: plan.warmup,
-                warmupDuration: plan.warmupDuration,
-                room: trainTogetherRoom
+                warmupDuration: plan.warmupDuration
             )
         }
-        .sheet(isPresented: $showTrainTogether, onDismiss: {
-            if trainTogetherRoom != nil { showGuidedPlayer = true }
-        }) {
-            TrainTogetherHostSheet(
-                title: day.name,
-                plan: TrainTogether.Plan(
-                    name: day.name, warmupText: plan.warmup, warmupDuration: plan.warmupDuration,
-                    exercises: sessionExercises.map(TrainTogether.PlanExercise.init)
-                ),
-                accent: accent
-            ) { room in
-                trainTogetherRoom = room
-            }
-            .environment(session)
-        }
+        .trainTogetherHostFlow(
+            isPresented: $showTrainTogether, day: day, exercises: sessionExercises,
+            warmupText: plan.warmup, warmupDuration: plan.warmupDuration,
+            accent: accent, lite: lite, date: date
+        )
         .fullScreenCover(isPresented: $showTrackedWorkout) {
             TrackedWorkoutView(day: day, exercises: sessionExercises, accent: accent, lite: lite, date: min(date, Date().apexDateKey))
         }

@@ -272,6 +272,91 @@ struct TrainTogetherJoinFlow: ViewModifier {
 
 extension View {
     func trainTogetherJoinFlow() -> some View { modifier(TrainTogetherJoinFlow()) }
+
+    func trainTogetherHostFlow(
+        isPresented: Binding<Bool>, day: ProgramDay?, exercises: [Exercise], warmupText: String,
+        warmupDuration: Int, accent: Color, lite: Bool, date: String
+    ) -> some View {
+        modifier(TrainTogetherHostFlow(
+            isPresented: isPresented, day: day, exercises: exercises, warmupText: warmupText,
+            warmupDuration: warmupDuration, accent: accent, lite: lite, date: date
+        ))
+    }
+}
+
+/// "Train together" beside a day's start buttons.
+struct TrainTogetherHostButton: View {
+    @State private var language = LanguageState.shared
+    let accent: Color
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(language.text("Train together"), systemImage: "person.2.fill")
+                .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .tint(accent)
+    }
+}
+
+/// The host sheet, then the guided player in room mode. Attached at the top of a
+/// screen, not to the button, so the workout stays open when the button goes.
+struct TrainTogetherHostFlow: ViewModifier {
+    @Environment(AppSession.self) private var session
+    @Binding var isPresented: Bool
+    let day: ProgramDay?
+    let exercises: [Exercise]
+    let warmupText: String
+    let warmupDuration: Int
+    let accent: Color
+    let lite: Bool
+    let date: String
+    /// Held until the host sheet has finished closing, so the workout can open.
+    @State private var opened: TrainTogetherRoom?
+    @State private var hosting: TrainTogetherRoom?
+
+    func body(content: Content) -> some View {
+        content
+            .sheet(isPresented: $isPresented, onDismiss: {
+                hosting = opened
+                opened = nil
+            }) {
+                if let day {
+                    TrainTogetherHostSheet(
+                        title: day.name,
+                        plan: TrainTogether.Plan(
+                            name: day.name, warmupText: warmupText, warmupDuration: warmupDuration,
+                            exercises: exercises.map(TrainTogether.PlanExercise.init)
+                        ),
+                        accent: accent
+                    ) { room in
+                        opened = room
+                    }
+                    .environment(session)
+                }
+            }
+            .fullScreenCover(isPresented: Binding(
+                get: { hosting != nil },
+                set: { open in if !open { hosting = nil } }
+            )) {
+                if let day, let hosting {
+                    WorkoutPlayerView(
+                        day: day,
+                        exercises: exercises,
+                        accent: accent,
+                        lite: lite,
+                        date: min(date, Date().apexDateKey),
+                        warmupText: warmupText,
+                        warmupDuration: warmupDuration,
+                        room: hosting
+                    )
+                    .environment(session)
+                }
+            }
+            // The day's date is counted from the shared date, which a Sunday midnight would move a week on under an open workout.
+            .onChange(of: hosting != nil) { _, open in session.holdBrowsingDate(open) }
+    }
 }
 
 /// The room before Start: who is hosting, how to invite, and the exercises,

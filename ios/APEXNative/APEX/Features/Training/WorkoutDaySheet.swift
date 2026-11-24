@@ -21,6 +21,7 @@ struct WorkoutDaySheet: View {
     @State private var selectedProgramDayID: UUID?
     @State private var showGuidedPlayer = false
     @State private var showTrackedWorkout = false
+    @State private var showTrainTogether = false
 
     init(date: String, slug: String, accent: Color, initialProgramDayID: UUID? = nil) {
         self.date = date
@@ -184,6 +185,9 @@ struct WorkoutDaySheet: View {
                             }
                         }
                         .accessibilityIdentifier("day-sheet-start")
+
+                        TrainTogetherHostButton(accent: accent) { showTrainTogether = true }
+                            .accessibilityIdentifier("day-sheet-train-together")
                     } else if recordedSession == nil, plan.programDay != nil, plan.hasWalkOnly {
                         Button {
                             showGuidedPlayer = true
@@ -222,6 +226,11 @@ struct WorkoutDaySheet: View {
                     TrackedWorkoutView(day: day, exercises: sessionExercises, accent: accent, lite: lite, date: min(date, Date().apexDateKey))
                 }
             }
+            .trainTogetherHostFlow(
+                isPresented: $showTrainTogether, day: plan.programDay, exercises: sessionExercises,
+                warmupText: plan.warmup, warmupDuration: plan.warmupDuration,
+                accent: accent, lite: lite, date: date
+            )
         }
     }
 
