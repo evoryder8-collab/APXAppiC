@@ -894,28 +894,7 @@ struct MealComposerView: View {
     }
 
     private var mealTargets: (protein: Double, carbs: Double, fat: Double)? {
-        guard let profile = session.data.weighedProfile() else { return nil }
-        let logs = session.data.activityLogs.filter {
-            $0.userID == profile.userID && $0.date == request.date.apexDateKey
-        }
-        let targets = EnergyEngine.targets(
-            profile: profile,
-            logs: logs,
-            catalog: session.data.activityTypes,
-            planContext: NutritionGoalPolicy.context(from: session.data.settings),
-            settings: session.data.settings,
-            wearableActiveCalories: WearableActivityRecord.activeCalories(
-                on: request.date.apexDateKey,
-                settings: session.data.settings,
-                ownerID: profile.userID
-            )
-        )
-        guard targets.isPublishable else { return nil }
-        let share = MealBlocks.guideShare(
-            for: draft.mealSlot,
-            enabled: MealBlocks.enabled(session.data.settings?.addons["meal_blocks"])
-        )
-        return (Double(targets.proteinG) * share, Double(targets.carbsG) * share, Double(targets.fatG) * share)
+        MealBlocks.macroGuide(for: draft.mealSlot, day: request.date.apexDateKey, data: session.data)
     }
 
     private func macroCard(_ title: String, value: Double, target: Double) -> some View {

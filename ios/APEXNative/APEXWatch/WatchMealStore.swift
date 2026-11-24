@@ -101,7 +101,7 @@ final class WatchMealStore: ObservableObject {
             food("oats", "Rolled oats", 372, 13), food("skyr", "Skyr natural", 63, 11),
             food("berries", "Blueberries", 57, 0.7), food("eggs", "Eggs", 143, 12.6),
             food("chicken", "Chicken breast", 120, 23), food("rice", "Basmati rice, cooked", 130, 2.7),
-            food("banana", "Banana", 89, 1.1), food("whey", "Whey protein", 380, 78),
+            food("banana", "Banana", 89, 1.1), food("whey", "Lee-Sport whey protein isolate, unflavoured", 380, 78),
         ]
         func portion(_ id: String, _ quantity: Double, _ unit: String = "g", _ grams: Double = 1) -> WatchMealPortion {
             WatchMealPortion(foodID: id, quantity: quantity, unit: unit, gramsPerUnit: grams)
@@ -114,8 +114,10 @@ final class WatchMealStore: ObservableObject {
             ownerID: UUID(uuidString: "D9A4729D-E301-4CED-A027-81AD3F7B94AB")!,
             revision: 1,
             blocks: [
-                WatchMealBlock(id: "breakfast", label: "Breakfast", time: "07:00"),
-                WatchMealBlock(id: "lunch", label: "Lunch", time: "13:00"),
+                WatchMealBlock(id: "breakfast", label: "Breakfast", time: "07:00",
+                               guide: WatchMealMacros(protein: 38, carbs: 62, fat: 17)),
+                WatchMealBlock(id: "lunch", label: "Lunch", time: "13:00",
+                               guide: WatchMealMacros(protein: 45, carbs: 74, fat: 20)),
                 WatchMealBlock(id: "snack", label: "Snack", time: "16:00"),
                 WatchMealBlock(id: "dinner", label: "Dinner", time: "19:00"),
                 WatchMealBlock(id: "post_workout", label: "Evening recovery", time: "21:00"),

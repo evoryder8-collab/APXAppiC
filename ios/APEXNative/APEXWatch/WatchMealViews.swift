@@ -6,6 +6,11 @@ struct WatchMealsPage: View {
     @EnvironmentObject private var meals: WatchMealStore
     @Environment(\.scenePhase) private var scenePhase
     @State private var timelineAnchor = Date()
+    #if DEBUG
+    /// Launch with APEX_WATCH_PREVIEW_MEAL=block or =amount (and the meals page) to open lunch, or the amount page
+    /// for its longest-named food.
+    @State private var preview = ProcessInfo.processInfo.environment["APEX_WATCH_PREVIEW_MEAL"]
+    #endif
 
     var body: some View {
         if let snapshot = meals.state.snapshot {
@@ -66,6 +71,20 @@ struct WatchMealsPage: View {
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { timelineAnchor = .now }
             }
+            #if DEBUG
+            .navigationDestination(isPresented: Binding(get: { preview != nil }, set: { if !$0 { preview = nil } })) {
+                let day = Date().apexDateKey
+                if let block = snapshot.blocks.first(where: { $0.id == "lunch" }) {
+                    if preview == "block" {
+                        WatchMealBlockView(block: block, day: day).environmentObject(meals)
+                    } else if let longest = meals.state.suggestions(day: day, block: block.id)
+                        .max(by: { $0.food.name.count < $1.food.name.count }) {
+                        WatchMealPortionView(block: block, day: day, food: longest.food, portion: longest.portion)
+                            .environmentObject(meals)
+                    }
+                }
+            }
+            #endif
         }
     }
 }
@@ -181,6 +200,11 @@ struct WatchMealBlockView: View {
 
         ScrollView {
             VStack(alignment: .leading, spacing: 5) {
+                if let guide = block.guide {
+                    WatchMealMacroGuide(logged: meals.state.macros(day: day, block: block.id), guide: guide)
+                        .padding(.bottom, 2)
+                }
+
                 if !lines.isEmpty {
                     WatchMealSectionTitle(title: "Logged", systemImage: "checkmark.circle.fill",
                                           detail: Int(lines.reduce(0) { $0 + $1.kcal }))
@@ -248,7 +272,8 @@ struct WatchMealBlockView: View {
 }
 
 /// The amount: the crown or a sideways swipe moves it a gram at a time when slow and faster when fast, the
-/// buttons nudge it by one, and an exact figure can be typed. Then one tap adds it.
+/// buttons nudge it by one, and tapping the figure types an exact one. The amount and Add share the first screen,
+/// so a remembered amount that is already right is one tap.
 private struct WatchMealPortionView: View {
     let block: WatchMealBlock
     let day: String
@@ -277,50 +302,45 @@ private struct WatchMealPortionView: View {
     private var step: Double { portion.step }
     private var maximum: Double { portion.maximum }
 
-    private func amount(sizes: [CGFloat]) -> some View {
-        WatchMealFigure(sizes: sizes) { size in
-            Text(verbatim: WatchMealFormat.amount(adjusted)).font(.system(size: size, weight: .bold, design: .rounded))
-        }
-    }
-
     private var adjusted: WatchMealPortion {
         var value = portion
         value.quantity = quantity
         return value
     }
 
-    /// Always empty, so the field shows its prompt; a typed figure becomes the amount.
-    private var typed: Binding<Double?> {
-        Binding(get: { nil }, set: { value in
-            if let value { set(value, haptic: false) }
-            amountFocused = true
-        })
-    }
-
     var body: some View {
         ScrollView {
-            VStack(spacing: 6) {
+            VStack(spacing: 4) {
                 Text(verbatim: food.name)
-                    .font(.system(size: 15, weight: .semibold, design: .rounded))
+                    .font(.system(size: 14, weight: .semibold, design: .rounded))
                     .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(2)
 
-                // The buttons go under the amount when the two cannot share a line on a small Watch.
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 4) {
-                        stepButton("minus", by: -step)
-                        Spacer(minLength: 2)
-                        amount(sizes: [30])
-                        Spacer(minLength: 2)
-                        stepButton("plus", by: step)
+                HStack(spacing: 2) {
+                    stepButton("minus", by: -step)
+                    // Tapping the figure opens the Watch's own input: keyboard, Scribble or dictation.
+                    TextFieldLink(prompt: Text("Type an amount", tableName: "WatchMeals")) {
+                        WatchMealFigure(sizes: [30, 26, 22, 18]) { size in
+                            Text(verbatim: WatchMealFormat.amount(adjusted))
+                                .font(.system(size: size, weight: .bold, design: .rounded))
+                        }
+                        .frame(maxWidth: .infinity)
+                    } onSubmit: { text in
+                        if let typed = WatchMealPortion.typedQuantity(text) { set(typed, haptic: false) }
+                        amountFocused = true
                     }
-                    VStack(spacing: 4) {
-                        amount(sizes: [26, 21, 16])
-                        HStack(spacing: 20) {
-                            stepButton("minus", by: -step)
-                            stepButton("plus", by: step)
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text(verbatim: food.name))
+                    .accessibilityValue(Text(verbatim: WatchMealFormat.amount(adjusted)))
+                    .accessibilityHint(Text("Type an amount", tableName: "WatchMeals"))
+                    .accessibilityAdjustableAction { direction in
+                        switch direction {
+                        case .increment: set(quantity + step, haptic: false)
+                        case .decrement: set(quantity - step, haptic: false)
+                        @unknown default: break
                         }
                     }
+                    stepButton("plus", by: step)
                 }
                 .contentShape(Rectangle())
                 .simultaneousGesture(swipe)
@@ -331,34 +351,12 @@ private struct WatchMealPortionView: View {
                     by: 1, sensitivity: .medium, isContinuous: false, isHapticFeedbackEnabled: true
                 )
                 .onChange(of: crown) { old, new in turn(new - old, travelPerStep: 1, haptic: false) }
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(Text(verbatim: food.name))
-                .accessibilityValue(Text(verbatim: WatchMealFormat.amount(adjusted)))
-                .accessibilityAdjustableAction { direction in
-                    switch direction {
-                    case .increment: set(quantity + step, haptic: false)
-                    case .decrement: set(quantity - step, haptic: false)
-                    @unknown default: break
-                    }
-                }
-
-                Text("Swipe or turn the crown", tableName: "WatchMeals")
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
 
                 Text("\(Int(adjusted.kcal(food))) kcal · \(Int(adjusted.protein(food))) g protein",
                      tableName: "WatchMeals")
                     .font(.system(size: 12, weight: .medium, design: .rounded))
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
-
-                TextField(value: typed, format: .number.precision(.fractionLength(0...1)),
-                          prompt: Text("Type an amount", tableName: "WatchMeals")) {
-                    Text("Type an amount", tableName: "WatchMeals")
-                }
-                .multilineTextAlignment(.center)
 
                 Button {
                     if meals.add([(food, adjusted)], block: block.id, day: day) {
@@ -367,13 +365,20 @@ private struct WatchMealPortionView: View {
                 } label: {
                     Label { Text("Add", tableName: "WatchMeals") } icon: { Image(systemName: "plus") }
                         .font(.system(size: 16, weight: .bold, design: .rounded))
-                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .frame(maxWidth: .infinity, minHeight: 40)
                 }
-                .buttonStyle(WatchGlassButtonStyle(tint: WatchTint.leaf, cornerRadius: 22, isLit: true))
+                .buttonStyle(WatchGlassButtonStyle(tint: WatchTint.leaf, cornerRadius: 20, isLit: true))
                 .disabled(!adjusted.isLoggable)
-                .padding(.top, 4)
+                .padding(.top, 2)
+
+                Text("Turn the crown or swipe. Tap the number to type it.", tableName: "WatchMeals")
+                    .font(.system(size: 11, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 4)
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 6)
         }
         .navigationTitle(Text(verbatim: block.label))
         .onAppear { amountFocused = true }
@@ -402,6 +407,8 @@ private struct WatchMealPortionView: View {
                 .frame(width: 30, height: 30)
         }
         .buttonStyle(WatchGlassButtonStyle(tint: WatchTint.leaf, cornerRadius: 15))
+        // The figure is the one adjustable control VoiceOver offers.
+        .accessibilityHidden(true)
     }
 
     private func turn(_ travel: Double, travelPerStep: Double, haptic: Bool) {
@@ -419,6 +426,60 @@ private struct WatchMealPortionView: View {
             WKInterfaceDevice.current().play(.click)
             lastHaptic = now
         }
+    }
+}
+
+/// The meal's protein, carbs and fat: what it holds against its share of the day, one line each.
+private struct WatchMealMacroGuide: View {
+    let logged: WatchMealMacros
+    let guide: WatchMealMacros
+
+    var body: some View {
+        VStack(spacing: 6) {
+            row("Protein", logged.protein, guide.protein, WatchTint.leaf)
+            row("Carbs", logged.carbs, guide.carbs, WatchTint.gold)
+            row("Fat", logged.fat, guide.fat, WatchTint.ember)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private func row(_ title: LocalizedStringKey, _ value: Double, _ target: Double, _ tint: Color) -> some View {
+        let (grams, goal) = (Int(value.rounded()), Int(target.rounded()))
+        let label = Text(title, tableName: "WatchMeals")
+            .font(.system(size: 12, weight: .semibold, design: .rounded))
+        // One unbreakable figure, so the grams never wrap away from their unit.
+        let figure = Text(verbatim: "\(grams)\u{00A0}/\u{00A0}\(goal)\u{00A0}g")
+            .font(.system(size: 12, weight: .bold, design: .rounded))
+            .monospacedDigit()
+            .foregroundStyle(target > 0 && value > target * 1.15 ? WatchTint.ember : .primary)
+            .fixedSize()
+        return VStack(alignment: .leading, spacing: 3) {
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    label.lineLimit(1).fixedSize()
+                    Spacer(minLength: 4)
+                    figure
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    label.fixedSize(horizontal: false, vertical: true)
+                    figure
+                }
+            }
+            Capsule()
+                .fill(.white.opacity(0.12))
+                .frame(height: 4)
+                .overlay(alignment: .leading) {
+                    GeometryReader { proxy in
+                        Capsule().fill(tint)
+                            .frame(width: proxy.size.width * min(1, target > 0 ? max(0, value) / target : 0))
+                    }
+                }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(title, tableName: "WatchMeals"))
+        .accessibilityValue(Text("\(grams) of \(goal) g", tableName: "WatchMeals"))
     }
 }
 

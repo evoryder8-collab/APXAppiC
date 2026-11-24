@@ -64,6 +64,14 @@ struct WatchMealPortion: Codable, Equatable, Hashable, Sendable {
         (food.protein100 * equivalentAmount / 100).rounded()
     }
 
+    func carbs(_ food: WatchMealFood) -> Double {
+        (food.carbs100 * equivalentAmount / 100).rounded()
+    }
+
+    func fat(_ food: WatchMealFood) -> Double {
+        (food.fat100 * equivalentAmount / 100).rounded()
+    }
+
     private var isMeasured: Bool { unit == "g" || unit == "ml" }
 
     /// The finest change: 1 g or ml, so any whole amount can be reached; half a serving; a whole piece unless the
@@ -75,6 +83,21 @@ struct WatchMealPortion: Codable, Equatable, Hashable, Sendable {
     }
 
     var maximum: Double { max(quantity * 4, isMeasured ? 2_000 : 12) }
+
+    /// A typed, written or dictated figure: "52", "52 g", "52,5", "52.5", or in any script's digits.
+    /// Nil when there is no positive number in it.
+    static func typedQuantity(_ text: String) -> Double? {
+        var number = ""
+        for character in text {
+            if let digit = character.wholeNumberValue, (0...9).contains(digit) {
+                number.append(String(digit))
+            } else if character == "." || character == "," {
+                number.append(".")
+            }
+        }
+        guard let value = Double(number), value.isFinite, value > 0 else { return nil }
+        return value
+    }
 }
 
 /// Turns crown detents or a finger's travel into whole steps of an amount: one step at a time when slow, up to ten
@@ -125,12 +148,22 @@ struct WatchMealBlock: Codable, Equatable, Identifiable, Sendable {
     let label: String
     /// "HH:mm"
     let time: String
+    /// The meal's share of the day's protein, carbs and fat, as the phone's meal composer shows it. Absent from a
+    /// phone older than this or while the day's targets need review; then the Watch shows none.
+    var guide: WatchMealMacros? = nil
 
     var minute: Int? {
         let parts = time.split(separator: ":").compactMap { Int($0) }
         guard parts.count == 2, (0..<24).contains(parts[0]), (0..<60).contains(parts[1]) else { return nil }
         return parts[0] * 60 + parts[1]
     }
+}
+
+/// Grams of protein, carbs and fat.
+struct WatchMealMacros: Codable, Equatable, Sendable {
+    var protein: Double
+    var carbs: Double
+    var fat: Double
 }
 
 struct WatchMealSnapshot: Codable, Equatable, Sendable {
@@ -251,6 +284,15 @@ struct WatchMealState: Codable, Equatable, Sendable {
             }
         }
         return lines
+    }
+
+    /// Protein, carbs and fat a block holds on a day, its unconfirmed additions included.
+    func macros(day: String, block: String) -> WatchMealMacros {
+        logged(day: day, block: block).reduce(into: WatchMealMacros(protein: 0, carbs: 0, fat: 0)) { total, line in
+            total.protein += line.portion.protein(line.food)
+            total.carbs += line.portion.carbs(line.food)
+            total.fat += line.portion.fat(line.food)
+        }
     }
 
     /// The day's energy across every block, the same sum of stored entries the phone shows.

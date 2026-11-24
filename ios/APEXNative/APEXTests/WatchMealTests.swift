@@ -272,6 +272,31 @@ final class WatchMealTests: XCTestCase {
         XCTAssertEqual(fastest.max(), 10)
     }
 
+    func testATypedOrDictatedFigureBecomesTheAmount() {
+        XCTAssertEqual(WatchMealPortion.typedQuantity("52"), 52)
+        XCTAssertEqual(WatchMealPortion.typedQuantity(" 66 g"), 66)
+        XCTAssertEqual(WatchMealPortion.typedQuantity("52,5"), 52.5)
+        XCTAssertEqual(WatchMealPortion.typedQuantity("52.5 g"), 52.5)
+        XCTAssertEqual(WatchMealPortion.typedQuantity("５２"), 52, "Full-width digits from a Japanese keyboard")
+        XCTAssertNil(WatchMealPortion.typedQuantity("lots"))
+        XCTAssertNil(WatchMealPortion.typedQuantity("0"))
+        XCTAssertNil(WatchMealPortion.typedQuantity("1.2.3"))
+    }
+
+    func testAMealCountsTheProteinCarbsAndFatItHolds() throws {
+        let rice = WatchMealFood(id: "rice", name: "Rice", kcal100: 130, protein100: 2.7, carbs100: 28, fat100: 0.3,
+                                 basis: "per_100g", preparation: "as_sold")
+        let chicken = WatchMealFood(id: "chicken", name: "Chicken", kcal100: 120, protein100: 23, carbs100: 0,
+                                    fat100: 2, basis: "per_100g", preparation: "as_sold")
+        var published = snapshot(logs: [log(today, "lunch", portion("rice", 200))])
+        published.foods = [rice, chicken]
+        var state = state(published)
+        _ = try XCTUnwrap(state.add([(chicken, portion("chicken", 150))], block: "lunch", day: today))
+        let lunch = state.macros(day: today, block: "lunch")
+        XCTAssertEqual(lunch, WatchMealMacros(protein: 5 + 35, carbs: 56, fat: 1 + 3), "Logged and still unconfirmed")
+        XCTAssertEqual(state.macros(day: today, block: "dinner"), WatchMealMacros(protein: 0, carbs: 0, fat: 0))
+    }
+
     func testASlowSwipeCountsItsTravelAcrossSmallMoves() {
         var dial = WatchMealAmountDial()
         // Five points of finger travel are one gram, however the moves are split.
@@ -381,6 +406,44 @@ final class WatchMealTests: XCTestCase {
         var watch = WatchMealState()
         watch.accept(published, ownerID: owner)
         XCTAssertEqual(watch.suggestions(day: today, block: "breakfast").prefix(2).map(\.food.name), ["Oats", "Home granola"])
+    }
+
+    func testEachMealCarriesItsShareOfTheDaysMacrosToTheWatch() {
+        var data = DashboardData.empty
+        data.profile = Profile(
+            id: owner, userID: owner, persona: .iulian, profileKind: .standard, bespokeProtocolID: nil,
+            displayName: "Test User", sex: "male", weightKG: 80, bodyFatPercent: nil, bodyFatSource: nil,
+            bodyFatMeasuredAt: nil, customBMR: nil, heightCM: 180, birthdate: "1996-01-01",
+            activityLevel: .moderate, goal: .maintain, targetKcal: nil, targetProteinG: nil,
+            targetFatG: nil, targetCarbsG: nil, trainingTime: "07:00", baselineDate: "2026-01-01",
+            profileNote: "", seedVersion: 1, calibrationK: 1, calibrationHistory: [],
+            updatedAt: "2026-01-01T00:00:00Z"
+        )
+        data.settings = UserSettings(
+            userID: owner, voiceOn: false, ticksOn: false, notificationsOn: false, guardianFactor: 1, addons: [:]
+        )
+        let lunchGuide = try? XCTUnwrap(MealBlocks.macroGuide(for: "lunch", day: today, data: data))
+        XCTAssertNotNil(lunchGuide, "A weighed profile has targets to share")
+
+        let published = WatchMealCompanion.snapshot(
+            ownerID: owner, day: today, data: data, language: .english, localize: { $0 }, revision: 1, acknowledgedIDs: []
+        )
+        XCTAssertFalse(published.blocks.isEmpty)
+        for block in published.blocks {
+            let expected = MealBlocks.macroGuide(for: block.id, day: today, data: data)
+            XCTAssertEqual(block.guide, expected.map { WatchMealMacros(protein: $0.protein, carbs: $0.carbs, fat: $0.fat) },
+                           "\(block.id) shows the meal composer's own guide")
+        }
+        XCTAssertEqual(published.blocks.first { $0.id == "lunch" }?.guide?.protein, lunchGuide?.protein)
+
+        let anonymous = WatchMealCompanion.snapshot(
+            ownerID: owner, day: today, data: .empty, language: .english, localize: { $0 }, revision: 1, acknowledgedIDs: []
+        )
+        XCTAssertTrue(anonymous.blocks.allSatisfy { $0.guide == nil }, "No targets, no guide")
+
+        // A Watch from before guides reads a snapshot that carries them, and one that does not still decodes.
+        let decoded = try? WatchMealSnapshot.decode(published.encoded())
+        XCTAssertEqual(decoded, published)
     }
 
     func testThePhoneSendsEachMealOnlyTheFavouritesSavedToIt() {

@@ -1432,9 +1432,10 @@ final class EnergyEngineTests: XCTestCase {
                 "private var targets: NutritionTargets?"
             ),
             (
-                "APEX/Features/Nutrition/MealComposerView.swift",
-                "private var mealTargets: (protein: Double, carbs: Double, fat: Double)",
-                "private func macroCard"
+                // The meal composer's and the Watch's meal guide.
+                "APEX/Core/Engine/MealBlocks.swift",
+                "static func macroGuide(",
+                "return (Double(targets.proteinG)"
             ),
             (
                 "APEX/Features/Portal/SimpleHomeView.swift",
@@ -1499,16 +1500,22 @@ final class EnergyEngineTests: XCTestCase {
         let composerSource = try String(
             contentsOf: nativeRoot.appending(path: "APEX/Features/Nutrition/MealComposerView.swift")
         )
-        let targetStart = try XCTUnwrap(composerSource.range(of: "private var mealTargets:"))
+        // The meal guide is shared by the composer and the Watch, so the block lives in MealBlocks.
+        let guideSource = try String(contentsOf: nativeRoot.appending(path: "APEX/Core/Engine/MealBlocks.swift"))
+        let targetStart = try XCTUnwrap(guideSource.range(of: "static func macroGuide("))
         let targetEnd = try XCTUnwrap(
-            composerSource.range(
-                of: "private func macroCard",
-                range: targetStart.upperBound..<composerSource.endIndex
+            guideSource.range(
+                of: "return (Double(targets.proteinG)",
+                range: targetStart.upperBound..<guideSource.endIndex
             )
         )
-        let targetResolver = composerSource[targetStart.lowerBound..<targetEnd.lowerBound]
+        let targetResolver = guideSource[targetStart.lowerBound..<targetEnd.lowerBound]
             .filter { !$0.isWhitespace }
         let compactComposer = composerSource.filter { !$0.isWhitespace }
+        XCTAssertTrue(
+            compactComposer.contains("MealBlocks.macroGuide("),
+            "The meal composer must take its guide from the shared, guarded resolver"
+        )
 
         XCTAssertTrue(
             targetResolver.contains("guardtargets.isPublishableelse{returnnil}"),

@@ -2947,3 +2947,37 @@ Installed with `devicectl`. iConstantine Main and the Watch Ultra 3 both report 
 - No new strings; "Train together" is already in every table.
 - On the simulator, signed in as a second founding account, the day sheet for Thursday 26 Nov shows the button. It opened a friends room on the live server: code `94KZC8`, 4 exercises, shared control, lobby.
 - The live web page `#/join/94KZC8` showed the room without signing in: host first name, time, the four exercises, the kit to have ready, the code, "Open in the app" and "Add to calendar".
+
+## 2026-11-24 · Watch meals: Add without scrolling, and each meal's protein, carbs and fat (build 430)
+
+**What the owner asked.**
+- "type an amount box takes too much space, what if the number is already right by default and I just wanna press Add button? The Add button is burried and I have to scroll".
+- "I would also like to see macro targets (protein, carbs, fat) when I enter a meal on the watch … at the top of the Logged list, right after the meal title".
+
+**What changed.**
+- **The amount page** (`WatchMealPortionView`):
+  - **Typing:** the full-width "Type an amount" field is gone. Tapping the figure itself (a `TextFieldLink`) opens the Watch's own input: keyboard, Scribble or dictation. `WatchMealPortion.typedQuantity` reads "52", "52 g", "52,5" and other scripts' digits.
+  - **Layout:**
+    - The food name is 14 pt with at most 2 lines.
+    - −, the figure and + always share one row; the figure steps down through 30/26/22/18 pt instead of stacking.
+    - Add is at least 40 pt tall.
+    - The hint "Turn the crown or swipe. Tap the number to type it." moved below Add.
+    - A remembered amount that is already right is now one tap on every Watch size.
+  - **Behaviour unchanged:** the crown and the swipe still move 1 g at a time.
+  - **VoiceOver:** the figure is the one adjustable element ("Type an amount" is its hint); − and + are hidden from it.
+- **Each meal's macros:**
+  - A meal page opens with protein, carbs and fat: what the meal holds, including Watch additions not yet confirmed, against its share of the day. Each has a bar, and a figure goes ember above 115 %.
+  - The share is the meal composer's own guide. `MealBlocks.macroGuide(for:day:data:)` now serves both the composer and `WatchMealCompanion`, which sends it per block as `WatchMealBlock.guide`.
+  - A phone without it, or a day whose targets need review, sends none, and the Watch then shows none.
+- **Strings:** "Protein", "Carbs", "Fat" and "%lld of %lld g" were added in all nine `WatchMeals` locales, using the phone's own wording. "Turn the crown or swipe. Tap the number to type it." replaces "Swipe or turn the crown".
+- **Debug only:** launching with `APEX_WATCH_PREVIEW_MEALS=1 APEX_WATCH_PREVIEW_PAGE=meals APEX_WATCH_PREVIEW_MEAL=block|amount` opens lunch, or the amount page for its longest-named food.
+
+**Checks.**
+- `WatchMealTests` gained 3 tests (31 in all):
+  - reading typed figures;
+  - a meal's protein, carbs and fat including unconfirmed additions;
+  - each block carrying exactly the composer's guide, none without targets, and the snapshot surviving its round trip.
+- Simulator screenshots on the SE 3 40 mm (watchOS 26.5) and the Ultra 3 49 mm (watchOS 27):
+  - the amount page shows the name, amount and Add without scrolling, even for "Lee-Sport whey protein isolate, unflavoured";
+  - the lunch page opens with the three macro lines;
+  - on the 49 mm, tapping the figure, typing 52 and pressing Done gave 52 g.

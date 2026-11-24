@@ -110,4 +110,26 @@ enum MealBlocks {
     static func enabled(_ value: JSONValue?) -> [Block] {
         normalized(value).filter(\.enabled).sorted { $0.time < $1.time }
     }
+
+    /// One meal's share of the day's protein, carbs and fat in grams, the guide the meal composer and the Watch
+    /// show. Nil until the day's targets can be trusted.
+    static func macroGuide(for slot: String, day: String, data: DashboardData) -> (protein: Double, carbs: Double, fat: Double)? {
+        guard let profile = data.weighedProfile() else { return nil }
+        let logs = data.activityLogs.filter { $0.userID == profile.userID && $0.date == day }
+        let targets = EnergyEngine.targets(
+            profile: profile,
+            logs: logs,
+            catalog: data.activityTypes,
+            planContext: NutritionGoalPolicy.context(from: data.settings),
+            settings: data.settings,
+            wearableActiveCalories: WearableActivityRecord.activeCalories(
+                on: day,
+                settings: data.settings,
+                ownerID: profile.userID
+            )
+        )
+        guard targets.isPublishable else { return nil }
+        let share = guideShare(for: slot, enabled: enabled(data.settings?.addons["meal_blocks"]))
+        return (Double(targets.proteinG) * share, Double(targets.carbsG) * share, Double(targets.fatG) * share)
+    }
 }

@@ -139,7 +139,13 @@ enum WatchMealCompanion {
         return WatchMealSnapshot(
             ownerID: ownerID,
             revision: revision,
-            blocks: blocks.map { WatchMealBlock(id: $0.kind, label: localize($0.label), time: $0.time) },
+            blocks: blocks.map { block in
+                WatchMealBlock(
+                    id: block.kind, label: localize(block.label), time: block.time,
+                    guide: MealBlocks.macroGuide(for: block.kind, day: day, data: data)
+                        .map { WatchMealMacros(protein: $0.protein, carbs: $0.carbs, fat: $0.fat) }
+                )
+            },
             foods: foods.values.sorted { $0.id < $1.id },
             logs: logs,
             favourites: favourites,
