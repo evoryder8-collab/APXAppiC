@@ -3101,5 +3101,11 @@ Installed with `devicectl`. iConstantine Main and the Watch Ultra 3 both report 
 
 **Left.**
 - A 427/428 phone in a wheel room never gets the chosen workout. Everyone needs 431 or later.
-- No two-phone check of the wheel on a real device yet.
 - The lobby's big gap under the invite card, seen in 427, is unchanged.
+
+**Two-phone check (2026-11-24, room NM85KY).** The owner's iPhone on 431 (Constantine) joined, with the simulator as host (Iulian-Andrei).
+- The simulator spun, and the owner confirmed his iPhone showed the same spin landing on "Strong all over".
+- From the server logs, the iPhone:
+  - joined at 09:31:27 and read the room at once;
+  - fetched the chosen workout 0.2 s after "Train this" (09:33:09.87, sent from the simulator), off its 20-second refresh, so the live broadcast reached it;
+  - saved "Strong all over" and its 5 exercises into the owner's own account by 09:33:11.
