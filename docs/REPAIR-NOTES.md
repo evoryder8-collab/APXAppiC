@@ -2981,3 +2981,10 @@ Installed with `devicectl`. iConstantine Main and the Watch Ultra 3 both report 
   - the amount page shows the name, amount and Add without scrolling, even for "Lee-Sport whey protein isolate, unflavoured";
   - the lunch page opens with the three macro lines;
   - on the 49 mm, tapping the figure, typing 52 and pressing Done gave 52 g.
+- Full iPhone unit suite: 1,296 tests, 0 failures. The first run failed 2 source checks in `EnergyEngineTests`: they read the meal composer for the owner and date filters on activity and the "blocked target, no guide" guard. Those now live in `MealBlocks.macroGuide`, so the checks read it there and also require the composer to use it.
+
+**Delivered.**
+- Commit `7edae17a` is on `main` and `codex/main-critical-repair`, and the Pages deploy succeeded. The Train together session's uncommitted 429 work was left out of the commit: in the shared project files only the build number went in.
+- The archive `build/FITR-MAX-1.0.1-430.xcarchive` was built from a clean worktree of `7edae17a`. iPhone, Watch and complication are all 1.0.1 (430), and `codesign --verify --deep --strict` passed.
+- Installed with `devicectl`. iConstantine Main and the Watch Ultra 3 both report 1.0.1 (430).
+- How the macro lines read with a real day's targets has only been seen on the simulator, not yet on the owner's wrist.
