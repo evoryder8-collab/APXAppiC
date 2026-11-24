@@ -3093,6 +3093,12 @@ Installed with `devicectl`. iConstantine Main and the Watch Ultra 3 both report 
   - the two request flags are not merged into one enum;
   - `TrainTogetherRoomScreen` and the card stay in the wheel file.
 
+**Delivered.**
+- Commit `bd4afb60` is on `main` and `codex/main-critical-repair`, and Pages run 45358450056 succeeded.
+- The live `#/join/NM85KY` page shows a room still choosing as "Group workout" with "The workout is drawn on the wheel once everyone is in."
+- The archive `build/FITR-MAX-1.0.1-431.xcarchive` was built from a clean worktree of 430 plus only this work. iPhone and Watch are both 1.0.1 (431), and `codesign --verify --deep --strict` passed.
+- Installed with `devicectl` over 430. iConstantine Main reports FITR MAX 1.0.1 (431), and the Watch Ultra 3 reports FITR MAX Watch 1.0.1 (431).
+
 **Left.**
 - A 427/428 phone in a wheel room never gets the chosen workout. Everyone needs 431 or later.
 - No two-phone check of the wheel on a real device yet.
